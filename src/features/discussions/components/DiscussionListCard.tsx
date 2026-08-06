@@ -8,7 +8,6 @@ import {
   ThumbsUp,
   MoreVertical,
   Paperclip,
-  Sparkles,
   Archive,
   Trash2,
   Edit,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldOff, Settings, Sparkles } from 'lucide-react';
+import { ShieldOff, Settings } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { useNavigate } from 'react-router-dom';

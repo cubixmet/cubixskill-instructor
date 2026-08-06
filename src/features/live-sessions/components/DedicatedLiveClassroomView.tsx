@@ -8,20 +8,13 @@ import {
   MessageSquare,
   Paperclip,
   HelpCircle,
-  FileText,
   Mic,
   MicOff,
   Hand,
   ShieldCheck,
   Send,
   ExternalLink,
-  BookOpen,
-  Megaphone,
-  ClipboardCheck,
-  Smile,
-  Maximize2,
 } from 'lucide-react';
-import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import type { LiveSessionItem } from '../store/liveSession.store';

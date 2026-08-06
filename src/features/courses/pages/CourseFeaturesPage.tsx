@@ -1,14 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   SlidersHorizontal,
   Search,
   RotateCcw,
   Save,
   CheckCircle2,
-  AlertTriangle,
-  Sparkles,
-  Sliders,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -18,10 +15,9 @@ import { Input } from '../../../components/ui/Input';
 import {
   COURSE_FEATURE_CATEGORIES,
   COURSE_FEATURE_DEFINITIONS,
-  type CourseFeatureCategory,
   type CourseFeatureDefinition,
 } from '../../course-features/config/course-features';
-import { useCourseFeaturesStore, DEFAULT_COURSE_FEATURES } from '../store/courseFeatures.store';
+import { useCourseFeaturesStore } from '../store/courseFeatures.store';
 
 import { FeatureCreditSummaryBar } from '../../course-features/components/FeatureCreditSummaryBar';
 import { FeatureCard } from '../../course-features/components/FeatureCard';
@@ -289,7 +285,6 @@ export const CourseFeaturesPage: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               leftIcon={<Search className="w-4 h-4 text-slate-400" />}
-              size="sm"
             />
           </div>
 
@@ -378,7 +373,7 @@ export const CourseFeaturesPage: React.FC = () => {
         isOpen={!!configFeature}
         onClose={() => setConfigFeature(null)}
         feature={configFeature}
-        onSaveSettings={(fId, settings) => {
+        onSaveSettings={(_fId, _settings) => {
           setToastMessage(`Updated configuration settings for feature.`);
           setTimeout(() => setToastMessage(null), 3000);
         }}

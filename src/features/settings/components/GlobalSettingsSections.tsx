@@ -1,22 +1,7 @@
 import React, { useState } from 'react';
 import {
-  User,
-  Building2,
-  Palette,
-  Layout,
-  CreditCard,
-  Bell,
-  Shield,
-  Users,
-  Globe,
-  Key,
-  Sliders,
-  Download,
-  AlertTriangle,
   CheckCircle2,
-  Lock,
   RefreshCw,
-  ExternalLink,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Input } from '../../../components/ui/Input';

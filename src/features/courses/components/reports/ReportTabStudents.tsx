@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Search, Download, ExternalLink, Award, CheckCircle2 } from 'lucide-react';
-import { Card } from '../../../../components/ui/Card';
+import { Search, Download } from 'lucide-react';
 import { Input } from '../../../../components/ui/Input';
 import { Button } from '../../../../components/ui/Button';
 
@@ -10,7 +9,6 @@ export interface ReportTabStudentsProps {
 
 export const ReportTabStudents: React.FC<ReportTabStudentsProps> = ({ students }) => {
   const [search, setSearch] = useState('');
-  const [activeStudent, setActiveStudent] = useState<any | null>(null);
 
   const filtered = (students || []).filter(
     (s) =>
@@ -27,7 +25,6 @@ export const ReportTabStudents: React.FC<ReportTabStudentsProps> = ({ students }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             leftIcon={<Search className="w-4 h-4 text-slate-400" />}
-            size="sm"
           />
         </div>
 
@@ -82,7 +79,6 @@ export const ReportTabStudents: React.FC<ReportTabStudentsProps> = ({ students }
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setActiveStudent(st)}
                 className="h-8 text-[11px] font-bold text-slate-700"
               >
                 View Analytics

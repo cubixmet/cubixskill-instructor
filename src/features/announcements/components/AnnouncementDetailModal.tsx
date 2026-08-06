@@ -1,18 +1,12 @@
 import React, { useState } from 'react';
 import {
-  Megaphone,
-  Pin,
-  Calendar,
   Eye,
   CheckCircle2,
-  Clock,
   Paperclip,
   Download,
   MessageSquare,
-  Send,
   Trash2,
   ThumbsUp,
-  User,
 } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';

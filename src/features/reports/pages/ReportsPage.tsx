@@ -22,13 +22,9 @@ import {
   FileText,
   AlertTriangle,
   PlayCircle,
-  Award as CertificateIcon,
   ShoppingBag,
   CreditCard,
   Layers,
-  ChevronRight,
-  ExternalLink,
-  Eye,
   Check,
   XCircle,
   FileSpreadsheet,
@@ -40,7 +36,6 @@ import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { SkeletonCard, SkeletonTable } from '../../../components/ui/Skeleton';
-import { EmptyState } from '../../../components/ui/EmptyState';
 import { ErrorState } from '../../../components/ui/ErrorState';
 
 export type ReportTab =

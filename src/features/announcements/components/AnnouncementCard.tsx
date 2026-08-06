@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Pin,
-  Clock,
   Eye,
   Paperclip,
   MessageSquare,
@@ -11,13 +10,10 @@ import {
   Archive,
   Trash2,
   Send,
-  AlertCircle,
-  CheckCircle2,
   FileText,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
-import { Button } from '../../../components/ui/Button';
 import type { AnnouncementItem } from '../store/announcement.store';
 
 export interface AnnouncementCardProps {

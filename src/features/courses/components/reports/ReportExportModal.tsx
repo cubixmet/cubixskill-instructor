@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, FileText, Printer, CheckCircle2 } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { Modal } from '../../../../components/ui/Modal';
 import { Button } from '../../../../components/ui/Button';
 

@@ -6,24 +6,9 @@ import {
   CreditCard,
   Download,
   Plus,
-  Zap,
-  Tag,
-  Check,
-  Percent,
   Search,
-  FileSpreadsheet,
-  FileText,
-  Clock,
-  ShieldCheck,
-  TrendingUp,
-  AlertCircle,
-  HelpCircle,
-  X,
   Sparkles,
-  BarChart3,
-  Layers,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
@@ -200,15 +185,15 @@ export const CreditsPage: React.FC = () => {
 
   const handleDownloadStatement = () => {
     const columns: CsvColumn<CreditTransactionRecord>[] = [
-      { header: 'Reference ID', accessor: 'referenceId' },
-      { header: 'Date', accessor: 'date' },
-      { header: 'Type', accessor: 'type' },
-      { header: 'Credits', accessor: 'credits' },
-      { header: 'Amount (₹)', accessor: 'amount' },
-      { header: 'Status', accessor: 'status' },
-      { header: 'Description', accessor: 'description' },
+      { header: 'Reference ID', value: (t) => t.referenceId },
+      { header: 'Date', value: (t) => t.date },
+      { header: 'Type', value: (t) => t.type },
+      { header: 'Credits', value: (t) => t.credits },
+      { header: 'Amount (₹)', value: (t) => t.amount },
+      { header: 'Status', value: (t) => t.status },
+      { header: 'Description', value: (t) => t.description },
     ];
-    exportToCsv(filteredTransactions, columns, `credit-statement-${Date.now()}.csv`);
+    exportToCsv(`credit-statement-${Date.now()}.csv`, filteredTransactions, columns);
   };
 
   return (

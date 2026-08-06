@@ -1,34 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  HelpCircle,
-  Plus,
   Trash2,
-  Copy,
-  GripVertical,
-  Check,
   X,
   FileCheck,
-  Shield,
-  Clock,
-  Award,
-  Layers,
-  Sparkles,
-  Sliders,
-  Code2,
   FileText,
   AlertCircle,
-  CheckCircle2,
-  Save,
-  ArrowLeft,
-  ArrowRight,
   Download,
   Upload,
   FileSpreadsheet,
-  AlertTriangle,
-  FileCode,
 } from 'lucide-react';
-import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { StepGuard } from '../../../components/common/StepGuard';
@@ -73,21 +54,21 @@ export const QuizFormWizardModal: React.FC<QuizFormWizardModalProps> = ({
   const [category, setCategory] = useState(initialQuiz?.category || 'General');
   const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>(initialQuiz?.difficulty || 'Medium');
   const [quizType, setQuizType] = useState<QuizType>(initialQuiz?.quizType || 'graded');
-  const [status, setStatus] = useState<QuizStatus>(initialQuiz?.status || 'Published');
+  const [status] = useState<QuizStatus>(initialQuiz?.status || 'Published');
   const [duration, setDuration] = useState<number>(initialQuiz?.estimatedDurationMinutes || 15);
-  const [tags, setTags] = useState<string>(initialQuiz?.tags?.join(', ') || 'React, Assessment');
+  const [tags] = useState<string>(initialQuiz?.tags?.join(', ') || 'React, Assessment');
 
   // STEP 2: Question Configuration
   const [questionMode, setQuestionMode] = useState<QuestionMode>(initialQuiz?.questionMode || 'OMR');
   const [numberOfSets, setNumberOfSets] = useState<number>(initialQuiz?.numberOfSets || 4);
   const [questionsPerSet, setQuestionsPerSet] = useState<number>(initialQuiz?.questionsPerSet || 25);
   const [passingScore, setPassingScore] = useState<number>(initialQuiz?.passingScore || 75);
-  const [maxMarks, setMaxMarks] = useState<number>(initialQuiz?.maxMarks || 100);
+  const [maxMarks] = useState<number>(initialQuiz?.maxMarks || 100);
   const [negativeMarking, setNegativeMarking] = useState<boolean>(initialQuiz?.negativeMarking ?? false);
   const [shuffleQuestions, setShuffleQuestions] = useState<boolean>(initialQuiz?.shuffleQuestions ?? true);
   const [shuffleOptions, setShuffleOptions] = useState<boolean>(initialQuiz?.shuffleOptions ?? true);
   const [randomizeSets, setRandomizeSets] = useState<boolean>(initialQuiz?.randomizeSets ?? true);
-  const [questionNumbering, setQuestionNumbering] = useState<boolean>(initialQuiz?.questionNumbering ?? true);
+  const [questionNumbering] = useState<boolean>(initialQuiz?.questionNumbering ?? true);
 
   // STEP 3: Questions List & Mode (Manual vs Bulk Upload)
   const [entryMode, setEntryMode] = useState<'manual' | 'bulk'>('bulk');
@@ -119,9 +100,9 @@ export const QuizFormWizardModal: React.FC<QuizFormWizardModalProps> = ({
   // STEP 4: Quiz Settings
   const [maxAttempts, setMaxAttempts] = useState<number>(initialQuiz?.maxAttempts || 3);
   const [timeLimitMinutes, setTimeLimitMinutes] = useState<number>(initialQuiz?.timeLimitMinutes || 15);
-  const [showScoreAfterSubmit, setShowScoreAfterSubmit] = useState<boolean>(initialQuiz?.showScoreAfterSubmit ?? true);
-  const [showAnswersAfterSubmit, setShowAnswersAfterSubmit] = useState<boolean>(initialQuiz?.showAnswersAfterSubmit ?? true);
-  const [autoSubmitOnTimeout, setAutoSubmitOnTimeout] = useState<boolean>(initialQuiz?.examMode?.autoSubmitOnTimeout ?? true);
+  const [showScoreAfterSubmit] = useState<boolean>(initialQuiz?.showScoreAfterSubmit ?? true);
+  const [showAnswersAfterSubmit] = useState<boolean>(initialQuiz?.showAnswersAfterSubmit ?? true);
+  const [autoSubmitOnTimeout] = useState<boolean>(initialQuiz?.examMode?.autoSubmitOnTimeout ?? true);
   const [unlockNextLesson, setUnlockNextLesson] = useState<boolean>(initialQuiz?.unlockNextLesson ?? true);
   const [certificateOnPass, setCertificateOnPass] = useState<boolean>(initialQuiz?.certificateOnPass ?? false);
 
@@ -171,20 +152,20 @@ export const QuizFormWizardModal: React.FC<QuizFormWizardModalProps> = ({
         }
       }
       const columns: CsvColumn<any>[] = [
-        { header: 'Question', accessor: 'Question' },
-        { header: 'Option A', accessor: 'Option A' },
-        { header: 'Option B', accessor: 'Option B' },
-        { header: 'Option C', accessor: 'Option C' },
-        { header: 'Option D', accessor: 'Option D' },
-        { header: 'Option E', accessor: 'Option E' },
-        { header: 'Correct Answer', accessor: 'Correct Answer' },
-        { header: 'Marks', accessor: 'Marks' },
-        { header: 'Explanation', accessor: 'Explanation' },
-        { header: 'Difficulty', accessor: 'Difficulty' },
-        { header: 'Tags', accessor: 'Tags' },
-        { header: 'Question Set', accessor: 'Question Set' },
+        { header: 'Question', value: (row) => row['Question'] },
+        { header: 'Option A', value: (row) => row['Option A'] },
+        { header: 'Option B', value: (row) => row['Option B'] },
+        { header: 'Option C', value: (row) => row['Option C'] },
+        { header: 'Option D', value: (row) => row['Option D'] },
+        { header: 'Option E', value: (row) => row['Option E'] },
+        { header: 'Correct Answer', value: (row) => row['Correct Answer'] },
+        { header: 'Marks', value: (row) => row['Marks'] },
+        { header: 'Explanation', value: (row) => row['Explanation'] },
+        { header: 'Difficulty', value: (row) => row['Difficulty'] },
+        { header: 'Tags', value: (row) => row['Tags'] },
+        { header: 'Question Set', value: (row) => row['Question Set'] },
       ];
-      exportToCsv(templateData, columns, `omr-quiz-template-${numberOfSets}-sets.csv`);
+      exportToCsv(`omr-quiz-template-${numberOfSets}-sets.csv`, templateData, columns);
     } else {
       const templateData = [];
       for (let s = 0; s < numberOfSets; s++) {
@@ -202,15 +183,15 @@ export const QuizFormWizardModal: React.FC<QuizFormWizardModalProps> = ({
         }
       }
       const columns: CsvColumn<any>[] = [
-        { header: 'Question', accessor: 'Question' },
-        { header: 'Answer', accessor: 'Answer' },
-        { header: 'Marks', accessor: 'Marks' },
-        { header: 'Explanation', accessor: 'Explanation' },
-        { header: 'Difficulty', accessor: 'Difficulty' },
-        { header: 'Tags', accessor: 'Tags' },
-        { header: 'Question Set', accessor: 'Question Set' },
+        { header: 'Question', value: (row) => row['Question'] },
+        { header: 'Answer', value: (row) => row['Answer'] },
+        { header: 'Marks', value: (row) => row['Marks'] },
+        { header: 'Explanation', value: (row) => row['Explanation'] },
+        { header: 'Difficulty', value: (row) => row['Difficulty'] },
+        { header: 'Tags', value: (row) => row['Tags'] },
+        { header: 'Question Set', value: (row) => row['Question Set'] },
       ];
-      exportToCsv(templateData, columns, `direct-answer-quiz-template-${numberOfSets}-sets.csv`);
+      exportToCsv(`direct-answer-quiz-template-${numberOfSets}-sets.csv`, templateData, columns);
     }
   };
 
@@ -229,7 +210,6 @@ export const QuizFormWizardModal: React.FC<QuizFormWizardModalProps> = ({
           return;
         }
 
-        const headers = lines[0].split(',').map((h) => h.replace(/^"|"$/g, '').trim());
         const newQuestions: Partial<QuizQuestion>[] = [];
         const errors: string[] = [];
 
@@ -799,7 +779,7 @@ export const QuizFormWizardModal: React.FC<QuizFormWizardModalProps> = ({
                       <div className="flex items-center justify-between border-b pb-2">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-[#2563EB]">Q{idx + 1}</span>
-                          <Badge variant="outline" size="sm" className="border-blue-200 text-[#2563EB]">
+                          <Badge variant="neutral" size="sm" className="border-blue-200 text-[#2563EB]">
                             {q.questionSet || 'Set A'}
                           </Badge>
                         </div>

@@ -1,9 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import {
-  AlertTriangle,
   Clock,
-  CheckCircle2,
   ChevronRight,
   FileCheck2,
   HelpCircle,

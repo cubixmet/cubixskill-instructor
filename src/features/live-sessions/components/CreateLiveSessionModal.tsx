@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Video,
-  Calendar,
-  Clock,
-  User,
   Link as LinkIcon,
   Plus,
   Trash2,

@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   BookOpen,
-  Users,
   Award,
   CircleHelp,
   ClipboardCheck,
@@ -11,25 +10,16 @@ import {
   Clock,
   Zap,
   Edit3,
-  Trash2,
   Check,
-  ShieldCheck,
   CreditCard,
   FileText,
   Activity,
-  ChevronDown,
   Mail,
   Phone,
-  Globe,
   Settings,
-  UserPlus,
   Calendar,
   UserX,
   RefreshCw,
-  Plus,
-  Search,
-  Download,
-  AlertTriangle,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -39,7 +29,6 @@ import { Input } from '../../../components/ui/Input';
 import { useStudentStore } from '../store/student.store';
 import { useCourseFeaturesStore } from '../../courses/store/courseFeatures.store';
 import { useCourseStore } from '../../courses/store/course.store';
-import { useCurriculumStore } from '../../courses/store/curriculum.store';
 import { EnrollStudentModal } from '../components/EnrollStudentModal';
 
 type StudentTabId =
@@ -102,12 +91,9 @@ export const StudentSinglePage: React.FC = () => {
   };
 
   const courseFeatures = useCourseFeaturesStore((state) => state.getCourseFeatures(courseUuid));
-  const deleteStudent = useStudentStore((state) => state.deleteStudent);
   const toggleStudentStatus = useStudentStore((state) => state.toggleStudentStatus);
-  const lessons = useCurriculumStore((state) => state.lessons);
 
   const [activeTab, setActiveTab] = useState<StudentTabId>('overview');
-  const [expandedAccordion, setExpandedAccordion] = useState<string | null>('overview');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
 

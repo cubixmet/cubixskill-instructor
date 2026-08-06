@@ -17,22 +17,27 @@ export type QuizStatus = 'Draft' | 'Published' | 'Scheduled' | 'Closed' | 'Archi
 
 export interface QuizQuestion {
   id: string;
-  quizId: string;
+  quizId?: string;
   type: QuestionType;
-  question: string;
+  question?: string;
+  questionText?: string;
   imageUrl?: string;
   marks: number;
-  negativeMarks: number;
+  negativeMarks?: number;
   explanation?: string;
   difficulty?: 'Easy' | 'Medium' | 'Hard';
   tags?: string[];
   questionSet?: string; // 'Set A', 'Set B', 'Set C', etc.
-  isRequired: boolean;
-  requiresManualReview: boolean;
-  options?: { id: string; text: string; isCorrect?: boolean }[];
+  isRequired?: boolean;
+  requiresManualReview?: boolean;
+  options?: any;
   correctAnswer?: any;
+  correctAnswers?: any;
   matchingPairs?: { id: string; left: string; right: string }[];
   orderingItems?: { id: string; text: string }[];
+  starterCode?: string;
+  expectedOutputDescription?: string;
+  codingLanguage?: string;
   codingSettings?: {
     language: string;
     starterCode: string;
@@ -55,6 +60,7 @@ export interface Quiz {
   id: string;
   courseUuid: string;
   title: string;
+  description?: string;
   shortDescription: string;
   instructions: string;
   category?: string;
@@ -72,26 +78,47 @@ export interface Quiz {
   questionsPerSet: number; // 25, 50, 100
 
   passingScore: number;
+  passingMarks?: number;
   maxMarks: number;
+  totalMarks?: number;
   maxAttempts: number;
   timeLimitMinutes: number;
   negativeMarking: boolean;
+  negativeMarksEnabled?: boolean;
   shuffleQuestions: boolean;
   shuffleOptions: boolean;
+  shuffleAnswers?: boolean;
+  randomSelection?: boolean;
+  randomQuestionSelection?: boolean;
+  randomQuestionsToShowCount?: number;
   randomizeSets: boolean;
   questionNumbering: boolean;
   questionsToDisplay?: number;
 
   showScoreAfterSubmit: boolean;
+  showScoreAfterSubmission?: boolean;
   showAnswersAfterSubmit: boolean;
+  showAnswersAfterSubmission?: boolean;
   hideCorrectAnswers: boolean;
   autoGrading: boolean;
   requiresManualReview: boolean;
+  manualReviewRequired?: boolean;
+  autoSubmitOnTimeout?: boolean;
   unlockNextLesson?: boolean;
+  unlockNextLessonAfterPass?: boolean;
   unlockNextModule?: boolean;
   certificateOnPass?: boolean;
+  triggerCertificateAfterPass?: boolean;
+  fullScreenRequired?: boolean;
+  disableNavigation?: boolean;
+  warnOnTabSwitch?: boolean;
+  autoSaveAnswers?: boolean;
+  resumeAfterDisconnect?: boolean;
 
   examMode: ExamModeSettings;
+  isExamMode?: boolean;
+
+  questions?: QuizQuestion[];
 
   createdAt: string;
   updatedAt: string;
@@ -111,21 +138,30 @@ export interface QuizAnswerPayload {
 
 export interface QuizAttempt {
   id: string;
-  quizId: string;
-  courseUuid: string;
+  quizId?: string;
+  courseUuid?: string;
   studentUuid: string;
   studentName: string;
   studentEmail: string;
   attemptNumber: number;
-  startedAt: string;
+  startedAt?: string;
   submittedAt: string;
-  timeTakenSeconds: number;
+  timeTakenSeconds?: number;
+  timeTakenMinutes?: number;
   score: number;
   maxScore: number;
-  percentage: number;
-  isPassed: boolean;
+  percentage?: number;
+  isPassed?: boolean;
+  passed?: boolean;
   autoGradedMarks: number;
   manualMarks: number;
-  status: 'completed' | 'pending_review' | 'graded' | 'reset';
-  answers: QuizAnswerPayload[];
+  pendingManualMarks?: number;
+  instructorFeedback?: string;
+  status: 'completed' | 'pending_review' | 'graded' | 'reset' | 'needs_manual_review';
+  answers?: QuizAnswerPayload[];
 }
+
+export type QuizData = Quiz;
+export type QuizQuestionItem = QuizQuestion;
+export type QuizAttemptResult = QuizAttempt;
+

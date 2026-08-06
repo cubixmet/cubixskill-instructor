@@ -3,27 +3,15 @@ import { useParams } from 'react-router-dom';
 import {
   Award,
   Plus,
-  Eye,
   Download,
   CheckCircle2,
   Zap,
-  Edit,
   Trash2,
   Copy,
-  Archive,
   QrCode,
   Users,
-  AlertTriangle,
-  FileCheck,
   Search,
-  Check,
-  RotateCcw,
-  Sliders,
-  Sparkles,
-  BarChart3,
-  Layers,
   Settings,
-  ShieldCheck,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -31,7 +19,7 @@ import { Badge } from '../../../components/ui/Badge';
 import { Modal } from '../../../components/ui/Modal';
 import { useCertificateStore } from '../../certificates/store/certificate.store';
 import { CardFlowCertificateBuilderModal } from '../../certificates/components/CardFlowCertificateBuilderModal';
-import type { CertificateTemplate, IssuedCertificate, AutoIssueConditions } from '../../../types/certificate.types';
+import type { CertificateTemplate } from '../../../types/certificate.types';
 
 export const CourseCertificatesPage: React.FC = () => {
   const { courseUuid = '550e8400-e29b-41d4-a716-446655440000' } = useParams<{ courseUuid?: string }>();
@@ -154,7 +142,7 @@ export const CourseCertificatesPage: React.FC = () => {
             </span>
           </div>
         </div>
-        <Badge variant="outline" size="sm" className="border-blue-300 text-[#2563EB] shrink-0 hidden sm:inline-flex">
+        <Badge variant="neutral" size="sm" className="border-blue-300 text-[#2563EB] shrink-0 hidden sm:inline-flex">
           Instructor Only Notice
         </Badge>
       </div>
@@ -272,7 +260,7 @@ export const CourseCertificatesPage: React.FC = () => {
                         <Badge variant={isActive ? 'success' : 'secondary'} size="sm">
                           {template.status}
                         </Badge>
-                        <Badge variant="outline" size="sm" className="border-blue-200 text-[#2563EB]">
+                        <Badge variant="neutral" size="sm" className="border-blue-200 text-[#2563EB]">
                           v{template.version || 1}.0 CardFlow
                         </Badge>
                       </div>

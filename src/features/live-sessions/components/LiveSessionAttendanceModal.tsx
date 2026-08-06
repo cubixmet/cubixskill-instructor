@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Users, CheckCircle2, XCircle, Clock, Download, Search } from 'lucide-react';
+import { Download, Search } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
-import type { LiveSessionItem, AttendanceRecord } from '../store/liveSession.store';
+import type { LiveSessionItem } from '../store/liveSession.store';
 
 export interface LiveSessionAttendanceModalProps {
   isOpen: boolean;
@@ -72,7 +72,6 @@ export const LiveSessionAttendanceModal: React.FC<LiveSessionAttendanceModalProp
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               leftIcon={<Search className="w-3.5 h-3.5 text-slate-400" />}
-              size="sm"
             />
           </div>
 

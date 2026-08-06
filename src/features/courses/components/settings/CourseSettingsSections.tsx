@@ -1,33 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  FileText,
-  Eye,
-  Users,
-  DollarSign,
-  Lock,
-  Film,
-  FileCheck,
-  HelpCircle,
-  Award,
-  MessageSquare,
-  Megaphone,
-  Radio,
-  Bell,
-  Globe,
-  Send,
-  Download,
   AlertTriangle,
-  Sliders,
-  CheckCircle2,
-  Trash2,
-  Copy,
-  Archive,
 } from 'lucide-react';
 import { Card } from '../../../../components/ui/Card';
 import { Input } from '../../../../components/ui/Input';
 import { Button } from '../../../../components/ui/Button';
 import { FeatureDisabledBanner } from '../../../discussions/components/FeatureDisabledBanner';
-import type { CourseSettingsConfig } from '../store/courseSettings.store';
+import type { CourseSettingsConfig } from '../../store/courseSettings.store';
 
 export interface CourseSettingsSectionsProps {
   sectionId: string;
@@ -46,11 +25,6 @@ export const CourseSettingsSections: React.FC<CourseSettingsSectionsProps> = ({
   courseUuid,
   onOpenDeleteModal,
 }) => {
-  const [instructorNoticeOpen, setInstructorNoticeOpen] = useState(false);
-
-  const handleMediaUploadClick = () => {
-    setInstructorNoticeOpen(true);
-  };
 
   // 1. Basic Information
   if (sectionId === 'basic') {

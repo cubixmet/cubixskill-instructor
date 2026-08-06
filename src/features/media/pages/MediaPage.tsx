@@ -9,8 +9,6 @@ import {
   FileText,
   Image as ImageIcon,
   FileCode,
-  Download,
-  Plus,
   AlertTriangle,
   HardDrive,
 } from 'lucide-react';
@@ -121,7 +119,6 @@ export const MediaPage: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             leftIcon={<Search className="w-4 h-4 text-slate-400" />}
-            size="sm"
           />
         </div>
 

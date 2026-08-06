@@ -241,7 +241,7 @@ export const ModuleFormModal: React.FC<ModuleFormModalProps> = ({
           </div>
 
           {/* Form Scrollable Body */}
-          <form onSubmit={handleSubmit(onFormSubmit)} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 no-scrollbar">
+          <form onSubmit={handleSubmit(onFormSubmit as any)} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 no-scrollbar">
             {/* 1. MODULE TITLE */}
             <div className="space-y-1.5">
               <label className="block text-[12px] font-semibold text-[#0F172A]">

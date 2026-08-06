@@ -3,8 +3,6 @@ import { useParams, useNavigate, useLocation, useSearchParams } from 'react-rout
 import {
   HelpCircle,
   Plus,
-  Eye,
-  Clock,
   CheckCircle2,
   Download,
   Search,
@@ -13,15 +11,8 @@ import {
   Edit,
   Trash2,
   Copy,
-  Archive,
   Award,
   BarChart3,
-  Shield,
-  Layers,
-  MoreVertical,
-  Sliders,
-  FileCheck,
-  AlertTriangle,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -29,7 +20,7 @@ import { Badge } from '../../../components/ui/Badge';
 import { useQuizStore } from '../../quizzes/store/quiz.store';
 import { QuizFormWizardModal } from '../../quizzes/components/QuizFormWizardModal';
 import { exportToCsv, type CsvColumn } from '../../../utils/export-csv';
-import type { Quiz, QuizStatus } from '../../../types/quiz.types';
+import type { Quiz } from '../../../types/quiz.types';
 
 export const CourseQuizzesPage: React.FC = () => {
   const { courseUuid = '550e8400-e29b-41d4-a716-446655440000' } = useParams<{ courseUuid?: string }>();
@@ -39,16 +30,13 @@ export const CourseQuizzesPage: React.FC = () => {
 
   // Store Selectors
   const quizzes = useQuizStore((state) => state.quizzes);
-  const attempts = useQuizStore((state) => state.attempts);
   const deleteQuiz = useQuizStore((state) => state.deleteQuiz);
   const duplicateQuiz = useQuizStore((state) => state.duplicateQuiz);
-  const publishQuiz = useQuizStore((state) => state.publishQuiz);
-  const archiveQuiz = useQuizStore((state) => state.archiveQuiz);
 
   // Local UI & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusTab, setStatusTab] = useState<'All' | 'Published' | 'Draft' | 'Archived' | 'Pending Review'>('All');
-  const [quizTypeFilter, setQuizTypeFilter] = useState('All');
+  const [quizTypeFilter] = useState('All');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
@@ -87,17 +75,17 @@ export const CourseQuizzesPage: React.FC = () => {
 
   const handleExportCSV = () => {
     const columns: CsvColumn<Quiz>[] = [
-      { header: 'Quiz Title', accessor: 'title' },
-      { header: 'Status', accessor: 'status' },
-      { header: 'Type', accessor: 'quizType' },
-      { header: 'Passing Score (%)', accessor: 'passingScore' },
-      { header: 'Time Limit (Mins)', accessor: 'timeLimitMinutes' },
-      { header: 'Attempts', accessor: 'totalAttemptsCount' },
-      { header: 'Avg Score (%)', accessor: 'averageScore' },
-      { header: 'Exam Mode', accessor: (q) => (q.examMode?.enabled ? 'Enabled' : 'Disabled') },
+      { header: 'Quiz Title', value: (q) => q.title },
+      { header: 'Status', value: (q) => q.status },
+      { header: 'Type', value: (q) => q.quizType },
+      { header: 'Passing Score (%)', value: (q) => q.passingScore },
+      { header: 'Time Limit (Mins)', value: (q) => q.timeLimitMinutes },
+      { header: 'Attempts', value: (q) => q.totalAttemptsCount },
+      { header: 'Avg Score (%)', value: (q) => q.averageScore },
+      { header: 'Exam Mode', value: (q) => (q.examMode?.enabled ? 'Enabled' : 'Disabled') },
     ];
 
-    exportToCsv(courseQuizzes, columns, `course-quizzes-${courseUuid}.csv`);
+    exportToCsv(`course-quizzes-${courseUuid}.csv`, courseQuizzes, columns);
   };
 
   return (
@@ -351,7 +339,7 @@ export const CourseQuizzesPage: React.FC = () => {
                       {quiz.status}
                     </Badge>
                     {quiz.examMode?.enabled && (
-                      <Badge variant="outline" size="sm" className="border-blue-200 text-[#2563EB]">
+                      <Badge variant="neutral" size="sm" className="border-blue-200 text-[#2563EB]">
                         Exam Mode
                       </Badge>
                     )}

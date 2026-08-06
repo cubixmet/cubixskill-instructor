@@ -797,10 +797,11 @@ export const useDiscussionStore = create<DiscussionStoreState>()(
             return { personalChats: updatedChats };
           } else {
             const memberList = state.members[courseUuid] || SEED_MEMBERS;
-            const targetStudent = memberList.find((m) => m.uuid === studentUuid) || {
+            const targetStudent: { uuid: string; name: string; email: string; avatar?: string } = memberList.find((m) => m.uuid === studentUuid) || {
               uuid: studentUuid,
               name: 'Student User',
               email: 'student@gmail.com',
+              avatar: undefined,
             };
 
             const newChatId = `pchat-${studentUuid}`;
@@ -810,7 +811,7 @@ export const useDiscussionStore = create<DiscussionStoreState>()(
               senderUuid: senderRole === 'instructor' ? 'inst-1' : studentUuid,
               senderRole,
               senderName: senderRole === 'instructor' ? 'Dr. Vikramaditya Rao' : targetStudent.name,
-              senderAvatar: senderRole === 'instructor' ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100' : targetStudent.avatar,
+              senderAvatar: senderRole === 'instructor' ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100' : targetStudent.avatar || '',
               content,
               timestamp: now,
               status: 'sent',
@@ -822,7 +823,7 @@ export const useDiscussionStore = create<DiscussionStoreState>()(
               courseUuid,
               studentUuid,
               studentName: targetStudent.name,
-              studentAvatar: targetStudent.avatar,
+              studentAvatar: targetStudent.avatar || '',
               studentEmail: targetStudent.email,
               lastMessage: content,
               lastMessageAt: now,

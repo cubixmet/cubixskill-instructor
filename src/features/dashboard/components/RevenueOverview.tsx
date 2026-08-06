@@ -3,14 +3,12 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
 } from 'recharts';
-import { TrendingUp, Calendar, Filter, Download } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import type { RevenueDataPoint } from '../types/dashboard.types';
 
 interface RevenueOverviewProps {
@@ -20,17 +18,6 @@ interface RevenueOverviewProps {
 export const RevenueOverview: React.FC<RevenueOverviewProps> = ({ data }) => {
   const [filterPeriod, setFilterPeriod] = useState<'7D' | '30D' | '90D' | '1Y' | 'Custom'>('30D');
   const [metricType, setMetricType] = useState<'revenue' | 'sales' | 'students' | 'credits'>('revenue');
-
-  const totalCurrentMetric = data.reduce((acc, item) => {
-    if (metricType === 'revenue') return acc + item.revenue;
-    if (metricType === 'sales') return acc + item.sales;
-    if (metricType === 'students') return acc + item.students;
-    return acc + item.creditsUsed;
-  }, 0);
-
-  const formattedTotal = metricType === 'revenue'
-    ? `$${totalCurrentMetric.toLocaleString()}`
-    : totalCurrentMetric.toLocaleString();
 
   return (
     <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-2xs text-left transition-all">

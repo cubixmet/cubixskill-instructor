@@ -3,28 +3,14 @@ import {
   Users,
   Upload,
   FileSpreadsheet,
-  Mail,
   Check,
   Search,
-  X,
-  AlertTriangle,
   CreditCard,
   Download,
-  CheckCircle2,
-  AlertCircle,
-  FileText,
-  Trash2,
-  ArrowRight,
-  ShieldCheck,
-  RefreshCw,
-  HelpCircle,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { Modal } from '../../../components/ui/Modal';
-import { FormField } from '../../../components/forms/FormField';
-import { TextInput } from '../../../components/forms/TextInput';
-import { TextareaField } from '../../../components/forms/TextareaField';
 import { FormAlert } from '../../../components/forms/FormAlert';
 import { useStudentStore } from '../store/student.store';
 import type { StudentDetail } from '../types/student.types';
@@ -37,7 +23,7 @@ export interface BulkEnrollModalProps {
   onSuccess?: () => void;
 }
 
-export type BulkEnrollMethod = 'existing' | 'csv';
+export type BulkEnrollMethod = 'existing' | 'csv' | 'paste';
 
 export interface ParsedEmailResult {
   email: string;
@@ -67,13 +53,13 @@ export const BulkEnrollModal: React.FC<BulkEnrollModalProps> = ({
   const [selectedUuids, setSelectedUuids] = useState<string[]>([]);
 
   // Method 2: Paste Emails State
-  const [pastedText, setPastedText] = useState('');
+  const [pastedText] = useState('');
 
   // Method 3: CSV File Mock State
   const [fileName, setFileName] = useState<string | null>(null);
 
   // Settings
-  const [batch, setBatch] = useState('Batch 2026-A');
+  const [batch] = useState('Batch 2026-A');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Processing Result
@@ -88,7 +74,7 @@ export const BulkEnrollModal: React.FC<BulkEnrollModalProps> = ({
     (s) =>
       s.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
       s.email.toLowerCase().includes(studentSearch.toLowerCase()) ||
-      s.phone.includes(studentSearch)
+      (s.phone && s.phone.includes(studentSearch))
   );
 
   // Parse Method 2 & Method 3 entries into ParsedEmailResult[]
@@ -182,7 +168,7 @@ export const BulkEnrollModal: React.FC<BulkEnrollModalProps> = ({
       let enrolledCount = 0;
 
       if (method === 'existing') {
-        validStudentsToEnroll.forEach((student) => {
+        (validStudentsToEnroll as StudentDetail[]).forEach((student) => {
           enrollStudentInCourse(student.uuid, courseUuid, courseTitle, creditsPerStudent);
           enrolledCount++;
         });
@@ -198,8 +184,8 @@ export const BulkEnrollModal: React.FC<BulkEnrollModalProps> = ({
               phone: entry.phone || '+91 98000 00000',
               countryCode: '+91',
               country: 'India',
-              batch: batch,
-              notes: 'Registered via Bulk Enrollment.',
+              status: 'Active',
+              notes: batch ? `Batch: ${batch}. Registered via Bulk Enrollment.` : 'Registered via Bulk Enrollment.',
             });
             enrollStudentInCourse(created.uuid, courseUuid, courseTitle, creditsPerStudent);
             enrolledCount++;
@@ -334,7 +320,7 @@ export const BulkEnrollModal: React.FC<BulkEnrollModalProps> = ({
                         {isEnrolled ? (
                           <Badge variant="secondary" size="sm">Already Enrolled</Badge>
                         ) : (
-                          <Badge variant="outline" size="sm">{student.status}</Badge>
+                          <Badge variant="neutral" size="sm">{student.status}</Badge>
                         )}
                       </div>
                     );

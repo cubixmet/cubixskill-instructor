@@ -1,6 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Award, CheckCircle2, Download, ShieldCheck, FileCheck } from 'lucide-react';
+import { Award, Download, ShieldCheck, FileCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { CertificateStats } from '../types/dashboard.types';
 

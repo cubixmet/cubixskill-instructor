@@ -37,7 +37,6 @@ export const CourseMembersSidebar: React.FC<CourseMembersSidebarProps> = ({ memb
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         leftIcon={<Search className="w-3.5 h-3.5 text-slate-400" />}
-        size="sm"
       />
 
       <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-280px)] pr-1">

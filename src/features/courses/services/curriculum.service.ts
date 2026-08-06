@@ -105,18 +105,16 @@ export const curriculumService = {
   attachAssignmentToLesson: (lessonUuid: string, assignmentUuid: string): void => {
     useCurriculumStore.getState().updateLesson(lessonUuid, {
       content: {
-        type: 'assignment',
         assignmentUuid,
-      },
+      } as any,
     });
   },
 
   changeLessonAssignment: (lessonUuid: string, assignmentUuid: string): void => {
     useCurriculumStore.getState().updateLesson(lessonUuid, {
       content: {
-        type: 'assignment',
         assignmentUuid,
-      },
+      } as any,
     });
   },
 

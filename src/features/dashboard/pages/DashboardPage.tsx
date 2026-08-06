@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useDashboardData } from '../hooks/useDashboardData';
 
 // Component Suite Imports
@@ -24,7 +23,6 @@ import { DashboardAlerts } from '../components/DashboardAlerts';
 import { BuyCreditsModal } from '../../../components/common/BuyCreditsModal';
 import { CreditCalculatorModal } from '../../../components/common/CreditCalculatorModal';
 import { SkeletonDashboard } from '../../../components/ui/SkeletonDashboard';
-import { ErrorState } from '../../../components/ui/ErrorState';
 
 export const DashboardPage: React.FC = () => {
   const data = useDashboardData();

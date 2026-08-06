@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, UserPlus, Check, CreditCard } from 'lucide-react';
+import { ArrowLeft, Check, CreditCard } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -23,6 +23,9 @@ export const StudentCreatePage: React.FC = () => {
       name,
       email,
       phone,
+      countryCode: '+91',
+      country: 'India',
+      status: 'Active',
       notes,
     });
 

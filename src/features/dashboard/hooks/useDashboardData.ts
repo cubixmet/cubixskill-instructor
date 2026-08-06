@@ -6,7 +6,6 @@ import type {
   RevenueDataPoint,
   EnrollmentDataPoint,
   CoursePerformanceItem,
-  RecentEnrollmentItem,
   PendingAssignmentItem,
   StorageBreakdownItem,
   CertificateStats,
@@ -22,7 +21,6 @@ import type {
 export const useDashboardData = () => {
   const courses = usePlatformStore((s) => s.courses);
   const students = usePlatformStore((s) => s.students);
-  const assignments = usePlatformStore((s) => s.assignments);
   const submissions = usePlatformStore((s) => s.submissions);
   const quizzes = usePlatformStore((s) => s.quizzes);
   const totalCredits = usePlatformStore((s) => s.totalCredits);
@@ -45,10 +43,10 @@ export const useDashboardData = () => {
     );
 
     const pendingAssignmentsCount = submissions.filter(
-      (sub) => sub.status === 'Submitted' || sub.status === 'In Review'
+      (sub) => sub.status === 'Submitted' || sub.status === 'Under Review'
     ).length;
 
-    const quizAttemptsPending = quizzes.reduce((acc, q) => acc + (q.questions?.length > 0 ? 3 : 0), 8);
+    const quizAttemptsPending = quizzes.reduce((acc, q) => acc + ((q.questions?.length || 0) > 0 ? 3 : 0), 8);
 
     // Compute media assets storage used in GB
     const totalStorageMb = mediaAssets.reduce((acc, asset) => acc + (asset.sizeMb || 0), 24500);

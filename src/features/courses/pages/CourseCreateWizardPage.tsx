@@ -20,16 +20,6 @@ import {
   Radio,
   HelpCircle,
   FileCheck,
-  Award,
-  Shield,
-  MessageSquare,
-  MessageCircle,
-  Clock,
-  Lock,
-  BarChart3,
-  Zap,
-  Globe,
-  Sliders,
   CheckCircle2,
   Upload,
   Bold,
@@ -47,8 +37,9 @@ import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 import { Switch } from '../../../components/ui/Switch';
 import { useCourseStore } from '../store/course.store';
+import { StepGuard } from '../../../components/common/StepGuard';
 
-import { CENTRAL_PLATFORM_FEATURES, type SharedPlatformFeature } from '../../course-features/config/courseFeatures.config';
+import { CENTRAL_PLATFORM_FEATURES } from '../../course-features/config/courseFeatures.config';
 
 export interface FeatureItem {
   id: string;
@@ -153,7 +144,7 @@ export const CourseCreateWizardPage: React.FC = () => {
     setValue,
     formState: { errors },
   } = useForm<WizardFormValues>({
-    resolver: zodResolver(wizardSchema),
+    resolver: zodResolver(wizardSchema) as any,
     defaultValues: {
       title: '',
       shortDescription: '',
@@ -318,7 +309,7 @@ export const CourseCreateWizardPage: React.FC = () => {
       </div>
 
       {/* MAIN TWO-COLUMN FORM LAYOUT */}
-      <form onSubmit={handleSubmit(onFinalSubmit)} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <form onSubmit={handleSubmit(onFinalSubmit as any)} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT COLUMN */}
         <div className="lg:col-span-8 space-y-6">
           {currentStep === 1 && (

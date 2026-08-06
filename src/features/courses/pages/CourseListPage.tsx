@@ -167,7 +167,7 @@ export const CourseListPage: React.FC = () => {
     setActiveMenuUuid(null);
   };
 
-  const handleToggleArchive = (course: CourseDetails) => {
+  const _handleToggleArchive = (course: CourseDetails) => {
     const nextStatus = course.status === 'archived' ? 'draft' : 'archived';
     updateCourse(course.uuid, { status: nextStatus });
     showToast(`Course ${nextStatus === 'archived' ? 'archived' : 'restored'}.`);
@@ -190,13 +190,13 @@ export const CourseListPage: React.FC = () => {
     }
   };
 
-  const handleBulkPublish = () => {
+  const _handleBulkPublish = () => {
     selectedCourseUuids.forEach((id) => updateCourse(id, { status: 'published' }));
     showToast(`${selectedCourseUuids.length} courses published.`);
     setSelectedCourseUuids([]);
   };
 
-  const handleBulkArchive = () => {
+  const _handleBulkArchive = () => {
     selectedCourseUuids.forEach((id) => updateCourse(id, { status: 'archived' }));
     showToast(`${selectedCourseUuids.length} courses archived.`);
     setSelectedCourseUuids([]);
@@ -302,7 +302,7 @@ export const CourseListPage: React.FC = () => {
                     : 'border-transparent text-[#64748B] hover:text-[#0F172A]'
                   }`}
               >
-                <span>{tab}</span>
+                <span>{tab} ({countVal})</span>
               </button>
             );
           })}

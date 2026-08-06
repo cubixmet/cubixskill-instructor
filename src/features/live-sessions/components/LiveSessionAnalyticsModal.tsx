@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, TrendingUp, Users, Clock, Award } from 'lucide-react';
+import { TrendingUp, Clock } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import type { LiveSessionItem } from '../store/liveSession.store';

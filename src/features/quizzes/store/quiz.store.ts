@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Quiz, QuizQuestion, QuizAttempt, QuizStatus } from '../../../types/quiz.types';
+import type { Quiz, QuizQuestion, QuizAttempt } from '../../../types/quiz.types';
 
 interface QuizState {
   quizzes: Quiz[];
@@ -462,7 +462,7 @@ export const useQuizStore = create<QuizState>()(
         return newAttempt;
       },
 
-      gradeAttempt: (attemptId, manualMarks, feedback) => {
+      gradeAttempt: (attemptId, manualMarks, _feedback) => {
         set((state) => ({
           attempts: state.attempts.map((att) => {
             if (att.id !== attemptId) return att;

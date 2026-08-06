@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Settings,
   RotateCcw,
   Save,
   CheckCircle2,
@@ -164,7 +163,7 @@ export const CourseSettingsPage: React.FC = () => {
           {SETTINGS_SECTIONS.map((sec) => {
             const Icon = sec.icon;
             const isExpanded = mobileExpandedSection === sec.id;
-            const isDisabledFeature = sec.featureKey ? courseFeatures[sec.featureKey] === false : false;
+            const isDisabledFeature = sec.featureKey ? (courseFeatures as unknown as Record<string, boolean>)[sec.featureKey] === false : false;
 
             return (
               <Card key={sec.id} padding="none" className="bg-white border border-slate-200 overflow-hidden">
@@ -176,6 +175,9 @@ export const CourseSettingsPage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <Icon className="w-4 h-4 text-blue-600" />
                     <span>{sec.label}</span>
+                    {isDisabledFeature && (
+                      <Badge variant="warning" size="sm">Disabled</Badge>
+                    )}
                   </div>
                   {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                 </button>

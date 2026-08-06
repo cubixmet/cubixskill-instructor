@@ -1,6 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { CreditCard, ArrowDownRight, Download, CheckCircle2 } from 'lucide-react';
+import { CreditCard, Download, CheckCircle2 } from 'lucide-react';
 import type { TransactionItem } from '../types/dashboard.types';
 
 interface RecentTransactionsWidgetProps {

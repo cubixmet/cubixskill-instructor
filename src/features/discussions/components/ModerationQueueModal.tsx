@@ -1,8 +1,7 @@
 import React from 'react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
-import { Badge } from '../../../components/ui/Badge';
-import { ShieldAlert, Check, Trash2, AlertCircle, UserX } from 'lucide-react';
+import { Check, Trash2, UserX } from 'lucide-react';
 import type { DiscussionReport } from '../store/discussion.store';
 
 export interface ModerationQueueModalProps {

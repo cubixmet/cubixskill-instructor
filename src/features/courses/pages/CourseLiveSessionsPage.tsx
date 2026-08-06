@@ -4,11 +4,7 @@ import {
   Video,
   Plus,
   Search,
-  Radio,
   Calendar as CalendarIcon,
-  Clock,
-  Film,
-  ShieldOff,
   Download,
   BarChart3,
   List,
@@ -253,7 +249,6 @@ export const CourseLiveSessionsPage: React.FC = () => {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   leftIcon={<Search className="w-4 h-4 text-slate-400" />}
-                  size="sm"
                 />
               </div>
 
@@ -321,7 +316,7 @@ export const CourseLiveSessionsPage: React.FC = () => {
                 setEditingSession(s);
                 setIsModalOpen(true);
               }}
-              onCreateNewDate={(dateStr) => {
+              onCreateNewDate={(_dateStr) => {
                 setEditingSession(null);
                 setIsModalOpen(true);
               }}

@@ -4,7 +4,6 @@ import { MessageSquare, Plus } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Skeleton } from '../../../components/ui/Skeleton';
-import { Drawer } from '../../../components/ui/Drawer';
 
 // Store & Components
 import { useDiscussionStore, type DiscussionItem } from '../../discussions/store/discussion.store';
@@ -28,7 +27,6 @@ import { DiscussionSettingsModal } from '../../discussions/components/Discussion
 export const CourseDiscussionsPage: React.FC = () => {
   const params = useParams<{ courseUuid?: string; '*': string }>();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const courseUuid = params.courseUuid || '550e8400-e29b-41d4-a716-446655440000';
 
@@ -63,8 +61,6 @@ export const CourseDiscussionsPage: React.FC = () => {
   const toggleResolveDiscussion = useDiscussionStore((state) => state.toggleResolveDiscussion);
   const incrementViews = useDiscussionStore((state) => state.incrementViews);
   const toggleLikeDiscussion = useDiscussionStore((state) => state.toggleLikeDiscussion);
-  const toggleDiscussionReaction = useDiscussionStore((state) => state.toggleDiscussionReaction);
-
   const addReply = useDiscussionStore((state) => state.addReply);
   const toggleLikeReply = useDiscussionStore((state) => state.toggleLikeReply);
   const togglePinReply = useDiscussionStore((state) => state.togglePinReply);

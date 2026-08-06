@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal } from '../../../components/ui/Modal';
-import { BarChart3, Users, Clock, CheckCircle2, Eye, MessageSquare, Award } from 'lucide-react';
+import { Eye, Award } from 'lucide-react';
 import type { DiscussionItem, DiscussionReply } from '../store/discussion.store';
 
 export interface DiscussionAnalyticsModalProps {
@@ -19,7 +19,6 @@ export const DiscussionAnalyticsModal: React.FC<DiscussionAnalyticsModalProps> =
   const totalPosts = discussions.length;
   const totalReplies = replies.length;
   const resolvedCount = discussions.filter((d) => d.isResolved).length;
-  const openCount = discussions.filter((d) => !d.isResolved && !d.isArchived).length;
   const resolvedRate = totalPosts > 0 ? Math.round((resolvedCount / totalPosts) * 100) : 100;
 
   // Most active students

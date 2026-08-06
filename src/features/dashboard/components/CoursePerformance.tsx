@@ -1,13 +1,10 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import {
-  BookOpen,
   Users,
   Award,
   Star,
   ExternalLink,
   ChevronRight,
-  TrendingUp,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { CoursePerformanceItem } from '../types/dashboard.types';

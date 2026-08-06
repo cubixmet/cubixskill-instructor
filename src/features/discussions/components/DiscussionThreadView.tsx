@@ -1,22 +1,18 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   ArrowLeft,
   ThumbsUp,
   MessageCircle,
-  Pin,
   CheckCircle2,
   Lock,
   Flag,
   Paperclip,
-  Trash2,
   Award,
-  CornerDownRight,
   Send,
   AtSign,
   AlertTriangle,
   Smile,
   X,
-  Share2,
   Megaphone,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
@@ -64,7 +60,7 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
   onAddReply,
   onLikeDiscussion,
   onLikeReply,
-  onPinReply,
+  onPinReply: _onPinReply,
   onMarkOfficialAnswer,
   onDeleteReply,
   onReport,
@@ -265,7 +261,7 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
             }}
             onQuote={handleQuoteReply}
             onReaction={onReaction}
-            onMarkOfficial={onMarkOfficialAnswer}
+            onMarkOfficial={(rid) => onMarkOfficialAnswer(discussion.id, rid)}
             onDelete={onDeleteReply}
             onReport={(rid) => onReport(discussion.id, rid)}
             isInstructor={isInstructor}
@@ -296,7 +292,7 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
                     }}
                     onQuote={handleQuoteReply}
                     onReaction={onReaction}
-                    onMarkOfficial={onMarkOfficialAnswer}
+                    onMarkOfficial={(rid) => onMarkOfficialAnswer(discussion.id, rid)}
                     onDelete={onDeleteReply}
                     onReport={(rid) => onReport(discussion.id, rid)}
                     isInstructor={isInstructor}
@@ -317,7 +313,7 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
                           }}
                           onQuote={handleQuoteReply}
                           onReaction={onReaction}
-                          onMarkOfficial={onMarkOfficialAnswer}
+                          onMarkOfficial={(rid) => onMarkOfficialAnswer(discussion.id, rid)}
                           onDelete={onDeleteReply}
                           onReport={(rid) => onReport(discussion.id, rid)}
                           isInstructor={isInstructor}

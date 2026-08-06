@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import {
   PlusCircle,
@@ -108,7 +108,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ onOpenBuyCredits }) 
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-        {actions.map((action, idx) => {
+        {actions.map((action) => {
           const IconComponent = action.icon;
           const content = (
             <motion.div

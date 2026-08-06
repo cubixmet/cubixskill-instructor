@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { BarChart3, Download, Calendar } from 'lucide-react';
 import { Modal } from '../../../../components/ui/Modal';
 import { Button } from '../../../../components/ui/Button';
-import { Input } from '../../../../components/ui/Input';
 
 export interface GenerateReportModalProps {
   isOpen: boolean;

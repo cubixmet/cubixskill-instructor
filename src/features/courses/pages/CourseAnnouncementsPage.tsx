@@ -5,13 +5,6 @@ import {
   Plus,
   Download,
   BarChart3,
-  Search,
-  CheckCircle2,
-  Clock,
-  Pin,
-  FileText,
-  ShieldOff,
-  Settings,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -57,7 +50,7 @@ export const CourseAnnouncementsPage: React.FC = () => {
   const deleteAnnouncement = useAnnouncementStore((state) => state.deleteAnnouncement);
   const duplicateAnnouncement = useAnnouncementStore((state) => state.duplicateAnnouncement);
   const publishAnnouncement = useAnnouncementStore((state) => state.publishAnnouncement);
-  const scheduleAnnouncement = useAnnouncementStore((state) => state.scheduleAnnouncement);
+  const _scheduleAnnouncement = useAnnouncementStore((state) => state.scheduleAnnouncement);
   const archiveAnnouncement = useAnnouncementStore((state) => state.archiveAnnouncement);
   const togglePinAnnouncement = useAnnouncementStore((state) => state.togglePinAnnouncement);
   const addComment = useAnnouncementStore((state) => state.addComment);
@@ -370,7 +363,13 @@ export const CourseAnnouncementsPage: React.FC = () => {
           navigate(`/courses/${courseUuid}/announcements`);
         }}
         announcement={activeDetailAnnouncement}
-        onAddComment={addComment}
+        onAddComment={(announcementId, content) =>
+          addComment(
+            announcementId,
+            { uuid: 'inst-1', name: 'Instructor', role: 'instructor' },
+            content
+          )
+        }
         onDeleteComment={deleteComment}
         onLikeComment={toggleCommentLike}
       />

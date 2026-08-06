@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  X,
   Search,
   UserCheck,
   UserPlus,
@@ -8,8 +7,6 @@ import {
   CreditCard,
   ShieldAlert,
   HelpCircle,
-  ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
@@ -67,7 +64,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
   const [newPhone, setNewPhone] = useState('');
   const [countryCode, setCountryCode] = useState('+91');
   const [newCountry, setNewCountry] = useState('India');
-  const [newNotes, setNewNotes] = useState('');
+  const [newNotes] = useState('');
 
   const [nameTouched, setNameTouched] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
@@ -89,20 +86,26 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
   const existingDuplicateByEmailOrPhone = students.find(
     (s) =>
       (newEmail && s.email.toLowerCase() === newEmail.trim().toLowerCase()) ||
-      (newPhone && s.phone.trim() === newPhone.trim())
+      (newPhone && s.phone && s.phone.trim() === newPhone.trim())
   );
 
   // Field validation messages
   const nameError = nameTouched && !newName.trim() ? 'Full name is required (min 2 characters).' : undefined;
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail);
-  const emailError = emailTouched && (!newEmail.trim() ? 'Email address is required.' : !isEmailValid ? 'Enter a valid email address.' : undefined);
+  const emailError = emailTouched
+    ? !newEmail.trim()
+      ? 'Email address is required.'
+      : !isEmailValid
+      ? 'Enter a valid email address.'
+      : undefined
+    : undefined;
 
   // Filter existing students list
   const filteredStudents = students.filter(
     (s) =>
       s.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
       s.email.toLowerCase().includes(studentSearch.toLowerCase()) ||
-      s.phone.includes(studentSearch)
+      (s.phone && s.phone.includes(studentSearch))
   );
 
   // Credit calculation
@@ -150,7 +153,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
         phone: `${countryCode} ${newPhone}`,
         countryCode: countryCode,
         country: newCountry,
-        batch: 'Batch 2026-A',
+        status: 'Active',
         notes: newNotes,
       });
       studentToEnrollUuid = created.uuid;

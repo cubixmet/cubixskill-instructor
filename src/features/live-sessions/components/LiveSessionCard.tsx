@@ -1,16 +1,10 @@
-import React from 'react';
 import {
-  Video,
   Calendar,
   Clock,
   ExternalLink,
   Play,
-  CheckCircle2,
-  XCircle,
   Film,
-  User,
   Users,
-  MoreVertical,
   Edit2,
   Trash2,
   Radio,

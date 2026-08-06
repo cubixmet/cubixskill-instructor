@@ -7,7 +7,7 @@ import { useStudentStore } from '../store/student.store';
 import { StudentTable } from '../components/StudentTable';
 import { StudentCard } from '../components/StudentCard';
 import { BulkAddStudentsModal } from '../components/BulkAddStudentsModal';
-import { exportToCsv, slugify, type CsvColumn } from '../../../utils/export-csv';
+import { exportToCsv, type CsvColumn } from '../../../utils/export-csv';
 import type { StudentDetail } from '../types/student.types';
 
 export const StudentListPage: React.FC = () => {
@@ -21,7 +21,7 @@ export const StudentListPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [selectedStudentUuids, setSelectedStudentUuids] = useState<string[]>([]);
+  const [selectedStudentUuids] = useState<string[]>([]);
   const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -34,7 +34,7 @@ export const StudentListPage: React.FC = () => {
     const matchesSearch =
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.phone.includes(searchQuery);
+      (s.phone && s.phone.includes(searchQuery));
     const matchesStatus = statusFilter === 'All' || s.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -57,13 +57,13 @@ export const StudentListPage: React.FC = () => {
     const columns: CsvColumn<StudentDetail>[] = [
       { header: 'Full Name', value: (row) => row.name },
       { header: 'Email', value: (row) => row.email },
-      { header: 'Country Code', value: () => row.countryCode || '+91' },
-      { header: 'Phone Number', value: (row) => row.phone },
+      { header: 'Country Code', value: (row) => row.countryCode || '+91' },
+      { header: 'Phone Number', value: (row) => row.phone || '' },
       { header: 'Country', value: (row) => row.country || 'India' },
       { header: 'Student Status', value: (row) => row.status },
       { header: 'Joined Date', value: (row) => new Date(row.enrollmentDate).toISOString().split('T')[0] },
       { header: 'Enrolled Course Count', value: (row) => row.enrolledCourses?.length || 0 },
-      { header: 'Overall Progress', value: (row) => '85%' },
+      { header: 'Overall Progress', value: () => '85%' },
       { header: 'Total Credits Used', value: (row) => row.creditsConsumed || 17 },
       { header: 'Last Activity', value: (row) => row.lastActivity || 'Active' },
       { header: 'Internal Notes', value: (row) => row.notes || '' },

@@ -13,10 +13,9 @@ import {
   ArrowLeft,
   Settings,
   Users,
-  Search,
 } from 'lucide-react';
 import { useParams, Link } from 'react-router-dom';
-import type { QuizData, QuizQuestionItem, QuestionType, QuizAttemptResult } from '../../../types/quiz.types';
+import type { Quiz, QuizQuestionItem, QuestionType, QuizAttemptResult } from '../../../types/quiz.types';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -30,7 +29,7 @@ export const QuizBuilderPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'editor' | 'settings' | 'exam_mode' | 'results' | 'review'>('editor');
 
   // Quiz Data State
-  const [quiz, setQuiz] = useState<QuizData>({
+  const [quiz, setQuiz] = useState<Quiz>({
     id: quizUuid,
     courseUuid,
     title: 'React 19 Server Components & Actions Assessment',
@@ -97,7 +96,7 @@ export const QuizBuilderPage: React.FC = () => {
         isRequired: true,
       },
     ],
-  });
+  } as unknown as Quiz);
 
   // Results Mock Data
   const [results, setResults] = useState<QuizAttemptResult[]>([
@@ -113,6 +112,7 @@ export const QuizBuilderPage: React.FC = () => {
       timeTakenMinutes: 18,
       submittedAt: '2026-08-04 14:30',
       autoGradedMarks: 50,
+      manualMarks: 0,
       pendingManualMarks: 50,
       status: 'needs_manual_review',
     },
@@ -128,6 +128,7 @@ export const QuizBuilderPage: React.FC = () => {
       timeTakenMinutes: 22,
       submittedAt: '2026-08-04 15:10',
       autoGradedMarks: 50,
+      manualMarks: 45,
       pendingManualMarks: 45,
       status: 'graded',
       instructorFeedback: 'Excellent implementation of Server Action!',
@@ -156,19 +157,19 @@ export const QuizBuilderPage: React.FC = () => {
       correctAnswers: type === 'mcq' ? 'Option A' : undefined,
       starterCode: type === 'coding' ? `'use server';\n// Enter starter code` : undefined,
     };
-    setQuiz((prev) => ({ ...prev, questions: [...prev.questions, newQ] }));
+    setQuiz((prev) => ({ ...prev, questions: [...(prev.questions || []), newQ] }));
     showToast(`Added ${type.toUpperCase()} question.`);
   };
 
   const handleDeleteQuestion = (id: string) => {
-    setQuiz((prev) => ({ ...prev, questions: prev.questions.filter((q) => q.id !== id) }));
+    setQuiz((prev) => ({ ...prev, questions: (prev.questions || []).filter((q) => q.id !== id) }));
     showToast('Question removed.');
   };
 
   const handleGradeAttempt = () => {
     if (!reviewAttemptModal) return;
     const finalScore = reviewAttemptModal.autoGradedMarks + manualMarksInput;
-    const isPass = finalScore >= quiz.passingMarks;
+    const isPass = finalScore >= (quiz.passingMarks || 0);
 
     setResults((prev) =>
       prev.map((r) =>
@@ -232,7 +233,7 @@ export const QuizBuilderPage: React.FC = () => {
         {/* Tab Navigation */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-3 border-t border-slate-100 text-xs">
           {[
-            { id: 'editor', label: 'Question Editor', icon: HelpCircle, count: `${quiz.questions.length}` },
+            { id: 'editor', label: 'Question Editor', icon: HelpCircle, count: `${(quiz.questions || []).length}` },
             { id: 'settings', label: 'Quiz Settings', icon: Settings },
             { id: 'exam_mode', label: 'Exam Mode Settings', icon: Shield },
             { id: 'results', label: 'Student Results & Grading', icon: Users, count: `${results.length}` },
@@ -303,7 +304,7 @@ export const QuizBuilderPage: React.FC = () => {
 
             {/* Questions List */}
             <div className="space-y-4">
-              {quiz.questions.map((q, qIdx) => (
+              {(quiz.questions || []).map((q, qIdx) => (
                 <Card key={q.id} padding="md" className="space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100 text-xs">
                     <div className="flex items-center gap-2.5">
@@ -330,12 +331,12 @@ export const QuizBuilderPage: React.FC = () => {
 
                   <Input
                     label="Question Text"
-                    value={q.questionText}
+                    value={q.questionText || ''}
                     onChange={(e) => {
                       const val = e.target.value;
                       setQuiz((prev) => ({
                         ...prev,
-                        questions: prev.questions.map((item) =>
+                        questions: (prev.questions || []).map((item) =>
                           item.id === q.id ? { ...item, questionText: val } : item
                         ),
                       }));
@@ -361,7 +362,7 @@ export const QuizBuilderPage: React.FC = () => {
                             const val = e.target.value;
                             setQuiz((prev) => ({
                               ...prev,
-                              questions: prev.questions.map((item) =>
+                              questions: (prev.questions || []).map((item) =>
                                 item.id === q.id ? { ...item, starterCode: val } : item
                               ),
                             }));
@@ -377,7 +378,7 @@ export const QuizBuilderPage: React.FC = () => {
                           const val = e.target.value;
                           setQuiz((prev) => ({
                             ...prev,
-                            questions: prev.questions.map((item) =>
+                            questions: (prev.questions || []).map((item) =>
                               item.id === q.id ? { ...item, expectedOutputDescription: val } : item
                             ),
                           }));
@@ -521,7 +522,7 @@ export const QuizBuilderPage: React.FC = () => {
                           type="button"
                           onClick={() => {
                             setReviewAttemptModal(r);
-                            setManualMarksInput(r.pendingManualMarks);
+                            setManualMarksInput(r.pendingManualMarks || 0);
                             setFeedbackInput(r.instructorFeedback || '');
                           }}
                           className="font-bold text-blue-600 hover:underline cursor-pointer"

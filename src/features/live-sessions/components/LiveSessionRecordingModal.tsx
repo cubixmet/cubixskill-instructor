@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Film, Upload, Link as LinkIcon, CheckCircle2, Play } from 'lucide-react';
+import { Link as LinkIcon, CheckCircle2, Play } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';

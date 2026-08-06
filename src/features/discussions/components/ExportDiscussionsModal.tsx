@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import { Download, FileSpreadsheet, FileText, Check } from 'lucide-react';
-import { exportToCsv } from '../../../utils/export-csv';
+import { exportToCsv, type CsvColumn } from '../../../utils/export-csv';
 import type { DiscussionItem, DiscussionReply } from '../store/discussion.store';
 
 export interface ExportDiscussionsModalProps {
@@ -42,22 +42,22 @@ export const ExportDiscussionsModal: React.FC<ExportDiscussionsModalProps> = ({
           Resolved: d.isResolved ? 'Yes' : 'No',
         }));
 
-        const columns = [
-          { header: 'Discussion ID', key: 'Discussion ID' },
-          { header: 'Title', key: 'Title' },
-          { header: 'Category', key: 'Category' },
-          { header: 'Author', key: 'Author' },
-          { header: 'Role', key: 'Role' },
-          { header: 'Created Date', key: 'Created Date' },
-          { header: 'Replies', key: 'Replies' },
-          { header: 'Views', key: 'Views' },
-          { header: 'Likes', key: 'Likes' },
-          { header: 'Pinned', key: 'Pinned' },
-          { header: 'Locked', key: 'Locked' },
-          { header: 'Resolved', key: 'Resolved' },
+        const columns: CsvColumn<any>[] = [
+          { header: 'Discussion ID', value: (r) => r['Discussion ID'] },
+          { header: 'Title', value: (r) => r['Title'] },
+          { header: 'Category', value: (r) => r['Category'] },
+          { header: 'Author', value: (r) => r['Author'] },
+          { header: 'Role', value: (r) => r['Role'] },
+          { header: 'Created Date', value: (r) => r['Created Date'] },
+          { header: 'Replies', value: (r) => r['Replies'] },
+          { header: 'Views', value: (r) => r['Views'] },
+          { header: 'Likes', value: (r) => r['Likes'] },
+          { header: 'Pinned', value: (r) => r['Pinned'] },
+          { header: 'Locked', value: (r) => r['Locked'] },
+          { header: 'Resolved', value: (r) => r['Resolved'] },
         ];
 
-        exportToCsv(rows, columns, `Course_Discussions_Export_${Date.now()}`);
+        exportToCsv(`Course_Discussions_Export_${Date.now()}`, rows, columns);
       }
 
       setIsExporting(false);

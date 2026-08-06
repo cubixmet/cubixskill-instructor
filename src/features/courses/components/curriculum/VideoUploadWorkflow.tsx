@@ -7,20 +7,16 @@ import {
   Globe,
   Info,
   Layers,
-  Sparkles,
   PlayCircle,
-  Video,
   Plus,
   Trash2,
-  Edit,
-  ArrowRight,
   ExternalLink,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card } from '../../../components/ui/Card';
-import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
-import { Modal } from '../../../components/ui/Modal';
+import { Card } from '../../../../components/ui/Card';
+import { Button } from '../../../../components/ui/Button';
+import { Input } from '../../../../components/ui/Input';
+import { Modal } from '../../../../components/ui/Modal';
 
 export type VideoSourceType = 'direct' | 'youtube' | 'vimeo' | 'bunny' | 'cloudflare' | 'external';
 export type VideoDeliveryMode = 'standard' | 'adaptive';
@@ -174,7 +170,7 @@ export const VideoUploadWorkflow: React.FC = () => {
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {lessons.map((les, index) => (
+            {lessons.map((les) => (
               <div key={les.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors">
                 <div className="flex items-start gap-3.5 min-w-0">
                   <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 font-extrabold text-xs flex items-center justify-center shrink-0 border border-blue-200/60">

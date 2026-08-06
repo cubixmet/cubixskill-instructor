@@ -1,19 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Video,
   Plus,
   Search,
-  Radio,
   Calendar as CalendarIcon,
-  Clock,
-  Film,
-  Download,
   BarChart3,
   List,
   BookOpen,
-  Play,
-  ExternalLink,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -35,7 +29,6 @@ import { LiveSessionAnalyticsModal } from '../components/LiveSessionAnalyticsMod
 export const GlobalLiveClassroomPage: React.FC = () => {
   const params = useParams<{ courseUuid?: string; sessionUuid?: string; '*': string }>();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const courses = usePlatformStore((state) => state.courses || []);
   const sessions = useLiveSessionStore((state) => state.sessions);
@@ -234,7 +227,6 @@ export const GlobalLiveClassroomPage: React.FC = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 leftIcon={<Search className="w-4 h-4 text-slate-400" />}
-                size="sm"
               />
             </div>
 
@@ -300,7 +292,7 @@ export const GlobalLiveClassroomPage: React.FC = () => {
         <LiveSessionCalendarView
           sessions={filteredSessions}
           onSelectSession={(s) => navigate(`/live-classroom/${s.id}`)}
-          onCreateNewDate={(dateStr) => {
+          onCreateNewDate={(_dateStr) => {
             setEditingSession(null);
             setIsModalOpen(true);
           }}

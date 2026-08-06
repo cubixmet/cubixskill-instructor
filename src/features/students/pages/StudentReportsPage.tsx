@@ -8,12 +8,13 @@ import { useStudentStore } from '../store/student.store';
 export const StudentReportsPage: React.FC = () => {
   const navigate = useNavigate();
   const { studentUuid } = useParams<{ studentUuid?: string }>();
-  const student = useStudentStore((state) => state.students.find((s) => s.uuid === studentUuid)) || {
+  const foundStudent = useStudentStore((state) => state.students.find((s) => s.uuid === studentUuid));
+  const student = foundStudent || {
     name: 'Aarav Patel',
     email: 'aarav.patel@gmail.com',
-    progressPercent: 85,
     creditsConsumed: 34,
   };
+  const progressPercent = foundStudent?.enrolledCourses?.[0]?.progressPercent ?? 85;
 
   return (
     <div className="space-y-6 text-left font-sans max-w-5xl mx-auto pb-12">
@@ -41,7 +42,7 @@ export const StudentReportsPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card padding="md" className="bg-white border border-[#E2E8F0] p-4 rounded-[14px] space-y-1">
           <span className="text-[10px] font-semibold text-[#64748B] uppercase">Watch Completion</span>
-          <strong className="text-2xl font-bold text-[#2563EB] block">{student.progressPercent}%</strong>
+          <strong className="text-2xl font-bold text-[#2563EB] block">{progressPercent}%</strong>
         </Card>
         <Card padding="md" className="bg-white border border-[#E2E8F0] p-4 rounded-[14px] space-y-1">
           <span className="text-[10px] font-semibold text-[#64748B] uppercase">Quiz Average Score</span>

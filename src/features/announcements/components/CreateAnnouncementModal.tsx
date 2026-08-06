@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Megaphone,
   Calendar,
-  Clock,
-  Pin,
   Send,
   Paperclip,
   AlertTriangle,
@@ -11,7 +8,6 @@ import {
   Plus,
   Trash2,
   Video,
-  CheckCircle2,
   Mail,
   Bell,
   Smartphone,

@@ -5,19 +5,15 @@ import { Badge } from '../../../components/ui/Badge';
 import {
   ThumbsUp,
   MessageCircle,
-  Pin,
   CheckCircle2,
   Lock,
   Flag,
-  Share2,
   Paperclip,
   Trash2,
-  Edit,
   Award,
   CornerDownRight,
   Send,
   AtSign,
-  AlertTriangle,
   Megaphone,
 } from 'lucide-react';
 import type { DiscussionItem, DiscussionReply } from '../store/discussion.store';
@@ -53,7 +49,7 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
   onAddReply,
   onLikeDiscussion,
   onLikeReply,
-  onPinReply,
+  onPinReply: _onPinReply,
   onMarkOfficialAnswer,
   onDeleteReply,
   onReport,

@@ -1,12 +1,10 @@
 import React from 'react';
 import {
-  Video,
   Radio,
   Clock,
   CheckCircle2,
   XCircle,
   Film,
-  Users,
   TrendingUp,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
@@ -22,7 +20,7 @@ export interface LiveSessionSummaryCardsProps {
 }
 
 export const LiveSessionSummaryCards: React.FC<LiveSessionSummaryCardsProps> = ({
-  total,
+  total: _total,
   liveNow,
   upcoming,
   completed,

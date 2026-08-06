@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Bell, Info, AlertTriangle, CheckCircle, Coins, Archive, Check } from 'lucide-react';
+import { Info, AlertTriangle, CheckCircle, Coins } from 'lucide-react';
 import type { NotificationItem } from '../types/dashboard.types';
 
 interface NotificationCenterWidgetProps {
@@ -11,7 +10,7 @@ export const NotificationCenterWidget: React.FC<NotificationCenterWidgetProps> =
   notifications: initialNotifs,
 }) => {
   const [activeTab, setActiveTab] = useState<'Unread' | 'Read' | 'Priority' | 'Archive'>('Unread');
-  const [items, setItems] = useState<NotificationItem[]>(initialNotifs);
+  const [items] = useState<NotificationItem[]>(initialNotifs);
 
   const filtered = items.filter((n) => {
     if (activeTab === 'Unread') return !n.read;

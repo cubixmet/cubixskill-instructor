@@ -1,6 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { FileCheck, HelpCircle, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { FileCheck, HelpCircle } from 'lucide-react';
 import type { AssignmentWidgetStats, QuizWidgetStats } from '../types/dashboard.types';
 
 interface AssignmentQuizWidgetProps {

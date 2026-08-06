@@ -1,17 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import {
   BookOpen,
-  Layers,
   Video,
-  FileText,
   FileCheck,
   HelpCircle,
-  Award,
   Users,
-  MessageSquare,
-  Megaphone,
   BarChart3,
-  Settings,
   Plus,
   ArrowLeft,
   CheckCircle2,
@@ -22,12 +16,9 @@ import {
   Check,
   Eye,
   MoreVertical,
-  Globe,
   Clock,
   Zap,
-  Activity,
   UserPlus,
-  X,
   LayoutGrid,
   ChevronRight,
   Info,
@@ -392,7 +383,7 @@ export const CourseDetailsPage: React.FC = () => {
           </div>
 
           <div className="px-3 space-y-0.5 flex flex-col items-center justify-center">
-            <CourseRating rating={course.rating || 4.8} reviewCount={course.reviewCount || 128} />
+            <CourseRating rating={course.rating || 4.8} reviewCount={(course as any).reviewCount || 128} />
             <span className="text-[11px] text-[#64748B] font-medium block pt-0.5">Course Rating</span>
           </div>
 
@@ -425,7 +416,7 @@ export const CourseDetailsPage: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-around text-center pt-1">
-            <CourseRating rating={course.rating || 4.8} reviewCount={course.reviewCount || 128} />
+            <CourseRating rating={course.rating || 4.8} reviewCount={(course as any).reviewCount || 128} />
             <div className="text-left">
               <strong className="text-[16px] font-bold text-[#0F172A] block">{course.creditsPerStudent || 17} Credits</strong>
               <span className="text-[10px] text-[#64748B] font-medium">Per Student</span>

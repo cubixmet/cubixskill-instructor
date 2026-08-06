@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Megaphone, Pin, Calendar, ChevronRight } from 'lucide-react';
+import { Megaphone, Pin } from 'lucide-react';
 import type { AnnouncementItem } from '../types/dashboard.types';
 
 interface AnnouncementsWidgetProps {

@@ -9,7 +9,7 @@ export function useCourseReportsData(courseUuid: string) {
   const students = usePlatformStore((state) => state.students || []);
   const assignments = usePlatformStore((state) => state.assignments || []);
   const quizzes = usePlatformStore((state) => state.quizzes || []);
-  const certificates = usePlatformStore((state) => state.certificates || []);
+  const certificates = (usePlatformStore.getState() as any).certificates || [];
 
   const getCourseFeatures = useCourseFeaturesStore((state) => state.getCourseFeatures);
   const courseFeatures = getCourseFeatures ? getCourseFeatures(courseUuid) : DEFAULT_COURSE_FEATURES;
@@ -30,14 +30,14 @@ export function useCourseReportsData(courseUuid: string) {
     const courseLiveSessions = liveSessions.filter((s) => s.courseUuid === courseUuid);
 
     // Calculated metrics
-    const totalStudents = students.length || courseObj.enrolledStudentsCount || 420;
+    const totalStudents = students.length || (courseObj as any).enrolledStudentsCount || 420;
     const activeStudents = Math.round(totalStudents * 0.84);
     const completedStudents = Math.round(totalStudents * 0.42);
     const completionRate = Math.round((completedStudents / totalStudents) * 100);
     const avgProgress = 68;
 
-    const submittedAssignments = assignments.reduce((sum, a) => sum + (a.submissionsCount || 12), 0);
-    const totalQuizAttempts = quizzes.reduce((sum, q) => sum + (q.attemptsCount || 34), 0);
+    const submittedAssignments = assignments.reduce((sum, a) => sum + ((a as any).submissionsCount || 12), 0);
+    const totalQuizAttempts = quizzes.reduce((sum, q) => sum + ((q as any).attemptsCount || 34), 0);
     const totalCertificates = certificates.length || 32;
 
     const completedSessions = courseLiveSessions.filter((s) => s.status === 'completed');
@@ -65,7 +65,7 @@ export function useCourseReportsData(courseUuid: string) {
           )
         : 92;
 
-    const totalRevenue = totalStudents * (courseObj.price || 149);
+    const totalRevenue = totalStudents * ((courseObj as any).price || 149);
 
     return {
       courseObj,

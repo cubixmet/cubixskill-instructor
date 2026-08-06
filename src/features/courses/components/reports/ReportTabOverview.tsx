@@ -1,12 +1,12 @@
 import React from 'react';
-import { TrendingUp, Users, Award, BookOpen, Clock, Activity, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, Activity, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../../../components/ui/Card';
 
 export interface ReportTabOverviewProps {
   metrics: any;
 }
 
-export const ReportTabOverview: React.FC<ReportTabOverviewProps> = ({ metrics }) => {
+export const ReportTabOverview: React.FC<ReportTabOverviewProps> = ({ metrics: _metrics }) => {
   const weeklyEngagement = [
     { day: 'Mon', active: 310, completed: 85 },
     { day: 'Tue', active: 380, completed: 110 },

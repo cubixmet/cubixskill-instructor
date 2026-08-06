@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Filter, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Search, RotateCcw } from 'lucide-react';
 import { Input } from '../../../components/ui/Input';
 
 export interface AnnouncementFiltersProps {

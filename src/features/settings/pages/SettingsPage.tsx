@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import {
-  Settings,
   RotateCcw,
   Save,
   CheckCircle2,
-  AlertTriangle,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';

@@ -10,11 +10,9 @@ import {
   AlertTriangle,
   Smile,
   ShieldCheck,
-  User,
   Plus,
   Trash2,
 } from 'lucide-react';
-import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Modal } from '../../../components/ui/Modal';
@@ -41,7 +39,7 @@ export interface PersonalChatViewProps {
 const EMOJIS = ['👍', '💡', '🔥', '🎯', '🙌', '❤️', '😊', '👏'];
 
 export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
-  courseUuid,
+  courseUuid: _courseUuid,
   conversations,
   courseMembers,
   activeStudentUuid,
@@ -107,12 +105,12 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
 
   const renderStatusTicks = (status: 'sent' | 'delivered' | 'seen') => {
     if (status === 'seen') {
-      return <CheckCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" title="Seen" />;
+      return <span title="Seen"><CheckCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" /></span>;
     }
     if (status === 'delivered') {
-      return <CheckCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" title="Delivered" />;
+      return <span title="Delivered"><CheckCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" /></span>;
     }
-    return <Check className="w-3.5 h-3.5 text-slate-400 shrink-0" title="Sent" />;
+    return <span title="Sent"><Check className="w-3.5 h-3.5 text-slate-400 shrink-0" /></span>;
   };
 
   return (
@@ -142,7 +140,6 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               leftIcon={<Search className="w-3.5 h-3.5 text-slate-400" />}
-              size="sm"
             />
           </div>
 

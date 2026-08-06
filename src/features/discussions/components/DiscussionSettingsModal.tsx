@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
-import { Settings, Save, Check } from 'lucide-react';
+import { Save, Check } from 'lucide-react';
 import type { CourseDiscussionSettings } from '../store/discussion.store';
 
 export interface DiscussionSettingsModalProps {

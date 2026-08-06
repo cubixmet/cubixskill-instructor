@@ -3,30 +3,21 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Users,
-  Plus,
   Search,
   Check,
   Eye,
-  BookOpen,
   Award,
-  CircleHelp,
-  ClipboardCheck,
   BarChart3,
   Clock,
-  Zap,
   UserCheck,
-  Activity,
   CreditCard,
   UserPlus,
   Download,
   List,
   LayoutGrid,
-  Filter,
   X,
-  MoreVertical,
   Calendar,
   AlertTriangle,
-  ChevronRight,
   UserX,
   RefreshCw,
   SlidersHorizontal,
@@ -36,8 +27,6 @@ import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
-import { useCourseFeaturesStore } from '../store/courseFeatures.store';
-import { useStudentStore } from '../../students/store/student.store';
 import { EnrollStudentModal } from '../../students/components/EnrollStudentModal';
 import { BulkEnrollModal } from '../../students/components/BulkEnrollModal';
 import { exportToCsv, slugify, type CsvColumn } from '../../../utils/export-csv';
@@ -157,8 +146,6 @@ const INITIAL_COURSE_STUDENTS: StudentRecord[] = [
 export const CourseStudentsPage: React.FC = () => {
   const navigate = useNavigate();
   const { courseUuid = '550e8400-e29b-41d4-a716-446655440000' } = useParams<{ courseUuid?: string }>();
-  const courseFeatures = useCourseFeaturesStore((state) => state.getCourseFeatures(courseUuid));
-  const globalStudents = useStudentStore((state) => state.students);
 
   const [studentList, setStudentList] = useState<StudentRecord[]>(INITIAL_COURSE_STUDENTS);
 

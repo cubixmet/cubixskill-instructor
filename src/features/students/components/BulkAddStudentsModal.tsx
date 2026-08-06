@@ -8,11 +8,6 @@ import {
   FileText,
   Download,
   Check,
-  AlertTriangle,
-  CheckCircle2,
-  X,
-  Search,
-  Copy,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
@@ -21,7 +16,6 @@ import { FormField } from '../../../components/forms/FormField';
 import { TextInput } from '../../../components/forms/TextInput';
 import { EmailInput } from '../../../components/forms/EmailInput';
 import { PhoneInput } from '../../../components/forms/PhoneInput';
-import { SearchableSelect } from '../../../components/forms/SearchableSelect';
 import { TextareaField } from '../../../components/forms/TextareaField';
 import { FormAlert } from '../../../components/forms/FormAlert';
 import { useStudentStore } from '../store/student.store';
@@ -44,14 +38,7 @@ export interface ManualStudentRow {
   status: 'Active' | 'Pending';
 }
 
-const COUNTRIES = [
-  { value: 'India', label: 'India', flag: '🇮🇳' },
-  { value: 'United States', label: 'United States', flag: '🇺🇸' },
-  { value: 'United Kingdom', label: 'United Kingdom', flag: '🇬🇧' },
-  { value: 'Australia', label: 'Australia', flag: '🇦🇺' },
-  { value: 'UAE', label: 'United Arab Emirates', flag: '🇦🇪' },
-  { value: 'Singapore', label: 'Singapore', flag: '🇸🇬' },
-];
+
 
 export const BulkAddStudentsModal: React.FC<BulkAddStudentsModalProps> = ({
   isOpen,
@@ -128,7 +115,6 @@ export const BulkAddStudentsModal: React.FC<BulkAddStudentsModalProps> = ({
 
   const validNewRecords = parsedRecords.filter((r) => r.status === 'valid_new');
   const existingRecords = parsedRecords.filter((r) => r.status === 'existing');
-  const invalidRecords = parsedRecords.filter((r) => r.status === 'invalid');
 
   if (!isOpen) return null;
 
@@ -161,7 +147,7 @@ export const BulkAddStudentsModal: React.FC<BulkAddStudentsModalProps> = ({
           phone: record.phone,
           countryCode: '+91',
           country: record.country || 'India',
-          batch: 'Batch 2026-A',
+          status: 'Active',
           notes: 'Added via Bulk Student Creator.',
         });
         createdCount++;

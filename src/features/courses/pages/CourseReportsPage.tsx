@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import {
   BarChart3,
   Download,
-  Plus,
   Users,
   FileCheck,
   HelpCircle,
@@ -13,7 +12,6 @@ import {
   MessageSquare,
   CreditCard,
   DollarSign,
-  Activity,
   LayoutDashboard,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';

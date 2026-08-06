@@ -1,7 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
-import { HardDrive, Video, FileAudio, FileText, Image as ImageIcon, FileCode, ArrowUpRight } from 'lucide-react';
+import { Video, FileAudio, FileText, Image as ImageIcon, FileCode, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { StorageBreakdownItem } from '../types/dashboard.types';
 

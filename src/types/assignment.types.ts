@@ -10,7 +10,9 @@ export type SubmissionType =
   | 'document'
   | 'zip'
   | 'git'
-  | 'gdrive';
+  | 'gdrive'
+  | 'external_url'
+  | 'multiple_files';
 
 export type DownloadableFormat =
   | 'pdf'
@@ -138,24 +140,44 @@ export interface StudentSubmission {
   studentName: string;
   studentEmail: string;
   studentAvatar?: string;
+  studentAvatarUrl?: string;
   submittedAt: string;
+  submissionDate?: string;
+  dueDate?: string;
   attemptNumber: number;
   status: SubmissionStatus;
   submissionType: SubmissionType;
 
+  assignmentTitle?: string;
+  courseTitle?: string;
+  isLate?: boolean;
+  lateDurationFormatted?: string;
+  maxAttempts?: number;
+
   // Content
   textContent?: string;
+  submittedText?: string;
   externalUrl?: string;
   files: SubmissionFile[];
+  submittedFiles?: SubmissionFile[];
 
   // Evaluation
   grade?: number;
+  marksAwarded?: number;
+  maxMarks?: number;
+  passingMarks?: number;
   feedback?: string;
+  writtenFeedback?: string;
   privateNotes?: string;
   evaluatedAt?: string;
   evaluatedBy?: string;
+  reviewerName?: string;
   rubricScores?: Record<string, number>;
   reviewFileUrl?: string;
   reviewAudioUrl?: string;
   reviewVideoUrl?: string;
+  reviewHistory?: any[];
 }
+
+export type Submission = StudentSubmission;
+

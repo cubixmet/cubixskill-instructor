@@ -4,13 +4,10 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import {
   AlertTriangle,
-  Upload,
   Paperclip,
   Trash2,
-  Check,
   Megaphone,
   Pin,
-  Lock,
   MessageSquare,
 } from 'lucide-react';
 import type { AttachmentItem, DiscussionItem } from '../store/discussion.store';
@@ -47,7 +44,7 @@ export const CreateDiscussionModal: React.FC<CreateDiscussionModalProps> = ({
   const [isPinned, setIsPinned] = useState(editingDiscussion?.isPinned || false);
   const [isAnnouncement, setIsAnnouncement] = useState(editingDiscussion?.isAnnouncement || false);
   const [allowReplies, setAllowReplies] = useState(editingDiscussion?.allowReplies ?? true);
-  const [allowStudentAttachments, setAllowStudentAttachments] = useState(
+  const [allowStudentAttachments] = useState(
     editingDiscussion?.allowStudentAttachments ?? true
   );
   const [notifyStudents, setNotifyStudents] = useState(editingDiscussion?.notifyStudents ?? true);

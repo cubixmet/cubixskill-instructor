@@ -1,14 +1,9 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React from 'react';
 import {
   Coins,
   Plus,
   Calculator,
-  TrendingUp,
-  Clock,
-  Zap,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 interface CreditWidgetProps {
   availableCredits: number;
@@ -21,7 +16,7 @@ interface CreditWidgetProps {
 export const CreditWidget: React.FC<CreditWidgetProps> = ({
   availableCredits,
   usedThisMonth,
-  estimatedRemaining,
+  estimatedRemaining: _estimatedRemaining,
   onOpenBuyCredits,
   onOpenCalculator,
 }) => {

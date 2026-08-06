@@ -111,6 +111,7 @@ export interface Student {
   countryCode: string;
   country: string;
   enrolledCoursesCount: number;
+  completedCoursesCount?: number;
   progressPercent: number;
   creditsConsumed: number;
   lastActivity: string;
@@ -182,6 +183,8 @@ export interface StaffMember {
   assignedCoursesCount: number;
   assignedStudentsCount: number;
   creditCost: number;
+  lastActiveAt?: string;
+  avatarUrl?: string;
 }
 
 export interface Role {

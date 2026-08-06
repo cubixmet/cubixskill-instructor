@@ -4,7 +4,6 @@ import {
   CornerDownRight,
   Quote,
   Paperclip,
-  CheckCircle2,
   Trash2,
   Edit2,
   Smile,
@@ -43,7 +42,7 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
   onEdit,
   onReport,
   isInstructor = true,
-  currentUserRole = 'instructor',
+  currentUserRole: _currentUserRole = 'instructor',
 }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);

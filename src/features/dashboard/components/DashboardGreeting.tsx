@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import {
   Calendar,
   Building2,
@@ -8,9 +7,6 @@ import {
   UserPlus,
   Coins,
   FileBarChart,
-  Search,
-  Bell,
-  User,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { DashboardWelcome } from '../types/dashboard.types';

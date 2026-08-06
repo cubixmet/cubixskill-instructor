@@ -215,39 +215,58 @@ export const usePlatformStore = create<PlatformStoreState>()(
         '550e8400-e29b-41d4-a716-446655440000': [
           {
             id: '550e8400-e29b-41d4-a716-446655441001',
+            uuid: '550e8400-e29b-41d4-a716-446655441001',
+            courseUuid: '550e8400-e29b-41d4-a716-446655440000',
             title: 'Module 1: React 19 Architecture & Server Components',
             description: 'Foundational concepts covering React 19 RSC, Actions, and Server Functions.',
-            isPublished: true,
+            status: 'published',
+            sortOrder: 1,
+            unlockRule: 'immediate',
             isCollapsed: false,
             durationMinutes: 180,
+            createdAt: '2026-08-01T00:00:00Z',
+            updatedAt: '2026-08-01T00:00:00Z',
             lessons: [
               {
                 id: '550e8400-e29b-41d4-a716-446655442001',
+                uuid: '550e8400-e29b-41d4-a716-446655442001',
+                courseUuid: '550e8400-e29b-41d4-a716-446655440000',
                 moduleUuid: '550e8400-e29b-41d4-a716-446655441001',
                 title: 'Lesson 1.1: Deep Dive into React 19 Server Components',
                 type: 'video',
-                status: 'Published',
+                status: 'published',
+                sortOrder: 1,
                 durationMinutes: 45,
                 isDemo: true,
-                isPublished: true,
                 description: 'Understand RSC boundaries, server vs client bundles, and zero-bundle server components.',
-                videoSource: 'upload',
-                videoUrl: 'https://assets.cubixskill.com/videos/react19_rsc.mp4',
-                unlockRule: { type: 'immediate' },
+                unlockRule: 'immediate',
+                content: {
+                  videoSource: 'upload',
+                  videoUrl: 'https://assets.cubixskill.com/videos/react19_rsc.mp4',
+                },
+                createdAt: '2026-08-01T00:00:00Z',
+                updatedAt: '2026-08-01T00:00:00Z',
               },
               {
                 id: '550e8400-e29b-41d4-a716-446655442002',
+                uuid: '550e8400-e29b-41d4-a716-446655442002',
+                courseUuid: '550e8400-e29b-41d4-a716-446655440000',
                 moduleUuid: '550e8400-e29b-41d4-a716-446655441001',
                 title: 'Lesson 1.2: Server Actions & Form State Management',
                 type: 'video',
-                status: 'Published',
+                status: 'published',
+                sortOrder: 2,
                 durationMinutes: 50,
                 isDemo: false,
-                isPublished: true,
                 description: 'Learn useActionState, useFormStatus, and progressive enhancement with Server Actions.',
-                videoSource: 'upload',
-                videoUrl: 'https://assets.cubixskill.com/videos/react19_actions.mp4',
-                unlockRule: { type: 'min_watch_percent', minWatchPercent: 80 },
+                unlockRule: 'video_completion',
+                content: {
+                  videoSource: 'upload',
+                  videoUrl: 'https://assets.cubixskill.com/videos/react19_actions.mp4',
+                  minimumWatchPercentage: 80,
+                },
+                createdAt: '2026-08-01T00:00:00Z',
+                updatedAt: '2026-08-01T00:00:00Z',
               },
             ],
           },
@@ -257,12 +276,18 @@ export const usePlatformStore = create<PlatformStoreState>()(
       addModule: (courseUuid, title, description) => {
         const newModule: CurriculumModule = {
           id: `mod-${Date.now()}`,
+          uuid: `mod-${Date.now()}`,
+          courseUuid,
           title,
           description: description || '',
-          isPublished: true,
+          status: 'published',
+          sortOrder: 99,
+          unlockRule: 'immediate',
           isCollapsed: false,
           durationMinutes: 0,
           lessons: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
         set((state) => {
           const list = state.modulesByCourse[courseUuid] || [];
@@ -415,24 +440,30 @@ export const usePlatformStore = create<PlatformStoreState>()(
           id: 'stu-101',
           name: 'Alex Johnson',
           email: 'alex.johnson@example.com',
+          phone: '+91 98765 43210',
+          countryCode: '+91',
+          country: 'India',
           status: 'Active',
           enrolledCoursesCount: 3,
           completedCoursesCount: 1,
-          totalCreditsSpent: 45,
-          overallProgressPercent: 78,
-          joinedAt: '2026-06-10T00:00:00Z',
+          creditsConsumed: 45,
+          progressPercent: 78,
+          lastActivity: '2026-06-10T00:00:00Z',
           avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
         },
         {
           id: 'stu-102',
           name: 'Sophia Chen',
           email: 'sophia.chen@example.com',
+          phone: '+91 98765 43211',
+          countryCode: '+91',
+          country: 'India',
           status: 'Active',
           enrolledCoursesCount: 4,
           completedCoursesCount: 2,
-          totalCreditsSpent: 90,
-          overallProgressPercent: 92,
-          joinedAt: '2026-05-18T00:00:00Z',
+          creditsConsumed: 90,
+          progressPercent: 92,
+          lastActivity: '2026-05-18T00:00:00Z',
           avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
         },
       ],
@@ -488,8 +519,8 @@ export const usePlatformStore = create<PlatformStoreState>()(
               ? {
                   ...s,
                   status,
-                  marksAwarded: marks !== undefined ? marks : s.marksAwarded,
-                  writtenFeedback: feedback || s.writtenFeedback,
+                  grade: marks !== undefined ? marks : s.grade,
+                  feedback: feedback || s.feedback,
                 }
               : s
           ),
@@ -502,7 +533,7 @@ export const usePlatformStore = create<PlatformStoreState>()(
               ? {
                   ...s,
                   status,
-                  writtenFeedback: feedback || s.writtenFeedback,
+                  feedback: feedback || s.feedback,
                 }
               : s
           ),
@@ -529,7 +560,7 @@ export const usePlatformStore = create<PlatformStoreState>()(
         };
         set((state) => ({
           quizzes: state.quizzes.map((q) =>
-            q.id === quizUuid ? { ...q, questions: [...q.questions, newQuestion] } : q
+            q.id === quizUuid ? { ...q, questions: [...(q.questions || []), newQuestion] } : q
           ),
         }));
       },
@@ -537,7 +568,7 @@ export const usePlatformStore = create<PlatformStoreState>()(
         set((state) => ({
           quizzes: state.quizzes.map((q) =>
             q.id === quizUuid
-              ? { ...q, questions: q.questions.map((ques) => (ques.id === questionUuid ? { ...ques, ...updates } : ques)) }
+              ? { ...q, questions: (q.questions || []).map((ques: QuizQuestionItem) => (ques.id === questionUuid ? { ...ques, ...updates } : ques)) }
               : q
           ),
         }));
@@ -545,7 +576,7 @@ export const usePlatformStore = create<PlatformStoreState>()(
       deleteQuestion: (quizUuid, questionUuid) => {
         set((state) => ({
           quizzes: state.quizzes.map((q) =>
-            q.id === quizUuid ? { ...q, questions: q.questions.filter((ques) => ques.id !== questionUuid) } : q
+            q.id === quizUuid ? { ...q, questions: (q.questions || []).filter((ques: QuizQuestionItem) => ques.id !== questionUuid) } : q
           ),
         }));
       },
@@ -556,9 +587,14 @@ export const usePlatformStore = create<PlatformStoreState>()(
           id: 'staff-1',
           name: 'Sarah Miller',
           email: 'sarah.miller@cubixskill.com',
+          phone: '+91 98765 43210',
+          department: 'Academic Operations',
           roleName: 'Lead Instructor',
           roleId: 'role-1',
           status: 'Active',
+          assignedCoursesCount: 4,
+          assignedStudentsCount: 450,
+          creditCost: 100,
           lastActiveAt: '2026-08-05T09:45:00Z',
           avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
         },
@@ -568,7 +604,11 @@ export const usePlatformStore = create<PlatformStoreState>()(
           id: 'role-1',
           name: 'Lead Instructor',
           description: 'Full course management, grading, and content creation permissions.',
-          permissions: ['course.create', 'course.edit', 'grading.manage', 'media.upload'],
+          creditCost: 100,
+          permissions: {
+            courses: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
+            grading: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
+          },
           assignedStaffCount: 1,
         },
       ],

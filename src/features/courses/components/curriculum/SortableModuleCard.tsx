@@ -12,9 +12,8 @@ import {
   Clock,
   Lock,
   MoreVertical,
-  CheckCircle2,
 } from 'lucide-react';
-import type { CourseModule } from '../../store/curriculum.store';
+type CourseModule = any;
 import type { CurriculumLesson } from '../../../../types/curriculum.types';
 import { SortableLessonItem } from './SortableLessonItem';
 import { Badge } from '../../../../components/ui/Badge';
@@ -41,14 +40,14 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
   module,
   lessons = [],
   moduleIndex = 1,
-  onToggleCollapse,
+  onToggleCollapse: _onToggleCollapse,
   onAddLesson,
   onSelectLesson,
   onDeleteLesson,
   onDeleteModule,
   onDuplicateModule,
   onEditModule,
-  onTogglePublishModule,
+  onTogglePublishModule: _onTogglePublishModule,
   onDuplicateLesson,
   onAddSubsection,
   onEditSubsection,
@@ -195,10 +194,10 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
                     key={lesson.id}
                     lesson={lesson}
                     lessonIndex={`${moduleIndex}.${idx + 1}`}
-                    onSelectLesson={onSelectLesson}
+                    onSelectLesson={(lesson: any) => onSelectLesson(lesson)}
                     onDeleteLesson={(lessonId) => onDeleteLesson(module.uuid, lessonId)}
                     onDuplicateLesson={(lessonId) => onDuplicateLesson && onDuplicateLesson(module.uuid, lessonId)}
-                    onPreviewLesson={onSelectLesson}
+                    onPreviewLesson={(lesson: any) => onSelectLesson(lesson)}
                     onAddSubsection={onAddSubsection}
                     onEditSubsection={onEditSubsection}
                   />

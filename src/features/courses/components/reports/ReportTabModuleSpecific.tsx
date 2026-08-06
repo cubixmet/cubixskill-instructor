@@ -1,5 +1,4 @@
 import React from 'react';
-import { FileCheck, HelpCircle, Award, Video, Megaphone, MessageSquare, CreditCard, DollarSign } from 'lucide-react';
 import { Card } from '../../../../components/ui/Card';
 
 export interface ReportTabModuleSpecificProps {
@@ -12,8 +11,8 @@ export interface ReportTabModuleSpecificProps {
 export const ReportTabModuleSpecific: React.FC<ReportTabModuleSpecificProps> = ({
   tab,
   metrics,
-  courseAnnouncements,
-  courseLiveSessions,
+  courseAnnouncements: _courseAnnouncements,
+  courseLiveSessions: _courseLiveSessions,
 }) => {
   if (tab === 'assignments') {
     return (

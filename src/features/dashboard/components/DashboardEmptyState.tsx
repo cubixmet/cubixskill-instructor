@@ -1,6 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { FolderOpen, Plus, ArrowRight } from 'lucide-react';
+import { FolderOpen, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface DashboardEmptyStateProps {

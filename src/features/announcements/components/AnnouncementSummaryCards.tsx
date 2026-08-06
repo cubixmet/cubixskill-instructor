@@ -5,12 +5,9 @@ import {
   Clock,
   FileText,
   Pin,
-  Archive,
-  Eye,
-  TrendingUp,
+  Eye
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
-import { Badge } from '../../../components/ui/Badge';
 
 export interface AnnouncementSummaryCardsProps {
   total: number;
@@ -30,7 +27,6 @@ export const AnnouncementSummaryCards: React.FC<AnnouncementSummaryCardsProps> =
   scheduled,
   drafts,
   pinned,
-  archived,
   readRatePercent,
   unreadStudentsCount,
   onFilterByStatus,

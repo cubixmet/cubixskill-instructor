@@ -23,7 +23,6 @@ import { AnnouncementAnalyticsModal } from '../components/AnnouncementAnalyticsM
 import { ExportAnnouncementsModal } from '../components/ExportAnnouncementsModal';
 
 export const GlobalAnnouncementsPage: React.FC = () => {
-  const navigate = useNavigate();
   const courses = usePlatformStore((state) => state.courses || []);
 
   const announcements = useAnnouncementStore((state) => state.announcements);

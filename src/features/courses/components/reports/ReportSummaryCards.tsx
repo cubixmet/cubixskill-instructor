@@ -3,17 +3,11 @@ import {
   Users,
   CheckCircle2,
   TrendingUp,
-  FileCheck,
   HelpCircle,
   Award,
   Video,
   Megaphone,
-  MessageSquare,
-  CreditCard,
   DollarSign,
-  Star,
-  Clock,
-  HardDrive,
 } from 'lucide-react';
 import { Card } from '../../../../components/ui/Card';
 

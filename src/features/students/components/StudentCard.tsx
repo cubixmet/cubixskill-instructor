@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, Mail, Phone, ChevronRight } from 'lucide-react';
+import { BookOpen, Clock, Mail, ChevronRight } from 'lucide-react';
 import type { StudentDetail } from '../types/student.types';
 import { Badge } from '../../../components/ui/Badge';
 import { Card } from '../../../components/ui/Card';

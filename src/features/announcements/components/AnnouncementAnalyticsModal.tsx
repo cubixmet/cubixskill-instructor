@@ -1,12 +1,8 @@
 import React from 'react';
 import {
-  BarChart3,
   TrendingUp,
   Eye,
-  CheckCircle2,
-  Users,
   Award,
-  Calendar,
 } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
