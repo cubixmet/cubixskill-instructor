@@ -1,0 +1,678 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { CurriculumModule, CurriculumLesson } from '../types/curriculum.types';
+import type { Assignment, Submission, SubmissionStatus } from '../types/assignment.types';
+import type { QuizData, QuizQuestionItem } from '../types/quiz.types';
+import type { Student } from '../types/models.types';
+import type { StaffMember, Role } from '../types/models.types';
+
+export interface CourseEntity {
+  id: string; // courseUuid
+  title: string;
+  subtitle: string;
+  category: string;
+  level: string;
+  language: string;
+  pricingType: 'free' | 'paid' | 'subscription';
+  priceAmount: number;
+  status: 'Draft' | 'Published' | 'Scheduled' | 'Archived';
+  instructorName: string;
+  coverImageUrl: string;
+  enrolledStudentsCount: number;
+  rating: number;
+  totalDurationMinutes: number;
+  totalModulesCount: number;
+  totalLessonsCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MediaAssetEntity {
+  id: string; // mediaUuid
+  name: string;
+  sizeMb: number;
+  format: string;
+  url: string;
+  folder: string;
+  uploadedAt: string;
+  creditsConsumed: number;
+}
+
+export interface CreditTransactionEntity {
+  id: string;
+  type: 'deduction' | 'addition' | 'purchase';
+  amount: number;
+  reason: string;
+  timestamp: string;
+}
+
+interface PlatformStoreState {
+  // 1. Courses State
+  courses: CourseEntity[];
+  addCourse: (course: Omit<CourseEntity, 'id' | 'createdAt' | 'updatedAt'>) => string;
+  updateCourse: (id: string, updates: Partial<CourseEntity>) => void;
+  deleteCourse: (id: string) => void;
+  duplicateCourse: (id: string) => string;
+  publishCourse: (id: string) => void;
+  archiveCourse: (id: string) => void;
+
+  // 2. Curriculum State (Modules & Lessons)
+  modulesByCourse: Record<string, CurriculumModule[]>;
+  addModule: (courseUuid: string, title: string, description?: string) => void;
+  updateModule: (courseUuid: string, moduleUuid: string, updates: Partial<CurriculumModule>) => void;
+  deleteModule: (courseUuid: string, moduleUuid: string) => void;
+  duplicateModule: (courseUuid: string, moduleUuid: string) => void;
+  reorderModules: (courseUuid: string, updatedModules: CurriculumModule[]) => void;
+  toggleModuleCollapse: (courseUuid: string, moduleUuid: string) => void;
+
+  addLesson: (courseUuid: string, moduleUuid: string, lesson: Omit<CurriculumLesson, 'id' | 'moduleUuid'>) => void;
+  updateLesson: (courseUuid: string, moduleUuid: string, lessonUuid: string, updates: Partial<CurriculumLesson>) => void;
+  deleteLesson: (courseUuid: string, moduleUuid: string, lessonUuid: string) => void;
+  duplicateLesson: (courseUuid: string, moduleUuid: string, lessonUuid: string) => void;
+
+  // 3. Students State
+  students: Student[];
+  addStudent: (student: Omit<Student, 'id'>) => void;
+  updateStudent: (id: string, updates: Partial<Student>) => void;
+  suspendStudent: (id: string) => void;
+  activateStudent: (id: string) => void;
+  deleteStudent: (id: string) => void;
+
+  // 4. Assignments & Submissions State
+  assignments: Assignment[];
+  submissions: Submission[];
+  addAssignment: (assignment: Assignment) => void;
+  updateAssignment: (id: string, updates: Partial<Assignment>) => void;
+  deleteAssignment: (id: string) => void;
+  updateSubmissionStatus: (submissionUuid: string, status: SubmissionStatus, marks?: number, feedback?: string) => void;
+  bulkUpdateSubmissions: (submissionUuids: string[], status: SubmissionStatus, feedback?: string) => void;
+
+  // 5. Quizzes State
+  quizzes: QuizData[];
+  addQuiz: (quiz: QuizData) => void;
+  updateQuiz: (id: string, updates: Partial<QuizData>) => void;
+  deleteQuiz: (id: string) => void;
+  addQuestion: (quizUuid: string, question: Omit<QuizQuestionItem, 'id'>) => void;
+  updateQuestion: (quizUuid: string, questionUuid: string, updates: Partial<QuizQuestionItem>) => void;
+  deleteQuestion: (quizUuid: string, questionUuid: string) => void;
+
+  // 6. Staff & Roles State
+  staffMembers: StaffMember[];
+  roles: Role[];
+  addStaff: (staff: Omit<StaffMember, 'id'>) => void;
+  updateStaff: (id: string, updates: Partial<StaffMember>) => void;
+  deleteStaff: (id: string) => void;
+
+  // 7. Media & Credit Engine State
+  mediaAssets: MediaAssetEntity[];
+  totalCredits: number;
+  creditTransactions: CreditTransactionEntity[];
+  uploadMediaAsset: (file: { name: string; sizeMb: number; format: string; folder?: string }) => void;
+  deleteMediaAsset: (id: string) => void;
+  deductCredits: (amount: number, reason: string) => void;
+  addCredits: (amount: number, reason: string) => void;
+}
+
+export const usePlatformStore = create<PlatformStoreState>()(
+  persist(
+    (set, get) => ({
+      // INITIAL COURSES MOCK DATA
+      courses: [
+        {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          title: 'React 19 & Next.js 15 Masterclass',
+          subtitle: 'Master Server Components, Server Actions, useOptimistic, and Enterprise Architecture.',
+          category: 'Web Development',
+          level: 'Advanced',
+          language: 'English',
+          pricingType: 'paid',
+          priceAmount: 149,
+          status: 'Published',
+          instructorName: 'Sarah Miller',
+          coverImageUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&auto=format&fit=crop&q=80',
+          enrolledStudentsCount: 1420,
+          rating: 4.9,
+          totalDurationMinutes: 720,
+          totalModulesCount: 3,
+          totalLessonsCount: 8,
+          createdAt: '2026-07-01T00:00:00Z',
+          updatedAt: '2026-08-04T12:00:00Z',
+        },
+        {
+          id: '550e8400-e29b-41d4-a716-446655440001',
+          title: 'Full-Stack TypeScript & Node.js Microservices',
+          subtitle: 'Build scalable event-driven microservices with Docker, Kubernetes, and gRPC.',
+          category: 'Backend Development',
+          level: 'Intermediate',
+          language: 'English',
+          pricingType: 'paid',
+          priceAmount: 199,
+          status: 'Published',
+          instructorName: 'Alex Rivera',
+          coverImageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
+          enrolledStudentsCount: 890,
+          rating: 4.8,
+          totalDurationMinutes: 540,
+          totalModulesCount: 2,
+          totalLessonsCount: 5,
+          createdAt: '2026-07-15T00:00:00Z',
+          updatedAt: '2026-08-02T10:00:00Z',
+        },
+      ],
+
+      addCourse: (courseData) => {
+        const newUuid = `550e8400-e29b-41d4-a716-446655${Date.now().toString().slice(-6)}`;
+        const newCourse: CourseEntity = {
+          ...courseData,
+          id: newUuid,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        set((state) => ({ courses: [newCourse, ...state.courses] }));
+        return newUuid;
+      },
+
+      updateCourse: (id, updates) => {
+        set((state) => ({
+          courses: state.courses.map((c) => (c.id === id ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c)),
+        }));
+      },
+
+      deleteCourse: (id) => {
+        set((state) => ({ courses: state.courses.filter((c) => c.id !== id) }));
+      },
+
+      duplicateCourse: (id) => {
+        const target = get().courses.find((c) => c.id === id);
+        if (!target) return id;
+        const newUuid = `550e8400-e29b-41d4-a716-446655${Date.now().toString().slice(-6)}`;
+        const duplicated: CourseEntity = {
+          ...target,
+          id: newUuid,
+          title: `${target.title} (Copy)`,
+          status: 'Draft',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        set((state) => ({ courses: [duplicated, ...state.courses] }));
+        return newUuid;
+      },
+
+      publishCourse: (id) => {
+        set((state) => ({
+          courses: state.courses.map((c) => (c.id === id ? { ...c, status: 'Published' } : c)),
+        }));
+      },
+
+      archiveCourse: (id) => {
+        set((state) => ({
+          courses: state.courses.map((c) => (c.id === id ? { ...c, status: 'Archived' } : c)),
+        }));
+      },
+
+      // INITIAL CURRICULUM MODULES BY COURSE
+      modulesByCourse: {
+        '550e8400-e29b-41d4-a716-446655440000': [
+          {
+            id: '550e8400-e29b-41d4-a716-446655441001',
+            title: 'Module 1: React 19 Architecture & Server Components',
+            description: 'Foundational concepts covering React 19 RSC, Actions, and Server Functions.',
+            isPublished: true,
+            isCollapsed: false,
+            durationMinutes: 180,
+            lessons: [
+              {
+                id: '550e8400-e29b-41d4-a716-446655442001',
+                moduleUuid: '550e8400-e29b-41d4-a716-446655441001',
+                title: 'Lesson 1.1: Deep Dive into React 19 Server Components',
+                type: 'video',
+                status: 'Published',
+                durationMinutes: 45,
+                isDemo: true,
+                isPublished: true,
+                description: 'Understand RSC boundaries, server vs client bundles, and zero-bundle server components.',
+                videoSource: 'upload',
+                videoUrl: 'https://assets.cubixskill.com/videos/react19_rsc.mp4',
+                unlockRule: { type: 'immediate' },
+              },
+              {
+                id: '550e8400-e29b-41d4-a716-446655442002',
+                moduleUuid: '550e8400-e29b-41d4-a716-446655441001',
+                title: 'Lesson 1.2: Server Actions & Form State Management',
+                type: 'video',
+                status: 'Published',
+                durationMinutes: 50,
+                isDemo: false,
+                isPublished: true,
+                description: 'Learn useActionState, useFormStatus, and progressive enhancement with Server Actions.',
+                videoSource: 'upload',
+                videoUrl: 'https://assets.cubixskill.com/videos/react19_actions.mp4',
+                unlockRule: { type: 'min_watch_percent', minWatchPercent: 80 },
+              },
+            ],
+          },
+        ],
+      },
+
+      addModule: (courseUuid, title, description) => {
+        const newModule: CurriculumModule = {
+          id: `mod-${Date.now()}`,
+          title,
+          description: description || '',
+          isPublished: true,
+          isCollapsed: false,
+          durationMinutes: 0,
+          lessons: [],
+        };
+        set((state) => {
+          const list = state.modulesByCourse[courseUuid] || [];
+          return {
+            modulesByCourse: {
+              ...state.modulesByCourse,
+              [courseUuid]: [...list, newModule],
+            },
+          };
+        });
+      },
+
+      updateModule: (courseUuid, moduleUuid, updates) => {
+        set((state) => {
+          const list = state.modulesByCourse[courseUuid] || [];
+          return {
+            modulesByCourse: {
+              ...state.modulesByCourse,
+              [courseUuid]: list.map((m) => (m.id === moduleUuid ? { ...m, ...updates } : m)),
+            },
+          };
+        });
+      },
+
+      deleteModule: (courseUuid, moduleUuid) => {
+        set((state) => {
+          const list = state.modulesByCourse[courseUuid] || [];
+          return {
+            modulesByCourse: {
+              ...state.modulesByCourse,
+              [courseUuid]: list.filter((m) => m.id !== moduleUuid),
+            },
+          };
+        });
+      },
+
+      duplicateModule: (courseUuid, moduleUuid) => {
+        set((state) => {
+          const list = state.modulesByCourse[courseUuid] || [];
+          const target = list.find((m) => m.id === moduleUuid);
+          if (!target) return state;
+          const newMod: CurriculumModule = {
+            ...target,
+            id: `mod-${Date.now()}`,
+            title: `${target.title} (Copy)`,
+            lessons: target.lessons.map((l) => ({ ...l, id: `les-${Date.now()}-${Math.random().toString().slice(2, 6)}` })),
+          };
+          return {
+            modulesByCourse: {
+              ...state.modulesByCourse,
+              [courseUuid]: [...list, newMod],
+            },
+          };
+        });
+      },
+
+      reorderModules: (courseUuid, updatedModules) => {
+        set((state) => ({
+          modulesByCourse: {
+            ...state.modulesByCourse,
+            [courseUuid]: updatedModules,
+          },
+        }));
+      },
+
+      toggleModuleCollapse: (courseUuid, moduleUuid) => {
+        set((state) => {
+          const list = state.modulesByCourse[courseUuid] || [];
+          return {
+            modulesByCourse: {
+              ...state.modulesByCourse,
+              [courseUuid]: list.map((m) => (m.id === moduleUuid ? { ...m, isCollapsed: !m.isCollapsed } : m)),
+            },
+          };
+        });
+      },
+
+      addLesson: (courseUuid, moduleUuid, lessonData) => {
+        const newLesson: CurriculumLesson = {
+          ...lessonData,
+          id: `les-${Date.now()}`,
+          moduleUuid,
+        };
+        set((state) => {
+          const list = state.modulesByCourse[courseUuid] || [];
+          return {
+            modulesByCourse: {
+              ...state.modulesByCourse,
+              [courseUuid]: list.map((m) => (m.id === moduleUuid ? { ...m, lessons: [...m.lessons, newLesson] } : m)),
+            },
+          };
+        });
+      },
+
+      updateLesson: (courseUuid, moduleUuid, lessonUuid, updates) => {
+        set((state) => {
+          const list = state.modulesByCourse[courseUuid] || [];
+          return {
+            modulesByCourse: {
+              ...state.modulesByCourse,
+              [courseUuid]: list.map((m) =>
+                m.id === moduleUuid
+                  ? { ...m, lessons: m.lessons.map((l) => (l.id === lessonUuid ? { ...l, ...updates } : l)) }
+                  : m
+              ),
+            },
+          };
+        });
+      },
+
+      deleteLesson: (courseUuid, moduleUuid, lessonUuid) => {
+        set((state) => {
+          const list = state.modulesByCourse[courseUuid] || [];
+          return {
+            modulesByCourse: {
+              ...state.modulesByCourse,
+              [courseUuid]: list.map((m) =>
+                m.id === moduleUuid ? { ...m, lessons: m.lessons.filter((l) => l.id !== lessonUuid) } : m
+              ),
+            },
+          };
+        });
+      },
+
+      duplicateLesson: (courseUuid, moduleUuid, lessonUuid) => {
+        set((state) => {
+          const list = state.modulesByCourse[courseUuid] || [];
+          return {
+            modulesByCourse: {
+              ...state.modulesByCourse,
+              [courseUuid]: list.map((m) => {
+                if (m.id !== moduleUuid) return m;
+                const target = m.lessons.find((l) => l.id === lessonUuid);
+                if (!target) return m;
+                const dup: CurriculumLesson = {
+                  ...target,
+                  id: `les-${Date.now()}`,
+                  title: `${target.title} (Copy)`,
+                };
+                return { ...m, lessons: [...m.lessons, dup] };
+              }),
+            },
+          };
+        });
+      },
+
+      // INITIAL STUDENTS MOCK DATA
+      students: [
+        {
+          id: 'stu-101',
+          name: 'Alex Johnson',
+          email: 'alex.johnson@example.com',
+          status: 'Active',
+          enrolledCoursesCount: 3,
+          completedCoursesCount: 1,
+          totalCreditsSpent: 45,
+          overallProgressPercent: 78,
+          joinedAt: '2026-06-10T00:00:00Z',
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        },
+        {
+          id: 'stu-102',
+          name: 'Sophia Chen',
+          email: 'sophia.chen@example.com',
+          status: 'Active',
+          enrolledCoursesCount: 4,
+          completedCoursesCount: 2,
+          totalCreditsSpent: 90,
+          overallProgressPercent: 92,
+          joinedAt: '2026-05-18T00:00:00Z',
+          avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+        },
+      ],
+
+      addStudent: (studentData) => {
+        const newStudent: Student = {
+          ...studentData,
+          id: `stu-${Date.now().toString().slice(-4)}`,
+        };
+        set((state) => ({ students: [newStudent, ...state.students] }));
+      },
+
+      updateStudent: (id, updates) => {
+        set((state) => ({
+          students: state.students.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+        }));
+      },
+
+      suspendStudent: (id) => {
+        set((state) => ({
+          students: state.students.map((s) => (s.id === id ? { ...s, status: 'Suspended' } : s)),
+        }));
+      },
+
+      activateStudent: (id) => {
+        set((state) => ({
+          students: state.students.map((s) => (s.id === id ? { ...s, status: 'Active' } : s)),
+        }));
+      },
+
+      deleteStudent: (id) => {
+        set((state) => ({ students: state.students.filter((s) => s.id !== id) }));
+      },
+
+      // ASSIGNMENTS & SUBMISSIONS MOCK STATE
+      assignments: [],
+      submissions: [],
+      addAssignment: (assignment) => {
+        set((state) => ({ assignments: [assignment, ...state.assignments] }));
+      },
+      updateAssignment: (id, updates) => {
+        set((state) => ({
+          assignments: state.assignments.map((a) => (a.id === id ? { ...a, ...updates } : a)),
+        }));
+      },
+      deleteAssignment: (id) => {
+        set((state) => ({ assignments: state.assignments.filter((a) => a.id !== id) }));
+      },
+      updateSubmissionStatus: (submissionUuid, status, marks, feedback) => {
+        set((state) => ({
+          submissions: state.submissions.map((s) =>
+            s.id === submissionUuid
+              ? {
+                  ...s,
+                  status,
+                  marksAwarded: marks !== undefined ? marks : s.marksAwarded,
+                  writtenFeedback: feedback || s.writtenFeedback,
+                }
+              : s
+          ),
+        }));
+      },
+      bulkUpdateSubmissions: (submissionUuids, status, feedback) => {
+        set((state) => ({
+          submissions: state.submissions.map((s) =>
+            submissionUuids.includes(s.id)
+              ? {
+                  ...s,
+                  status,
+                  writtenFeedback: feedback || s.writtenFeedback,
+                }
+              : s
+          ),
+        }));
+      },
+
+      // QUIZZES MOCK STATE
+      quizzes: [],
+      addQuiz: (quiz) => {
+        set((state) => ({ quizzes: [quiz, ...state.quizzes] }));
+      },
+      updateQuiz: (id, updates) => {
+        set((state) => ({
+          quizzes: state.quizzes.map((q) => (q.id === id ? { ...q, ...updates } : q)),
+        }));
+      },
+      deleteQuiz: (id) => {
+        set((state) => ({ quizzes: state.quizzes.filter((q) => q.id !== id) }));
+      },
+      addQuestion: (quizUuid, questionData) => {
+        const newQuestion: QuizQuestionItem = {
+          ...questionData,
+          id: `q-${Date.now()}`,
+        };
+        set((state) => ({
+          quizzes: state.quizzes.map((q) =>
+            q.id === quizUuid ? { ...q, questions: [...q.questions, newQuestion] } : q
+          ),
+        }));
+      },
+      updateQuestion: (quizUuid, questionUuid, updates) => {
+        set((state) => ({
+          quizzes: state.quizzes.map((q) =>
+            q.id === quizUuid
+              ? { ...q, questions: q.questions.map((ques) => (ques.id === questionUuid ? { ...ques, ...updates } : ques)) }
+              : q
+          ),
+        }));
+      },
+      deleteQuestion: (quizUuid, questionUuid) => {
+        set((state) => ({
+          quizzes: state.quizzes.map((q) =>
+            q.id === quizUuid ? { ...q, questions: q.questions.filter((ques) => ques.id !== questionUuid) } : q
+          ),
+        }));
+      },
+
+      // STAFF & ROLES MOCK STATE
+      staffMembers: [
+        {
+          id: 'staff-1',
+          name: 'Sarah Miller',
+          email: 'sarah.miller@cubixskill.com',
+          roleName: 'Lead Instructor',
+          roleId: 'role-1',
+          status: 'Active',
+          lastActiveAt: '2026-08-05T09:45:00Z',
+          avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+        },
+      ],
+      roles: [
+        {
+          id: 'role-1',
+          name: 'Lead Instructor',
+          description: 'Full course management, grading, and content creation permissions.',
+          permissions: ['course.create', 'course.edit', 'grading.manage', 'media.upload'],
+          assignedStaffCount: 1,
+        },
+      ],
+      addStaff: (staffData) => {
+        const newStaff: StaffMember = {
+          ...staffData,
+          id: `staff-${Date.now()}`,
+        };
+        set((state) => ({ staffMembers: [newStaff, ...state.staffMembers] }));
+      },
+      updateStaff: (id, updates) => {
+        set((state) => ({
+          staffMembers: state.staffMembers.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+        }));
+      },
+      deleteStaff: (id) => {
+        set((state) => ({ staffMembers: state.staffMembers.filter((s) => s.id !== id) }));
+      },
+
+      // MEDIA & CREDIT ENGINE STATE (Media Credit Meter ONLY, strictly no storage quota)
+      mediaAssets: [
+        {
+          id: 'med-1',
+          name: 'react19_deepdive_lecture.mp4',
+          sizeMb: 450,
+          format: 'video/mp4',
+          url: 'https://assets.cubixskill.com/videos/react19_rsc.mp4',
+          folder: 'Course Videos',
+          uploadedAt: '2026-08-01T10:00:00Z',
+          creditsConsumed: 1.5,
+        },
+      ],
+      totalCredits: 1250.5,
+      creditTransactions: [
+        {
+          id: 'tx-1',
+          type: 'deduction',
+          amount: 1.5,
+          reason: 'Direct Video Upload: react19_deepdive_lecture.mp4',
+          timestamp: '2026-08-01T10:00:00Z',
+        },
+      ],
+
+      uploadMediaAsset: (file) => {
+        const credits = Math.round((file.sizeMb / 100) * 10) / 10;
+        const newAsset: MediaAssetEntity = {
+          id: `med-${Date.now()}`,
+          name: file.name,
+          sizeMb: file.sizeMb,
+          format: file.format,
+          url: `https://assets.cubixskill.com/media/${file.name}`,
+          folder: file.folder || 'General',
+          uploadedAt: new Date().toISOString(),
+          creditsConsumed: credits,
+        };
+        const newTx: CreditTransactionEntity = {
+          id: `tx-${Date.now()}`,
+          type: 'deduction',
+          amount: credits,
+          reason: `Media Upload: ${file.name}`,
+          timestamp: new Date().toISOString(),
+        };
+
+        set((state) => ({
+          mediaAssets: [newAsset, ...state.mediaAssets],
+          totalCredits: Math.max(0, Math.round((state.totalCredits - credits) * 10) / 10),
+          creditTransactions: [newTx, ...state.creditTransactions],
+        }));
+      },
+
+      deleteMediaAsset: (id) => {
+        set((state) => ({ mediaAssets: state.mediaAssets.filter((m) => m.id !== id) }));
+      },
+
+      deductCredits: (amount, reason) => {
+        const newTx: CreditTransactionEntity = {
+          id: `tx-${Date.now()}`,
+          type: 'deduction',
+          amount,
+          reason,
+          timestamp: new Date().toISOString(),
+        };
+        set((state) => ({
+          totalCredits: Math.max(0, Math.round((state.totalCredits - amount) * 10) / 10),
+          creditTransactions: [newTx, ...state.creditTransactions],
+        }));
+      },
+
+      addCredits: (amount, reason) => {
+        const newTx: CreditTransactionEntity = {
+          id: `tx-${Date.now()}`,
+          type: 'addition',
+          amount,
+          reason,
+          timestamp: new Date().toISOString(),
+        };
+        set((state) => ({
+          totalCredits: Math.round((state.totalCredits + amount) * 10) / 10,
+          creditTransactions: [newTx, ...state.creditTransactions],
+        }));
+      },
+    }),
+    {
+      name: 'cubixskill_instructor_platform_state',
+    }
+  )
+);

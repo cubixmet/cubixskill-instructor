@@ -1,0 +1,26 @@
+[
+  {
+    "id": "c1",
+    "title": "Advanced React & TypeScript Patterns",
+    "studentsEnrolled": 430,
+    "rating": 4.9,
+    "status": "published",
+    "category": "Frontend Engineering"
+  },
+  {
+    "id": "c2",
+    "title": "Tailwind CSS v4 & Modern Styling",
+    "studentsEnrolled": 380,
+    "rating": 4.8,
+    "status": "published",
+    "category": "Web Design"
+  },
+  {
+    "id": "c3",
+    "title": "Fullstack Architecture with Django & React",
+    "studentsEnrolled": 430,
+    "rating": 4.95,
+    "status": "draft",
+    "category": "Backend Engineering"
+  }
+]

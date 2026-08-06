@@ -1,0 +1,8 @@
+{
+  "profile": {
+    "fullName": "Demo Instructor",
+    "email": "instructor@example.com",
+    "bio": "Senior Fullstack Engineer & Instructor at CubixSkill.",
+    "notificationsEnabled": true
+  }
+}

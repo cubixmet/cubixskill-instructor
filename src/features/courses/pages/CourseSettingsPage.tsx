@@ -1,0 +1,240 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  Settings,
+  RotateCcw,
+  Save,
+  CheckCircle2,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
+import { Card } from '../../../components/ui/Card';
+import { Button } from '../../../components/ui/Button';
+import { Badge } from '../../../components/ui/Badge';
+
+import { useCourseSettingsStore, DEFAULT_COURSE_SETTINGS, type CourseSettingsConfig } from '../store/courseSettings.store';
+import { useCourseFeaturesStore, DEFAULT_COURSE_FEATURES } from '../store/courseFeatures.store';
+
+import { CourseSettingsNav, SETTINGS_SECTIONS } from '../components/settings/CourseSettingsNav';
+import { CourseSettingsSections } from '../components/settings/CourseSettingsSections';
+import { DeleteCourseModal } from '../components/settings/DeleteCourseModal';
+
+export const CourseSettingsPage: React.FC = () => {
+  const params = useParams<{ courseUuid?: string }>();
+  const navigate = useNavigate();
+
+  const courseUuid = params.courseUuid || '550e8400-e29b-41d4-a716-446655440000';
+
+  const getCourseSettings = useCourseSettingsStore((state) => state.getCourseSettings);
+  const updateCourseSettings = useCourseSettingsStore((state) => state.updateCourseSettings);
+  const resetCourseSettings = useCourseSettingsStore((state) => state.resetCourseSettings);
+
+  const getCourseFeatures = useCourseFeaturesStore((state) => state.getCourseFeatures);
+  const courseFeatures = getCourseFeatures ? getCourseFeatures(courseUuid) : DEFAULT_COURSE_FEATURES;
+
+  const initialSettings = getCourseSettings(courseUuid);
+
+  // Local editing state for unsaved dirty tracking
+  const [localSettings, setLocalSettings] = useState<CourseSettingsConfig>(() => ({ ...initialSettings }));
+  const [activeSection, setActiveSection] = useState<string>('basic');
+  const [mobileExpandedSection, setMobileExpandedSection] = useState<string | null>('basic');
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLocalSettings({ ...getCourseSettings(courseUuid) });
+  }, [courseUuid]);
+
+  // Dirty count
+  const unsavedCount = useMemo(() => {
+    let count = 0;
+    const currentStore = getCourseSettings(courseUuid);
+    Object.keys(localSettings).forEach((key) => {
+      if ((localSettings as any)[key] !== (currentStore as any)[key]) {
+        count++;
+      }
+    });
+    return count;
+  }, [localSettings, courseUuid, getCourseSettings]);
+
+  const handleUpdate = (updates: Partial<CourseSettingsConfig>) => {
+    setLocalSettings((prev) => ({ ...prev, ...updates }));
+  };
+
+  const handleSaveChanges = () => {
+    updateCourseSettings(courseUuid, localSettings);
+    setToastMessage('Course configuration settings saved successfully!');
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleResetSettings = () => {
+    resetCourseSettings(courseUuid);
+    setLocalSettings({ ...DEFAULT_COURSE_SETTINGS });
+    setToastMessage('Reset course settings to platform defaults.');
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleDeleteCourse = () => {
+    alert(`Course "${localSettings.title}" has been deleted.`);
+    navigate('/courses');
+  };
+
+  return (
+    <div className="space-y-6 text-left font-sans pb-24">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-20 right-6 z-50 bg-slate-900 text-white font-extrabold text-xs px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-800 animate-bounce">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* 1. PAGE HEADER */}
+      <Card padding="md" className="bg-white border border-slate-200/90 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-black text-slate-900 tracking-tight">Course Settings &amp; Configuration</h1>
+              <Badge variant="info" size="sm" className="font-bold">
+                {localSettings.visibility}
+              </Badge>
+            </div>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Configure course metadata, enrollment options, pricing, access rules, and SEO settings.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResetSettings}
+              className="h-9 text-xs font-semibold text-slate-700"
+              leftIcon={<RotateCcw className="w-3.5 h-3.5 text-slate-500" />}
+            >
+              Reset Defaults
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={handleSaveChanges}
+              disabled={unsavedCount === 0}
+              className={`h-9 font-extrabold text-xs px-5 shadow-xs transition-all ${
+                unsavedCount > 0
+                  ? 'bg-[#2563EB] text-white hover:bg-blue-700'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+              }`}
+              leftIcon={<Save className="w-4 h-4" />}
+            >
+              Save Changes {unsavedCount > 0 ? `(${unsavedCount})` : ''}
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* 2. MAIN LAYOUT: DESKTOP (260px Left Nav + Form) vs MOBILE (Accordions) */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        {/* DESKTOP LEFT SIDEBAR NAV (4 cols md, 3 cols lg = ~260px) */}
+        <div className="hidden md:block md:col-span-4 lg:col-span-3 space-y-2 shrink-0">
+          <Card padding="sm" className="bg-white border border-slate-200 sticky top-4">
+            <CourseSettingsNav
+              activeSection={activeSection}
+              onSelectSection={(id) => setActiveSection(id)}
+              courseFeatures={courseFeatures}
+            />
+          </Card>
+        </div>
+
+        {/* DESKTOP ACTIVE FORM VIEW (8 cols md, 9 cols lg) */}
+        <div className="hidden md:block md:col-span-8 lg:col-span-9">
+          <CourseSettingsSections
+            sectionId={activeSection}
+            settings={localSettings}
+            onChange={handleUpdate}
+            courseFeatures={courseFeatures}
+            courseUuid={courseUuid}
+            onOpenDeleteModal={() => setIsDeleteModalOpen(true)}
+          />
+        </div>
+
+        {/* MOBILE ACCORDION VIEW (Block on mobile) */}
+        <div className="block md:hidden col-span-1 space-y-3 font-sans text-xs">
+          {SETTINGS_SECTIONS.map((sec) => {
+            const Icon = sec.icon;
+            const isExpanded = mobileExpandedSection === sec.id;
+            const isDisabledFeature = sec.featureKey ? courseFeatures[sec.featureKey] === false : false;
+
+            return (
+              <Card key={sec.id} padding="none" className="bg-white border border-slate-200 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setMobileExpandedSection(isExpanded ? null : sec.id)}
+                  className="w-full p-3.5 flex items-center justify-between font-extrabold text-slate-900 bg-slate-50 border-b border-slate-100"
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon className="w-4 h-4 text-blue-600" />
+                    <span>{sec.label}</span>
+                  </div>
+                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                </button>
+
+                {isExpanded && (
+                  <div className="p-3">
+                    <CourseSettingsSections
+                      sectionId={sec.id}
+                      settings={localSettings}
+                      onChange={handleUpdate}
+                      courseFeatures={courseFeatures}
+                      courseUuid={courseUuid}
+                      onOpenDeleteModal={() => setIsDeleteModalOpen(true)}
+                    />
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. STICKY SAVE FOOTER */}
+      {unsavedCount > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 shadow-lg flex items-center justify-between font-sans text-xs max-w-7xl mx-auto px-4">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+            <span className="font-extrabold text-slate-900">
+              You have {unsavedCount} unsaved configuration change(s)
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocalSettings({ ...initialSettings })}
+            >
+              Discard Changes
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveChanges}
+              className="bg-[#2563EB] text-white font-extrabold px-6 hover:bg-blue-700"
+              leftIcon={<Save className="w-4 h-4" />}
+            >
+              Save Changes
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* DANGER ZONE DELETE MODAL */}
+      <DeleteCourseModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        courseTitle={localSettings.title}
+        onConfirmDelete={handleDeleteCourse}
+      />
+    </div>
+  );
+};
