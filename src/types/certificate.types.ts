@@ -64,6 +64,39 @@ export interface AutoIssueConditions {
   requireManualApproval: boolean;
 }
 
+export const DEFAULT_AUTO_ISSUE_CONDITIONS: AutoIssueConditions = {
+  requireCourseCompletion: true,
+  requireAllLessons: false,
+  requireQuizPassed: false,
+  requireAssignmentsApproved: false,
+  minPassingPercentage: 70,
+  requireFinalExam: false,
+  requireManualApproval: false,
+};
+
+export const mapAutoIssueConditions = (
+  selectedConditions?: string[] | Partial<AutoIssueConditions> | null,
+  options?: { minPassingPercentage?: number }
+): AutoIssueConditions => {
+  if (!selectedConditions) return { ...DEFAULT_AUTO_ISSUE_CONDITIONS };
+  if (Array.isArray(selectedConditions)) {
+    return {
+      requireCourseCompletion: selectedConditions.includes('course_completion') || selectedConditions.includes('requireCourseCompletion'),
+      requireAllLessons: selectedConditions.includes('all_lessons') || selectedConditions.includes('requireAllLessons'),
+      requireQuizPassed: selectedConditions.includes('quiz_passed') || selectedConditions.includes('requireQuizPassed'),
+      requireAssignmentsApproved: selectedConditions.includes('assignments_approved') || selectedConditions.includes('requireAssignmentsApproved'),
+      minPassingPercentage: options?.minPassingPercentage ?? 70,
+      requireFinalExam: selectedConditions.includes('final_exam') || selectedConditions.includes('requireFinalExam'),
+      requireManualApproval: selectedConditions.includes('manual_approval') || selectedConditions.includes('requireManualApproval'),
+    };
+  }
+  return {
+    ...DEFAULT_AUTO_ISSUE_CONDITIONS,
+    ...selectedConditions,
+    minPassingPercentage: selectedConditions.minPassingPercentage ?? options?.minPassingPercentage ?? 70,
+  };
+};
+
 export interface CertificateTemplate {
   id: string;
   courseUuid: string;

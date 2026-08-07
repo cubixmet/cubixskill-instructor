@@ -130,6 +130,7 @@ export type UpdateSubsectionInput = Partial<CreateSubsectionInput>;
 // Compatibility types for legacy component interfaces
 export type LessonStatus = ContentStatus;
 export type UnlockRuleType = UnlockRule;
+export type DownloadAssetType = 'pdf' | 'doc' | 'docx' | 'zip' | 'mp4' | 'mp3' | 'other';
 
 export interface LessonUnlockRule {
   type: UnlockRule;

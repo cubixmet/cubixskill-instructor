@@ -1,23 +1,11 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  FileCheck,
   Plus,
   Download,
   Search,
   LayoutGrid,
   List,
-  Edit,
-  Trash2,
-  Copy,
-  Archive,
-  Eye,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  Award,
-  Layers,
-  MoreVertical,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
@@ -48,7 +36,6 @@ export const AssignmentsPage: React.FC = () => {
   const updateAssignment = useAssignmentStore((state) => state.updateAssignment);
   const deleteAssignment = useAssignmentStore((state) => state.deleteAssignment);
   const duplicateAssignment = useAssignmentStore((state) => state.duplicateAssignment);
-  const archiveAssignment = useAssignmentStore((state) => state.archiveAssignment);
 
   // Local Filter & UI State
   const [searchQuery, setSearchQuery] = useState('');

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Sliders, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';

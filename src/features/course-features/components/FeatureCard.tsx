@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sliders, Sparkles, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
+import { Sliders, Sparkles } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 import type { CourseFeatureDefinition } from '../config/course-features';

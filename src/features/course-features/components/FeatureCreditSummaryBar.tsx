@@ -1,5 +1,5 @@
 import React from 'react';
-import { CreditCard, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { CreditCard, CheckCircle2 } from 'lucide-react';
 
 export interface FeatureCreditSummaryBarProps {
   baseCredit: number;

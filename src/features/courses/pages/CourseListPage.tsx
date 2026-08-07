@@ -61,8 +61,8 @@ export const CourseListPage: React.FC = () => {
   const [sortBy] = useState<string>('updated');
 
   // Mobile Specific UI Toggle State
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [isSortModalOpen, setIsSortModalOpen] = useState(false);
+  const [_isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [_isSortModalOpen, setIsSortModalOpen] = useState(false);
 
   // General UI State
   const [activeMenuUuid, setActiveMenuUuid] = useState<string | null>(null);
@@ -167,13 +167,6 @@ export const CourseListPage: React.FC = () => {
     setActiveMenuUuid(null);
   };
 
-  const _handleToggleArchive = (course: CourseDetails) => {
-    const nextStatus = course.status === 'archived' ? 'draft' : 'archived';
-    updateCourse(course.uuid, { status: nextStatus });
-    showToast(`Course ${nextStatus === 'archived' ? 'archived' : 'restored'}.`);
-    setActiveMenuUuid(null);
-  };
-
   const handleConfirmDelete = () => {
     if (deleteTarget) {
       deleteCourse(deleteTarget.uuid);
@@ -188,18 +181,6 @@ export const CourseListPage: React.FC = () => {
     } else {
       setSelectedCourseUuids(filteredCourses.map((c) => c.uuid));
     }
-  };
-
-  const _handleBulkPublish = () => {
-    selectedCourseUuids.forEach((id) => updateCourse(id, { status: 'published' }));
-    showToast(`${selectedCourseUuids.length} courses published.`);
-    setSelectedCourseUuids([]);
-  };
-
-  const _handleBulkArchive = () => {
-    selectedCourseUuids.forEach((id) => updateCourse(id, { status: 'archived' }));
-    showToast(`${selectedCourseUuids.length} courses archived.`);
-    setSelectedCourseUuids([]);
   };
 
   // Level Theme

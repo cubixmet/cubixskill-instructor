@@ -15,6 +15,14 @@ export type QuizType = 'practice' | 'graded' | 'final_exam' | 'assessment';
 
 export type QuizStatus = 'Draft' | 'Published' | 'Scheduled' | 'Closed' | 'Archived';
 
+export type QuestionAnswerValue = string | number | boolean | string[] | number[] | Record<string, string> | null;
+
+export interface QuestionOption {
+  id: string;
+  text: string;
+  isCorrect?: boolean;
+}
+
 export interface QuizQuestion {
   id: string;
   quizId?: string;
@@ -30,9 +38,9 @@ export interface QuizQuestion {
   questionSet?: string; // 'Set A', 'Set B', 'Set C', etc.
   isRequired?: boolean;
   requiresManualReview?: boolean;
-  options?: any;
-  correctAnswer?: any;
-  correctAnswers?: any;
+  options?: QuestionOption[] | string[];
+  correctAnswer?: QuestionAnswerValue;
+  correctAnswers?: QuestionAnswerValue[];
   matchingPairs?: { id: string; left: string; right: string }[];
   orderingItems?: { id: string; text: string }[];
   starterCode?: string;
@@ -130,7 +138,7 @@ export interface Quiz {
 
 export interface QuizAnswerPayload {
   questionId: string;
-  studentAnswer: any;
+  studentAnswer: QuestionAnswerValue;
   marksAwarded?: number;
   feedback?: string;
   isCorrect?: boolean;

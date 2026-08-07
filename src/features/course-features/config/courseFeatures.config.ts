@@ -20,11 +20,8 @@ import {
   Clock,
   Lock,
   BarChart3,
-  Zap,
   Globe,
-  Database,
   Sparkles,
-  UserCheck,
 } from 'lucide-react';
 
 export type FeatureCategoryType =

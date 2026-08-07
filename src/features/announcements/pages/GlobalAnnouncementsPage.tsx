@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Megaphone,
   Plus,
@@ -316,7 +315,13 @@ export const GlobalAnnouncementsPage: React.FC = () => {
         isOpen={!!activeDetailAnnouncement}
         onClose={() => setActiveDetailAnnouncement(null)}
         announcement={activeDetailAnnouncement}
-        onAddComment={addComment}
+        onAddComment={(announcementId, content) =>
+          addComment(
+            announcementId,
+            { uuid: 'inst-1', name: 'Dr. Rajesh Sharma', role: 'instructor' },
+            content
+          )
+        }
         onDeleteComment={deleteComment}
         onLikeComment={toggleCommentLike}
       />

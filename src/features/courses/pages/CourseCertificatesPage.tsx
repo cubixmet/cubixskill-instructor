@@ -18,6 +18,7 @@ import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { Modal } from '../../../components/ui/Modal';
 import { useCertificateStore } from '../../certificates/store/certificate.store';
+import { mapAutoIssueConditions } from '../../../types/certificate.types';
 import { CardFlowCertificateBuilderModal } from '../../certificates/components/CardFlowCertificateBuilderModal';
 import type { CertificateTemplate } from '../../../types/certificate.types';
 
@@ -63,15 +64,7 @@ export const CourseCertificatesPage: React.FC = () => {
   );
 
   // Auto Issue Conditions
-  const conditions = activeTemplate?.autoIssueConditions || {
-    requireCourseCompletion: true,
-    requireAllLessons: true,
-    requireQuizPassed: true,
-    requireAssignmentsApproved: true,
-    minPassingPercentage: 75,
-    requireFinalExam: false,
-    requireManualApproval: false,
-  };
+  const conditions = mapAutoIssueConditions(activeTemplate?.autoIssueConditions);
 
   const handleRunAutoGenerate = () => {
     if (activeTemplate) {

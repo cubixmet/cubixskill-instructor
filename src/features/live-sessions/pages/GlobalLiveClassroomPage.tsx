@@ -134,11 +134,11 @@ export const GlobalLiveClassroomPage: React.FC = () => {
     );
   }
 
-  const handleSaveForm = (data: any) => {
+  const handleSaveForm = (data: Partial<LiveSessionItem>) => {
     if (editingSession) {
       updateLiveSession(editingSession.id, data);
     } else {
-      addLiveSession(data);
+      addLiveSession(data as Parameters<typeof addLiveSession>[0]);
     }
   };
 

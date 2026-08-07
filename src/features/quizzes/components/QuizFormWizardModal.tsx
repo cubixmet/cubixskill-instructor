@@ -470,7 +470,7 @@ export const QuizFormWizardModal: React.FC<QuizFormWizardModalProps> = ({
                       <label className="block font-semibold text-[#0F172A] mb-1">Quiz Type</label>
                       <select
                         value={quizType}
-                        onChange={(e: any) => setQuizType(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setQuizType(e.target.value as QuizType)}
                         className="w-full h-11 px-3 border border-[#E2E8F0] rounded-xl font-semibold"
                       >
                         <option value="practice">Practice Quiz</option>
@@ -482,7 +482,7 @@ export const QuizFormWizardModal: React.FC<QuizFormWizardModalProps> = ({
                       <label className="block font-semibold text-[#0F172A] mb-1">Difficulty</label>
                       <select
                         value={difficulty}
-                        onChange={(e: any) => setDifficulty(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setDifficulty(e.target.value as 'Easy' | 'Medium' | 'Hard')}
                         className="w-full h-11 px-3 border border-[#E2E8F0] rounded-xl font-semibold"
                       >
                         <option value="Easy">Easy</option>

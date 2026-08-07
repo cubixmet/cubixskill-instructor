@@ -7,18 +7,15 @@ import {
   Download,
   FileText,
   Clock,
-  User,
   Award,
-  Calendar,
   Layers,
   Save,
   MessageSquare,
   ShieldAlert,
   ExternalLink,
   Check,
-  Info,
 } from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Badge } from '../../../components/ui/Badge';
@@ -56,7 +53,7 @@ export const SubmissionDetailPage: React.FC<SubmissionDetailPageProps> = ({
     setMarksAwarded(total);
   };
 
-  const handleReviewAction = (actionStatus: SubmissionStatus, actionLabel: string) => {
+  const handleReviewAction = (actionStatus: SubmissionStatus) => {
     const updated: Submission = {
       ...submission,
       status: actionStatus,
@@ -66,7 +63,7 @@ export const SubmissionDetailPage: React.FC<SubmissionDetailPageProps> = ({
       privateNotes,
       reviewerName: 'Instructor Sarah Miller',
       reviewHistory: [
-        ...submission.reviewHistory,
+        ...(submission.reviewHistory || []),
         {
           id: `rh-${Date.now()}`,
           timestamp: new Date().toISOString(),
@@ -125,10 +122,10 @@ export const SubmissionDetailPage: React.FC<SubmissionDetailPageProps> = ({
                   submission.status === 'Approved'
                     ? 'success'
                     : submission.status === 'Rejected'
-                    ? 'danger'
+                    ? 'error'
                     : submission.status === 'Resubmission Requested'
-                    ? 'orange'
-                    : 'warning'
+                    ? 'warning'
+                    : 'neutral'
                 }
               >
                 {submission.status}
@@ -144,21 +141,21 @@ export const SubmissionDetailPage: React.FC<SubmissionDetailPageProps> = ({
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             size="sm"
-            onClick={() => handleReviewAction('Approved', 'Approve')}
+            onClick={() => handleReviewAction('Approved')}
             className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold"
           >
             <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Approve
           </Button>
           <Button
             size="sm"
-            onClick={() => handleReviewAction('Rejected', 'Reject')}
+            onClick={() => handleReviewAction('Rejected')}
             className="bg-red-600 hover:bg-red-700 text-white font-extrabold"
           >
             <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
           </Button>
           <Button
             size="sm"
-            onClick={() => handleReviewAction('Resubmission Requested', 'Request Resubmission')}
+            onClick={() => handleReviewAction('Resubmission Requested')}
             className="bg-amber-600 hover:bg-amber-700 text-white font-extrabold"
           >
             <RotateCcw className="w-3.5 h-3.5 mr-1" /> Request Resubmission
@@ -166,7 +163,7 @@ export const SubmissionDetailPage: React.FC<SubmissionDetailPageProps> = ({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => handleReviewAction(submission.status, 'Save Draft')}
+            onClick={() => handleReviewAction(submission.status)}
             className="font-bold text-slate-700"
           >
             <Save className="w-3.5 h-3.5 mr-1" /> Save Evaluation
@@ -204,7 +201,7 @@ export const SubmissionDetailPage: React.FC<SubmissionDetailPageProps> = ({
               <div className="text-right space-y-1">
                 <span className="text-[10px] font-bold text-slate-400 block">Submitted On</span>
                 <span className="font-extrabold text-slate-800 text-xs">
-                  {new Date(submission.submissionDate).toLocaleString()}
+                  {new Date(submission.submissionDate || submission.submittedAt || Date.now()).toLocaleString()}
                 </span>
                 {submission.isLate ? (
                   <span className="inline-block px-2 py-0.5 bg-red-100 text-red-800 font-extrabold text-[9px] rounded-md block">
@@ -224,7 +221,7 @@ export const SubmissionDetailPage: React.FC<SubmissionDetailPageProps> = ({
                 Attempt History
               </span>
               <div className="flex gap-1.5">
-                {Array.from({ length: submission.maxAttempts }, (_, i) => i + 1).map((attemptNum) => (
+                {Array.from({ length: submission.maxAttempts || 1 }, (_, i) => i + 1).map((attemptNum: number) => (
                   <button
                     key={attemptNum}
                     type="button"
@@ -431,7 +428,7 @@ export const SubmissionDetailPage: React.FC<SubmissionDetailPageProps> = ({
             </h4>
 
             <div className="space-y-2">
-              {submission.reviewHistory.map((history) => (
+              {(submission.reviewHistory || []).map((history) => (
                 <div key={history.id} className="p-2.5 bg-white rounded-xl border border-slate-200/80 space-y-0.5">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="font-extrabold text-slate-900">{history.action}</span>

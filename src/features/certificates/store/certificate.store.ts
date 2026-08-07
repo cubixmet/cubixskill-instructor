@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type {
+import {
   CertificateTemplate,
   IssuedCertificate,
   CertificateStatus,
   AutoIssueConditions,
+  DEFAULT_AUTO_ISSUE_CONDITIONS,
+  mapAutoIssueConditions,
 } from '../../../types/certificate.types';
 
 interface CertificateState {
@@ -30,16 +32,6 @@ interface CertificateState {
   getIssuedByCourse: (courseUuid: string) => IssuedCertificate[];
 }
 
-const DEFAULT_CONDITIONS: AutoIssueConditions = {
-  requireCourseCompletion: true,
-  requireAllLessons: true,
-  requireQuizPassed: true,
-  requireAssignmentsApproved: true,
-  minPassingPercentage: 75,
-  requireFinalExam: false,
-  requireManualApproval: false,
-};
-
 const SEED_TEMPLATES: CertificateTemplate[] = [
   {
     id: 'cert-tmpl-101',
@@ -49,7 +41,7 @@ const SEED_TEMPLATES: CertificateTemplate[] = [
     type: 'custom_builder',
     status: 'Active',
     autoIssueRule: 'course_completion',
-    autoIssueConditions: DEFAULT_CONDITIONS,
+    autoIssueConditions: DEFAULT_AUTO_ISSUE_CONDITIONS,
     version: 1,
     canvasSize: 'a4_landscape',
     backgroundColor: '#FFFFFF',
@@ -230,7 +222,7 @@ export const useCertificateStore = create<CertificateState>()(
           ...data,
           id: `cert-tmpl-${Date.now()}`,
           version: 1,
-          autoIssueConditions: data.autoIssueConditions || DEFAULT_CONDITIONS,
+          autoIssueConditions: mapAutoIssueConditions(data.autoIssueConditions),
           issuedCount: 0,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),

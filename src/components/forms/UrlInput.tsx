@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import { Globe, Video, ExternalLink, Code } from 'lucide-react';
 import { TextInput } from './TextInput';
 import type { TextInputProps } from './TextInput';

@@ -22,7 +22,7 @@ import {
 export interface SettingsSectionItem {
   id: string;
   label: string;
-  icon: any;
+  icon: React.ElementType;
   featureKey?: string;
 }
 

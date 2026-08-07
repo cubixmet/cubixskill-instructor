@@ -3,39 +3,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Award,
   Plus,
-  Trash2,
-  Copy,
-  Lock,
-  Unlock,
-  MoveUp,
-  MoveDown,
   X,
-  Check,
-  Type,
-  Image as ImageIcon,
   QrCode,
-  FileCheck,
   Zap,
   ZoomIn,
   ZoomOut,
-  RotateCcw,
-  Sliders,
-  Sparkles,
-  Download,
-  AlertTriangle,
-  FileSpreadsheet,
-  Eye,
 } from 'lucide-react';
-import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { useCertificateStore } from '../store/certificate.store';
-import type {
+import {
   CertificateTemplate,
   CanvasElement,
   PlaceholderKey,
   AutoIssueRule,
   CanvasSizeType,
+  DEFAULT_AUTO_ISSUE_CONDITIONS,
+  mapAutoIssueConditions,
 } from '../../../types/certificate.types';
 
 interface CardFlowCertificateBuilderModalProps {
@@ -69,10 +53,10 @@ export const CardFlowCertificateBuilderModal: React.FC<CardFlowCertificateBuilde
   const updateTemplate = useCertificateStore((state) => state.updateTemplate);
 
   const [title, setTitle] = useState(initialTemplate?.title || 'Official Certificate of Achievement');
-  const [description, setDescription] = useState(initialTemplate?.description || 'Automated completion certificate');
+  const [description, _setDescription] = useState(initialTemplate?.description || 'Automated completion certificate');
   const [autoIssueRule, setAutoIssueRule] = useState<AutoIssueRule>(initialTemplate?.autoIssueRule || 'course_completion');
-  const [canvasSize, setCanvasSize] = useState<CanvasSizeType>(initialTemplate?.canvasSize || 'a4_landscape');
-  const [backgroundColor, setBackgroundColor] = useState(initialTemplate?.backgroundColor || '#FFFFFF');
+  const [canvasSize, _setCanvasSize] = useState<CanvasSizeType>(initialTemplate?.canvasSize || 'a4_landscape');
+  const [backgroundColor, _setBackgroundColor] = useState(initialTemplate?.backgroundColor || '#FFFFFF');
   const [zoomLevel, setZoomLevel] = useState<number>(100);
 
   const [elements, setElements] = useState<CanvasElement[]>(
@@ -211,9 +195,12 @@ export const CardFlowCertificateBuilderModal: React.FC<CardFlowCertificateBuilde
       courseUuid,
       title,
       description,
-      type: 'custom_builder' as const,
-      status: 'Active' as const,
+      type: 'custom_builder' as CertificateTemplate['type'],
+      status: 'Active' as CertificateTemplate['status'],
       autoIssueRule,
+      autoIssueConditions: initialTemplate?.autoIssueConditions
+        ? mapAutoIssueConditions(initialTemplate.autoIssueConditions)
+        : DEFAULT_AUTO_ISSUE_CONDITIONS,
       canvasSize,
       backgroundColor,
       elements,
@@ -251,7 +238,7 @@ export const CardFlowCertificateBuilderModal: React.FC<CardFlowCertificateBuilde
                 <div>
                   <h2 className="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
                     CardFlow Certificate Builder
-                    <Badge variant="outline" size="sm" className="border-blue-400 text-blue-300 text-[10px]">
+                    <Badge variant="info" size="sm" className="border-blue-400 text-blue-300 text-[10px]">
                       CardFlow v2.4
                     </Badge>
                   </h2>

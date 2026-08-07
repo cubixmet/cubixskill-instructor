@@ -46,7 +46,7 @@ export const LiveSessionRecordingModal: React.FC<LiveSessionRecordingModalProps>
           <label className="block font-bold text-slate-900 mb-1">Recording Provider</label>
           <select
             value={provider}
-            onChange={(e) => setProvider(e.target.value as any)}
+            onChange={(e) => setProvider(e.target.value as typeof provider)}
             className="w-full h-9 rounded-lg border border-slate-200 px-3 bg-white font-bold text-slate-900"
           >
             <option value="Direct">CubixSkill CDN Direct MP4</option>

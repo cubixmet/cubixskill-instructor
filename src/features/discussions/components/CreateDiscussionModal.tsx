@@ -15,7 +15,7 @@ import type { AttachmentItem, DiscussionItem } from '../store/discussion.store';
 export interface CreateDiscussionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: Partial<DiscussionItem>) => void;
   editingDiscussion?: DiscussionItem | null;
   isInstructor?: boolean;
 }
@@ -140,7 +140,7 @@ export const CreateDiscussionModal: React.FC<CreateDiscussionModalProps> = ({
             <label className="block font-bold text-slate-900 mb-1">Category</label>
             <select
               value={category}
-              onChange={(e) => setCategory(e.target.value as any)}
+              onChange={(e) => setCategory(e.target.value as DiscussionItem['category'])}
               className="w-full h-9 rounded-lg border border-slate-200 px-3 bg-white text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             >
               {CATEGORIES.map((cat) => (
@@ -155,7 +155,7 @@ export const CreateDiscussionModal: React.FC<CreateDiscussionModalProps> = ({
             <label className="block font-bold text-slate-900 mb-1">Visibility</label>
             <select
               value={visibility}
-              onChange={(e) => setVisibility(e.target.value as any)}
+              onChange={(e) => setVisibility(e.target.value as DiscussionItem['visibility'])}
               className="w-full h-9 rounded-lg border border-slate-200 px-3 bg-white text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             >
               <option value="all">Visible to All Enrolled Students & Instructors</option>

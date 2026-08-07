@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { MessageSquare, Plus } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -205,7 +205,7 @@ export const CourseDiscussionsPage: React.FC = () => {
     }
   };
 
-  const handleSaveDiscussionForm = (data: any) => {
+  const handleSaveDiscussionForm = (data: Partial<DiscussionItem>) => {
     if (editingDiscussion) {
       updateDiscussion(editingDiscussion.id, data);
       setEditingDiscussion(null);
@@ -213,7 +213,7 @@ export const CourseDiscussionsPage: React.FC = () => {
       addDiscussion({
         ...data,
         courseUuid,
-      });
+      } as Parameters<typeof addDiscussion>[0]);
     }
   };
 

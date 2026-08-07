@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
-import { Zap, Check, ShieldCheck, CreditCard, Sparkles } from 'lucide-react';
+import { Check, ShieldCheck, Sparkles } from 'lucide-react';
 import { usePlatformStore } from '../../store/usePlatformStore';
 
 export interface BuyCreditsModalProps {

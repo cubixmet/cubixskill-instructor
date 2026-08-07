@@ -2,10 +2,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileCheck,
-  Calendar,
-  Clock,
-  Award,
-  Sparkles,
   Check,
   Lock,
   Layers,
@@ -24,8 +20,6 @@ import {
   Eye,
   Sliders,
   X,
-  ChevronRight,
-  HelpCircle,
   ArrowLeft,
   Save,
 } from 'lucide-react';
@@ -36,10 +30,6 @@ import type {
   Assignment,
   AssignmentStatus,
   SubmissionType,
-  ReviewMode,
-  LateSubmissionRule,
-  LearningUnlockRule,
-  DownloadableFormat,
   ProgressRule,
 } from '../../../types/assignment.types';
 import { RubricBuilder } from './RubricBuilder';
@@ -131,7 +121,7 @@ export const AssignmentFormModal: React.FC<AssignmentFormModalProps> = ({
   const [allowMultipleFiles, setAllowMultipleFiles] = useState(initialAssignment?.fileUploadSettings?.allowMultipleFiles ?? true);
 
   // Workflow & Lock Rules
-  const [approvalWorkflow, setApprovalWorkflow] = useState<'auto_approval' | 'manual_review'>(
+  const [approvalWorkflow, setApprovalWorkflow] = useState<'auto_approval' | 'auto_approve' | 'manual_review'>(
     initialAssignment?.approvalWorkflow || 'manual_review'
   );
   const [maxAttempts, setMaxAttempts] = useState(initialAssignment?.maxAttempts || 3);
@@ -483,7 +473,7 @@ export const AssignmentFormModal: React.FC<AssignmentFormModalProps> = ({
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 pt-1">
                       <div className="space-y-1.5">
                         <label className="block text-sm font-medium text-[#0F172A]">Maximum Marks</label>
                         <input
@@ -524,6 +514,21 @@ export const AssignmentFormModal: React.FC<AssignmentFormModalProps> = ({
                           onChange={(e) => setDueTime(e.target.value)}
                           className="w-full h-[46px] px-4 bg-white border border-[#E2E8F0] rounded-[12px] text-sm font-medium text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                         />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-sm font-medium text-[#0F172A]">Initial Status</label>
+                        <select
+                          value={status}
+                          onChange={(e: any) => setStatus(e.target.value)}
+                          className="w-full h-[46px] px-3 bg-white border border-[#E2E8F0] rounded-[12px] text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                        >
+                          <option value="Published">Published</option>
+                          <option value="Draft">Draft</option>
+                          <option value="Scheduled">Scheduled</option>
+                          <option value="Closed">Closed</option>
+                          <option value="Archived">Archived</option>
+                        </select>
                       </div>
                     </div>
                   </div>
@@ -597,6 +602,75 @@ export const AssignmentFormModal: React.FC<AssignmentFormModalProps> = ({
                       );
                     })}
                   </div>
+
+                  {/* FILE UPLOAD CONFIGURATION CONTROLS */}
+                  {isFileUploadEnabled && (
+                    <div className="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[14px] space-y-4">
+                      <h4 className="text-xs font-semibold text-[#0F172A] uppercase tracking-wider">
+                        File Upload Configuration
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-medium text-[#0F172A]">Max File Size (MB)</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={500}
+                            value={maxFileSizeMb}
+                            onChange={(e) => setMaxFileSizeMb(Number(e.target.value))}
+                            className="w-full h-[40px] px-3 bg-white border border-[#E2E8F0] rounded-[10px] text-xs font-medium text-[#0F172A]"
+                          />
+                        </div>
+                        <div className="space-y-1.5 sm:col-span-2">
+                          <label className="block text-xs font-medium text-[#0F172A]">Allowed File Extensions</label>
+                          <input
+                            type="text"
+                            value={allowedExtensions}
+                            onChange={(e) => setAllowedExtensions(e.target.value)}
+                            placeholder=".pdf, .docx, .zip, .mp4"
+                            className="w-full h-[40px] px-3 bg-white border border-[#E2E8F0] rounded-[10px] text-xs font-medium text-[#0F172A]"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-medium text-[#0F172A]">Max Files Count</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={20}
+                            value={maxFiles}
+                            onChange={(e) => setMaxFiles(Number(e.target.value))}
+                            className="w-full h-[40px] px-3 bg-white border border-[#E2E8F0] rounded-[10px] text-xs font-medium text-[#0F172A]"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 pt-5">
+                          <input
+                            type="checkbox"
+                            id="allowReplace"
+                            checked={allowReplace}
+                            onChange={(e) => setAllowReplace(e.target.checked)}
+                            className="w-4 h-4 rounded text-[#2563EB]"
+                          />
+                          <label htmlFor="allowReplace" className="text-xs font-medium text-[#0F172A] cursor-pointer">
+                            Allow Replacing Uploads
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-2 pt-5">
+                          <input
+                            type="checkbox"
+                            id="allowMultipleFiles"
+                            checked={allowMultipleFiles}
+                            onChange={(e) => setAllowMultipleFiles(e.target.checked)}
+                            className="w-4 h-4 rounded text-[#2563EB]"
+                          />
+                          <label htmlFor="allowMultipleFiles" className="text-xs font-medium text-[#0F172A] cursor-pointer">
+                            Allow Multiple Files
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
@@ -656,6 +730,37 @@ export const AssignmentFormModal: React.FC<AssignmentFormModalProps> = ({
                         )}
                       </div>
                     </div>
+
+                    <div className="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[14px] flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-h-[64px]">
+                      <div>
+                        <strong className="text-sm font-semibold text-[#0F172A] block">Resubmission Settings</strong>
+                        <span className="text-xs text-[#64748B]">Allow students to resubmit if requested or rejected</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-2 text-xs font-medium text-[#0F172A] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={allowResubmission}
+                            onChange={(e) => setAllowResubmission(e.target.checked)}
+                            className="w-4 h-4 rounded text-[#2563EB]"
+                          />
+                          Allow Resubmission
+                        </label>
+                        {allowResubmission && (
+                          <div className="flex items-center gap-1.5 text-xs text-[#64748B]">
+                            <span>Max Limit:</span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={10}
+                              value={maxResubmissions}
+                              onChange={(e) => setMaxResubmissions(Number(e.target.value))}
+                              className="w-16 h-[40px] px-2 bg-white border border-[#E2E8F0] rounded-[10px] text-xs font-semibold text-center text-[#2563EB]"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -698,6 +803,23 @@ export const AssignmentFormModal: React.FC<AssignmentFormModalProps> = ({
                       );
                     })}
                   </div>
+                </motion.div>
+              )}
+
+              {/* SECTION 5: RUBRIC & GRADING CRITERIA */}
+              {(activeSection === 'review' || activeSection === 'preview') && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="bg-white border border-[#E2E8F0] rounded-[16px] p-4 sm:p-6 space-y-5 shadow-2xs"
+                >
+                  <div className="border-b border-[#E2E8F0] pb-3">
+                    <h3 className="text-base sm:text-lg font-semibold text-[#0F172A]">Rubric & Grading Criteria</h3>
+                    <p className="text-xs text-[#64748B] mt-0.5">Add evaluation criteria, point weights, and guidelines for grading.</p>
+                  </div>
+
+                  <RubricBuilder criteria={rubric} onChange={setRubric} />
                 </motion.div>
               )}
             </div>

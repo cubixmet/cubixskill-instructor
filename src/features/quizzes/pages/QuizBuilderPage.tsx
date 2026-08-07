@@ -154,7 +154,7 @@ export const QuizBuilderPage: React.FC = () => {
       marks: 10,
       isRequired: true,
       options: type === 'mcq' ? ['Option A', 'Option B', 'Option C'] : undefined,
-      correctAnswers: type === 'mcq' ? 'Option A' : undefined,
+      correctAnswers: type === 'mcq' ? ['Option A'] : undefined,
       starterCode: type === 'coding' ? `'use server';\n// Enter starter code` : undefined,
     };
     setQuiz((prev) => ({ ...prev, questions: [...(prev.questions || []), newQ] }));
@@ -245,7 +245,7 @@ export const QuizBuilderPage: React.FC = () => {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap border shrink-0 ${
                   isActive
                     ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
@@ -426,7 +426,7 @@ export const QuizBuilderPage: React.FC = () => {
                   <span className="font-extrabold text-slate-900">{sw.label}</span>
                   <input
                     type="checkbox"
-                    checked={(quiz as any)[sw.key]}
+                    checked={Boolean((quiz as unknown as Record<string, boolean>)[sw.key])}
                     onChange={(e) => setQuiz({ ...quiz, [sw.key]: e.target.checked })}
                     className="w-4 h-4 text-blue-600 rounded"
                   />
@@ -467,7 +467,7 @@ export const QuizBuilderPage: React.FC = () => {
                   <span className="font-extrabold text-slate-900">{sw.label}</span>
                   <input
                     type="checkbox"
-                    checked={(quiz as any)[sw.key]}
+                    checked={Boolean((quiz as unknown as Record<string, boolean>)[sw.key])}
                     onChange={(e) => setQuiz({ ...quiz, [sw.key]: e.target.checked })}
                     className="w-4 h-4 text-purple-600 rounded"
                   />

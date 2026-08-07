@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, HelpCircle, Plus, Check } from 'lucide-react';
+import { Search, HelpCircle, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../../../../components/ui/Modal';
 import { Button } from '../../../../components/ui/Button';

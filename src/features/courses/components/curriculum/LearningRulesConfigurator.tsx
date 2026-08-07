@@ -13,9 +13,7 @@ import {
   Lock,
   Eye,
   RotateCcw,
-  Sparkles,
   Shield,
-  Settings,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

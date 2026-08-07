@@ -85,7 +85,11 @@ export interface AnnouncementStoreState {
   togglePinAnnouncement: (id: string) => void;
 
   markAsRead: (announcementId: string, studentUuid: string) => void;
-  addComment: (announcementId: string, author: AnnouncementComment['author'], content: string) => void;
+  addComment: (
+    announcementId: string,
+    authorOrContent: AnnouncementComment['author'] | string,
+    content?: string
+  ) => void;
   deleteComment: (announcementId: string, commentId: string) => void;
   toggleCommentLike: (announcementId: string, commentId: string) => void;
 
@@ -330,12 +334,28 @@ export const useAnnouncementStore = create<AnnouncementStoreState>()(
         }));
       },
 
-      addComment: (announcementId, author, content) => {
+      addComment: (announcementId, authorOrContent, content) => {
+        let author: AnnouncementComment['author'];
+        let actualContent: string;
+
+        if (typeof authorOrContent === 'string') {
+          actualContent = authorOrContent;
+          author = {
+            uuid: 'inst-1',
+            name: 'Dr. Rajesh Sharma',
+            role: 'instructor',
+            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+          };
+        } else {
+          author = authorOrContent;
+          actualContent = content || '';
+        }
+
         const newComment: AnnouncementComment = {
           id: `cm-${Date.now()}`,
           announcementId,
           author,
-          content,
+          content: actualContent,
           createdAt: new Date().toISOString(),
           likes: 0,
         };

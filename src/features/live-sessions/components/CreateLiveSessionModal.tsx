@@ -18,7 +18,7 @@ import type { AnnouncementAttachment } from '../../announcements/store/announcem
 export interface CreateLiveSessionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: Partial<LiveSessionItem>) => void;
   editingSession?: LiveSessionItem | null;
 }
 
@@ -213,7 +213,7 @@ export const CreateLiveSessionModal: React.FC<CreateLiveSessionModalProps> = ({
               <label className="block font-bold text-slate-900 mb-1">Meeting Provider</label>
               <select
                 value={platform}
-                onChange={(e) => setPlatform(e.target.value as any)}
+                onChange={(e) => setPlatform(e.target.value as LiveSessionItem['platform'])}
                 className="w-full h-9 rounded-lg border border-slate-200 px-3 bg-white text-slate-900 font-bold"
               >
                 <option value="Zoom">Zoom</option>

@@ -18,7 +18,7 @@ import {
 export interface GlobalSettingsSectionItem {
   id: string;
   label: string;
-  icon: any;
+  icon: React.ElementType;
 }
 
 export const GLOBAL_SETTINGS_SECTIONS: GlobalSettingsSectionItem[] = [

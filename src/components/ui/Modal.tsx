@@ -10,6 +10,7 @@ export interface ModalProps {
   subtitle?: string;
   children: React.ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   showClose?: boolean;
   mobileMode?: 'fullscreen' | 'sheet';
 }
@@ -20,10 +21,12 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   subtitle,
   children,
-  maxWidth = 'md',
+  maxWidth: maxWidthProp,
+  size,
   showClose = true,
   mobileMode = 'fullscreen',
 }) => {
+  const maxWidth = size || maxWidthProp || 'md';
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';

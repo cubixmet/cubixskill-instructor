@@ -50,7 +50,6 @@ export const CourseAnnouncementsPage: React.FC = () => {
   const deleteAnnouncement = useAnnouncementStore((state) => state.deleteAnnouncement);
   const duplicateAnnouncement = useAnnouncementStore((state) => state.duplicateAnnouncement);
   const publishAnnouncement = useAnnouncementStore((state) => state.publishAnnouncement);
-  const _scheduleAnnouncement = useAnnouncementStore((state) => state.scheduleAnnouncement);
   const archiveAnnouncement = useAnnouncementStore((state) => state.archiveAnnouncement);
   const togglePinAnnouncement = useAnnouncementStore((state) => state.togglePinAnnouncement);
   const addComment = useAnnouncementStore((state) => state.addComment);
@@ -189,14 +188,14 @@ export const CourseAnnouncementsPage: React.FC = () => {
     navigate(`/courses/${courseUuid}/announcements/${announcement.id}/edit`);
   };
 
-  const handleSaveForm = (data: any) => {
+  const handleSaveForm = (data: Partial<AnnouncementItem>) => {
     if (editingAnnouncement) {
       updateAnnouncement(editingAnnouncement.id, data);
     } else {
       addAnnouncement({
         ...data,
         courseUuid,
-      });
+      } as Parameters<typeof addAnnouncement>[0]);
     }
     navigate(`/courses/${courseUuid}/announcements`);
   };

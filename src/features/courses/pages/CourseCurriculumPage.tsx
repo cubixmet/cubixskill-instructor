@@ -39,7 +39,7 @@ import {
   Code2,
   ClipboardCheck,
 } from 'lucide-react';
-import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import type {
   CourseModule,
   CourseLesson,

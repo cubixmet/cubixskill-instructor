@@ -431,7 +431,7 @@ export const BulkEnrollModal: React.FC<BulkEnrollModalProps> = ({
             />
 
             <div className="max-h-60 overflow-y-auto border border-[#E2E8F0] rounded-[14px] p-2 bg-[#F8FAFC] space-y-2 no-scrollbar">
-              {validStudentsToEnroll.map((item: any, idx) => (
+              {validStudentsToEnroll.map((item: { name?: string; email: string }, idx) => (
                 <div key={idx} className="p-3 bg-white border border-[#E2E8F0] rounded-xl flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-bold text-xs shrink-0">

@@ -24,6 +24,8 @@ Demonstrate mastery of React 19 Server Components, Server Actions, and \`useOpti
     submissionClosingDate: '2026-08-25T23:59:59Z',
     status: 'Published',
     allowedSubmissionTypes: ['file', 'text', 'external_url', 'multiple_files'],
+    approvalWorkflow: 'manual_review',
+    progressRules: ['unlock_next_lesson'],
     reviewMode: 'manual',
     lateSubmissionRule: 'deduct_percentage',
     lateDeductionPercent: 10,
@@ -77,6 +79,8 @@ Demonstrate mastery of React 19 Server Components, Server Actions, and \`useOpti
     submissionClosingDate: '2026-08-18T23:59:59Z',
     status: 'Published',
     allowedSubmissionTypes: ['file', 'external_url'],
+    approvalWorkflow: 'manual_review',
+    progressRules: ['unlock_next_lesson'],
     reviewMode: 'manual',
     lateSubmissionRule: 'allow',
     allowResubmission: true,
@@ -119,6 +123,7 @@ export const MOCK_SUBMISSIONS: Submission[] = [
     studentEmail: 'alex.johnson@example.com',
     studentAvatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     submissionDate: '2026-08-04T14:32:00Z',
+    submittedAt: '2026-08-04T14:32:00Z',
     dueDate: '2026-08-20T23:59:59Z',
     attemptNumber: 1,
     maxAttempts: 3,
@@ -126,6 +131,22 @@ export const MOCK_SUBMISSIONS: Submission[] = [
     status: 'Under Review',
     submittedText: 'I implemented a real-time task manager using React 19 Server Actions and useOptimistic. The app updates instant state locally and commits changes to PostgreSQL on the backend.',
     submittedFiles: [
+      {
+        id: 'file-1',
+        name: 'react19_task_board_submission.zip',
+        sizeMb: 14.2,
+        url: 'https://assets.cubixskill.com/submissions/alex_task_board.zip',
+        format: 'zip',
+      },
+      {
+        id: 'file-2',
+        name: 'architecture_diagram.pdf',
+        sizeMb: 2.1,
+        url: 'https://assets.cubixskill.com/submissions/alex_architecture.pdf',
+        format: 'pdf',
+      },
+    ],
+    files: [
       {
         id: 'file-1',
         name: 'react19_task_board_submission.zip',
@@ -182,6 +203,7 @@ export const MOCK_SUBMISSIONS: Submission[] = [
     studentEmail: 'sophia.chen@example.com',
     studentAvatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
     submissionDate: '2026-08-03T18:10:00Z',
+    submittedAt: '2026-08-03T18:10:00Z',
     dueDate: '2026-08-20T23:59:59Z',
     attemptNumber: 1,
     maxAttempts: 3,
@@ -189,6 +211,15 @@ export const MOCK_SUBMISSIONS: Submission[] = [
     status: 'Approved',
     submittedText: 'Created an e-commerce cart drawer with optimistic total calculation and server action checkout.',
     submittedFiles: [
+      {
+        id: 'file-3',
+        name: 'ecommerce_cart_rsc.zip',
+        sizeMb: 8.5,
+        url: 'https://assets.cubixskill.com/submissions/sophia_cart.zip',
+        format: 'zip',
+      },
+    ],
+    files: [
       {
         id: 'file-3',
         name: 'ecommerce_cart_rsc.zip',
@@ -238,6 +269,7 @@ export const MOCK_SUBMISSIONS: Submission[] = [
     studentEmail: 'marcus.vance@example.com',
     studentAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     submissionDate: '2026-08-21T02:15:00Z',
+    submittedAt: '2026-08-21T02:15:00Z',
     dueDate: '2026-08-20T23:59:59Z',
     attemptNumber: 1,
     maxAttempts: 3,
@@ -245,6 +277,15 @@ export const MOCK_SUBMISSIONS: Submission[] = [
     status: 'Resubmission Requested',
     submittedText: 'Initial draft of task board.',
     submittedFiles: [
+      {
+        id: 'file-4',
+        name: 'task_board_draft.zip',
+        sizeMb: 5.0,
+        url: 'https://assets.cubixskill.com/submissions/marcus_draft.zip',
+        format: 'zip',
+      },
+    ],
+    files: [
       {
         id: 'file-4',
         name: 'task_board_draft.zip',
@@ -287,12 +328,14 @@ export const MOCK_SUBMISSIONS: Submission[] = [
     studentEmail: 'elena.rostova@example.com',
     studentAvatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
     submissionDate: '2026-08-05T08:20:00Z',
+    submittedAt: '2026-08-05T08:20:00Z',
     dueDate: '2026-08-15T23:59:59Z',
     attemptNumber: 1,
     maxAttempts: 2,
     submissionType: 'external_url',
     status: 'Submitted',
     externalUrl: 'https://github.com/elena-rostova/react19-boundaries',
+    files: [],
     isLate: false,
     maxMarks: 50,
     passingMarks: 35,

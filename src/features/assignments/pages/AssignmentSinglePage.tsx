@@ -2,21 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
-  FileCheck,
-  CheckCircle2,
-  Clock,
-  Award,
-  Users,
-  BarChart3,
-  Settings,
-  Eye,
-  Check,
-  X,
-  RotateCcw,
-  Download,
-  Filter,
   Search,
-  Sparkles,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
@@ -39,8 +25,6 @@ export const AssignmentSinglePage: React.FC = () => {
   );
 
   const approveSubmission = useAssignmentStore((state) => state.approveSubmission);
-  const rejectSubmission = useAssignmentStore((state) => state.rejectSubmission);
-  const requestResubmission = useAssignmentStore((state) => state.requestResubmission);
   const updateAssignment = useAssignmentStore((state) => state.updateAssignment);
 
   const [activeTab, setActiveTab] = useState<SingleAssignmentTab>('overview');
@@ -60,7 +44,6 @@ export const AssignmentSinglePage: React.FC = () => {
 
   const pendingSubmissions = submissions.filter((s) => s.status === 'Submitted' || s.status === 'Under Review');
   const approvedSubmissions = submissions.filter((s) => s.status === 'Approved' || s.status === 'Passed');
-  const rejectedSubmissions = submissions.filter((s) => s.status === 'Rejected');
   const averageGrade =
     approvedSubmissions.length > 0
       ? Math.round(approvedSubmissions.reduce((acc, curr) => acc + (curr.grade || 0), 0) / approvedSubmissions.length)

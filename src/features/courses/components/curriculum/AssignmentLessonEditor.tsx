@@ -2,15 +2,10 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   FileCheck,
-  Calendar,
-  Clock,
-  Award,
-  Sparkles,
   Check,
   Lock,
   Layers,
   Upload,
-  AlertCircle,
   Info,
   Globe,
   FileText,
@@ -23,7 +18,6 @@ import {
   ShieldCheck,
   Eye,
   Sliders,
-  ChevronRight,
 } from 'lucide-react';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
@@ -87,7 +81,7 @@ export const AssignmentLessonEditor: React.FC<AssignmentLessonEditorProps> = ({
   const [title, setTitle] = useState(initialValues?.title || 'React 19 RSC Middleware Assignment');
   const [shortDesc, setShortDesc] = useState(initialValues?.shortDescription || 'Build a custom store middleware.');
   const [instructions, setInstructions] = useState(initialValues?.instructions || '1. Clone starter repo\n2. Implement middleware\n3. Submit file or GitHub URL');
-  const [durationMinutes, setDurationMinutes] = useState(initialValues?.durationMinutes || 60);
+  const [durationMinutes, _setDurationMinutes] = useState(initialValues?.durationMinutes || 60);
   const [maxMarks, setMaxMarks] = useState(initialValues?.maxMarks || 100);
   const [passingMarks, setPassingMarks] = useState(initialValues?.passingMarks || 75);
   const [dueDate, setDueDate] = useState(initialValues?.dueDate || '2026-08-25');
@@ -99,16 +93,16 @@ export const AssignmentLessonEditor: React.FC<AssignmentLessonEditorProps> = ({
   );
 
   // Step 3: File Upload Settings
-  const [maxFileSizeMb, setMaxFileSizeMb] = useState(initialValues?.maxFileSizeMb || 100);
-  const [allowedExtensions, setAllowedExtensions] = useState(initialValues?.allowedExtensions || '.pdf, .docx, .zip, .png, .mp4');
-  const [maxFiles, setMaxFiles] = useState(initialValues?.maxFiles || 5);
-  const [allowMultipleFiles, setAllowMultipleFiles] = useState(initialValues?.allowMultipleFiles ?? true);
+  const [maxFileSizeMb, _setMaxFileSizeMb] = useState(initialValues?.maxFileSizeMb || 100);
+  const [allowedExtensions, _setAllowedExtensions] = useState(initialValues?.allowedExtensions || '.pdf, .docx, .zip, .png, .mp4');
+  const [maxFiles, _setMaxFiles] = useState(initialValues?.maxFiles || 5);
+  const [allowMultipleFiles, _setAllowMultipleFiles] = useState(initialValues?.allowMultipleFiles ?? true);
 
   // Step 6: Approval Workflow
-  const [approvalType, setApprovalType] = useState<'auto' | 'manual'>(initialValues?.approvalType || 'manual');
+  const [approvalType, _setApprovalType] = useState<'auto' | 'manual'>(initialValues?.approvalType || 'manual');
 
   // Step 7: Learning Lock Rules
-  const [lockRules, setLockRules] = useState<string[]>(
+  const [lockRules, _setLockRules] = useState<string[]>(
     initialValues?.lockRules || ['next_lesson', 'next_module']
   );
 

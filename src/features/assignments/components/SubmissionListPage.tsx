@@ -1,20 +1,13 @@
 import React, { useState } from 'react';
 import {
-  FileCheck,
   Search,
-  Filter,
   CheckCircle2,
   XCircle,
-  Clock,
   RotateCcw,
   Download,
   CheckSquare,
   MessageSquare,
   ChevronRight,
-  User,
-  Calendar,
-  Layers,
-  Award,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../../components/ui/Button';
@@ -60,7 +53,7 @@ export const SubmissionListPage: React.FC<SubmissionListPageProps> = ({
       const term = searchTerm.toLowerCase();
       const matchName = sub.studentName.toLowerCase().includes(term);
       const matchEmail = sub.studentEmail.toLowerCase().includes(term);
-      const matchAssign = sub.assignmentTitle.toLowerCase().includes(term);
+      const matchAssign = (sub.assignmentTitle || '').toLowerCase().includes(term);
       if (!matchName && !matchEmail && !matchAssign) return false;
     }
     return true;
@@ -92,7 +85,7 @@ export const SubmissionListPage: React.FC<SubmissionListPageProps> = ({
           status: newStatus,
           reviewerName: 'Instructor Sarah Miller',
           reviewHistory: [
-            ...sub.reviewHistory,
+            ...(sub.reviewHistory || []),
             {
               id: `rh-${Date.now()}`,
               timestamp: new Date().toISOString(),
@@ -120,7 +113,7 @@ export const SubmissionListPage: React.FC<SubmissionListPageProps> = ({
           writtenFeedback: bulkFeedbackText,
           reviewerName: 'Instructor Sarah Miller',
           reviewHistory: [
-            ...sub.reviewHistory,
+            ...(sub.reviewHistory || []),
             {
               id: `rh-${Date.now()}`,
               timestamp: new Date().toISOString(),
@@ -164,6 +157,23 @@ export const SubmissionListPage: React.FC<SubmissionListPageProps> = ({
     downloadAnchor.remove();
   };
 
+  // Unique courses & assignments for filter dropdowns
+  const uniqueCourses = Array.from(
+    new Map(
+      submissions
+        .filter((s) => s.courseUuid && s.courseTitle)
+        .map((s) => [s.courseUuid, s.courseTitle])
+    ).entries()
+  );
+
+  const uniqueAssignments = Array.from(
+    new Map(
+      submissions
+        .filter((s) => s.assignmentUuid && s.assignmentTitle)
+        .map((s) => [s.assignmentUuid, s.assignmentTitle])
+    ).entries()
+  );
+
   const getStatusBadge = (status: SubmissionStatus) => {
     switch (status) {
       case 'Approved':
@@ -173,13 +183,13 @@ export const SubmissionListPage: React.FC<SubmissionListPageProps> = ({
       case 'Submitted':
         return <Badge variant="info">Submitted</Badge>;
       case 'Resubmission Requested':
-        return <Badge variant="orange">Resubmission Requested</Badge>;
+        return <Badge variant="warning">Resubmission Requested</Badge>;
       case 'Rejected':
-        return <Badge variant="danger">Rejected</Badge>;
+        return <Badge variant="error">Rejected</Badge>;
       case 'Passed':
         return <Badge variant="success">Passed</Badge>;
       case 'Failed':
-        return <Badge variant="danger">Failed</Badge>;
+        return <Badge variant="error">Failed</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -201,6 +211,34 @@ export const SubmissionListPage: React.FC<SubmissionListPageProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {/* Course Filter */}
+            <select
+              value={courseFilter}
+              onChange={(e) => setCourseFilter(e.target.value)}
+              className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 text-xs focus:outline-none focus:border-blue-600"
+            >
+              <option value="all">All Courses</option>
+              {uniqueCourses.map(([uuid, title]) => (
+                <option key={uuid} value={uuid}>
+                  {title}
+                </option>
+              ))}
+            </select>
+
+            {/* Assignment Filter */}
+            <select
+              value={assignmentFilter}
+              onChange={(e) => setAssignmentFilter(e.target.value)}
+              className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 text-xs focus:outline-none focus:border-blue-600"
+            >
+              <option value="all">All Assignments</option>
+              {uniqueAssignments.map(([uuid, title]) => (
+                <option key={uuid} value={uuid}>
+                  {title}
+                </option>
+              ))}
+            </select>
+
             {/* Status Filter */}
             <select
               value={statusFilter}
@@ -367,7 +405,7 @@ export const SubmissionListPage: React.FC<SubmissionListPageProps> = ({
                       <td className="p-3.5">
                         <div className="space-y-0.5">
                           <p className="font-semibold text-slate-800 text-[11px]">
-                            {new Date(sub.submissionDate).toLocaleDateString()}
+                            {new Date(sub.submissionDate || sub.submittedAt || Date.now()).toLocaleDateString()}
                           </p>
                           {sub.isLate && (
                             <span className="px-1.5 py-0.2 bg-red-100 text-red-800 font-extrabold text-[9px] rounded">
@@ -419,7 +457,7 @@ export const SubmissionListPage: React.FC<SubmissionListPageProps> = ({
         isOpen={isBulkFeedbackModalOpen}
         onClose={() => setIsBulkFeedbackModalOpen(false)}
         title={`Assign Common Feedback (${selectedIds.length} Selected)`}
-        size="md"
+        maxWidth="md"
       >
         <div className="space-y-4 text-left text-xs">
           <p className="text-[11px] text-slate-600 font-medium">

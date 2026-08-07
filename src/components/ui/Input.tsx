@@ -1,12 +1,13 @@
 import React from "react";
 import { cn } from "../../lib/cn";
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label?: string;
   error?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   helperText?: string;
+  size?: "sm" | "md" | "lg" | number;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
@@ -19,6 +20,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       helperText,
       className,
       id,
+      size = "md",
       type = "text",
       ...props
     },
@@ -26,6 +28,15 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ) => {
     const generatedId = React.useId();
     const inputId = id || generatedId;
+
+    const sizeClasses = {
+      sm: "h-9 min-h-[36px] text-xs px-3 rounded-[10px]",
+      md: "h-[48px] min-h-[48px] text-[14px] px-4 rounded-[12px]",
+      lg: "h-[52px] min-h-[52px] text-base px-4 rounded-[12px]",
+    };
+
+    const currentSizeClass = typeof size === "string" ? sizeClasses[size] || sizeClasses.md : sizeClasses.md;
+    const htmlSize = typeof size === "number" ? size : undefined;
 
     return (
       <div className="w-full space-y-1.5 text-left font-sans">
@@ -47,10 +58,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             type={type}
+            size={htmlSize}
             className={cn(
-              "w-full h-[48px] min-h-[48px] px-4 bg-white text-[#0F172A] placeholder:text-[#64748B] text-[14px] font-normal border border-[#E2E8F0] rounded-[12px] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-slate-50 disabled:opacity-60 shadow-xs",
-              leftIcon && "pl-10",
-              rightIcon && "pr-10",
+              "w-full bg-white text-[#0F172A] placeholder:text-[#64748B] font-normal border border-[#E2E8F0] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-slate-50 disabled:opacity-60 shadow-xs",
+              currentSizeClass,
+              leftIcon && (size === "sm" ? "pl-9" : "pl-10"),
+              rightIcon && (size === "sm" ? "pr-9" : "pr-10"),
               error && "border-rose-500 focus:ring-rose-500/20 focus:border-rose-600",
               className
             )}

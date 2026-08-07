@@ -267,18 +267,7 @@ export const LessonFormDrawer: React.FC<LessonFormDrawerProps> = ({
 
   // Source Mode Watches
   const videoSourceModeWatch = watch('videoSourceMode');
-  const audioSourceModeWatch = watch('audioSourceMode');
-  const pdfSourceModeWatch = watch('pdfSourceMode');
-  const docSourceModeWatch = watch('docSourceMode');
-  const imageSourceModeWatch = watch('imageSourceMode');
-  const assetSourceModeWatch = watch('assetSourceMode');
-
   const videoUrlWatch = watch('videoUrl');
-  const audioUrlWatch = watch('audioUrl');
-  const pdfUrlWatch = watch('pdfUrl');
-  const docUrlWatch = watch('docUrl');
-  const imageUrlWatch = watch('imageUrl');
-  const assetUrlWatch = watch('assetUrl');
 
   useEffect(() => {
     if (isOpen) {
@@ -339,18 +328,6 @@ export const LessonFormDrawer: React.FC<LessonFormDrawerProps> = ({
       });
     }
   }, [isOpen, initialLesson, reset]);
-
-  // Provider detection helper for External URL mode
-  const detectVideoProvider = (url: string) => {
-    if (!url) return 'Direct Stream';
-    if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
-    if (url.includes('vimeo.com')) return 'Vimeo';
-    if (url.includes('bunny.net')) return 'Bunny Stream';
-    if (url.includes('cloudflare.com')) return 'Cloudflare Stream';
-    if (url.includes('amazonaws.com')) return 'AWS S3';
-    if (url.includes('drive.google.com')) return 'Google Drive';
-    return 'Direct MP4 Stream';
-  };
 
   // URL Validation Helper
   const isValidUrl = (url: string) => {

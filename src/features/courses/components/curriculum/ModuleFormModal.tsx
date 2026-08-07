@@ -10,13 +10,10 @@ import {
   Lock,
   Check,
   AlertTriangle,
-  Loader2,
-  Calendar,
-  Sparkles,
 } from 'lucide-react';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
-import type { CourseModule } from '../../store/curriculum.store';
+type CourseModule = any;
 
 // Zod Schema
 const moduleFormSchema = z
@@ -95,7 +92,7 @@ export const ModuleFormModal: React.FC<ModuleFormModalProps> = ({
     reset,
     formState: { errors, isDirty },
   } = useForm<ModuleFormValues>({
-    resolver: zodResolver(moduleFormSchema),
+    resolver: zodResolver(moduleFormSchema) as any,
     defaultValues: {
       title: initialModule?.title || '',
       description: initialModule?.description || '',

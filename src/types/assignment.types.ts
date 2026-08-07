@@ -48,7 +48,10 @@ export type ProgressRule =
   | 'exam_unlock'
   | 'certificate_unlock'
   | 'completion_only'
-  | 'no_approval_required';
+  | 'no_approval_required'
+  | 'unlock_next_lesson'
+  | 'unlock_next_module'
+  | 'require_passing_marks';
 
 export interface RubricCriterion {
   id: string;
@@ -100,7 +103,7 @@ export interface Assignment {
   notifyStudentAfterReview: boolean;
 
   // Learning Progress Rules & Approval Workflow
-  approvalWorkflow: 'auto_approve' | 'manual_review';
+  approvalWorkflow: 'auto_approve' | 'auto_approval' | 'manual_review';
   progressRules: ProgressRule[];
   unlockRule: LearningUnlockRule;
 
@@ -130,6 +133,16 @@ export interface SubmissionFile {
   sizeMb: number;
   url: string;
   format: DownloadableFormat | string;
+}
+
+export interface ReviewHistoryEntry {
+  id: string;
+  timestamp: string;
+  action: SubmissionStatus | 'Submitted' | 'Reviewed' | 'Grade Updated' | string;
+  reviewerName: string;
+  marksAwarded?: number;
+  feedback?: string;
+  privateNotes?: string;
 }
 
 export interface StudentSubmission {
@@ -176,7 +189,7 @@ export interface StudentSubmission {
   reviewFileUrl?: string;
   reviewAudioUrl?: string;
   reviewVideoUrl?: string;
-  reviewHistory?: any[];
+  reviewHistory?: ReviewHistoryEntry[];
 }
 
 export type Submission = StudentSubmission;

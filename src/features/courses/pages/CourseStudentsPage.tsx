@@ -156,7 +156,7 @@ export const CourseStudentsPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>('recent');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [selectedStudentUuids, setSelectedStudentUuids] = useState<string[]>([]);
-  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [_isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   // Modal Action States
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);

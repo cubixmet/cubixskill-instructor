@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, FileCheck, Plus, Check } from 'lucide-react';
+import { Search, FileCheck, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../../../../components/ui/Modal';
 import { Button } from '../../../../components/ui/Button';
@@ -203,7 +203,7 @@ export const AttachAssignmentModal: React.FC<AttachAssignmentModalProps> = ({
                           {assignment.status}
                         </Badge>
                         {isAttached && (
-                          <Badge variant="outline" size="sm">Attached</Badge>
+                          <Badge variant="info" size="sm">Attached</Badge>
                         )}
                       </div>
                       <span className="text-[11px] text-[#64748B] block mt-0.5 truncate">

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Assignment, StudentSubmission, SubmissionStatus } from '../../../types/assignment.types';
+import type { Assignment, StudentSubmission } from '../../../types/assignment.types';
 import { MOCK_ASSIGNMENTS, MOCK_SUBMISSIONS } from '../data/mockAssignments';
 
 interface AssignmentStoreState {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, RotateCcw, Sparkles, X } from 'lucide-react';
+import { Search, RotateCcw, X } from 'lucide-react';
 import type { FeatureCategoryName } from './types';
 import { CATEGORIES } from './featureData';
 
@@ -12,7 +12,7 @@ interface FeatureSearchFiltersProps {
   onToggleShowSelectedOnly: () => void;
   totalSelectedCount: number;
   totalFeaturesCount: number;
-  onSelectRecommended: () => void;
+  onSelectRecommended?: () => void;
   onClearOptional: () => void;
 }
 
@@ -25,7 +25,7 @@ export const FeatureSearchFilters: React.FC<FeatureSearchFiltersProps> = ({
   onToggleShowSelectedOnly,
   totalSelectedCount,
   totalFeaturesCount,
-  onSelectRecommended,
+  onSelectRecommended: _onSelectRecommended,
   onClearOptional,
 }) => {
   return (

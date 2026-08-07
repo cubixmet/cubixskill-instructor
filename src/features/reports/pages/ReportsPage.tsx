@@ -90,7 +90,7 @@ export const ReportsPage: React.FC = () => {
   };
 
   // Mock Tabs metadata
-  const tabs: { id: ReportTab; label: string; icon: any; count?: string }[] = [
+  const tabs: { id: ReportTab; label: string; icon: React.ElementType; count?: string }[] = [
     { id: 'students', label: 'Student Reports', icon: Users, count: '1,248' },
     { id: 'courses', label: 'Course Reports', icon: BookOpen, count: '14' },
     { id: 'videos', label: 'Video Reports', icon: Video, count: '186' },
@@ -986,7 +986,7 @@ const StatWidget: React.FC<{
   title: string;
   value: string;
   sub: string;
-  icon: any;
+  icon: React.ElementType;
   color: 'blue' | 'emerald' | 'purple' | 'amber' | 'rose' | 'sky' | 'indigo' | 'slate';
 }> = ({ title, value, sub, icon: Icon, color }) => {
   const colorStyles = {

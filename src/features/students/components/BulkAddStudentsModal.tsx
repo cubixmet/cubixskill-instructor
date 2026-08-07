@@ -130,7 +130,7 @@ export const BulkAddStudentsModal: React.FC<BulkAddStudentsModalProps> = ({
     setManualRows((prev) => prev.filter((r) => r.id !== id));
   };
 
-  const handleUpdateManualRow = (id: string, field: keyof ManualStudentRow, val: any) => {
+  const handleUpdateManualRow = (id: string, field: keyof ManualStudentRow, val: string) => {
     setManualRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: val } : r)));
   };
 

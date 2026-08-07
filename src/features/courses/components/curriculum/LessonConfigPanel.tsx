@@ -1,29 +1,13 @@
 import React, { useState } from 'react';
 import {
   X,
-  Video,
-  FileText,
-  HelpCircle,
-  FileCheck,
-  Headphones,
-  FileCode,
-  Image as ImageIcon,
-  Download,
-  ExternalLink,
-  Code,
-  Radio,
-  Clock,
-  Shield,
   Save,
-  CheckCircle2,
   Trash2,
-  Calendar,
   Lock,
 } from 'lucide-react';
 import type { CurriculumLesson, LessonType, DownloadAssetType, UnlockRuleType } from '../../../../types/curriculum.types';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
-import { Badge } from '../../../../components/ui/Badge';
 import { VideoLessonSettings } from './VideoLessonSettings';
 
 interface LessonConfigPanelProps {
@@ -47,13 +31,13 @@ export const LessonConfigPanel: React.FC<LessonConfigPanelProps> = ({
   const [type, setType] = useState<LessonType>(lesson.type);
   const [durationMinutes, setDurationMinutes] = useState(lesson.durationMinutes);
   const [isDemo, setIsDemo] = useState(lesson.isDemo);
-  const [isPublished, setIsPublished] = useState(lesson.isPublished);
-  const [unlockType, setUnlockType] = useState<UnlockRuleType>(lesson.unlockRule.type);
-  const [minWatchPercent, setMinWatchPercent] = useState(lesson.unlockRule.minWatchPercent || 80);
-  const [videoSource, setVideoSource] = useState(lesson.videoSource || 'upload');
-  const [videoUrl, setVideoUrl] = useState(lesson.videoUrl || '');
+  const [isPublished, _setIsPublished] = useState((lesson as any).isPublished || lesson.status === 'published');
+  const [unlockType, setUnlockType] = useState<UnlockRuleType>((lesson.unlockRule as any)?.type || 'immediate');
+  const [minWatchPercent, setMinWatchPercent] = useState((lesson.unlockRule as any)?.minWatchPercent || 80);
+  const [videoSource, _setVideoSource] = useState((lesson as any).videoSource || 'upload');
+  const [videoUrl, _setVideoUrl] = useState((lesson as any).videoUrl || '');
   const [downloadAssetType, setDownloadAssetType] = useState<DownloadAssetType>(
-    lesson.downloadAssetType || 'pdf'
+    (lesson as any).downloadAssetType || 'pdf'
   );
 
   const handleSave = () => {
@@ -62,16 +46,16 @@ export const LessonConfigPanel: React.FC<LessonConfigPanelProps> = ({
       title,
       type,
       durationMinutes,
-      isDemo,
-      isPublished,
-      status: isPublished ? 'Published' : 'Draft',
-      videoSource,
-      videoUrl,
-      downloadAssetType,
+      status: isPublished ? 'published' : 'draft',
+      content: {
+        ...(lesson.content || {}),
+        videoSource,
+        videoUrl,
+      },
       unlockRule: {
         type: unlockType,
         minWatchPercent,
-      },
+      } as any,
     });
     onClose();
   };
@@ -229,7 +213,7 @@ export const LessonConfigPanel: React.FC<LessonConfigPanelProps> = ({
                 <option value="manual">Unlock Manually</option>
               </select>
 
-              {unlockType === 'min_watch_percent' && (
+              {(unlockType as string) === 'min_watch_percent' && (
                 <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between">
                   <span className="font-bold text-blue-900">Minimum Required Watch %</span>
                   <input
