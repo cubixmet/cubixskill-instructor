@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Palette, Globe, CheckCircle2, ArrowRight, ShieldCheck, Sparkles, Layout } from 'lucide-react';
+import { Palette, Globe, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 
 export const WebsiteBuilderLandingPage: React.FC = () => {

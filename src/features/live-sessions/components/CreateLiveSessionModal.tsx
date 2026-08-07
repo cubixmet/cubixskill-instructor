@@ -53,50 +53,54 @@ export const CreateLiveSessionModal: React.FC<CreateLiveSessionModalProps> = ({
   const [pendingFile, setPendingFile] = useState<AnnouncementAttachment | null>(null);
 
   useEffect(() => {
-    if (editingSession) {
-      setTitle(editingSession.title);
-      setDescription(editingSession.description);
-      setInstructions(editingSession.instructions || '');
-      setSessionType(editingSession.sessionType || 'external');
-      setPlatform(editingSession.platform);
-      setMeetingUrl(editingSession.meetingUrl);
-      setMeetingId(editingSession.meetingId || '');
-      setPasscode(editingSession.passcode || '');
-      setScheduledDate(editingSession.scheduledDate);
-      setScheduledTime(editingSession.scheduledTime);
-      setDurationMinutes(editingSession.durationMinutes);
-      setHostName(editingSession.hostName);
-      setAllowChat(editingSession.allowChat);
-      setAllowQuestions(editingSession.allowQuestions);
-      setIsRecorded(editingSession.isRecorded);
-      setNotifyStudents(editingSession.notifyStudents);
-      setAutoCreateAnnouncement(editingSession.autoCreateAnnouncement ?? true);
-      setAttachments(editingSession.attachments || []);
-    } else {
-      setTitle('');
-      setDescription('');
-      setInstructions('');
-      setSessionType('external');
-      setPlatform('Zoom');
-      setMeetingUrl('');
-      setMeetingId('');
-      setPasscode('');
-      setScheduledDate('2026-08-10');
-      setScheduledTime('17:00');
-      setDurationMinutes(60);
-      setHostName('Dr. Vikramaditya Rao');
-      setAllowChat(true);
-      setAllowQuestions(true);
-      setIsRecorded(true);
-      setNotifyStudents(true);
-      setAutoCreateAnnouncement(true);
-      setAttachments([]);
-    }
+    const apply = () => {
+      if (editingSession) {
+        setTitle(editingSession.title);
+        setDescription(editingSession.description);
+        setInstructions(editingSession.instructions || '');
+        setSessionType(editingSession.sessionType || 'external');
+        setPlatform(editingSession.platform);
+        setMeetingUrl(editingSession.meetingUrl);
+        setMeetingId(editingSession.meetingId || '');
+        setPasscode(editingSession.passcode || '');
+        setScheduledDate(editingSession.scheduledDate);
+        setScheduledTime(editingSession.scheduledTime);
+        setDurationMinutes(editingSession.durationMinutes);
+        setHostName(editingSession.hostName);
+        setAllowChat(editingSession.allowChat);
+        setAllowQuestions(editingSession.allowQuestions);
+        setIsRecorded(editingSession.isRecorded);
+        setNotifyStudents(editingSession.notifyStudents);
+        setAutoCreateAnnouncement(editingSession.autoCreateAnnouncement ?? true);
+        setAttachments(editingSession.attachments || []);
+      } else {
+        setTitle('');
+        setDescription('');
+        setInstructions('');
+        setSessionType('external');
+        setPlatform('Zoom');
+        setMeetingUrl('');
+        setMeetingId('');
+        setPasscode('');
+        setScheduledDate('2026-08-10');
+        setScheduledTime('17:00');
+        setDurationMinutes(60);
+        setHostName('Dr. Vikramaditya Rao');
+        setAllowChat(true);
+        setAllowQuestions(true);
+        setIsRecorded(true);
+        setNotifyStudents(true);
+        setAutoCreateAnnouncement(true);
+        setAttachments([]);
+      }
+    };
+    const tid = setTimeout(apply, 0);
+    return () => clearTimeout(tid);
   }, [editingSession, isOpen]);
 
   const handleRequestAttachment = () => {
     const newAtt: AnnouncementAttachment = {
-      id: `att-${Date.now()}`,
+      id: `att-${crypto.randomUUID()}`,
       name: `Session_Resource_${attachments.length + 1}.pdf`,
       sizeMb: 3.5,
       type: 'pdf',

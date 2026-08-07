@@ -28,8 +28,8 @@ interface AssignmentStoreState {
 export const useAssignmentStore = create<AssignmentStoreState>()(
   persist(
     (set, get) => ({
-      assignments: MOCK_ASSIGNMENTS as any,
-      submissions: MOCK_SUBMISSIONS as any,
+      assignments: MOCK_ASSIGNMENTS as unknown as Assignment[],
+      submissions: MOCK_SUBMISSIONS as unknown as StudentSubmission[],
 
       getAssignmentsByCourse: (courseUuid) => {
         const { assignments } = get();

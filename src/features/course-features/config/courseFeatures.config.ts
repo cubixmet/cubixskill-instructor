@@ -42,7 +42,7 @@ export interface SharedPlatformFeature {
   category: FeatureCategoryType;
   creditCost: number;
   storageCostMB?: number;
-  icon: any;
+  icon: React.ElementType;
   isRecommended?: boolean;
   requiresConfig?: boolean;
   isPremium?: boolean;

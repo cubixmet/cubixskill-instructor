@@ -49,7 +49,7 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
   onAddReply,
   onLikeDiscussion,
   onLikeReply,
-  onPinReply: _onPinReply,
+  onPinReply: _,
   onMarkOfficialAnswer,
   onDeleteReply,
   onReport,
@@ -455,7 +455,7 @@ export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
             <label className="block font-bold text-slate-900 mb-1">Reason for Report</label>
             <select
               value={reportReason}
-              onChange={(e) => setReportReason(e.target.value as any)}
+              onChange={(e) => setReportReason(e.target.value as 'Spam' | 'Abuse' | 'Duplicate' | 'Off Topic')}
               className="w-full h-9 rounded-lg border border-slate-200 px-3 bg-white text-slate-900 font-semibold"
             >
               <option value="Spam">Spam / Promotional link</option>

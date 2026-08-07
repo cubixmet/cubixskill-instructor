@@ -8,6 +8,7 @@ import type {
   CreateLessonInput,
   UpdateLessonInput,
   CreateSubsectionInput,
+  LessonContent,
   UpdateSubsectionInput,
 } from '../../../types/curriculum.types';
 
@@ -106,7 +107,7 @@ export const curriculumService = {
     useCurriculumStore.getState().updateLesson(lessonUuid, {
       content: {
         assignmentUuid,
-      } as any,
+      } as LessonContent,
     });
   },
 
@@ -114,7 +115,7 @@ export const curriculumService = {
     useCurriculumStore.getState().updateLesson(lessonUuid, {
       content: {
         assignmentUuid,
-      } as any,
+      } as LessonContent,
     });
   },
 

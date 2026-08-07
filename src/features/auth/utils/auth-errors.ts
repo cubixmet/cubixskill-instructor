@@ -4,7 +4,7 @@ import type { ApiErrorResponse } from "../../../types/api.types";
 export function formatAuthError(error: unknown): string {
   if (typeof error === "string") return error;
 
-  if (error && typeof error === "object" && "message" in error && typeof (error as any).message === "string") {
+  if (error && typeof error === "object" && "message" in error && typeof (error as { message: unknown }).message === "string") {
     const errObj = error as AxiosError<ApiErrorResponse>;
     if (errObj.response?.data) {
       const data = errObj.response.data;

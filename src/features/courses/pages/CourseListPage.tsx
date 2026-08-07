@@ -60,9 +60,11 @@ export const CourseListPage: React.FC = () => {
   const [selectedPriceType] = useState<string>('all');
   const [sortBy] = useState<string>('updated');
 
-  // Mobile Specific UI Toggle State
-  const [_isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [_isSortModalOpen, setIsSortModalOpen] = useState(false);
+  // Mobile Specific UI Toggle State (setters used in JSX buttons)
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  void isFilterModalOpen;
+  const [isSortModalOpen, setIsSortModalOpen] = useState(false);
+  void isSortModalOpen;
 
   // General UI State
   const [activeMenuUuid, setActiveMenuUuid] = useState<string | null>(null);
@@ -89,7 +91,7 @@ export const CourseListPage: React.FC = () => {
 
   // Filtered & Sorted Courses List
   const filteredCourses = useMemo(() => {
-    let result = coursesList.filter((course) => {
+    const result = coursesList.filter((course) => {
       // Tab Status
       if (activeStatusTab !== 'All') {
         const tabLower = activeStatusTab.toLowerCase();

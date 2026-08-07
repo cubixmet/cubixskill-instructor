@@ -39,7 +39,7 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
           ].map((f) => (
             <label
               key={f.id}
-              onClick={() => setFormat(f.id as any)}
+              onClick={() => setFormat(f.id as 'pdf' | 'excel' | 'csv' | 'print')}
               className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                 format === f.id
                   ? 'bg-blue-50 border-blue-600 ring-1 ring-blue-600'
@@ -54,7 +54,7 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
                 type="radio"
                 name="export_format"
                 checked={format === f.id}
-                onChange={() => setFormat(f.id as any)}
+                onChange={() => setFormat(f.id as 'pdf' | 'excel' | 'csv' | 'print')}
                 className="text-blue-600 focus:ring-blue-500"
               />
             </label>

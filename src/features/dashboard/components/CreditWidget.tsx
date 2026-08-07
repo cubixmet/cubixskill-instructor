@@ -16,7 +16,7 @@ interface CreditWidgetProps {
 export const CreditWidget: React.FC<CreditWidgetProps> = ({
   availableCredits,
   usedThisMonth,
-  estimatedRemaining: _estimatedRemaining,
+  estimatedRemaining: _,
   onOpenBuyCredits,
   onOpenCalculator,
 }) => {

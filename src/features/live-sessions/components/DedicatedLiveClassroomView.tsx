@@ -229,7 +229,7 @@ export const DedicatedLiveClassroomView: React.FC<DedicatedLiveClassroomViewProp
                 <button
                   key={t.id}
                   type="button"
-                  onClick={() => setActiveTab(t.id as any)}
+                  onClick={() => setActiveTab(t.id as 'chat' | 'participants' | 'resources' | 'qa')}
                   className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
                     active ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
                   }`}

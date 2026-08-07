@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   RotateCcw,
@@ -42,16 +42,19 @@ export const CourseSettingsPage: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Sync localSettings when courseUuid changes
+  const [prevUuid, setPrevUuid] = useState(courseUuid);
+  if (prevUuid !== courseUuid) {
+    setPrevUuid(courseUuid);
     setLocalSettings({ ...getCourseSettings(courseUuid) });
-  }, [courseUuid]);
+  }
 
   // Dirty count
   const unsavedCount = useMemo(() => {
     let count = 0;
     const currentStore = getCourseSettings(courseUuid);
-    Object.keys(localSettings).forEach((key) => {
-      if ((localSettings as any)[key] !== (currentStore as any)[key]) {
+    (Object.keys(localSettings) as (keyof CourseSettingsConfig)[]).forEach((key) => {
+      if (localSettings[key] !== currentStore[key]) {
         count++;
       }
     });

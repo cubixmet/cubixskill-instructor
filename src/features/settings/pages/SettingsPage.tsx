@@ -11,7 +11,8 @@ import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 
 import { useGlobalSettingsStore } from '../store/globalSettings.store';
-import { GlobalSettingsNav, GLOBAL_SETTINGS_SECTIONS } from '../components/GlobalSettingsNav';
+import { GlobalSettingsNav } from '../components/GlobalSettingsNav';
+import { GLOBAL_SETTINGS_SECTIONS } from '../constants/globalSettingsSections';
 import { GlobalSettingsSections } from '../components/GlobalSettingsSections';
 
 export const SettingsPage: React.FC = () => {

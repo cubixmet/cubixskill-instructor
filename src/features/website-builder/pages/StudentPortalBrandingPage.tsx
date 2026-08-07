@@ -36,7 +36,6 @@ export const StudentPortalBrandingPage: React.FC = () => {
   const supportPhone = useAcademyBrandingStore((state) => state.supportPhone);
   const activeThemeId = useAcademyBrandingStore((state) => state.activeThemeId);
   const customPrimaryColor = useAcademyBrandingStore((state) => state.customPrimaryColor);
-  const customSecondaryColor = useAcademyBrandingStore((state) => state.customSecondaryColor);
 
   const updateBranding = useAcademyBrandingStore((state) => state.updateBranding);
   const applyTheme = useAcademyBrandingStore((state) => state.applyTheme);

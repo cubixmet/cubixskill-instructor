@@ -89,7 +89,7 @@ export const SubmissionListPage: React.FC<SubmissionListPageProps> = ({
             {
               id: `rh-${Date.now()}`,
               timestamp: new Date().toISOString(),
-              action: (newStatus === 'Approved' ? 'Approved' : newStatus === 'Rejected' ? 'Rejected' : 'Reviewed') as any,
+              action: (newStatus === 'Approved' ? 'Approved' : newStatus === 'Rejected' ? 'Rejected' : 'Reviewed') as 'Approved' | 'Rejected' | 'Resubmission Requested' | 'Grade Updated' | 'Reviewed',
               reviewerName: 'Instructor Sarah Miller',
               feedback: `Bulk action status updated to ${newStatus}`,
             },
@@ -117,7 +117,7 @@ export const SubmissionListPage: React.FC<SubmissionListPageProps> = ({
             {
               id: `rh-${Date.now()}`,
               timestamp: new Date().toISOString(),
-              action: 'Reviewed' as any,
+              action: 'Reviewed' as 'Approved' | 'Rejected' | 'Resubmission Requested' | 'Grade Updated' | 'Reviewed',
               reviewerName: 'Instructor Sarah Miller',
               feedback: bulkFeedbackText,
             },
@@ -405,7 +405,7 @@ export const SubmissionListPage: React.FC<SubmissionListPageProps> = ({
                       <td className="p-3.5">
                         <div className="space-y-0.5">
                           <p className="font-semibold text-slate-800 text-[11px]">
-                            {new Date(sub.submissionDate || sub.submittedAt || Date.now()).toLocaleDateString()}
+                            {new Date(sub.submissionDate || sub.submittedAt || new Date().toISOString()).toLocaleDateString()}
                           </p>
                           {sub.isLate && (
                             <span className="px-1.5 py-0.2 bg-red-100 text-red-800 font-extrabold text-[9px] rounded">

@@ -39,7 +39,7 @@ export interface PersonalChatViewProps {
 const EMOJIS = ['👍', '💡', '🔥', '🎯', '🙌', '❤️', '😊', '👏'];
 
 export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
-  courseUuid: _courseUuid,
+  courseUuid: _,
   conversations,
   courseMembers,
   activeStudentUuid,
@@ -69,7 +69,7 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
       onMarkSeen(activeConversation.id);
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [activeConversation?.id, activeConversation?.messages.length]);
+  }, [activeConversation, onMarkSeen]);
 
   const filteredConversations = conversations.filter(
     (c) =>

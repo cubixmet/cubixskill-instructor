@@ -59,7 +59,7 @@ class AuthStore {
     if (storedUserJson) {
       try {
         storedUser = JSON.parse(storedUserJson);
-      } catch (e) {
+      } catch (_) {
         localStorage.removeItem(STORAGE_USER_KEY);
       }
     }
@@ -95,7 +95,7 @@ class AuthStore {
           this.clearSession(AUTH_MESSAGES.INACTIVE_USER);
           return;
         }
-      } catch (err) {
+      } catch (_) {
         this.clearSession();
         return;
       }

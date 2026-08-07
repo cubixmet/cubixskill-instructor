@@ -24,7 +24,7 @@ import type { AnnouncementItem, AnnouncementAttachment } from '../store/announce
 export interface CreateAnnouncementModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: Partial<AnnouncementItem>) => void;
   editingAnnouncement?: AnnouncementItem | null;
   defaultCourseUuid?: string;
 }
@@ -72,13 +72,14 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
 
   useEffect(() => {
     if (editingAnnouncement) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedCourseUuid(editingAnnouncement.courseUuid);
       setTitle(editingAnnouncement.title);
       setSummary(editingAnnouncement.summary);
       setContent(editingAnnouncement.content);
-      setCategory(editingAnnouncement.category);
-      setPriority(editingAnnouncement.priority);
-      setPublishOption(editingAnnouncement.publishOption);
+      setCategory(editingAnnouncement.category as 'General' | 'Exam & Quiz' | 'Assignment' | 'Schedule' | 'Important');
+      setPriority(editingAnnouncement.priority as 'normal' | 'important' | 'urgent');
+      setPublishOption(editingAnnouncement.publishOption as 'now' | 'schedule' | 'draft');
       setIsPinned(editingAnnouncement.isPinned);
       setSendEmail(editingAnnouncement.sendEmail ?? true);
       setSendPush(editingAnnouncement.sendPush ?? true);
@@ -86,6 +87,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
       setAllowComments(editingAnnouncement.allowComments);
       setLinkedLiveSessionId(editingAnnouncement.linkedLiveSessionId || '');
       setAttachments(editingAnnouncement.attachments || []);
+      setTargetSegment((editingAnnouncement.targetSegment as 'all_students' | 'enrolled_only' | 'interested_only') || 'all_students');
     } else {
       setSelectedCourseUuid(defaultCourseUuid || (courses[0]?.id || '550e8400-e29b-41d4-a716-446655440000'));
       setTitle('');
@@ -235,7 +237,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
               <label className="block font-bold text-slate-900 mb-1">Category</label>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value as any)}
+                onChange={(e) => setCategory(e.target.value as 'General' | 'Exam & Quiz' | 'Assignment' | 'Schedule' | 'Important')}
                 className="w-full h-9 rounded-lg border border-slate-200 px-3 bg-white text-slate-900 font-bold"
               >
                 <option value="General">General</option>
@@ -250,7 +252,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
               <label className="block font-bold text-slate-900 mb-1">Priority Level</label>
               <select
                 value={priority}
-                onChange={(e) => setPriority(e.target.value as any)}
+                onChange={(e) => setPriority(e.target.value as 'normal' | 'important' | 'urgent')}
                 className="w-full h-9 rounded-lg border border-slate-200 px-3 bg-white text-slate-900 font-bold"
               >
                 <option value="normal">Normal Priority</option>
@@ -312,7 +314,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => setPublishOption(opt.id as any)}
+                    onClick={() => setPublishOption(opt.id as 'now' | 'schedule' | 'draft')}
                     className={`flex-1 py-2 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-blue-600 text-white border-blue-600 shadow-xs'

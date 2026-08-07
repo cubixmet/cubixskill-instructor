@@ -1,41 +1,5 @@
 import React from 'react';
-import {
-  User,
-  Building2,
-  Palette,
-  Layout,
-  CreditCard,
-  Bell,
-  Shield,
-  Users,
-  Globe,
-  Key,
-  Sliders,
-  Download,
-  AlertTriangle,
-} from 'lucide-react';
-
-export interface GlobalSettingsSectionItem {
-  id: string;
-  label: string;
-  icon: React.ElementType;
-}
-
-export const GLOBAL_SETTINGS_SECTIONS: GlobalSettingsSectionItem[] = [
-  { id: 'profile', label: '1. Instructor Profile', icon: User },
-  { id: 'academy-info', label: '2. Academy Information', icon: Building2 },
-  { id: 'student-branding', label: '3. Student Portal Branding', icon: Palette },
-  { id: 'website-settings', label: '4. Website Settings', icon: Layout },
-  { id: 'payment-gateway', label: '5. Payment Gateways', icon: CreditCard },
-  { id: 'notifications', label: '6. Notifications', icon: Bell },
-  { id: 'security', label: '7. Security & 2FA', icon: Shield },
-  { id: 'team-members', label: '8. Team Members & Roles', icon: Users },
-  { id: 'domains', label: '9. Custom Domains & SSL', icon: Globe },
-  { id: 'api-webhooks', label: '10. API & Webhooks', icon: Key },
-  { id: 'preferences', label: '11. Preferences', icon: Sliders },
-  { id: 'backup-export', label: '12. Backup & Export', icon: Download },
-  { id: 'danger-zone', label: '13. Danger Zone', icon: AlertTriangle },
-];
+import { GLOBAL_SETTINGS_SECTIONS } from '../constants/globalSettingsSections';
 
 export interface GlobalSettingsNavProps {
   activeSection: string;

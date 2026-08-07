@@ -462,7 +462,7 @@ export const useQuizStore = create<QuizState>()(
         return newAttempt;
       },
 
-      gradeAttempt: (attemptId, manualMarks, _feedback) => {
+      gradeAttempt: (attemptId, manualMarks, _) => {
         set((state) => ({
           attempts: state.attempts.map((att) => {
             if (att.id !== attemptId) return att;

@@ -214,7 +214,7 @@ export interface WebsiteSection {
   title: string;
   enabled: boolean;
   order: number;
-  content: Record<string, any>;
+  content: Record<string, unknown>;
 }
 
 export interface PaymentOrder {

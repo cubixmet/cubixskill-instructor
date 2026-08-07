@@ -12,7 +12,6 @@ import {
   MessageSquare,
   CreditCard,
   DollarSign,
-  LayoutDashboard,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -44,23 +43,23 @@ export const CourseReportsPage: React.FC = () => {
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
 
   // Tab definitions with Feature-based visibility filter
-  const allTabs = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'students', label: 'Students', icon: Users, featureKey: 'studentReports' },
-    { id: 'assignments', label: 'Assignments', icon: FileCheck, featureKey: 'assignments' },
-    { id: 'quizzes', label: 'Quizzes', icon: HelpCircle, featureKey: 'quizzes' },
-    { id: 'certificates', label: 'Certificates', icon: Award, featureKey: 'courseCertificates' },
-    { id: 'live-sessions', label: 'Live Sessions', icon: Video, featureKey: 'liveSessions' },
-    { id: 'announcements', label: 'Announcements', icon: Megaphone, featureKey: 'courseAnnouncements' },
-    { id: 'discussions', label: 'Discussions', icon: MessageSquare, featureKey: 'courseDiscussion' },
-    { id: 'credits', label: 'Credits', icon: CreditCard },
-    { id: 'revenue', label: 'Revenue', icon: DollarSign },
-  ];
-
   const visibleTabs = useMemo(() => {
+    const allTabs = [
+      { id: 'overview', label: 'Overview', icon: BarChart3 },
+      { id: 'students', label: 'Students Progress', icon: Users },
+      { id: 'assignments', label: 'Assignments', icon: FileCheck, featureKey: 'assignments' },
+      { id: 'quizzes', label: 'Quizzes', icon: HelpCircle, featureKey: 'quizzes' },
+      { id: 'certificates', label: 'Certificates', icon: Award, featureKey: 'courseCertificates' },
+      { id: 'live-sessions', label: 'Live Sessions', icon: Video, featureKey: 'liveSessions' },
+      { id: 'announcements', label: 'Announcements', icon: Megaphone, featureKey: 'courseAnnouncements' },
+      { id: 'discussions', label: 'Discussions', icon: MessageSquare, featureKey: 'courseDiscussion' },
+      { id: 'credits', label: 'Credits', icon: CreditCard },
+      { id: 'revenue', label: 'Revenue', icon: DollarSign },
+    ];
+
     return allTabs.filter((tab) => {
       if (!tab.featureKey) return true;
-      return (courseFeatures as any)[tab.featureKey] !== false;
+      return (courseFeatures as Record<string, boolean>)[tab.featureKey] !== false;
     });
   }, [courseFeatures]);
 

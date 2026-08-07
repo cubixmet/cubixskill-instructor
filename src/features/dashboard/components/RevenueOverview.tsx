@@ -67,7 +67,7 @@ export const RevenueOverview: React.FC<RevenueOverviewProps> = ({ data }) => {
           <button
             key={m.key}
             type="button"
-            onClick={() => setMetricType(m.key as any)}
+            onClick={() => setMetricType(m.key as 'revenue' | 'sales' | 'students' | 'credits')}
             className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
               metricType === m.key
                 ? 'bg-[#EFF6FF] border-[#2563EB] ring-2 ring-[#2563EB]/10'

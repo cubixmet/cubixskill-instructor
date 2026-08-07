@@ -3,8 +3,15 @@ import { Search, Download } from 'lucide-react';
 import { Input } from '../../../../components/ui/Input';
 import { Button } from '../../../../components/ui/Button';
 
+export interface ReportStudentItem {
+  id?: string;
+  name: string;
+  email: string;
+  [key: string]: unknown;
+}
+
 export interface ReportTabStudentsProps {
-  students: any[];
+  students: ReportStudentItem[];
 }
 
 export const ReportTabStudents: React.FC<ReportTabStudentsProps> = ({ students }) => {

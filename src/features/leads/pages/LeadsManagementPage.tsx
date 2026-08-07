@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, Download, UserCheck, MessageSquare, Mail, Phone, Calendar, Globe } from 'lucide-react';
+import { Search, Download } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Modal } from '../../../components/ui/Modal';
-import { useLeadStore, LeadItem, LeadPipelineStatus, LeadSource } from '../store/lead.store';
+import { useLeadStore, LeadItem, LeadPipelineStatus } from '../store/lead.store';
 
 export const LeadsManagementPage: React.FC = () => {
   const leads = useLeadStore((state) => state.leads);

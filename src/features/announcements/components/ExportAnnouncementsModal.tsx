@@ -49,7 +49,7 @@ export const ExportAnnouncementsModal: React.FC<ExportAnnouncementsModalProps> =
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setFormat(item.id as any)}
+                  onClick={() => setFormat(item.id as 'pdf' | 'csv' | 'json')}
                   className={`p-3 rounded-xl border text-center space-y-1 transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-blue-600 text-white border-blue-600 shadow-xs'

@@ -7,7 +7,6 @@ import {
   CircleHelp,
   Award,
   MessageSquare,
-  Megaphone,
   BarChart3,
   Settings,
   ArrowLeft,
@@ -154,10 +153,9 @@ export const CourseSingleViewLayout: React.FC = () => {
     { id: 'quizzes', label: 'Quizzes', icon: CircleHelp, count: 5 },
     { id: 'certificates', label: 'Certificates', icon: Award, count: 32 },
     { id: 'discussions', label: 'Discussions', icon: MessageSquare, count: 18 },
-    { id: 'announcements', label: 'Announcements', icon: Megaphone, count: 2 },
-    { id: 'live-sessions' as any, label: 'Live Sessions', icon: Video, count: 1 },
+    { id: 'live-sessions', label: 'Live Sessions', icon: Video, count: 1 },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
-    { id: 'features' as any, label: 'Features', icon: SlidersHorizontal },
+    { id: 'features', label: 'Features', icon: SlidersHorizontal },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -398,7 +396,7 @@ export const CourseSingleViewLayout: React.FC = () => {
           </div>
 
           <div className="px-3 space-y-0.5 flex flex-col items-center justify-center">
-            <CourseRating rating={course.rating || 4.8} reviewCount={(course as any).reviewCount || 128} />
+            <CourseRating rating={course.rating || 4.8} reviewCount={(course as { reviewCount?: number }).reviewCount || 128} />
             <span className="text-[11px] text-[#64748B] font-medium block pt-0.5">Course Rating</span>
           </div>
 
@@ -431,7 +429,7 @@ export const CourseSingleViewLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-around text-center pt-1">
-            <CourseRating rating={course.rating || 4.8} reviewCount={(course as any).reviewCount || 128} />
+            <CourseRating rating={course.rating || 4.8} reviewCount={(course as { reviewCount?: number }).reviewCount || 128} />
             <div className="text-left">
               <strong className="text-[16px] font-bold text-[#0F172A] block">{course.creditsPerStudent || 17} Credits</strong>
               <span className="text-[10px] text-[#64748B] font-medium">Per Student</span>

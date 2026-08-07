@@ -10,6 +10,7 @@ import {
   ZoomOut,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
+import { AutoFitTextContainer } from './AutoFitTextContainer';
 import { Badge } from '../../../components/ui/Badge';
 import { useCertificateStore } from '../store/certificate.store';
 import {
@@ -53,10 +54,10 @@ export const CardFlowCertificateBuilderModal: React.FC<CardFlowCertificateBuilde
   const updateTemplate = useCertificateStore((state) => state.updateTemplate);
 
   const [title, setTitle] = useState(initialTemplate?.title || 'Official Certificate of Achievement');
-  const [description, _setDescription] = useState(initialTemplate?.description || 'Automated completion certificate');
+  const description = initialTemplate?.description ?? 'Automated completion certificate';
   const [autoIssueRule, setAutoIssueRule] = useState<AutoIssueRule>(initialTemplate?.autoIssueRule || 'course_completion');
-  const [canvasSize, _setCanvasSize] = useState<CanvasSizeType>(initialTemplate?.canvasSize || 'a4_landscape');
-  const [backgroundColor, _setBackgroundColor] = useState(initialTemplate?.backgroundColor || '#FFFFFF');
+  const canvasSize: CanvasSizeType = initialTemplate?.canvasSize ?? 'a4_landscape';
+  const backgroundColor = initialTemplate?.backgroundColor ?? '#FFFFFF';
   const [zoomLevel, setZoomLevel] = useState<number>(100);
 
   const [elements, setElements] = useState<CanvasElement[]>(
@@ -160,7 +161,7 @@ export const CardFlowCertificateBuilderModal: React.FC<CardFlowCertificateBuilde
 
   const handleAddPlaceholder = (placeholder: typeof DYNAMIC_PLACEHOLDERS[0]) => {
     const newEl: CanvasElement = {
-      id: `el-${Date.now()}`,
+      id: `el-${crypto.randomUUID()}`,
       type: placeholder.type,
       label: placeholder.label,
       placeholderKey: placeholder.key,
@@ -263,7 +264,7 @@ export const CardFlowCertificateBuilderModal: React.FC<CardFlowCertificateBuilde
             <div className="flex items-center gap-3">
               <select
                 value={autoIssueRule}
-                onChange={(e: any) => setAutoIssueRule(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAutoIssueRule(e.target.value as AutoIssueRule)}
                 className="h-9 px-3 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold text-white focus:outline-none"
               >
                 <option value="course_completion">Issue on Course Completion</option>
@@ -360,21 +361,26 @@ export const CardFlowCertificateBuilderModal: React.FC<CardFlowCertificateBuilde
                   const isSelected = selectedElementId === el.id;
 
                   return (
-                    <div
+                    <AutoFitTextContainer
                       key={el.id}
+                      text={el.text || el.placeholderKey || ''}
+                      maxFontSize={el.fontSize}
+                      fontFamily={el.fontFamily}
+                      fontWeight={el.fontWeight}
+                      fontColor={el.fontColor}
+                      textAlign={el.textAlign}
+                      opacity={el.opacity}
                       onClick={() => setSelectedElementId(el.id)}
                       style={{
+                        position: 'absolute',
                         left: `${el.x}%`,
                         top: `${el.y}%`,
                         transform: 'translate(-50%, -50%)',
-                        fontFamily: el.fontFamily,
-                        fontSize: `${el.fontSize}px`,
-                        fontWeight: el.fontWeight,
-                        color: el.fontColor,
-                        textAlign: el.textAlign,
-                        opacity: el.opacity,
+                        width: `${el.width}%`,
+                        height: 'auto',
+                        minHeight: '28px',
                       }}
-                      className={`absolute cursor-pointer select-none transition-all p-2 rounded-lg ${
+                      className={`cursor-pointer select-none transition-all p-2 rounded-lg ${
                         isSelected ? 'ring-2 ring-blue-500 bg-blue-50/40 shadow-xs' : 'hover:ring-1 hover:ring-blue-300'
                       }`}
                     >
@@ -382,10 +388,8 @@ export const CardFlowCertificateBuilderModal: React.FC<CardFlowCertificateBuilde
                         <div className="w-16 h-16 bg-white border-2 border-slate-900 p-1 rounded-lg mx-auto flex items-center justify-center">
                           <QrCode className="w-12 h-12 text-slate-900" />
                         </div>
-                      ) : (
-                        <span>{el.placeholderKey ? el.text || el.placeholderKey : el.text}</span>
-                      )}
-                    </div>
+                      ) : undefined}
+                    </AutoFitTextContainer>
                   );
                 })}
               </div>

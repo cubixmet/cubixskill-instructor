@@ -34,6 +34,8 @@ import { CourseSettingsPage } from '../features/courses/pages/CourseSettingsPage
 import { WebsiteBuilderLandingPage } from '../features/website-builder/pages/WebsiteBuilderLandingPage';
 import { StudentPortalBrandingPage } from '../features/website-builder/pages/StudentPortalBrandingPage';
 import { PublicSiteBuilderPage } from '../features/website-builder/pages/PublicSiteBuilderPage';
+import { ImageTemplateDesignerPage } from '../features/certificates/pages/ImageTemplateDesignerPage';
+import { CustomCertificateDesignerPage } from '../features/certificates/pages/CustomCertificateDesignerPage';
 import { LeadsManagementPage } from '../features/leads/pages/LeadsManagementPage';
 import { StudentListPage } from '../features/students/pages/StudentListPage';
 import { StudentCreatePage } from '../features/students/pages/StudentCreatePage';
@@ -154,6 +156,8 @@ export const AppRoutes: React.FC = () => {
           <Route path="/website-builder" element={<WebsiteBuilderLandingPage />} />
           <Route path="/website-builder/student-portal" element={<StudentPortalBrandingPage />} />
           <Route path="/website-builder/public-site" element={<PublicSiteBuilderPage />} />
+          <Route path="/certificate-builder/image-template" element={<ImageTemplateDesignerPage />} />
+          <Route path="/certificate-builder/custom" element={<CustomCertificateDesignerPage />} />
 
           {/* 14b. Public Leads */}
           <Route path="/leads" element={<LeadsManagementPage />} />

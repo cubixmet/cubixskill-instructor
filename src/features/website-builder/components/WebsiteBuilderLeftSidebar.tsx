@@ -60,7 +60,7 @@ export const WebsiteBuilderLeftSidebar: React.FC = () => {
             <button
               key={t.id}
               type="button"
-              onClick={() => setActiveTab(t.id as any)}
+              onClick={() => setActiveTab(t.id as 'pages' | 'sections' | 'styles')}
               className={`py-2 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
                 isSelected ? 'bg-blue-600 text-white shadow-xs font-extrabold' : 'text-slate-400 hover:text-white'
               }`}

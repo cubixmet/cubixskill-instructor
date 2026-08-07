@@ -20,7 +20,7 @@ export interface LiveSessionSummaryCardsProps {
 }
 
 export const LiveSessionSummaryCards: React.FC<LiveSessionSummaryCardsProps> = ({
-  total: _total,
+  total: _,
   liveNow,
   upcoming,
   completed,

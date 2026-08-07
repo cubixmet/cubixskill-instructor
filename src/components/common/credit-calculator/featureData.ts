@@ -19,7 +19,7 @@ export const CATEGORY_ORDER: Record<string, number> = {
 
 // Map Central Single Source of Truth Features to Calculator Format
 export const ALL_FEATURES: CalculatorFeature[] = CENTRAL_PLATFORM_FEATURES.map((feat, index) => {
-  const categoryKeyMap: Record<string, any> = {
+  const categoryKeyMap: Record<string, string> = {
     Learning: 'learning-content',
     Assessment: 'assessments',
     Certificates: 'certificates',

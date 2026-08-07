@@ -8,7 +8,7 @@ export interface FeatureConfigDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   feature: CourseFeatureDefinition | null;
-  onSaveSettings: (featureId: string, settings: any) => void;
+  onSaveSettings: (featureId: string, settings: Record<string, unknown>) => void;
 }
 
 export const FeatureConfigDrawer: React.FC<FeatureConfigDrawerProps> = ({

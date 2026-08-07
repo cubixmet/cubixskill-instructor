@@ -72,7 +72,7 @@ export const StudentListPage: React.FC = () => {
     try {
       exportToCsv(filename, targetList, columns);
       showToast(`CSV exported successfully (${targetList.length} ${targetList.length === 1 ? 'student' : 'students'}).`);
-    } catch (err) {
+    } catch (_) {
       showToast('CSV export failed. Please try again.');
     }
   };

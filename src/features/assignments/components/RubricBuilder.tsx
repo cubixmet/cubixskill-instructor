@@ -20,7 +20,7 @@ export const RubricBuilder: React.FC<RubricBuilderProps> = ({ criteria, onChange
     onChange([...criteria, newCriterion]);
   };
 
-  const handleUpdateCriterion = (id: string, field: keyof RubricCriterion, value: any) => {
+  const handleUpdateCriterion = <K extends keyof RubricCriterion>(id: string, field: K, value: RubricCriterion[K]) => {
     onChange(
       criteria.map((c) => (c.id === id ? { ...c, [field]: value } : c))
     );

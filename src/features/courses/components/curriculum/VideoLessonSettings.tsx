@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
-import type { UnlockRuleType } from '../../../../types/curriculum.types';
+import type { CurriculumLesson, UnlockRuleType } from '../../../../types/curriculum.types';
 
 export type VideoSourceType =
   | 'direct'
@@ -34,8 +34,8 @@ export type UploadStatus = 'waiting' | 'uploading' | 'processing' | 'ready' | 'f
 export type CompletionMode = 'manual' | 'playback_end' | 'watch_percent' | 'watch_time' | 'full_completion';
 
 interface VideoLessonSettingsProps {
-  lesson: any;
-  onSaveLesson: (updated: any) => void;
+  lesson: CurriculumLesson;
+  onSaveLesson: (updated: CurriculumLesson) => void;
 }
 
 export const VideoLessonSettings: React.FC<VideoLessonSettingsProps> = ({
@@ -44,9 +44,9 @@ export const VideoLessonSettings: React.FC<VideoLessonSettingsProps> = ({
 }) => {
   // 1. Video Source State
   const [sourceType, setSourceType] = useState<VideoSourceType>(
-    ((lesson as any).videoSource as VideoSourceType) || 'direct'
+    (lesson.content?.videoSource as VideoSourceType) || 'direct'
   );
-  const [externalUrl, setExternalUrl] = useState((lesson as any).videoUrl || '');
+  const [externalUrl, setExternalUrl] = useState(lesson.content?.videoUrl || '');
 
   // 2. Direct File Delivery Mode & Upload State
   const [deliveryMode, setDeliveryMode] = useState<VideoDeliveryMode>('standard');
@@ -75,9 +75,14 @@ export const VideoLessonSettings: React.FC<VideoLessonSettingsProps> = ({
   const [watermark, setWatermark] = useState(true);
   const [deviceRestrictions, setDeviceRestrictions] = useState<'none' | 'mobile_only' | 'desktop_only' | 'restrict_tv'>('none');
 
+  // Helper to safely extract unlock rule details
+  const unlockRuleObj = typeof lesson.unlockRule === 'object' && lesson.unlockRule ? lesson.unlockRule : null;
+
   // 4. Video Completion Settings State
   const [completionMode, setCompletionMode] = useState<CompletionMode>('watch_percent');
-  const [minWatchPercentPreset, setMinWatchPercentPreset] = useState<number | 'custom'>((lesson.unlockRule as any)?.minWatchPercent || 80);
+  const [minWatchPercentPreset, setMinWatchPercentPreset] = useState<number | 'custom'>(
+    (unlockRuleObj as { minWatchPercent?: number } | null)?.minWatchPercent || 80
+  );
   const [customWatchPercent, setCustomWatchPercent] = useState<number>(85);
   const [minWatchTimeMinutes, setMinWatchTimeMinutes] = useState<number>(10);
   const [_minWatchTimeSeconds, _setMinWatchTimeSeconds] = useState<number>(0);
@@ -85,12 +90,18 @@ export const VideoLessonSettings: React.FC<VideoLessonSettingsProps> = ({
   const [unlockNextAfterCompletion, setUnlockNextAfterCompletion] = useState(true);
 
   // 5. Unlock Rules State
-  const [unlockType, setUnlockType] = useState<UnlockRuleType>((lesson.unlockRule as any)?.type || 'min_watch_percent');
-  const [unlockScheduledDate, setUnlockScheduledDate] = useState((lesson.unlockRule as any)?.scheduledDate || '2026-09-01');
-  const [unlockDaysAfterEnrollment, setUnlockDaysAfterEnrollment] = useState((lesson.unlockRule as any)?.daysAfterEnrollment || 3);
+  const [unlockType, setUnlockType] = useState<UnlockRuleType>(
+    ((unlockRuleObj as { type?: UnlockRuleType } | null)?.type) || 'min_watch_percent'
+  );
+  const [unlockScheduledDate, setUnlockScheduledDate] = useState(
+    (unlockRuleObj as { scheduledDate?: string } | null)?.scheduledDate || '2026-09-01'
+  );
+  const [unlockDaysAfterEnrollment, setUnlockDaysAfterEnrollment] = useState(
+    (unlockRuleObj as { daysAfterEnrollment?: number } | null)?.daysAfterEnrollment || 3
+  );
 
   // Calculated Effective Watch Percentage
-  const effectiveWatchPercent = minWatchPercentPreset === 'custom' ? customWatchPercent : minWatchPercentPreset;
+  const _effectiveWatchPercent = minWatchPercentPreset === 'custom' ? customWatchPercent : minWatchPercentPreset;
 
   // Pre-Upload Media Credit Breakdown Calculation (NO storage quota displayed)
   const fileSizeMb = selectedFile ? selectedFile.sizeMb : 450;
@@ -185,16 +196,11 @@ export const VideoLessonSettings: React.FC<VideoLessonSettingsProps> = ({
       ...lesson,
       title,
       description: shortDesc,
-      videoSource: sourceType === 'direct' ? 'upload' : (sourceType as any),
+      videoSource: sourceType === 'direct' ? 'upload' : sourceType,
       videoUrl: sourceType === 'direct' ? 'https://assets.cubixskill.com/videos/react19.mp4' : externalUrl,
       durationMinutes,
       isDemo,
-      unlockRule: {
-        type: unlockType,
-        minWatchPercent: effectiveWatchPercent,
-        scheduledDate: unlockScheduledDate,
-        daysAfterEnrollment: unlockDaysAfterEnrollment,
-      } as any,
+      unlockRule: unlockType,
     });
   };
 
@@ -716,7 +722,7 @@ export const VideoLessonSettings: React.FC<VideoLessonSettingsProps> = ({
               <div className="space-y-1">
                 <select
                   value={deviceRestrictions}
-                  onChange={(e) => setDeviceRestrictions(e.target.value as any)}
+                  onChange={(e) => setDeviceRestrictions(e.target.value as 'none' | 'mobile_only' | 'desktop_only' | 'restrict_tv')}
                   className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-semibold text-slate-800 text-[11px] focus:outline-none focus:border-blue-600"
                 >
                   <option value="none">Device Restrictions: None (All Devices)</option>

@@ -26,6 +26,7 @@ export interface SettingsSectionItem {
   featureKey?: string;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const SETTINGS_SECTIONS: SettingsSectionItem[] = [
   { id: 'basic', label: 'Basic Information', icon: FileText },
   { id: 'access', label: 'Access & Visibility', icon: Eye },
@@ -35,7 +36,7 @@ export const SETTINGS_SECTIONS: SettingsSectionItem[] = [
   { id: 'media', label: 'Media Settings', icon: Film },
   { id: 'assignments', label: 'Assignment Settings', icon: FileCheck, featureKey: 'assignments' },
   { id: 'quizzes', label: 'Quiz Settings', icon: HelpCircle, featureKey: 'quizzes' },
-  { id: 'certificates', label: 'Certificates', icon: Award, featureKey: 'courseCertificates' },
+  { id: 'certificate-details', label: 'Certificate Details', icon: Award, featureKey: 'courseCertificates' },
   { id: 'discussions', label: 'Discussions & Chat', icon: MessageSquare, featureKey: 'courseDiscussion' },
   { id: 'announcements', label: 'Announcements', icon: Megaphone, featureKey: 'courseAnnouncements' },
   { id: 'live-sessions', label: 'Live Sessions', icon: Radio, featureKey: 'liveSessions' },
@@ -49,7 +50,7 @@ export const SETTINGS_SECTIONS: SettingsSectionItem[] = [
 export interface CourseSettingsNavProps {
   activeSection: string;
   onSelectSection: (id: string) => void;
-  courseFeatures: any;
+  courseFeatures: Record<string, boolean | undefined>;
 }
 
 export const CourseSettingsNav: React.FC<CourseSettingsNavProps> = ({

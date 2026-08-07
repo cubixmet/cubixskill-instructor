@@ -166,7 +166,7 @@ export const LessonFormDrawer: React.FC<LessonFormDrawerProps> = ({
 
   // Assignment Attachment State
   const [attachedAssignmentUuid, setAttachedAssignmentUuid] = useState<string | null>(
-    (initialLesson?.content as any)?.assignmentUuid || 'assign-101'
+    (initialLesson?.content as { assignmentUuid?: string } | undefined)?.assignmentUuid || 'assign-101'
   );
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false);
@@ -205,7 +205,7 @@ export const LessonFormDrawer: React.FC<LessonFormDrawerProps> = ({
     reset,
     formState: { errors },
   } = useForm<LessonFormValues>({
-    resolver: zodResolver(lessonFormSchema) as any,
+    resolver: zodResolver(lessonFormSchema),
     defaultValues: {
       title: initialLesson?.title || '',
       shortDescription: initialLesson?.description || '',
@@ -567,7 +567,7 @@ export const LessonFormDrawer: React.FC<LessonFormDrawerProps> = ({
   );
 
   // Reusable External URL Box Component
-  const renderUrlBox = (urlValue: string, registerKey: any, placeholder: string, typeLabel: string) => (
+  const renderUrlBox = (urlValue: string, registerKey: keyof LessonFormValues, placeholder: string, typeLabel: string) => (
     <div className="space-y-3 pt-1 font-sans">
       <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-[11px] font-medium text-[#2563EB] flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5">

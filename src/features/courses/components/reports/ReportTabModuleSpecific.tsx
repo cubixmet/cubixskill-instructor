@@ -3,9 +3,12 @@ import { Card } from '../../../../components/ui/Card';
 
 export interface ReportTabModuleSpecificProps {
   tab: string;
-  metrics: any;
-  courseAnnouncements: any[];
-  courseLiveSessions: any[];
+  metrics: {
+    submittedAssignments?: number | string;
+    [key: string]: unknown;
+  };
+  courseAnnouncements: unknown[];
+  courseLiveSessions: unknown[];
 }
 
 export const ReportTabModuleSpecific: React.FC<ReportTabModuleSpecificProps> = ({

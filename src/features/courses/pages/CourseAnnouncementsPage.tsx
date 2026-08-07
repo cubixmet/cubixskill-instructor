@@ -73,6 +73,7 @@ export const CourseAnnouncementsPage: React.FC = () => {
   // Handle route-triggered modals
   useEffect(() => {
     if (isCreateRoute) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEditingAnnouncement(null);
       setIsCreateModalOpen(true);
     } else if (targetAnnouncementUuid) {
@@ -86,7 +87,7 @@ export const CourseAnnouncementsPage: React.FC = () => {
         }
       }
     }
-  }, [location.pathname, targetAnnouncementUuid, isCreateRoute, isEditRoute]);
+  }, [location.pathname, targetAnnouncementUuid, isCreateRoute, isEditRoute, announcements]);
 
   // Loading state
   const [isLoading, setIsLoading] = useState(true);

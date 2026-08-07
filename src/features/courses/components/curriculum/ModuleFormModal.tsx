@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
-type CourseModule = any;
+import type { CourseModule } from '../../../../types/curriculum.types';
 
 // Zod Schema
 const moduleFormSchema = z
@@ -92,7 +92,7 @@ export const ModuleFormModal: React.FC<ModuleFormModalProps> = ({
     reset,
     formState: { errors, isDirty },
   } = useForm<ModuleFormValues>({
-    resolver: zodResolver(moduleFormSchema) as any,
+    resolver: zodResolver(moduleFormSchema),
     defaultValues: {
       title: initialModule?.title || '',
       description: initialModule?.description || '',
@@ -131,6 +131,14 @@ export const ModuleFormModal: React.FC<ModuleFormModalProps> = ({
     }
   }, [isOpen, initialModule, reset]);
 
+  const handleRequestClose = useCallback(() => {
+    if (isDirty) {
+      setShowUnsavedWarning(true);
+    } else {
+      onClose();
+    }
+  }, [isDirty, onClose]);
+
   // Handle Escape key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -140,7 +148,7 @@ export const ModuleFormModal: React.FC<ModuleFormModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isDirty]);
+  }, [isOpen, handleRequestClose]);
 
   // Prevent background body scrolling when modal is open
   useEffect(() => {
@@ -153,14 +161,6 @@ export const ModuleFormModal: React.FC<ModuleFormModalProps> = ({
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
-
-  const handleRequestClose = () => {
-    if (isDirty) {
-      setShowUnsavedWarning(true);
-    } else {
-      onClose();
-    }
-  };
 
   const handleConfirmDiscard = () => {
     setShowUnsavedWarning(false);
@@ -238,7 +238,7 @@ export const ModuleFormModal: React.FC<ModuleFormModalProps> = ({
           </div>
 
           {/* Form Scrollable Body */}
-          <form onSubmit={handleSubmit(onFormSubmit as any)} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 no-scrollbar">
+          <form onSubmit={handleSubmit(onFormSubmit)} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 no-scrollbar">
             {/* 1. MODULE TITLE */}
             <div className="space-y-1.5">
               <label className="block text-[12px] font-semibold text-[#0F172A]">

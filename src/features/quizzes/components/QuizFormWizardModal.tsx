@@ -151,7 +151,7 @@ export const QuizFormWizardModal: React.FC<QuizFormWizardModalProps> = ({
           });
         }
       }
-      const columns: CsvColumn<any>[] = [
+      const columns: CsvColumn<Record<string, unknown>>[] = [
         { header: 'Question', value: (row) => row['Question'] },
         { header: 'Option A', value: (row) => row['Option A'] },
         { header: 'Option B', value: (row) => row['Option B'] },
@@ -182,7 +182,7 @@ export const QuizFormWizardModal: React.FC<QuizFormWizardModalProps> = ({
           });
         }
       }
-      const columns: CsvColumn<any>[] = [
+      const columns: CsvColumn<Record<string, unknown>>[] = [
         { header: 'Question', value: (row) => row['Question'] },
         { header: 'Answer', value: (row) => row['Answer'] },
         { header: 'Marks', value: (row) => row['Marks'] },
@@ -249,7 +249,7 @@ export const QuizFormWizardModal: React.FC<QuizFormWizardModalProps> = ({
         setQuestions([...questions, ...newQuestions]);
         setValidationErrors(errors);
         setParseNotice(`Successfully parsed ${newQuestions.length} questions from ${file.name}`);
-      } catch (err) {
+      } catch (_) {
         setErrorMsg('Error parsing uploaded file. Please check CSV format.');
       }
     };

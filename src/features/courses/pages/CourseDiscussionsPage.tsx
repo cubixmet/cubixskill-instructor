@@ -11,7 +11,6 @@ import { useCourseFeaturesStore, DEFAULT_COURSE_FEATURES } from '../store/course
 import { DiscussionsSectionTabs } from '../../discussions/components/DiscussionsSectionTabs';
 import { FeatureDisabledBanner } from '../../discussions/components/FeatureDisabledBanner';
 import { DiscussionHomeHeader } from '../../discussions/components/DiscussionHomeHeader';
-import { DiscussionSummaryCards } from '../../discussions/components/DiscussionSummaryCards';
 import { DiscussionFilters } from '../../discussions/components/DiscussionFilters';
 import { DiscussionListCard } from '../../discussions/components/DiscussionListCard';
 import { DiscussionThreadView } from '../../discussions/components/DiscussionThreadView';
@@ -164,15 +163,6 @@ export const CourseDiscussionsPage: React.FC = () => {
   // Metrics
   const courseDiscussions = discussions.filter((d) => d.courseUuid === courseUuid);
   const totalCount = courseDiscussions.length;
-  const openCount = courseDiscussions.filter((d) => !d.isResolved && !d.isArchived).length;
-  const pinnedCount = courseDiscussions.filter((d) => d.isPinned).length;
-  const lockedCount = courseDiscussions.filter((d) => d.isLocked).length;
-  const resolvedCount = courseDiscussions.filter((d) => d.isResolved).length;
-  const totalRepliesCount = replies.filter((r) =>
-    courseDiscussions.some((d) => d.id === r.discussionId)
-  ).length;
-  const unreadCount = courseDiscussions.filter((d) => d.repliesCount === 0).length;
-  const pendingReportsCount = reports.filter((rep) => rep.status === 'pending').length;
 
   const totalUnreadChats = personalChats.reduce((sum, c) => sum + c.unreadCount, 0);
 
@@ -289,24 +279,6 @@ export const CourseDiscussionsPage: React.FC = () => {
               ) : (
                 /* COMMUNITY FORUM FEED */
                 <>
-                  <DiscussionSummaryCards
-                    total={totalCount}
-                    open={openCount}
-                    pinned={pinnedCount}
-                    locked={lockedCount}
-                    resolved={resolvedCount}
-                    totalReplies={totalRepliesCount}
-                    unread={unreadCount}
-                    reported={pendingReportsCount}
-                    onFilterByStatus={(st) => {
-                      if (st === 'reported') {
-                        setIsModerationOpen(true);
-                      } else {
-                        setStatusFilter(st);
-                      }
-                    }}
-                  />
-
                   <DiscussionFilters
                     searchQuery={searchQuery}
                     onSearchChange={setSearchQuery}

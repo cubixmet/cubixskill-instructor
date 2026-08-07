@@ -60,7 +60,7 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
   onAddReply,
   onLikeDiscussion,
   onLikeReply,
-  onPinReply: _onPinReply,
+  onPinReply: _,
   onMarkOfficialAnswer,
   onDeleteReply,
   onReport,

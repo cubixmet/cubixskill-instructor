@@ -3,7 +3,7 @@ import { TrendingUp, Activity, CheckCircle2 } from 'lucide-react';
 import { Card } from '../../../../components/ui/Card';
 
 export interface ReportTabOverviewProps {
-  metrics: any;
+  metrics: Record<string, unknown>;
 }
 
 export const ReportTabOverview: React.FC<ReportTabOverviewProps> = ({ metrics: _metrics }) => {

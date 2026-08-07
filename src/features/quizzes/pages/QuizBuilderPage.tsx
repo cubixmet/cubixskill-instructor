@@ -148,7 +148,7 @@ export const QuizBuilderPage: React.FC = () => {
 
   const handleAddQuestion = (type: QuestionType) => {
     const newQ: QuizQuestionItem = {
-      id: `q-550e8400-e29b-41d4-a716-${Date.now().toString().slice(-12)}`,
+      id: `q-${crypto.randomUUID()}`,
       type,
       questionText: 'New Question Prompt',
       marks: 10,

@@ -73,7 +73,7 @@ export const SubmissionDetailPage: React.FC<SubmissionDetailPageProps> = ({
             ? 'Rejected'
             : actionStatus === 'Resubmission Requested'
             ? 'Resubmission Requested'
-            : 'Grade Updated') as any,
+            : 'Grade Updated') as 'Approved' | 'Rejected' | 'Resubmission Requested' | 'Grade Updated',
           reviewerName: 'Instructor Sarah Miller',
           marksAwarded,
           feedback,
@@ -201,7 +201,7 @@ export const SubmissionDetailPage: React.FC<SubmissionDetailPageProps> = ({
               <div className="text-right space-y-1">
                 <span className="text-[10px] font-bold text-slate-400 block">Submitted On</span>
                 <span className="font-extrabold text-slate-800 text-xs">
-                  {new Date(submission.submissionDate || submission.submittedAt || Date.now()).toLocaleString()}
+                {new Date(submission.submissionDate || submission.submittedAt || new Date().toISOString()).toLocaleString()}
                 </span>
                 {submission.isLate ? (
                   <span className="inline-block px-2 py-0.5 bg-red-100 text-red-800 font-extrabold text-[9px] rounded-md block">

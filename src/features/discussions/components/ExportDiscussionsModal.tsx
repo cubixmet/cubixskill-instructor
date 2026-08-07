@@ -42,7 +42,7 @@ export const ExportDiscussionsModal: React.FC<ExportDiscussionsModalProps> = ({
           Resolved: d.isResolved ? 'Yes' : 'No',
         }));
 
-        const columns: CsvColumn<any>[] = [
+        const columns: CsvColumn<Record<string, unknown>>[] = [
           { header: 'Discussion ID', value: (r) => r['Discussion ID'] },
           { header: 'Title', value: (r) => r['Title'] },
           { header: 'Category', value: (r) => r['Category'] },
@@ -57,7 +57,7 @@ export const ExportDiscussionsModal: React.FC<ExportDiscussionsModalProps> = ({
           { header: 'Resolved', value: (r) => r['Resolved'] },
         ];
 
-        exportToCsv(`Course_Discussions_Export_${Date.now()}`, rows, columns);
+        exportToCsv(`Course_Discussions_Export_${crypto.randomUUID().slice(0, 8)}`, rows, columns);
       }
 
       setIsExporting(false);
@@ -101,7 +101,7 @@ export const ExportDiscussionsModal: React.FC<ExportDiscussionsModalProps> = ({
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setFormat(item.id as any)}
+                    onClick={() => setFormat(item.id as 'csv' | 'excel' | 'pdf')}
                     className={`p-3 rounded-xl border text-center font-bold text-xs cursor-pointer flex flex-col items-center gap-1.5 transition-all ${
                       format === item.id
                         ? 'bg-blue-50 border-blue-600 text-blue-700'

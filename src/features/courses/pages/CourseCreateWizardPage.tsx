@@ -33,10 +33,10 @@ import { CENTRAL_PLATFORM_FEATURES } from '../../course-features/config/courseFe
 export interface FeatureItem {
   id: string;
   name: string;
-  category: any;
+  category: string;
   description: string;
   creditCost: number;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   isRecommended?: boolean;
   requiresConfig?: boolean;
   isPremium?: boolean;
@@ -133,7 +133,7 @@ export const CourseCreateWizardPage: React.FC = () => {
     setValue,
     formState: { errors },
   } = useForm<WizardFormValues>({
-    resolver: zodResolver(wizardSchema) as any,
+    resolver: zodResolver(wizardSchema),
     defaultValues: {
       title: '',
       shortDescription: '',
@@ -298,7 +298,7 @@ export const CourseCreateWizardPage: React.FC = () => {
       </div>
 
       {/* MAIN TWO-COLUMN FORM LAYOUT */}
-      <form onSubmit={handleSubmit(onFinalSubmit as any)} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <form onSubmit={handleSubmit(onFinalSubmit)} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT COLUMN */}
         <div className="lg:col-span-8 space-y-6">
           {currentStep === 1 && (

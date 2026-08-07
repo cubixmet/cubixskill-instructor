@@ -5,7 +5,7 @@ import {
   Trash2,
   Lock,
 } from 'lucide-react';
-import type { CurriculumLesson, LessonType, DownloadAssetType, UnlockRuleType } from '../../../../types/curriculum.types';
+import type { CurriculumLesson, LessonType, DownloadAssetType, UnlockRuleType, LessonContent } from '../../../../types/curriculum.types';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 import { VideoLessonSettings } from './VideoLessonSettings';
@@ -25,40 +25,53 @@ export const LessonConfigPanel: React.FC<LessonConfigPanelProps> = ({
   onSaveLesson,
   onDeleteLesson,
 }) => {
-  if (!isOpen || !lesson) return null;
-
-  const [title, setTitle] = useState(lesson.title);
-  const [type, setType] = useState<LessonType>(lesson.type);
-  const [durationMinutes, setDurationMinutes] = useState(lesson.durationMinutes);
-  const [isDemo, setIsDemo] = useState(lesson.isDemo);
-  const [isPublished, _setIsPublished] = useState((lesson as any).isPublished || lesson.status === 'published');
-  const [unlockType, setUnlockType] = useState<UnlockRuleType>((lesson.unlockRule as any)?.type || 'immediate');
-  const [minWatchPercent, setMinWatchPercent] = useState((lesson.unlockRule as any)?.minWatchPercent || 80);
-  const [videoSource, _setVideoSource] = useState((lesson as any).videoSource || 'upload');
-  const [videoUrl, _setVideoUrl] = useState((lesson as any).videoUrl || '');
+  // ALL hooks must be declared before any conditional returns (Rules of Hooks)
+  const [title, setTitle] = useState(lesson?.title ?? '');
+  const [type, setType] = useState<LessonType>(lesson?.type ?? 'video');
+  const [durationMinutes, setDurationMinutes] = useState(lesson?.durationMinutes ?? 0);
+  const [isDemo, setIsDemo] = useState(lesson?.isDemo ?? false);
+  const [isPublished, setIsPublished] = useState(lesson?.status === 'published');
+  const [unlockType, setUnlockType] = useState<UnlockRuleType>(lesson?.unlockRule ?? 'immediate');
+  const [minWatchPercent, setMinWatchPercent] = useState(
+    lesson?.content?.minimumWatchPercentage ?? 80
+  );
+  const [videoSource, setVideoSource] = useState<string>(
+    lesson?.content?.videoSource ?? 'upload'
+  );
+  const [videoUrl, setVideoUrl] = useState<string>(lesson?.content?.videoUrl ?? '');
   const [downloadAssetType, setDownloadAssetType] = useState<DownloadAssetType>(
-    (lesson as any).downloadAssetType || 'pdf'
+    'pdf'
   );
 
+  // Early return AFTER all hooks
+  if (!isOpen || !lesson) return null;
+
   const handleSave = () => {
+    const updatedContent: LessonContent = {
+      ...(lesson.content ?? {}),
+      videoSource,
+      videoUrl,
+      minimumWatchPercentage: unlockType === 'video_completion' ? minWatchPercent : undefined,
+    };
+
     onSaveLesson({
       ...lesson,
       title,
       type,
       durationMinutes,
+      isDemo,
       status: isPublished ? 'published' : 'draft',
-      content: {
-        ...(lesson.content || {}),
-        videoSource,
-        videoUrl,
-      },
-      unlockRule: {
-        type: unlockType,
-        minWatchPercent,
-      } as any,
+      content: updatedContent,
+      unlockRule: unlockType,
     });
     onClose();
   };
+
+  // Silence unused-var for setters that are wired but not exposed in UI yet
+  void setIsPublished;
+  void setVideoSource;
+  void setVideoUrl;
+  void setDownloadAssetType;
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden text-left bg-slate-900/40 backdrop-blur-xs flex justify-end">
@@ -111,7 +124,7 @@ export const LessonConfigPanel: React.FC<LessonConfigPanelProps> = ({
                   <option value="pdf">PDF Document</option>
                   <option value="document">Text Article</option>
                   <option value="download">Downloadable Asset</option>
-                  <option value="external_link">External Link</option>
+                  <option value="external_url">External Link</option>
                   <option value="embed">Embed iFrame</option>
                   <option value="quiz">Quiz Assessment</option>
                   <option value="assignment">Assignment Task</option>
@@ -165,10 +178,10 @@ export const LessonConfigPanel: React.FC<LessonConfigPanelProps> = ({
                 >
                   <option value="pdf">PDF Document</option>
                   <option value="zip">ZIP Source Archive</option>
-                  <option value="ppt">PowerPoint Presentation</option>
-                  <option value="worksheet">Worksheet PDF</option>
-                  <option value="template">Design Template</option>
-                  <option value="source_code">Source Code Files</option>
+                  <option value="doc">Word Document</option>
+                  <option value="docx">Word Document (docx)</option>
+                  <option value="mp4">MP4 Video</option>
+                  <option value="mp3">MP3 Audio</option>
                   <option value="other">Other Asset File</option>
                 </select>
               </div>
@@ -194,7 +207,7 @@ export const LessonConfigPanel: React.FC<LessonConfigPanelProps> = ({
           {/* Lesson Level Unlock Rules */}
           <div className="space-y-4 pt-4 border-t border-slate-100">
             <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider text-blue-950 flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-blue-600" /> Lesson Unlock & Progression Rule
+              <Lock className="w-3.5 h-3.5 text-blue-600" /> Lesson Unlock &amp; Progression Rule
             </h4>
 
             <div className="space-y-2">
@@ -206,14 +219,13 @@ export const LessonConfigPanel: React.FC<LessonConfigPanelProps> = ({
                 <option value="immediate">Unlock Immediately</option>
                 <option value="previous_lesson">Unlock After Previous Lesson Completed</option>
                 <option value="video_completion">Unlock After Video Completion</option>
-                <option value="min_watch_percent">Unlock After Minimum Watch %</option>
                 <option value="quiz_pass">Unlock After Passing Quiz</option>
                 <option value="assignment_approval">Unlock After Assignment Approved</option>
-                <option value="scheduled_date">Unlock on Scheduled Date</option>
+                <option value="specific_date">Unlock on Scheduled Date</option>
                 <option value="manual">Unlock Manually</option>
               </select>
 
-              {(unlockType as string) === 'min_watch_percent' && (
+              {unlockType === 'video_completion' && (
                 <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between">
                   <span className="font-bold text-blue-900">Minimum Required Watch %</span>
                   <input

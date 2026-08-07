@@ -137,7 +137,7 @@ export const ThemeGalleryTab: React.FC = () => {
                     <button
                       key={d.id}
                       type="button"
-                      onClick={() => setPreviewDevice(d.id as any)}
+                      onClick={() => setPreviewDevice(d.id as 'desktop' | 'tablet' | 'mobile')}
                       className={`p-1.5 px-3 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer ${
                         previewDevice === d.id ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
                       }`}

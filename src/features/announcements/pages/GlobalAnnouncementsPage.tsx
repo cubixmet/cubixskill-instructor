@@ -129,7 +129,7 @@ export const GlobalAnnouncementsPage: React.FC = () => {
     return sum + a.readReceipts.filter((r) => !r.isRead).length;
   }, 0);
 
-  const handleSaveForm = (data: any) => {
+  const handleSaveForm = (data: Partial<AnnouncementItem>) => {
     if (editingAnnouncement) {
       updateAnnouncement(editingAnnouncement.id, data);
     } else {

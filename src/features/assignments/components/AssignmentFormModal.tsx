@@ -520,7 +520,7 @@ export const AssignmentFormModal: React.FC<AssignmentFormModalProps> = ({
                         <label className="block text-sm font-medium text-[#0F172A]">Initial Status</label>
                         <select
                           value={status}
-                          onChange={(e: any) => setStatus(e.target.value)}
+                          onChange={(e) => setStatus(e.target.value as 'Published' | 'Draft' | 'Scheduled' | 'Closed' | 'Archived')}
                           className="w-full h-[46px] px-3 bg-white border border-[#E2E8F0] rounded-[12px] text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                         >
                           <option value="Published">Published</option>
@@ -695,7 +695,7 @@ export const AssignmentFormModal: React.FC<AssignmentFormModalProps> = ({
                       </div>
                       <select
                         value={approvalWorkflow}
-                        onChange={(e: any) => setApprovalWorkflow(e.target.value)}
+                        onChange={(e) => setApprovalWorkflow(e.target.value as 'manual_review' | 'auto_approval')}
                         className="h-[46px] px-4 bg-white border border-[#E2E8F0] rounded-[12px] text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
                       >
                         <option value="manual_review">Instructor Approval Required</option>

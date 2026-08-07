@@ -19,10 +19,13 @@ export const StudentEditPage: React.FC = () => {
 
   useEffect(() => {
     if (student) {
-      setName(student.name);
-      setEmail(student.email);
-      setPhone(student.phone || '');
-      setNotes(student.notes || '');
+      const tid = setTimeout(() => {
+        setName(student.name);
+        setEmail(student.email);
+        setPhone(student.phone || '');
+        setNotes(student.notes || '');
+      }, 0);
+      return () => clearTimeout(tid);
     }
   }, [student]);
 

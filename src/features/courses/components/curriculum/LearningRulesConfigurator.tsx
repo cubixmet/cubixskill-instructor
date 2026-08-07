@@ -388,7 +388,7 @@ export const LearningRulesConfigurator: React.FC = () => {
 const RuleSectionCard: React.FC<{
   title: string;
   badge: string;
-  icon: any;
+  icon: React.ElementType;
   isOpen: boolean;
   onToggle: () => void;
   children: React.ReactNode;
@@ -427,7 +427,7 @@ const RuleSectionCard: React.FC<{
 
 /* Individual Rule Feature Card */
 const RuleCard: React.FC<{
-  icon: any;
+  icon: React.ElementType;
   title: string;
   description: string;
   enabled: boolean;

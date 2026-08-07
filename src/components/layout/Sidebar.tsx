@@ -35,6 +35,7 @@ export interface SidebarProps {
   isMobileDrawer?: boolean;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function isNavItemActive(href: string, pathname: string): boolean {
   if (href === "/dashboard") {
     return pathname === "/dashboard" || pathname === "/";

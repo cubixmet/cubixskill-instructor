@@ -152,9 +152,10 @@ export const CreditsPage: React.FC = () => {
   };
 
   const handleExecutePayment = () => {
-    const ref = `REF-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const uuid = crypto.randomUUID();
+    const ref = `REF-2026-${uuid.slice(-4).toUpperCase()}`;
     const newTx: CreditTransactionRecord = {
-      id: `tx-${Date.now()}`,
+      id: `tx-${uuid}`,
       date: new Date().toLocaleString(),
       referenceId: ref,
       type: 'purchase',
@@ -244,7 +245,7 @@ export const CreditsPage: React.FC = () => {
           <button
             key={tab.id}
             type="button"
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as 'overview' | 'calculator' | 'buy' | 'history')}
             className={`px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
               activeTab === tab.id
                 ? 'bg-[#2563EB] text-white shadow-2xs'

@@ -156,7 +156,8 @@ export const CourseStudentsPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>('recent');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [selectedStudentUuids, setSelectedStudentUuids] = useState<string[]>([]);
-  const [_isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  void isMobileFilterOpen;
 
   // Modal Action States
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
@@ -296,7 +297,7 @@ export const CourseStudentsPage: React.FC = () => {
     try {
       exportToCsv(filename, targetList, columns);
       showToast(`CSV exported successfully (${targetList.length} ${targetList.length === 1 ? 'student' : 'students'}).`);
-    } catch (err) {
+    } catch (_) {
       showToast('CSV export failed. Please try again.');
     }
   };

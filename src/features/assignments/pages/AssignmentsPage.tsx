@@ -192,7 +192,7 @@ export const AssignmentsPage: React.FC = () => {
 
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'dueDate' | 'marks')}
               className="h-10 px-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl font-semibold text-[#0F172A] text-xs focus:outline-none focus:border-[#2563EB]"
             >
               <option value="newest">Sort: Newest</option>

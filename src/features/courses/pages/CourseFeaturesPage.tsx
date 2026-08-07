@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   SlidersHorizontal,
@@ -17,7 +17,7 @@ import {
   COURSE_FEATURE_DEFINITIONS,
   type CourseFeatureDefinition,
 } from '../../course-features/config/course-features';
-import { useCourseFeaturesStore } from '../store/courseFeatures.store';
+import { useCourseFeaturesStore, CourseFeaturesConfig } from '../store/courseFeatures.store';
 
 import { FeatureCreditSummaryBar } from '../../course-features/components/FeatureCreditSummaryBar';
 import { FeatureCard } from '../../course-features/components/FeatureCard';
@@ -62,16 +62,19 @@ export const CourseFeaturesPage: React.FC = () => {
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Sync localFeatures when courseUuid changes
+  const [prevCourseUuid, setPrevCourseUuid] = useState(courseUuid);
+  if (prevCourseUuid !== courseUuid) {
+    setPrevCourseUuid(courseUuid);
     setLocalFeatures({ ...getCourseFeatures(courseUuid) });
-  }, [courseUuid]);
+  }
 
   // Compute Unsaved Count
   const unsavedCount = useMemo(() => {
     let count = 0;
     const currentStore = getCourseFeatures(courseUuid);
-    Object.keys(localFeatures).forEach((key) => {
-      if ((localFeatures as any)[key] !== (currentStore as any)[key]) {
+    (Object.keys(localFeatures) as (keyof typeof localFeatures)[]).forEach((key) => {
+      if (localFeatures[key] !== (currentStore as Record<string, boolean>)[key]) {
         count++;
       }
     });
@@ -167,7 +170,7 @@ export const CourseFeaturesPage: React.FC = () => {
 
   // Save Changes to Store
   const handleSaveChanges = () => {
-    updateCourseFeatures(courseUuid, localFeatures as any);
+    updateCourseFeatures(courseUuid, localFeatures as Partial<CourseFeaturesConfig>);
     setToastMessage('Course feature configurations saved successfully!');
     setTimeout(() => setToastMessage(null), 3000);
   };
@@ -299,7 +302,7 @@ export const CourseFeaturesPage: React.FC = () => {
               <button
                 key={st.id}
                 type="button"
-                onClick={() => setStatusFilter(st.id as any)}
+                onClick={() => setStatusFilter(st.id as 'all' | 'enabled' | 'disabled' | 'recommended' | 'premium')}
                 className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
                   statusFilter === st.id
                     ? 'bg-slate-900 text-white shadow-xs'
@@ -373,7 +376,8 @@ export const CourseFeaturesPage: React.FC = () => {
         isOpen={!!configFeature}
         onClose={() => setConfigFeature(null)}
         feature={configFeature}
-        onSaveSettings={(_fId, _settings) => {
+        onSaveSettings={(_, __) => {
+          void __;
           setToastMessage(`Updated configuration settings for feature.`);
           setTimeout(() => setToastMessage(null), 3000);
         }}

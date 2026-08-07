@@ -42,7 +42,7 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
   onEdit,
   onReport,
   isInstructor = true,
-  currentUserRole: _currentUserRole = 'instructor',
+  currentUserRole: _ = 'instructor',
 }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);

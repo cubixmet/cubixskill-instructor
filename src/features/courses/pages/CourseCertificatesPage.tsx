@@ -20,6 +20,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { useCertificateStore } from '../../certificates/store/certificate.store';
 import { mapAutoIssueConditions } from '../../../types/certificate.types';
 import { CardFlowCertificateBuilderModal } from '../../certificates/components/CardFlowCertificateBuilderModal';
+import { CertificateCreationWizardModal } from '../../certificates/components/CertificateCreationWizardModal';
 import type { CertificateTemplate } from '../../../types/certificate.types';
 
 export const CourseCertificatesPage: React.FC = () => {
@@ -40,6 +41,7 @@ export const CourseCertificatesPage: React.FC = () => {
   // Local UI State
   const [activeTab, setActiveTab] = useState<'templates' | 'issued' | 'conditions' | 'analytics'>('templates');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<CertificateTemplate | null>(null);
   const [isAutoGenModalOpen, setIsAutoGenModalOpen] = useState(false);
@@ -114,12 +116,12 @@ export const CourseCertificatesPage: React.FC = () => {
             size="sm"
             onClick={() => {
               setEditingTemplate(null);
-              setIsBuilderOpen(true);
+              setIsWizardOpen(true);
             }}
             leftIcon={<Plus className="w-4 h-4 text-white stroke-[3]" />}
             className="h-11 px-5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-[12px]"
           >
-            Create Template
+            Create Certificate
           </Button>
         </div>
       </div>
@@ -473,6 +475,17 @@ export const CourseCertificatesPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* STEP 1 & 2 CERTIFICATE CREATION WIZARD */}
+      <CertificateCreationWizardModal
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        initialCourseUuid={courseUuid}
+        onLaunchDesigner={() => {
+          setIsWizardOpen(false);
+          setIsBuilderOpen(true);
+        }}
+      />
 
       {/* CARDFLOW BUILDER MODAL */}
       <CardFlowCertificateBuilderModal

@@ -107,13 +107,14 @@ export const DemoLeadsPage: React.FC = () => {
     });
   }, [leads, search, selectedStatus]);
 
-  // Statistics calculation
+  // Statistics calculation — stable reference for purity
+  const [now] = useState(() => Date.now());
   const totalRegistrations = leads.length;
   const activeDemoUsers = leads.filter(
-    (l) => l.status === 'active' && new Date(l.demoExpiryDate).getTime() > Date.now()
+    (l) => l.status === 'active' && new Date(l.demoExpiryDate).getTime() > now
   ).length;
   const expiredDemos = leads.filter(
-    (l) => l.status === 'expired' || (l.status === 'active' && new Date(l.demoExpiryDate).getTime() <= Date.now())
+    (l) => l.status === 'expired' || (l.status === 'active' && new Date(l.demoExpiryDate).getTime() <= now)
   ).length;
   const convertedCount = leads.filter((l) => l.status === 'converted').length;
   const conversionRate = totalRegistrations > 0 ? Math.round((convertedCount / totalRegistrations) * 100) : 0;
@@ -271,7 +272,7 @@ export const DemoLeadsPage: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
               {filteredLeads.map((lead) => {
-                const isExpired = new Date(lead.demoExpiryDate).getTime() <= Date.now();
+                const isExpired = new Date(lead.demoExpiryDate).getTime() <= now;
                 return (
                   <tr key={lead.uuid} className="hover:bg-slate-50/80 transition-colors">
                     <td className="p-4">
@@ -354,7 +355,7 @@ export const DemoLeadsPage: React.FC = () => {
       {/* 5. MOBILE LEAD CARDS VIEW (TABLET & MOBILE) */}
       <div className="block md:hidden space-y-3">
         {filteredLeads.map((lead) => {
-          const isExpired = new Date(lead.demoExpiryDate).getTime() <= Date.now();
+          const isExpired = new Date(lead.demoExpiryDate).getTime() <= now;
           return (
             <div key={lead.uuid} className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3">
               <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">

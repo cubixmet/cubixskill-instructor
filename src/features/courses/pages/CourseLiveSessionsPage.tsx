@@ -79,22 +79,26 @@ export const CourseLiveSessionsPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Handle route subpaths
+  // Handle route subpaths — setState deferred to avoid synchronous cascade
   useEffect(() => {
-    if (isCreateRoute) {
-      setEditingSession(null);
-      setIsModalOpen(true);
-    } else if (targetSessionUuid) {
-      const found = sessions.find((s) => s.id === targetSessionUuid);
-      if (found) {
-        if (isAttendanceRoute) {
-          setActiveAttendanceSession(found);
-        } else if (isRecordingRoute) {
-          setActiveRecordingSession(found);
+    const apply = () => {
+      if (isCreateRoute) {
+        setEditingSession(null);
+        setIsModalOpen(true);
+      } else if (targetSessionUuid) {
+        const found = sessions.find((s) => s.id === targetSessionUuid);
+        if (found) {
+          if (isAttendanceRoute) {
+            setActiveAttendanceSession(found);
+          } else if (isRecordingRoute) {
+            setActiveRecordingSession(found);
+          }
         }
       }
-    }
-  }, [location.pathname, targetSessionUuid, isCreateRoute, isAttendanceRoute, isRecordingRoute]);
+    };
+    const tid = setTimeout(apply, 0);
+    return () => clearTimeout(tid);
+  }, [location.pathname, targetSessionUuid, isCreateRoute, isAttendanceRoute, isRecordingRoute, sessions]);
 
   const courseSessions = useMemo(() => {
     return sessions.filter((s) => s.courseUuid === courseUuid);
@@ -150,7 +154,7 @@ export const CourseLiveSessionsPage: React.FC = () => {
         )
       : 0;
 
-  const handleSaveForm = (data: any) => {
+  const handleSaveForm = (data: Omit<LiveSessionItem, 'id' | 'createdAt' | 'updatedAt' | 'attendanceRecords'>) => {
     if (editingSession) {
       updateLiveSession(editingSession.id, data);
     } else {
@@ -316,7 +320,7 @@ export const CourseLiveSessionsPage: React.FC = () => {
                 setEditingSession(s);
                 setIsModalOpen(true);
               }}
-              onCreateNewDate={(_dateStr) => {
+              onCreateNewDate={(_) => {
                 setEditingSession(null);
                 setIsModalOpen(true);
               }}

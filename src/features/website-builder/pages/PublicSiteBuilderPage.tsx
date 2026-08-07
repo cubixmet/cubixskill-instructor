@@ -110,7 +110,13 @@ export const PublicSiteBuilderPage: React.FC = () => {
   // Mobile Drawer Inside Embedded Preview Header
   const [previewMobileMenuOpen, setPreviewMobileMenuOpen] = useState<boolean>(false);
 
-  const activeTheme = getActiveTheme();
+  const activeTheme = getActiveTheme() || PREBUILT_THEMES[0] || {
+    id: 'slate_minimal',
+    name: 'Slate Minimal',
+    primaryColor: '#2563EB',
+    secondaryColor: '#0F172A',
+    accentColor: '#38BDF8',
+  };
 
   const handleSaveDraft = () => {
     setSaveStatus('Draft Saved!');

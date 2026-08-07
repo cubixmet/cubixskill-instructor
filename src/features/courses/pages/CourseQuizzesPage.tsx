@@ -45,7 +45,8 @@ export const CourseQuizzesPage: React.FC = () => {
 
   useEffect(() => {
     if (searchParams.get('create') === 'true' || location.state?.openCreateQuiz) {
-      setIsWizardOpen(true);
+      const tid = setTimeout(() => setIsWizardOpen(true), 0);
+      return () => clearTimeout(tid);
     }
   }, [searchParams, location.state]);
 

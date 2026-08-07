@@ -43,6 +43,9 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import type {
   CourseModule,
   CourseLesson,
+  CourseLessonSubsection,
+  CurriculumLesson,
+  LessonContent,
   LessonType,
 } from '../../../types/curriculum.types';
 import { SortableModuleCard } from '../components/curriculum/SortableModuleCard';
@@ -110,7 +113,7 @@ export const CourseCurriculumPage: React.FC = () => {
   const [activeLessonConfig, setActiveLessonConfig] = useState<CourseLesson | null>(null);
   const [activeSubsectionTarget, setActiveSubsectionTarget] = useState<{
     lessonUuid: string;
-    subsection?: any | null;
+    subsection?: CourseLessonSubsection | null;
   } | null>(null);
 
   // Module Modal State
@@ -173,7 +176,7 @@ export const CourseCurriculumPage: React.FC = () => {
     setIsModuleModalOpen(true);
   };
 
-  const handleSaveModule = (data: any) => {
+  const handleSaveModule = (data: Partial<CourseModule>) => {
     if (editingModule) {
       curriculumService.updateModule(editingModule.uuid, data);
       showToast('Module updated successfully.');
@@ -491,10 +494,10 @@ export const CourseCurriculumPage: React.FC = () => {
                       <div key={module.uuid} className="space-y-2">
                         <SortableModuleCard
                           module={module}
-                          lessons={moduleLessons as any}
+                          lessons={moduleLessons}
                           moduleIndex={idx + 1}
                           onAddLesson={handleOpenLessonTypeSelector}
-                          onSelectLesson={(lesson: any) => {
+                          onSelectLesson={(lesson: CurriculumLesson) => {
                             const full = lessonsByModule[module.uuid]?.find((l) => l.uuid === lesson.id);
                             if (full) setActiveLessonConfig(full);
                           }}
@@ -591,7 +594,7 @@ export const CourseCurriculumPage: React.FC = () => {
             setActiveLessonConfig(null);
           }
         }}
-        initialLesson={(activeSubsectionTarget?.subsection || activeLessonConfig) as any}
+        initialLesson={activeSubsectionTarget?.subsection || activeLessonConfig || undefined}
       />
 
       {/* ADD / EDIT MODULE MODAL */}
@@ -683,7 +686,7 @@ export const CourseCurriculumPage: React.FC = () => {
               description: assignment.shortDescription,
               content: {
                 assignmentUuid: assignment.id,
-              } as any,
+              } as LessonContent,
             });
             showToast(`Attached "${assignment.title}" to course curriculum.`);
           }
@@ -703,7 +706,7 @@ export const CourseCurriculumPage: React.FC = () => {
               description: quiz.shortDescription,
               content: {
                 quizUuid: quiz.id,
-              } as any,
+              } as LessonContent,
             });
             showToast(`Attached "${quiz.title}" to lesson.`);
           } else {

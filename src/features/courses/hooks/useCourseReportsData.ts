@@ -9,7 +9,6 @@ export function useCourseReportsData(courseUuid: string) {
   const students = usePlatformStore((state) => state.students || []);
   const assignments = usePlatformStore((state) => state.assignments || []);
   const quizzes = usePlatformStore((state) => state.quizzes || []);
-  const certificates = (usePlatformStore.getState() as any).certificates || [];
 
   const getCourseFeatures = useCourseFeaturesStore((state) => state.getCourseFeatures);
   const courseFeatures = getCourseFeatures ? getCourseFeatures(courseUuid) : DEFAULT_COURSE_FEATURES;
@@ -18,6 +17,7 @@ export function useCourseReportsData(courseUuid: string) {
   const liveSessions = useLiveSessionStore((state) => state.sessions || []);
 
   return useMemo(() => {
+    const certificates = (usePlatformStore.getState() as unknown as { certificates?: unknown[] }).certificates || [];
     const courseObj = courses.find((c) => c.id === courseUuid) || {
       id: courseUuid,
       title: 'Full Stack Web Development Architecture',
@@ -30,14 +30,15 @@ export function useCourseReportsData(courseUuid: string) {
     const courseLiveSessions = liveSessions.filter((s) => s.courseUuid === courseUuid);
 
     // Calculated metrics
-    const totalStudents = students.length || (courseObj as any).enrolledStudentsCount || 420;
+    const courseTyped = courseObj as { enrolledStudentsCount?: number; price?: number; rating?: number };
+    const totalStudents = students.length || courseTyped.enrolledStudentsCount || 420;
     const activeStudents = Math.round(totalStudents * 0.84);
     const completedStudents = Math.round(totalStudents * 0.42);
     const completionRate = Math.round((completedStudents / totalStudents) * 100);
     const avgProgress = 68;
 
-    const submittedAssignments = assignments.reduce((sum, a) => sum + ((a as any).submissionsCount || 12), 0);
-    const totalQuizAttempts = quizzes.reduce((sum, q) => sum + ((q as any).attemptsCount || 34), 0);
+    const submittedAssignments = assignments.reduce((sum, a) => sum + ((a as { submissionsCount?: number }).submissionsCount || 12), 0);
+    const totalQuizAttempts = quizzes.reduce((sum, q) => sum + ((q as { attemptsCount?: number }).attemptsCount || 34), 0);
     const totalCertificates = certificates.length || 32;
 
     const completedSessions = courseLiveSessions.filter((s) => s.status === 'completed');
@@ -65,7 +66,7 @@ export function useCourseReportsData(courseUuid: string) {
           )
         : 92;
 
-    const totalRevenue = totalStudents * ((courseObj as any).price || 149);
+    const totalRevenue = totalStudents * (courseTyped.price || 149);
 
     return {
       courseObj,
@@ -83,7 +84,7 @@ export function useCourseReportsData(courseUuid: string) {
         avgReadRate,
         totalAnnouncements: publishedAnnouncements.length,
         totalLiveSessions: courseLiveSessions.length,
-        courseRating: courseObj.rating || 4.9,
+        courseRating: courseTyped.rating || 4.9,
         avgWatchHours: '42.5 hrs',
         creditsUsed: 1240,
         storageUsedGb: 14.8,
@@ -96,5 +97,5 @@ export function useCourseReportsData(courseUuid: string) {
       quizzes,
       certificates,
     };
-  }, [courseUuid, courses, students, assignments, quizzes, certificates, announcements, liveSessions, courseFeatures]);
+  }, [courseUuid, courses, students, assignments, quizzes, announcements, liveSessions, courseFeatures]);
 }

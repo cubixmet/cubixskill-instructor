@@ -292,7 +292,7 @@ export const GlobalLiveClassroomPage: React.FC = () => {
         <LiveSessionCalendarView
           sessions={filteredSessions}
           onSelectSession={(s) => navigate(`/live-classroom/${s.id}`)}
-          onCreateNewDate={(_dateStr) => {
+          onCreateNewDate={(_) => {
             setEditingSession(null);
             setIsModalOpen(true);
           }}

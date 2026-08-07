@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { Input, type InputProps } from "../../../components/ui/Input";
 
-export interface PasswordFieldProps extends Omit<InputProps, "type" | "rightIcon"> {}
+export type PasswordFieldProps = Omit<InputProps, "type" | "rightIcon">;
 
 export const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
   (props, ref) => {

@@ -63,18 +63,20 @@ export const WebsiteBuilderToolbar: React.FC<WebsiteBuilderToolbarProps> = ({
 
       {/* Center Viewport Switcher */}
       <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
-        {[
-          { id: 'desktop', icon: Monitor, label: 'Desktop' },
-          { id: 'tablet', icon: Tablet, label: 'Tablet' },
-          { id: 'mobile', icon: Smartphone, label: 'Mobile' },
-        ].map((vp) => {
+        {(
+          [
+            { id: 'desktop', icon: Monitor, label: 'Desktop' },
+            { id: 'tablet', icon: Tablet, label: 'Tablet' },
+            { id: 'mobile', icon: Smartphone, label: 'Mobile' },
+          ] as const
+        ).map((vp) => {
           const Icon = vp.icon;
           const isSelected = viewportMode === vp.id;
           return (
             <button
               key={vp.id}
               type="button"
-              onClick={() => setViewportMode(vp.id as any)}
+              onClick={() => setViewportMode(vp.id)}
               className={`p-1.5 px-2.5 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer ${
                 isSelected ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
               }`}

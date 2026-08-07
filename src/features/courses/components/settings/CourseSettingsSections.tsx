@@ -6,13 +6,14 @@ import { Card } from '../../../../components/ui/Card';
 import { Input } from '../../../../components/ui/Input';
 import { Button } from '../../../../components/ui/Button';
 import { FeatureDisabledBanner } from '../../../discussions/components/FeatureDisabledBanner';
+import { CertificateDetailsDynamicForm } from '../../../certificates/components/CertificateDetailsDynamicForm';
 import type { CourseSettingsConfig } from '../../store/courseSettings.store';
 
 export interface CourseSettingsSectionsProps {
   sectionId: string;
   settings: CourseSettingsConfig;
   onChange: (updates: Partial<CourseSettingsConfig>) => void;
-  courseFeatures: any;
+  courseFeatures: Record<string, boolean | undefined>;
   courseUuid: string;
   onOpenDeleteModal: () => void;
 }
@@ -72,7 +73,7 @@ export const CourseSettingsSections: React.FC<CourseSettingsSectionsProps> = ({
               <label className="block font-bold text-slate-900 mb-1">Level *</label>
               <select
                 value={settings.level}
-                onChange={(e) => onChange({ level: e.target.value as any })}
+                onChange={(e) => onChange({ level: e.target.value as CourseSettingsConfig['level'] })}
                 className="w-full h-9 rounded-lg border border-slate-200 px-3 bg-white font-bold text-slate-900"
               >
                 <option value="Beginner">Beginner</option>
@@ -106,7 +107,7 @@ export const CourseSettingsSections: React.FC<CourseSettingsSectionsProps> = ({
             <label className="block font-bold text-slate-900 mb-1">Visibility Mode</label>
             <select
               value={settings.visibility}
-              onChange={(e) => onChange({ visibility: e.target.value as any })}
+              onChange={(e) => onChange({ visibility: e.target.value as CourseSettingsConfig['visibility'] })}
               className="w-full h-9 rounded-lg border border-slate-200 px-3 bg-white font-bold text-slate-900"
             >
               <option value="Public">Public (Listed in catalog)</option>
@@ -119,7 +120,7 @@ export const CourseSettingsSections: React.FC<CourseSettingsSectionsProps> = ({
             <label className="block font-bold text-slate-900 mb-1">Access Type</label>
             <select
               value={settings.accessType}
-              onChange={(e) => onChange({ accessType: e.target.value as any })}
+              onChange={(e) => onChange({ accessType: e.target.value as CourseSettingsConfig['accessType'] })}
               className="w-full h-9 rounded-lg border border-slate-200 px-3 bg-white font-bold text-slate-900"
             >
               <option value="Paid">Paid Course</option>
@@ -228,6 +229,16 @@ export const CourseSettingsSections: React.FC<CourseSettingsSectionsProps> = ({
           </div>
         </div>
       </Card>
+    );
+  }
+
+  // 9. Certificate Details Form (Generated dynamically from Certificate Template)
+  if (sectionId === 'certificate-details' || sectionId === 'certificates') {
+    return (
+      <CertificateDetailsDynamicForm
+        courseUuid={courseUuid}
+        courseFeatures={courseFeatures}
+      />
     );
   }
 

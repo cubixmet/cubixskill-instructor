@@ -98,7 +98,7 @@ export const WebsiteBuilderRightSidebar: React.FC = () => {
           <label className="block font-bold text-slate-300 mb-1">Background Style</label>
           <select
             value={activeSection.bgStyle || 'white'}
-            onChange={(e) => updateSection(activePageSlug, activeSection.id, { bgStyle: e.target.value as any })}
+            onChange={(e) => updateSection(activePageSlug, activeSection.id, { bgStyle: e.target.value as WebsiteSection['bgStyle'] })}
             className="w-full h-8 rounded-lg bg-slate-900 border border-slate-800 px-3 text-xs text-white font-bold"
           >
             <option value="white">Clean White</option>
