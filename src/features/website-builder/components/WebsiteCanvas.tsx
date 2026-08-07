@@ -165,10 +165,10 @@ export const WebsiteCanvas: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {publishedCourses.slice(0, 3).map((c) => (
                         <div key={c.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs space-y-2 p-3 text-left">
-                          <img src={(c as any).thumbnail || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500'} alt={c.title} className="w-full h-32 object-cover rounded-xl" />
+                          <img src={c.thumbnailUrl || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500'} alt={c.title} className="w-full h-32 object-cover rounded-xl" />
                           <h4 className="font-extrabold text-slate-900 text-xs truncate">{c.title}</h4>
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="font-black text-blue-600">₹{(c as any).price || 4999}</span>
+                            <span className="font-black text-blue-600">₹{c.price || 4999}</span>
                             <span className="text-slate-400 font-bold">4.9 ★ (420)</span>
                           </div>
                         </div>

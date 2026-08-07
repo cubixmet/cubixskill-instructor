@@ -54,7 +54,7 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 text-left overflow-x-hidden">
       {/* 1. Critical System Alerts */}
-      <DashboardAlerts alerts={alerts as any} />
+      <DashboardAlerts alerts={alerts} />
 
       {/* 2. Enterprise Header & Welcome Banner */}
       <DashboardGreeting
@@ -80,7 +80,7 @@ export const DashboardPage: React.FC = () => {
       {/* 6. Revenue Analytics & Student Retention */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RevenueOverview data={revenueTrendData} />
-        <EnrollmentOverview data={studentGrowthData as any} />
+        <EnrollmentOverview data={studentGrowthData} />
       </div>
 
       {/* 7. Course Performance & Pending Items Queue */}

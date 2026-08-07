@@ -18,6 +18,7 @@ import {
   UserCheck,
   ShieldAlert,
   LogOut,
+  Sparkles,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -90,6 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { label: "Courses", href: "/courses", icon: BookOpen },
         { label: "Students", href: "/students", icon: Users },
+        { label: "Demo Leads", href: "/demo-leads", icon: Sparkles },
         { label: "Reports & Analytics", href: "/reports", icon: BarChart3 },
       ],
     },
@@ -115,6 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       group: "Academy & Team",
       items: [
         { label: "Website Builder", href: "/website-builder", icon: Globe },
+        { label: "Public Leads", href: "/leads", icon: UserCheck },
         { label: "Staff Directory", href: "/staff", icon: UserCheck },
         { label: "Roles & Access", href: "/roles", icon: ShieldAlert },
       ],

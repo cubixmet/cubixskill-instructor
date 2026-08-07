@@ -31,7 +31,10 @@ import { GlobalLiveClassroomPage } from '../features/live-sessions/pages/GlobalL
 import { CourseReportsPage } from '../features/courses/pages/CourseReportsPage';
 import { CourseSettingsPage } from '../features/courses/pages/CourseSettingsPage';
 
-import { WebsiteBuilderPage } from '../features/website-builder/pages/WebsiteBuilderPage';
+import { WebsiteBuilderLandingPage } from '../features/website-builder/pages/WebsiteBuilderLandingPage';
+import { StudentPortalBrandingPage } from '../features/website-builder/pages/StudentPortalBrandingPage';
+import { PublicSiteBuilderPage } from '../features/website-builder/pages/PublicSiteBuilderPage';
+import { LeadsManagementPage } from '../features/leads/pages/LeadsManagementPage';
 import { StudentListPage } from '../features/students/pages/StudentListPage';
 import { StudentCreatePage } from '../features/students/pages/StudentCreatePage';
 import { StudentSinglePage } from '../features/students/pages/StudentSinglePage';
@@ -42,6 +45,7 @@ import { SupportPage } from '../features/support/pages/SupportPage';
 import { ReportsPage } from '../features/reports/pages/ReportsPage';
 import { QuizBuilderPage } from '../features/quizzes/pages/QuizBuilderPage';
 import { AssignmentsPage } from '../features/assignments/pages/AssignmentsPage';
+import { DemoLeadsPage } from '../features/demo-leads/pages/DemoLeadsPage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -60,6 +64,7 @@ export const AppRoutes: React.FC = () => {
         <Route element={<DashboardLayout />}>
           {/* 1. Dashboard */}
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/demo-leads" element={<DemoLeadsPage />} />
 
           {/* 2. Courses */}
           <Route path="/courses" element={<CourseListPage />} />
@@ -145,9 +150,13 @@ export const AppRoutes: React.FC = () => {
           <Route path="/roles" element={<StaffRolesPage />} />
           <Route path="/roles/*" element={<StaffRolesPage />} />
 
-          {/* 14. Website Builder */}
-          <Route path="/website-builder" element={<WebsiteBuilderPage />} />
-          <Route path="/website-builder/*" element={<WebsiteBuilderPage />} />
+          {/* 14. Website Builder & Portal Branding */}
+          <Route path="/website-builder" element={<WebsiteBuilderLandingPage />} />
+          <Route path="/website-builder/student-portal" element={<StudentPortalBrandingPage />} />
+          <Route path="/website-builder/public-site" element={<PublicSiteBuilderPage />} />
+
+          {/* 14b. Public Leads */}
+          <Route path="/leads" element={<LeadsManagementPage />} />
 
           {/* 15. Support Desk */}
           <Route path="/support" element={<SupportPage />} />

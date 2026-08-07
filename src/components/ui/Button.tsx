@@ -8,7 +8,7 @@ import { cn } from "../../lib/cn";
 export interface ButtonProps extends Omit<HTMLMotionProps<"button">, "children"> {
   children?: React.ReactNode;
   variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   isLoading?: boolean;
   loadingText?: string;
   isSuccess?: boolean;
@@ -63,6 +63,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const sizeClasses = {
+      xs: "h-[32px] px-[12px] text-xs gap-[6px] min-w-0 rounded-[10px]",
       sm: "h-[40px] px-[16px] text-sm gap-[8px] min-w-[110px]",
       md: "h-[46px] sm:h-[48px] px-[20px] text-[15px] gap-[8px] min-w-[140px]",
       lg: "h-[52px] px-[24px] text-base gap-[10px] min-w-[160px]",
