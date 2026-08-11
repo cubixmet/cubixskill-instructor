@@ -7,16 +7,12 @@ export type ContentStatus =
 export type LessonType =
   | 'video'
   | 'audio'
-  | 'pdf'
   | 'document'
   | 'text'
   | 'image'
-  | 'download'
-  | 'external_url'
-  | 'embed'
   | 'quiz'
   | 'assignment'
-  | 'live_class';
+  | 'project';
 
 export type UnlockRule =
   | 'immediate'
@@ -45,6 +41,17 @@ export interface CourseModule {
   updatedAt: string;
 }
 
+export interface LessonResourceAttachment {
+  id: string;
+  name: string;
+  type: 'video' | 'audio' | 'document' | 'image' | 'web_link' | 'archive' | 'other';
+  url: string;
+  sizeMb?: number;
+  provider?: string;
+  attachedAt: string;
+  mediaAssetId?: string;
+}
+
 export interface LessonContent {
   videoSource?: string;
   videoUrl?: string;
@@ -66,6 +73,7 @@ export interface LessonContent {
   assignmentUuid?: string;
   liveClassUrl?: string;
   scheduledAt?: string;
+  resources?: LessonResourceAttachment[];
 }
 
 export interface CourseLessonSubsection {

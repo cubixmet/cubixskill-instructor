@@ -17,6 +17,11 @@ import {
   Menu,
   X,
   RotateCcw,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  Share2,
+  Code,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -99,6 +104,18 @@ export const PublicSiteBuilderPage: React.FC = () => {
   // SEO Fields
   const [seoTitle, setSeoTitle] = useState('CodeVerse Software Academy | Master Software Architecture');
   const [seoMetaDescription, setSeoMetaDescription] = useState('Learn microservices, React 19, and cloud-native systems with live cohorts and certificates.');
+  const [seoCanonicalUrl, setSeoCanonicalUrl] = useState('https://codeverse.academy');
+  const [seoIndexingEnabled, setSeoIndexingEnabled] = useState(true);
+  const [seoOgTitle, setSeoOgTitle] = useState('CodeVerse Software Academy');
+  const [seoOgDescription, setSeoOgDescription] = useState('Master React 19, TypeScript, Microservices with live mentorship.');
+  const [seoOgImageUrl, setSeoOgImageUrl] = useState('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200');
+  const [seoSchemaType, setSeoSchemaType] = useState<'Organization' | 'WebSite' | 'EducationalOrganization'>('EducationalOrganization');
+  const [seoSchemaOrgName, setSeoSchemaOrgName] = useState('CodeVerse Software Academy');
+  const [seoSchemaUrl, setSeoSchemaUrl] = useState('https://codeverse.academy');
+  const [seoSchemaPhone, setSeoSchemaPhone] = useState('+1 (555) 019-9831');
+  const [seoSchemaEmail, setSeoSchemaEmail] = useState('support@codeverse.academy');
+  const [seoSchemaDescription, setSeoSchemaDescription] = useState('Premier software engineering academy offering live cohort-based programs in microservices, React 19, and cloud architectures.');
+  const [seoSchemaPreviewOpen, setSeoSchemaPreviewOpen] = useState(false);
 
   // Studio Control States
   const [activeStudioTab, setActiveStudioTab] = useState<'branding' | 'hero' | 'contact' | 'themes' | 'seo'>('branding');
@@ -106,9 +123,31 @@ export const PublicSiteBuilderPage: React.FC = () => {
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [confirmModalType, setConfirmModalType] = useState<'logo' | 'favicon' | null>(null);
+  const [mobilePanel, setMobilePanel] = useState<'settings' | 'preview'>('settings');
 
   // Mobile Drawer Inside Embedded Preview Header
   const [previewMobileMenuOpen, setPreviewMobileMenuOpen] = useState<boolean>(false);
+
+  // Generate JSON-LD Schema
+  const generatedSchema = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': seoSchemaType,
+    name: seoSchemaOrgName,
+    url: seoSchemaUrl,
+    description: seoSchemaDescription,
+    contactPoint: {
+      '@type': 'ContactPoint',
+      telephone: seoSchemaPhone,
+      email: seoSchemaEmail,
+      contactType: 'customer support',
+    },
+    ...(seoSchemaType === 'EducationalOrganization' ? {
+      hasOfferCatalog: {
+        '@type': 'OfferCatalog',
+        name: 'Professional Courses',
+      }
+    } : {}),
+  }, null, 2);
 
   const activeTheme = getActiveTheme() || PREBUILT_THEMES[0] || {
     id: 'slate_minimal',
@@ -155,7 +194,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans text-xs text-slate-900 bg-[#F8FAFC] overflow-x-hidden text-left pb-24 xl:pb-6">
+    <div className="min-h-screen flex flex-col font-sans text-xs text-slate-900 bg-[#F8FAFC] overflow-x-hidden text-left pb-24 xl:pb-6 min-w-0">
       {/* 1. TOP STUDIO TOOLBAR (100% RESPONSIVE LIGHT ENTERPRISE THEME) */}
       <header className="bg-white border-b border-slate-200 px-3 sm:px-6 py-3 shrink-0 text-slate-900 z-20 sticky top-0 shadow-2xs">
         <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row items-center justify-between gap-3">
@@ -171,13 +210,13 @@ export const PublicSiteBuilderPage: React.FC = () => {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div className="min-w-0">
-                <h1 className="font-extrabold text-sm sm:text-base text-slate-900 block leading-tight truncate">Public Website Master Builder</h1>
-                <p className="text-[10px] sm:text-xs text-slate-500 font-mono truncate block">Master Template Route: /academy/550e8400-e29b-41d4-a716-446655440000</p>
+                <h1 className="font-medium text-sm sm:text-base text-slate-900 block leading-tight truncate">Public Website Builder</h1>
+                <p className="text-[10px] sm:text-xs text-slate-500 font-normal truncate block">Public Site Studio</p>
               </div>
             </div>
 
             {/* STATUS TOAST ON MOBILE */}
-            {saveStatus && <span className="lg:hidden text-xs text-emerald-600 font-bold px-2 truncate">{saveStatus}</span>}
+            {saveStatus && <span className="lg:hidden text-xs text-emerald-600 font-medium px-2 truncate">{saveStatus}</span>}
           </div>
 
           {/* ROW 2: VIEWPORT TOGGLES */}
@@ -186,7 +225,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setViewport('desktop')}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[36px] ${
+                className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[36px] ${
                   viewport === 'desktop' ? 'bg-[#2563EB] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -195,7 +234,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setViewport('tablet')}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[36px] ${
+                className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[36px] ${
                   viewport === 'tablet' ? 'bg-[#2563EB] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -204,7 +243,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setViewport('mobile')}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[36px] ${
+                className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[36px] ${
                   viewport === 'mobile' ? 'bg-[#2563EB] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -215,15 +254,15 @@ export const PublicSiteBuilderPage: React.FC = () => {
 
           {/* ROW 3: RIGHT ACTION BUTTONS */}
           <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto justify-end">
-            {saveStatus && <span className="hidden lg:inline text-xs text-emerald-600 font-bold px-2">{saveStatus}</span>}
+            {saveStatus && <span className="hidden lg:inline text-xs text-emerald-600 font-medium px-2">{saveStatus}</span>}
             <div className="grid grid-cols-1 min-[375px]:grid-cols-3 lg:flex items-center gap-2 w-full lg:w-auto">
-              <Button size="sm" variant="outline" onClick={() => resetToDefaults()} className="w-full lg:w-auto bg-white text-slate-700 border-slate-200 hover:bg-slate-50 font-semibold min-h-[44px] px-3.5" leftIcon={<RotateCcw className="w-4 h-4" />}>
+              <Button size="sm" variant="outline" onClick={() => resetToDefaults()} className="w-full lg:w-auto bg-white text-slate-700 border-slate-200 hover:bg-slate-50 font-medium min-h-[38px] h-[38px] px-3" leftIcon={<RotateCcw className="w-3.5 h-3.5" />}>
                 Reset
               </Button>
-              <Button size="sm" variant="outline" onClick={handleSaveDraft} className="w-full lg:w-auto bg-white text-slate-700 border-slate-200 hover:bg-slate-50 font-semibold min-h-[44px] px-3.5" leftIcon={<Save className="w-4 h-4" />}>
+              <Button size="sm" variant="outline" onClick={handleSaveDraft} className="w-full lg:w-auto bg-white text-slate-700 border-slate-200 hover:bg-slate-50 font-medium min-h-[38px] h-[38px] px-3" leftIcon={<Save className="w-3.5 h-3.5" />}>
                 Save Draft
               </Button>
-              <Button size="sm" onClick={handlePublish} style={{ backgroundColor: '#059669' }} className="w-full lg:w-auto text-white font-semibold shadow-xs min-h-[44px] px-4" leftIcon={<Globe className="w-4 h-4" />}>
+              <Button size="sm" onClick={handlePublish} style={{ backgroundColor: '#059669' }} className="w-full lg:w-auto text-white font-medium shadow-xs min-h-[38px] h-[38px] px-3" leftIcon={<Globe className="w-3.5 h-3.5" />}>
                 Publish
               </Button>
             </div>
@@ -231,20 +270,42 @@ export const PublicSiteBuilderPage: React.FC = () => {
         </div>
       </header>
 
+      {/* MOBILE SETTINGS / PREVIEW TOGGLE */}
+      <div className="xl:hidden flex bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1 mx-3 sm:mx-4 mb-0">
+        <button
+          type="button"
+          onClick={() => setMobilePanel('settings')}
+          className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer min-h-[34px] ${
+            mobilePanel === 'settings' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'
+          }`}
+        >
+          Settings
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobilePanel('preview')}
+          className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer min-h-[34px] ${
+            mobilePanel === 'preview' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'
+          }`}
+        >
+          Preview
+        </button>
+      </div>
+
       {/* 2. MAIN STUDIO BODY (SWITCHES TO 2 COLUMNS ONLY AT XL ≥ 1200px) */}
-      <div className="flex-1 max-w-[1600px] w-full mx-auto px-3 py-3 sm:px-4 sm:py-4 md:px-5 md:py-5 lg:px-6 lg:py-6 xl:px-8 grid grid-cols-1 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)] gap-6 overflow-hidden">
+      <div className="flex-1 max-w-[1600px] w-full mx-auto px-2.5 py-3 sm:px-4 sm:py-4 md:px-5 md:py-5 lg:px-6 lg:py-6 xl:px-8 grid grid-cols-1 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)] gap-4 sm:gap-6 overflow-hidden min-w-0">
         {/* LEFT PANEL: MASTER TEMPLATE CONTENT & BRANDING STUDIO */}
-        <div className="bg-white border border-slate-200 shadow-2xs rounded-2xl flex flex-col shrink-0 text-slate-900 overflow-hidden w-full max-w-full min-w-0">
+        <div className={`bg-white border border-slate-200 shadow-2xs rounded-2xl flex flex-col shrink-0 text-slate-900 overflow-hidden w-full max-w-full min-w-0 ${mobilePanel === 'preview' ? 'hidden xl:flex' : ''}`}>
           {/* MASTER LAYOUT LOCKED CARD (LIGHT INFORMATION DESIGN) */}
-          <div className="p-3 sm:p-4 bg-[#FFFBEB] border-b border-[#FDE68A] flex items-center justify-between text-xs font-semibold text-[#92400E]">
-            <span className="flex items-center gap-1.5 font-bold">
+          <div className="p-3 sm:p-4 bg-[#FFFBEB] border-b border-[#FDE68A] flex items-center justify-between text-xs font-medium text-[#92400E]">
+            <span className="flex items-center gap-1.5 font-medium">
               <Lock className="w-4 h-4 text-[#D97706]" /> Master Layout Locked
             </span>
-            <span className="text-[#B45309] text-[11px]">100% Fixed Responsive UI</span>
+            <span className="text-[#B45309] text-[11px] font-normal">100% Fixed Responsive UI</span>
           </div>
 
           {/* STUDIO NAVIGATION TABS (5 EQUAL COLUMNS) */}
-          <div className="grid grid-cols-5 border-b border-slate-200 p-1.5 bg-slate-100/80 gap-1 text-[11px] font-bold min-w-0 w-full">
+          <div className="grid grid-cols-5 border-b border-slate-200 p-1.5 bg-slate-100/80 gap-1 text-[11px] font-medium min-w-0 w-full">
             {(
               [
                 { id: 'branding', label: 'Branding' },
@@ -277,7 +338,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
                   <Input
                     value={academyName}
                     onChange={(e) => updateBranding({ academyName: e.target.value })}
-                    className="bg-white border-slate-200 text-slate-900 text-xs font-semibold h-11 focus:border-blue-600"
+                    className="bg-white border-slate-200 text-slate-900 text-xs font-medium h-11 focus:border-blue-600"
                     placeholder="Academy Name"
                   />
                 </div>
@@ -287,7 +348,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
                   <Input
                     value={academyTagline}
                     onChange={(e) => setAcademyTagline(e.target.value)}
-                    className="bg-white border-slate-200 text-slate-900 text-xs h-11 focus:border-blue-600"
+                    className="bg-white border-slate-200 text-slate-900 text-xs font-normal h-11 focus:border-blue-600"
                     placeholder="e.g. Master Full-Stack Engineering"
                   />
                 </div>
@@ -298,15 +359,15 @@ export const PublicSiteBuilderPage: React.FC = () => {
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <img src={logoFileUrl} alt="Logo" className="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0" />
-                        <span className="text-xs font-semibold text-slate-900">Active Custom Logo</span>
+                        <span className="text-xs font-medium text-slate-900">Active Custom Logo</span>
                       </div>
-                      <Button size="sm" variant="outline" onClick={() => setConfirmModalType('logo')} className="text-rose-600 border-rose-200 hover:bg-rose-50 font-semibold min-h-[40px] w-full sm:w-auto" leftIcon={<Trash2 className="w-4 h-4" />}>
+                      <Button size="sm" variant="outline" onClick={() => setConfirmModalType('logo')} className="text-rose-600 border-rose-200 hover:bg-rose-50 font-medium min-h-[38px] w-full sm:w-auto" leftIcon={<Trash2 className="w-4 h-4" />}>
                         Remove Logo
                       </Button>
                     </div>
                   ) : (
                     <label className="flex items-center justify-between p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 cursor-pointer text-slate-700 hover:border-blue-500 min-h-[52px]">
-                      <span className="text-xs font-semibold">Upload Logo (PNG / SVG)</span>
+                      <span className="text-xs font-medium">Upload Logo (PNG / SVG)</span>
                       <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} className="hidden" />
                       <Upload className="w-5 h-5 text-slate-400" />
                     </label>
@@ -319,15 +380,15 @@ export const PublicSiteBuilderPage: React.FC = () => {
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <img src={faviconFileUrl} alt="Favicon" className="w-7 h-7 rounded-lg object-contain border border-slate-200 shrink-0" />
-                        <span className="text-xs font-semibold text-slate-900">Active Custom Favicon</span>
+                        <span className="text-xs font-medium text-slate-900">Active Custom Favicon</span>
                       </div>
-                      <Button size="sm" variant="outline" onClick={() => setConfirmModalType('favicon')} className="text-rose-600 border-rose-200 hover:bg-rose-50 font-semibold min-h-[40px] w-full sm:w-auto" leftIcon={<Trash2 className="w-4 h-4" />}>
+                      <Button size="sm" variant="outline" onClick={() => setConfirmModalType('favicon')} className="text-rose-600 border-rose-200 hover:bg-rose-50 font-medium min-h-[38px] w-full sm:w-auto" leftIcon={<Trash2 className="w-4 h-4" />}>
                         Remove Favicon
                       </Button>
                     </div>
                   ) : (
                     <label className="flex items-center justify-between p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 cursor-pointer text-slate-700 hover:border-blue-500 min-h-[52px]">
-                      <span className="text-xs font-semibold">Upload Favicon (512×512)</span>
+                      <span className="text-xs font-medium">Upload Favicon (512×512)</span>
                       <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'favicon')} className="hidden" />
                       <Upload className="w-5 h-5 text-slate-400" />
                     </label>
@@ -367,7 +428,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
                   <Input
                     value={heroBadge}
                     onChange={(e) => setHeroBadge(e.target.value)}
-                    className="bg-white border-slate-200 text-slate-900 text-xs h-11 font-semibold focus:border-blue-600"
+                    className="bg-white border-slate-200 text-slate-900 text-xs h-11 font-medium focus:border-blue-600"
                   />
                 </div>
 
@@ -377,7 +438,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
                     rows={3}
                     value={heroTitle}
                     onChange={(e) => setHeroTitle(e.target.value)}
-                    className="w-full p-3 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-semibold focus:border-blue-600 focus:outline-hidden min-h-[90px] resize-y"
+                    className="w-full p-3 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-medium focus:border-blue-600 focus:outline-hidden min-h-[90px] resize-y"
                   />
                 </div>
 
@@ -396,7 +457,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
                   <Input
                     value={heroImageUrl}
                     onChange={(e) => setHeroImageUrl(e.target.value)}
-                    className="bg-white border-slate-200 text-slate-900 text-xs h-11 focus:border-blue-600"
+                    className="bg-white border-slate-200 text-slate-900 text-xs h-11 font-normal focus:border-blue-600"
                   />
                 </div>
 
@@ -406,7 +467,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
                     <Input
                       value={heroCtaLabel}
                       onChange={(e) => setHeroCtaLabel(e.target.value)}
-                      className="bg-white border-slate-200 text-slate-900 text-xs h-11 font-semibold focus:border-blue-600"
+                      className="bg-white border-slate-200 text-slate-900 text-xs h-11 font-medium focus:border-blue-600"
                     />
                   </div>
 
@@ -415,7 +476,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
                     <Input
                       value={heroSecondaryCtaLabel}
                       onChange={(e) => setHeroSecondaryCtaLabel(e.target.value)}
-                      className="bg-white border-slate-200 text-slate-900 text-xs h-11 font-semibold focus:border-blue-600"
+                      className="bg-white border-slate-200 text-slate-900 text-xs h-11 font-medium focus:border-blue-600"
                     />
                   </div>
                 </div>
@@ -470,8 +531,8 @@ export const PublicSiteBuilderPage: React.FC = () => {
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-slate-900 text-xs truncate">{theme.name}</span>
-                          {isSelected && <span className="text-[10px] font-bold text-blue-600 shrink-0">Applied</span>}
+                          <span className="font-medium text-slate-900 text-xs truncate">{theme.name}</span>
+                          {isSelected && <span className="text-[10px] font-medium text-blue-600 shrink-0">Applied</span>}
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -486,26 +547,194 @@ export const PublicSiteBuilderPage: React.FC = () => {
               </div>
             )}
 
-            {/* TAB 5: SEO SETTINGS */}
+            {/* TAB 5: FULL SEO SCHEMA & META SETTINGS */}
             {activeStudioTab === 'seo' && (
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Meta Page Title</label>
-                  <Input
-                    value={seoTitle}
-                    onChange={(e) => setSeoTitle(e.target.value)}
-                    className="bg-white border-slate-200 text-slate-900 text-xs h-11 focus:border-blue-600"
-                  />
+              <div className="space-y-5">
+                {/* GOOGLE SEARCH PREVIEW */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Search className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Google Search Preview</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white border border-slate-200">
+                    <p className="text-[11px] text-slate-500 font-normal truncate">{seoCanonicalUrl || 'https://codeverse.academy'}</p>
+                    <p className="text-[13px] text-blue-700 font-medium leading-tight mt-0.5 line-clamp-1">{seoTitle || 'Page Title'}</p>
+                    <p className="text-[11px] text-slate-600 font-normal mt-0.5 line-clamp-2 leading-relaxed">{seoMetaDescription || 'Page description...'}</p>
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Meta Description</label>
-                  <textarea
-                    rows={4}
-                    value={seoMetaDescription}
-                    onChange={(e) => setSeoMetaDescription(e.target.value)}
-                    className="w-full p-3 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs focus:border-blue-600 focus:outline-hidden min-h-[110px] resize-y"
-                  />
+                {/* META BASICS */}
+                <div className="space-y-3 border-t border-slate-100 pt-4">
+                  <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Meta Basics</p>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">SEO Title</label>
+                      <span className={`text-[10px] font-mono ${ seoTitle.length > 60 ? 'text-rose-500' : seoTitle.length >= 50 ? 'text-emerald-600' : 'text-slate-400' }`}>{seoTitle.length}/60</span>
+                    </div>
+                    <Input
+                      value={seoTitle}
+                      onChange={(e) => setSeoTitle(e.target.value)}
+                      className="bg-white border-slate-200 text-slate-900 text-xs h-11 font-normal focus:border-blue-600"
+                      placeholder="Academy Name | Tagline"
+                    />
+                    <p className="text-[10px] text-slate-400 font-normal">Recommended: 50–60 characters</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Meta Description</label>
+                      <span className={`text-[10px] font-mono ${ seoMetaDescription.length > 160 ? 'text-rose-500' : seoMetaDescription.length >= 140 ? 'text-emerald-600' : 'text-slate-400' }`}>{seoMetaDescription.length}/160</span>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={seoMetaDescription}
+                      onChange={(e) => setSeoMetaDescription(e.target.value)}
+                      className="w-full p-3 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-normal focus:border-blue-600 focus:outline-hidden resize-y"
+                      placeholder="Describe what your academy offers..."
+                    />
+                    <p className="text-[10px] text-slate-400 font-normal">Recommended: 140–160 characters</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Canonical URL</label>
+                    <Input
+                      value={seoCanonicalUrl}
+                      onChange={(e) => setSeoCanonicalUrl(e.target.value)}
+                      className="bg-white border-slate-200 text-slate-900 text-xs h-11 font-normal focus:border-blue-600"
+                      placeholder="https://yoursite.com"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <div>
+                      <p className="text-xs font-medium text-slate-900">Search Engine Indexing</p>
+                      <p className="text-[10px] text-slate-500 font-normal mt-0.5">{seoIndexingEnabled ? 'index, follow' : 'noindex, nofollow'}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSeoIndexingEnabled(!seoIndexingEnabled)}
+                      className={`w-11 h-6 rounded-full transition-all relative cursor-pointer shrink-0 ${
+                        seoIndexingEnabled ? 'bg-blue-600' : 'bg-slate-300'
+                      }`}
+                    >
+                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all ${
+                        seoIndexingEnabled ? 'left-[22px]' : 'left-0.5'
+                      }`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* SOCIAL MEDIA OG */}
+                <div className="space-y-3 border-t border-slate-100 pt-4">
+                  <div className="flex items-center gap-2">
+                    <Share2 className="w-3.5 h-3.5 text-slate-400" />
+                    <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Social Media (Open Graph)</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">OG Title</label>
+                    <Input
+                      value={seoOgTitle}
+                      onChange={(e) => setSeoOgTitle(e.target.value)}
+                      className="bg-white border-slate-200 text-slate-900 text-xs h-11 font-normal focus:border-blue-600"
+                      placeholder="Your Academy Name"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">OG Description</label>
+                    <textarea
+                      rows={2}
+                      value={seoOgDescription}
+                      onChange={(e) => setSeoOgDescription(e.target.value)}
+                      className="w-full p-3 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-normal focus:border-blue-600 focus:outline-hidden resize-y"
+                      placeholder="Brief social share description..."
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">OG Image URL (1200×630)</label>
+                    <Input
+                      value={seoOgImageUrl}
+                      onChange={(e) => setSeoOgImageUrl(e.target.value)}
+                      className="bg-white border-slate-200 text-slate-900 text-xs h-11 font-normal focus:border-blue-600"
+                      placeholder="https://yoursite.com/og-image.jpg"
+                    />
+                    {seoOgImageUrl && (
+                      <img src={seoOgImageUrl} alt="OG Preview" className="mt-1.5 w-full aspect-[2/1] rounded-xl object-cover border border-slate-200" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    )}
+                  </div>
+                </div>
+
+                {/* STRUCTURED DATA / SCHEMA */}
+                <div className="space-y-3 border-t border-slate-100 pt-4">
+                  <div className="flex items-center gap-2">
+                    <Code className="w-3.5 h-3.5 text-slate-400" />
+                    <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Structured Data (JSON-LD Schema)</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Schema Type</label>
+                    <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                      {(['Organization', 'WebSite', 'EducationalOrganization'] as const).map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setSeoSchemaType(type)}
+                          className={`py-1.5 rounded-lg text-[10px] font-medium transition-all cursor-pointer min-h-[30px] truncate px-1 ${
+                            seoSchemaType === type ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                          }`}
+                        >
+                          {type === 'EducationalOrganization' ? 'Educational' : type}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Organization Name</label>
+                    <Input value={seoSchemaOrgName} onChange={(e) => setSeoSchemaOrgName(e.target.value)} className="bg-white border-slate-200 text-slate-900 text-xs h-10 font-normal focus:border-blue-600" placeholder="Academy Name" />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Website URL</label>
+                      <Input value={seoSchemaUrl} onChange={(e) => setSeoSchemaUrl(e.target.value)} className="bg-white border-slate-200 text-slate-900 text-xs h-10 font-normal focus:border-blue-600" placeholder="https://..." />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Contact Phone</label>
+                      <Input value={seoSchemaPhone} onChange={(e) => setSeoSchemaPhone(e.target.value)} className="bg-white border-slate-200 text-slate-900 text-xs h-10 font-normal focus:border-blue-600" placeholder="+1 (555) ..." />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Contact Email</label>
+                    <Input value={seoSchemaEmail} onChange={(e) => setSeoSchemaEmail(e.target.value)} className="bg-white border-slate-200 text-slate-900 text-xs h-10 font-normal focus:border-blue-600" placeholder="support@academy.com" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Description</label>
+                    <textarea
+                      rows={2}
+                      value={seoSchemaDescription}
+                      onChange={(e) => setSeoSchemaDescription(e.target.value)}
+                      className="w-full p-3 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-normal focus:border-blue-600 focus:outline-hidden resize-y"
+                    />
+                  </div>
+
+                  {/* PREVIEW SCHEMA JSON-LD */}
+                  <button
+                    type="button"
+                    onClick={() => setSeoSchemaPreviewOpen(!seoSchemaPreviewOpen)}
+                    className="flex items-center gap-2 text-xs font-medium text-blue-600 hover:text-blue-700 cursor-pointer w-full py-1.5 border-t border-slate-100 mt-1"
+                  >
+                    {seoSchemaPreviewOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    {seoSchemaPreviewOpen ? 'Hide' : 'Preview'} Generated Schema
+                  </button>
+                  {seoSchemaPreviewOpen && (
+                    <pre className="bg-slate-900 text-emerald-400 text-[10px] font-mono p-3 rounded-xl overflow-x-auto leading-relaxed whitespace-pre-wrap break-all">{generatedSchema}</pre>
+                  )}
                 </div>
               </div>
             )}
@@ -513,7 +742,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
         </div>
 
         {/* RIGHT PANEL: MASTER TEMPLATE LIVE PREVIEW CANVAS */}
-        <div className="flex-1 bg-slate-100/70 border border-slate-200 shadow-2xs flex flex-col items-center p-2 sm:p-6 overflow-y-auto hide-scrollbar rounded-2xl min-w-0 w-full">
+        <div className={`flex-1 bg-slate-100/70 border border-slate-200 shadow-2xs flex flex-col items-center p-2 sm:p-6 overflow-y-auto hide-scrollbar rounded-2xl min-w-0 w-full ${mobilePanel === 'settings' ? 'hidden xl:flex' : ''}`}>
           {/* PAGE SELECTOR TOOLBAR (HOME, COURSES, CONTACT ONLY) */}
           <div className="mb-4 flex flex-wrap items-center justify-center bg-white p-1.5 rounded-2xl border border-slate-200 shadow-2xs gap-1.5 z-10 w-full max-w-md">
             {(['Home', 'Courses', 'Contact'] as const).map((page) => (
@@ -521,7 +750,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
                 key={page}
                 type="button"
                 onClick={() => setActivePreviewPage(page)}
-                className={`flex-1 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer min-h-[38px] ${
+                className={`flex-1 px-4 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer min-h-[38px] ${
                   activePreviewPage === page ? 'bg-[#2563EB] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
@@ -547,12 +776,12 @@ export const PublicSiteBuilderPage: React.FC = () => {
                 {logoFileUrl ? (
                   <img src={logoFileUrl} alt="Logo" className="w-10 h-10 rounded-2xl object-cover border border-slate-200 shrink-0" />
                 ) : (
-                  <div className="w-10 h-10 rounded-2xl text-white font-extrabold flex items-center justify-center text-sm shadow-2xs shrink-0" style={{ backgroundColor: activeTheme.primaryColor }}>
+                  <div className="w-10 h-10 rounded-2xl text-white font-medium flex items-center justify-center text-sm shadow-2xs shrink-0" style={{ backgroundColor: activeTheme.primaryColor }}>
                     {(academyName || 'B').substring(0, 1)}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <span className="font-extrabold text-xs sm:text-sm text-slate-900 tracking-tight block leading-tight truncate">
+                  <span className="font-medium text-xs sm:text-sm text-slate-900 tracking-tight block leading-tight truncate">
                     {academyName || 'Bright Academy of Technology'}
                   </span>
                   <span className="text-[10px] text-slate-500 font-normal truncate block mt-0.5">
@@ -564,7 +793,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
               {/* DESKTOP NAV LINKS (SHOW ON DESKTOP & TABLET PREVIEW VIEWPORTS) */}
               {viewport !== 'mobile' ? (
                 <>
-                  <div className="hidden md:flex items-center gap-8 font-semibold text-xs text-slate-600">
+                  <div className="hidden md:flex items-center gap-8 font-medium text-xs text-slate-600">
                     {(['Home', 'Courses', 'Contact'] as const).map((page) => {
                       const isActive = activePreviewPage === page;
                       return (
@@ -572,7 +801,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
                           key={page}
                           onClick={() => setActivePreviewPage(page)}
                           className={`relative py-2 cursor-pointer transition-colors ${
-                            isActive ? 'text-blue-600 font-bold' : 'hover:text-slate-900'
+                            isActive ? 'text-blue-600 font-medium' : 'hover:text-slate-900'
                           }`}
                           style={{ color: isActive ? activeTheme.primaryColor : undefined }}
                         >
@@ -589,10 +818,10 @@ export const PublicSiteBuilderPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" className="hidden sm:inline-flex border-slate-200 text-slate-700 font-semibold rounded-xl px-3.5 h-9">
+                    <Button size="sm" variant="outline" className="hidden sm:inline-flex border-slate-200 text-slate-700 font-medium rounded-xl px-3.5 h-9">
                       Book Demo
                     </Button>
-                    <Button size="sm" style={{ backgroundColor: activeTheme.primaryColor }} className="text-white font-semibold rounded-xl px-4 h-9 shadow-xs">
+                    <Button size="sm" style={{ backgroundColor: activeTheme.primaryColor }} className="text-white font-medium rounded-xl px-4 h-9 shadow-xs">
                       Enroll Now
                     </Button>
                   </div>
@@ -617,11 +846,11 @@ export const PublicSiteBuilderPage: React.FC = () => {
                   <div className="rounded-3xl p-5 sm:p-8 border border-slate-200/80 bg-white shadow-2xs space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                       <div className="space-y-4 text-left">
-                        <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider inline-block" style={{ backgroundColor: `${activeTheme.primaryColor}15`, color: activeTheme.primaryColor }}>
+                        <span className="px-3 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider inline-block" style={{ backgroundColor: `${activeTheme.primaryColor}15`, color: activeTheme.primaryColor }}>
                           {heroBadge}
                         </span>
 
-                        <h1 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                        <h1 className="text-lg sm:text-2xl font-medium text-slate-900 tracking-tight leading-tight">
                           {heroTitle}
                         </h1>
 
@@ -630,10 +859,10 @@ export const PublicSiteBuilderPage: React.FC = () => {
                         </p>
 
                         <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                          <Button size="md" style={{ backgroundColor: activeTheme.primaryColor }} className="text-white font-semibold rounded-xl px-6 min-h-[44px]">
+                          <Button size="md" style={{ backgroundColor: activeTheme.primaryColor }} className="text-white font-medium rounded-xl px-6 min-h-[44px]">
                             {heroCtaLabel}
                           </Button>
-                          <Button size="md" variant="outline" className="border-slate-200 text-slate-700 font-semibold rounded-xl px-5 min-h-[44px]">
+                          <Button size="md" variant="outline" className="border-slate-200 text-slate-700 font-medium rounded-xl px-5 min-h-[44px]">
                             {heroSecondaryCtaLabel}
                           </Button>
                         </div>
@@ -652,8 +881,8 @@ export const PublicSiteBuilderPage: React.FC = () => {
                   {/* FEATURED COURSES SECTION */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                      <h2 className="text-base font-bold text-slate-900">Featured Academy Courses</h2>
-                      <span className="text-xs font-semibold hover:underline cursor-pointer" style={{ color: activeTheme.primaryColor }} onClick={() => setActivePreviewPage('Courses')}>View All</span>
+                      <h2 className="text-base font-medium text-slate-900">Featured Academy Courses</h2>
+                      <span className="text-xs font-medium hover:underline cursor-pointer" style={{ color: activeTheme.primaryColor }} onClick={() => setActivePreviewPage('Courses')}>View All</span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -661,9 +890,9 @@ export const PublicSiteBuilderPage: React.FC = () => {
                         <div key={c.uuid} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
                           <img src={c.thumbnail} alt={c.title} className="w-full aspect-16/10 rounded-xl object-cover border border-slate-100" />
                           <div className="space-y-1">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{c.level} • {c.duration}</span>
-                            <h3 className="font-bold text-sm text-slate-900 leading-snug">{c.title}</h3>
-                            <p className="text-xs font-bold" style={{ color: activeTheme.primaryColor }}>{c.priceDisplay}</p>
+                            <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">{c.level} • {c.duration}</span>
+                            <h3 className="font-medium text-sm text-slate-900 leading-snug">{c.title}</h3>
+                            <p className="text-xs font-medium" style={{ color: activeTheme.primaryColor }}>{c.priceDisplay}</p>
                           </div>
                         </div>
                       ))}
@@ -674,14 +903,14 @@ export const PublicSiteBuilderPage: React.FC = () => {
 
               {activePreviewPage === 'Courses' && (
                 <div className="space-y-4">
-                  <h2 className="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2">All Courses ({(courses || []).length})</h2>
+                  <h2 className="text-base font-medium text-slate-900 border-b border-slate-200 pb-2">All Courses ({(courses || []).length})</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {(courses || []).map((c) => (
                       <div key={c.uuid} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
                         <img src={c.thumbnail} alt={c.title} className="w-full aspect-16/10 rounded-xl object-cover border border-slate-100" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{c.level}</span>
-                        <h3 className="font-bold text-sm text-slate-900 leading-snug">{c.title}</h3>
-                        <p className="text-xs font-bold" style={{ color: activeTheme.primaryColor }}>{c.priceDisplay}</p>
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">{c.level}</span>
+                        <h3 className="font-medium text-sm text-slate-900 leading-snug">{c.title}</h3>
+                        <p className="text-xs font-medium" style={{ color: activeTheme.primaryColor }}>{c.priceDisplay}</p>
                       </div>
                     ))}
                   </div>
@@ -690,13 +919,13 @@ export const PublicSiteBuilderPage: React.FC = () => {
 
               {activePreviewPage === 'Contact' && (
                 <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-4">
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-900">Contact Admissions &amp; Support</h2>
-                  <div className="space-y-3 text-xs text-slate-600">
-                    <p className="flex items-center gap-2"><Mail className="w-4 h-4 text-slate-400 shrink-0" /> Support Email: <span className="font-semibold text-slate-900 truncate">{supportEmail}</span></p>
-                    <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-slate-400 shrink-0" /> Support Phone: <span className="font-semibold text-slate-900">{supportPhone}</span></p>
-                    <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-emerald-500 shrink-0" /> WhatsApp: <span className="font-semibold text-slate-900">{whatsAppNumber}</span></p>
-                    <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-slate-400 shrink-0" /> Campus Address: <span className="font-semibold text-slate-900">{address}</span></p>
-                    <p className="flex items-center gap-2"><Clock className="w-4 h-4 text-slate-400 shrink-0" /> Business Hours: <span className="font-semibold text-slate-900">{businessHours}</span></p>
+                  <h2 className="text-base font-medium text-slate-900">Contact Admissions &amp; Support</h2>
+                  <div className="space-y-3 text-xs text-slate-600 font-normal">
+                    <p className="flex items-center gap-2"><Mail className="w-4 h-4 text-slate-400 shrink-0" /> Support Email: <span className="font-medium text-slate-900 truncate">{supportEmail}</span></p>
+                    <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-slate-400 shrink-0" /> Support Phone: <span className="font-medium text-slate-900">{supportPhone}</span></p>
+                    <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-emerald-500 shrink-0" /> WhatsApp: <span className="font-medium text-slate-900">{whatsAppNumber}</span></p>
+                    <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-slate-400 shrink-0" /> Campus Address: <span className="font-medium text-slate-900">{address}</span></p>
+                    <p className="flex items-center gap-2"><Clock className="w-4 h-4 text-slate-400 shrink-0" /> Business Hours: <span className="font-medium text-slate-900">{businessHours}</span></p>
                   </div>
                 </div>
               )}
@@ -706,10 +935,10 @@ export const PublicSiteBuilderPage: React.FC = () => {
             <footer className="bg-slate-950 text-slate-400 p-6 border-t border-slate-900 space-y-4">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-800 pb-4 text-center sm:text-left">
                 <div>
-                  <span className="font-bold text-white text-sm block">{academyName}</span>
-                  <span className="text-xs text-slate-500 block mt-0.5">{academyTagline}</span>
+                  <span className="font-medium text-white text-sm block">{academyName}</span>
+                  <span className="text-xs text-slate-500 font-normal block mt-0.5">{academyTagline}</span>
                 </div>
-                <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold">
+                <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium">
                   <span className="hover:text-white cursor-pointer" onClick={() => setActivePreviewPage('Home')}>Home</span>
                   <span className="hover:text-white cursor-pointer" onClick={() => setActivePreviewPage('Courses')}>All Courses</span>
                   <span className="hover:text-white cursor-pointer" onClick={() => setActivePreviewPage('Contact')}>Contact Support</span>
@@ -725,11 +954,11 @@ export const PublicSiteBuilderPage: React.FC = () => {
       </div>
 
       {/* STICKY MOBILE SAVE BAR (< 640px) */}
-      <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-lg z-50 flex items-center gap-2 sm:hidden">
-        <Button size="sm" variant="outline" onClick={handleSaveDraft} className="flex-1 text-slate-700 border-slate-200 bg-white hover:bg-slate-50 font-semibold min-h-[44px]" leftIcon={<Save className="w-4 h-4" />}>
+      <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-lg z-50 flex items-center gap-2 sm:hidden pb-[calc(12px+env(safe-area-inset-bottom))]">
+        <Button size="sm" variant="outline" onClick={handleSaveDraft} className="flex-1 text-slate-700 border-slate-200 bg-white hover:bg-slate-50 font-medium h-[38px] min-h-[38px]" leftIcon={<Save className="w-3.5 h-3.5" />}>
           Save Draft
         </Button>
-        <Button size="sm" onClick={handlePublish} style={{ backgroundColor: '#059669' }} className="flex-1 text-white font-semibold shadow-xs min-h-[44px]" leftIcon={<Globe className="w-4 h-4" />}>
+        <Button size="sm" onClick={handlePublish} style={{ backgroundColor: '#059669' }} className="flex-1 text-white font-medium shadow-xs h-[38px] min-h-[38px]" leftIcon={<Globe className="w-3.5 h-3.5" />}>
           Publish
         </Button>
       </div>
@@ -755,7 +984,7 @@ export const PublicSiteBuilderPage: React.FC = () => {
       {previewMobileMenuOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex flex-col font-sans text-xs">
           <div className="p-4 bg-white flex items-center justify-between border-b border-slate-200">
-            <span className="font-extrabold text-sm text-slate-900">{academyName}</span>
+            <span className="font-medium text-sm text-slate-900">{academyName}</span>
             <button
               type="button"
               onClick={() => setPreviewMobileMenuOpen(false)}
@@ -765,16 +994,16 @@ export const PublicSiteBuilderPage: React.FC = () => {
             </button>
           </div>
           <div className="p-6 bg-white flex-1 space-y-4">
-            <div className="space-y-3 font-semibold text-sm text-slate-800">
+            <div className="space-y-3 font-medium text-sm text-slate-800">
               <div className="p-3 rounded-xl hover:bg-slate-100 cursor-pointer" onClick={() => { setActivePreviewPage('Home'); setPreviewMobileMenuOpen(false); }}>Home</div>
               <div className="p-3 rounded-xl hover:bg-slate-100 cursor-pointer" onClick={() => { setActivePreviewPage('Courses'); setPreviewMobileMenuOpen(false); }}>Courses</div>
               <div className="p-3 rounded-xl hover:bg-slate-100 cursor-pointer" onClick={() => { setActivePreviewPage('Contact'); setPreviewMobileMenuOpen(false); }}>Contact</div>
             </div>
             <div className="pt-6 border-t border-slate-100 space-y-3">
-              <Button size="md" variant="outline" className="w-full font-semibold justify-center min-h-[44px]">
+              <Button size="md" variant="outline" className="w-full font-medium justify-center min-h-[44px]">
                 Book Demo Request
               </Button>
-              <Button size="md" style={{ backgroundColor: activeTheme.primaryColor }} className="w-full font-semibold justify-center text-white min-h-[44px]">
+              <Button size="md" style={{ backgroundColor: activeTheme.primaryColor }} className="w-full font-medium justify-center text-white min-h-[44px]">
                 Enroll Now
               </Button>
             </div>

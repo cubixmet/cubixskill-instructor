@@ -27,14 +27,32 @@ export interface CourseEntity {
   updatedAt: string;
 }
 
+export type MediaTypeCategory = 'video' | 'audio' | 'image' | 'document' | 'other';
+
+export const detectMediaType = (format: string, fileName: string): MediaTypeCategory => {
+  const f = (format || '').toLowerCase();
+  const ext = (fileName || '').split('.').pop()?.toLowerCase() || '';
+
+  if (f.startsWith('video/') || ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext) || ['video', 'mp4', 'webm'].includes(f)) return 'video';
+  if (f.startsWith('audio/') || ['mp3', 'wav', 'aac', 'm4a', 'ogg'].includes(ext) || ['audio', 'mp3', 'wav'].includes(f)) return 'audio';
+  if (f.startsWith('image/') || ['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif'].includes(ext) || ['image', 'png', 'jpg'].includes(f)) return 'image';
+  if (f.includes('pdf') || f.includes('document') || f.includes('word') || ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'].includes(ext)) return 'document';
+  return 'other';
+};
+
 export interface MediaAssetEntity {
   id: string; // mediaUuid
   name: string;
   sizeMb: number;
   format: string;
+  mediaType: MediaTypeCategory;
   url: string;
+  thumbnailUrl?: string;
+  durationMinutes?: number;
+  resolution?: string;
   folder: string;
   uploadedAt: string;
+  lastUsedAt: string;
   creditsConsumed: number;
 }
 
@@ -107,8 +125,10 @@ interface PlatformStoreState {
   mediaAssets: MediaAssetEntity[];
   totalCredits: number;
   creditTransactions: CreditTransactionEntity[];
-  uploadMediaAsset: (file: { name: string; sizeMb: number; format: string; folder?: string }) => void;
+  uploadMediaAsset: (file: { name: string; sizeMb: number; format: string; folder?: string; durationMinutes?: number; resolution?: string }) => { success: boolean; asset?: MediaAssetEntity; error?: string; requiredCredits?: number; availableCredits?: number };
   deleteMediaAsset: (id: string) => void;
+  touchMediaAssetLastUsed: (id: string) => void;
+  isMediaAssetInUse: (id: string) => { isInUse: boolean; reason?: string };
   deductCredits: (amount: number, reason: string) => void;
   addCredits: (amount: number, reason: string) => void;
 }
@@ -189,12 +209,34 @@ export const usePlatformStore = create<PlatformStoreState>()(
         const duplicated: CourseEntity = {
           ...target,
           id: newUuid,
-          title: `${target.title} (Copy)`,
+          title: `${target.title} — Copy`,
           status: 'Draft',
+          enrolledStudentsCount: 0,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        set((state) => ({ courses: [duplicated, ...state.courses] }));
+
+        // Clone curriculum modules if present
+        const existingModules = get().modulesByCourse[id] || [];
+        const clonedModules: CurriculumModule[] = JSON.parse(JSON.stringify(existingModules)).map((mod: CurriculumModule, idx: number) => ({
+          ...mod,
+          id: `${newUuid}-mod-${idx + 1}`,
+          uuid: `${newUuid}-mod-${idx + 1}`,
+          courseUuid: newUuid,
+          lessons: (mod.lessons || []).map((les: CurriculumLesson, lesIdx: number) => ({
+            ...les,
+            id: `${newUuid}-les-${idx + 1}-${lesIdx + 1}`,
+            moduleUuid: `${newUuid}-mod-${idx + 1}`,
+          })),
+        }));
+
+        set((state) => ({
+          courses: [duplicated, ...state.courses],
+          modulesByCourse: {
+            ...state.modulesByCourse,
+            [newUuid]: clonedModules,
+          },
+        }));
         return newUuid;
       },
 
@@ -628,17 +670,58 @@ export const usePlatformStore = create<PlatformStoreState>()(
         set((state) => ({ staffMembers: state.staffMembers.filter((s) => s.id !== id) }));
       },
 
-      // MEDIA & CREDIT ENGINE STATE (Media Credit Meter ONLY, strictly no storage quota)
+      // MEDIA & CREDIT ENGINE STATE
       mediaAssets: [
         {
           id: 'med-1',
           name: 'react19_deepdive_lecture.mp4',
           sizeMb: 450,
           format: 'video/mp4',
+          mediaType: 'video',
           url: 'https://assets.cubixskill.com/videos/react19_rsc.mp4',
           folder: 'Course Videos',
           uploadedAt: '2026-08-01T10:00:00Z',
+          lastUsedAt: '2026-08-09T14:00:00Z',
+          durationMinutes: 45,
+          resolution: '1080p',
           creditsConsumed: 1.5,
+        },
+        {
+          id: 'med-2',
+          name: 'podcast_state_management.mp3',
+          sizeMb: 25,
+          format: 'audio/mp3',
+          mediaType: 'audio',
+          url: 'https://assets.cubixskill.com/audio/state_podcast.mp3',
+          folder: 'Audio Clips',
+          uploadedAt: '2026-08-03T11:20:00Z',
+          lastUsedAt: '2026-08-08T16:30:00Z',
+          durationMinutes: 20,
+          creditsConsumed: 0.3,
+        },
+        {
+          id: 'med-3',
+          name: 'react19_architecture_diagram.png',
+          sizeMb: 4.2,
+          format: 'image/png',
+          mediaType: 'image',
+          url: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&auto=format&fit=crop&q=80',
+          folder: 'Infographics',
+          uploadedAt: '2026-08-04T09:15:00Z',
+          lastUsedAt: '2026-08-07T12:00:00Z',
+          creditsConsumed: 0.1,
+        },
+        {
+          id: 'med-4',
+          name: 'course_handbook_v2.pdf',
+          sizeMb: 12.8,
+          format: 'application/pdf',
+          mediaType: 'document',
+          url: 'https://assets.cubixskill.com/docs/handbook.pdf',
+          folder: 'Documents',
+          uploadedAt: '2026-08-05T14:10:00Z',
+          lastUsedAt: '2026-08-06T18:45:00Z',
+          creditsConsumed: 0.2,
         },
       ],
       totalCredits: 1250.5,
@@ -653,30 +736,79 @@ export const usePlatformStore = create<PlatformStoreState>()(
       ],
 
       uploadMediaAsset: (file) => {
-        const credits = Math.round((file.sizeMb / 100) * 10) / 10;
+        const requiredCredits = Math.max(0.1, Math.round((file.sizeMb / 100) * 10) / 10);
+        const currentCredits = get().totalCredits;
+
+        if (currentCredits < requiredCredits) {
+          return {
+            success: false,
+            error: 'Insufficient Credits',
+            requiredCredits,
+            availableCredits: currentCredits,
+          };
+        }
+
+        const mType = detectMediaType(file.format, file.name);
+        const now = new Date().toISOString();
         const newAsset: MediaAssetEntity = {
           id: `med-${Date.now()}`,
           name: file.name,
           sizeMb: file.sizeMb,
           format: file.format,
+          mediaType: mType,
           url: `https://assets.cubixskill.com/media/${file.name}`,
           folder: file.folder || 'General',
-          uploadedAt: new Date().toISOString(),
-          creditsConsumed: credits,
+          uploadedAt: now,
+          lastUsedAt: now,
+          durationMinutes: file.durationMinutes,
+          resolution: file.resolution,
+          creditsConsumed: requiredCredits,
         };
+
         const newTx: CreditTransactionEntity = {
           id: `tx-${Date.now()}`,
           type: 'deduction',
-          amount: credits,
+          amount: requiredCredits,
           reason: `Media Upload: ${file.name}`,
-          timestamp: new Date().toISOString(),
+          timestamp: now,
         };
 
         set((state) => ({
           mediaAssets: [newAsset, ...state.mediaAssets],
-          totalCredits: Math.max(0, Math.round((state.totalCredits - credits) * 10) / 10),
+          totalCredits: Math.max(0, Math.round((state.totalCredits - requiredCredits) * 10) / 10),
           creditTransactions: [newTx, ...state.creditTransactions],
         }));
+
+        return { success: true, asset: newAsset };
+      },
+
+      touchMediaAssetLastUsed: (id) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          mediaAssets: state.mediaAssets.map((m) =>
+            m.id === id ? { ...m, lastUsedAt: now } : m
+          ),
+        }));
+      },
+
+      isMediaAssetInUse: (id) => {
+        const state = get();
+        const target = state.mediaAssets.find((m) => m.id === id);
+        if (!target) return { isInUse: false };
+
+        // Check courses / lessons references
+        const courseMatch = state.courses.find((c) => {
+          const item = c as { thumbnailUrl?: string; title: string };
+          return item.thumbnailUrl === target.url || item.title.toLowerCase().includes(target.name.toLowerCase());
+        });
+        if (courseMatch) {
+          return {
+            isInUse: true,
+            reason: `Referenced by course: "${courseMatch.title}"`,
+          };
+        }
+
+        return { isInUse: false };
       },
 
       deleteMediaAsset: (id) => {

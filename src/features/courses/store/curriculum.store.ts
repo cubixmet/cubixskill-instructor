@@ -40,6 +40,8 @@ interface CurriculumState {
   moveLesson: (lessonUuid: string, targetModuleUuid: string, targetIndex?: number) => void;
   reorderLessons: (moduleUuid: string, orderedLessonUuids: string[]) => void;
   getLessonsByModule: (moduleUuid: string) => CourseLesson[];
+  attachResourceToLesson: (lessonUuid: string, resource: import('../../../types/curriculum.types').LessonResourceAttachment) => boolean;
+  detachResourceFromLesson: (lessonUuid: string, resourceId: string) => void;
 
   // Subsection Actions
   addSubsection: (lessonUuid: string, data: CreateSubsectionInput) => CourseLessonSubsection;
@@ -47,9 +49,13 @@ interface CurriculumState {
   deleteSubsection: (lessonUuid: string, subsectionUuid: string) => void;
   duplicateSubsection: (lessonUuid: string, subsectionUuid: string) => CourseLessonSubsection | null;
   reorderSubsections: (lessonUuid: string, orderedSubsectionUuids: string[]) => void;
+
+  // Helper calculations
+  getCalculatedModuleDuration: (moduleUuid: string) => number;
+  getCalculatedCourseDuration: (courseUuid: string) => number;
 }
 
-// Initial Seed Data (Only loaded when modules array is empty)
+// Initial Seed Data
 const SEED_MODULES: CourseModule[] = [
   {
     uuid: '550e8400-e29b-41d4-a716-446655441001',
@@ -58,7 +64,7 @@ const SEED_MODULES: CourseModule[] = [
     description: 'Foundational concepts covering React 19 RSC, Server Actions, and Server Functions.',
     status: 'published',
     sortOrder: 1,
-    durationMinutes: 45,
+    durationMinutes: 55,
     isCollapsed: false,
     unlockRule: 'immediate',
     createdAt: '2026-08-01T10:00:00Z',
@@ -71,7 +77,7 @@ const SEED_MODULES: CourseModule[] = [
     description: 'Global state store initialization, persistent middleware, and slice patterns.',
     status: 'published',
     sortOrder: 2,
-    durationMinutes: 30,
+    durationMinutes: 45,
     isCollapsed: false,
     unlockRule: 'previous_module',
     createdAt: '2026-08-02T10:00:00Z',
@@ -98,67 +104,82 @@ const SEED_LESSONS: CourseLesson[] = [
       videoDeliveryMode: 'adaptive',
       allowDownload: true,
       preventSkipping: true,
-      minimumWatchPercentage: 80,
     },
-    subsections: [
-      {
-        uuid: 'sub-550e8400-1',
-        lessonUuid: '550e8400-e29b-41d4-a716-446655442001',
-        title: 'Video Introduction: React 19 Paradigms',
-        type: 'video',
-        status: 'published',
-        sortOrder: 1,
-        durationMinutes: 10,
-        createdAt: '2026-08-01T10:00:00Z',
-        updatedAt: '2026-08-04T12:00:00Z',
-      },
-      {
-        uuid: 'sub-550e8400-2',
-        lessonUuid: '550e8400-e29b-41d4-a716-446655442001',
-        title: 'RSC Architecture Diagram & Docs',
-        type: 'pdf',
-        status: 'published',
-        sortOrder: 2,
-        durationMinutes: 8,
-        createdAt: '2026-08-01T10:00:00Z',
-        updatedAt: '2026-08-04T12:00:00Z',
-      },
-      {
-        uuid: 'sub-550e8400-3',
-        lessonUuid: '550e8400-e29b-41d4-a716-446655442001',
-        title: 'Knowledge Check: Server Components Quiz',
-        type: 'quiz',
-        status: 'published',
-        sortOrder: 3,
-        durationMinutes: 7,
-        createdAt: '2026-08-01T10:00:00Z',
-        updatedAt: '2026-08-04T12:00:00Z',
-      },
-    ],
-    createdAt: '2026-08-01T10:00:00Z',
+    subsections: [],
+    createdAt: '2026-08-01T10:30:00Z',
     updatedAt: '2026-08-04T12:00:00Z',
   },
   {
     uuid: '550e8400-e29b-41d4-a716-446655442002',
     courseUuid: '550e8400-e29b-41d4-a716-446655440000',
     moduleUuid: '550e8400-e29b-41d4-a716-446655441001',
-    title: '02. Setup Cheat Sheet & Reference Guide',
-    description: 'Quick reference sheet for configuring Vite and React 19 environment.',
-    type: 'pdf',
+    title: '02. Server Actions & Mutations',
+    description: 'Handling form submissions and optimistic UI updates.',
+    type: 'video',
     status: 'published',
     sortOrder: 2,
-    durationMinutes: 10,
+    durationMinutes: 30,
     isDemo: false,
-    unlockRule: 'previous_lesson',
+    unlockRule: 'immediate',
     content: {
-      fileUrl: 'https://assets.cubixskill.com/docs/react19_cheatsheet.pdf',
-      allowDownload: true,
+      videoSource: 'embed',
+      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      videoDeliveryMode: 'standard',
+      allowDownload: false,
+      preventSkipping: false,
     },
     subsections: [],
     createdAt: '2026-08-01T11:00:00Z',
     updatedAt: '2026-08-04T12:00:00Z',
   },
+  {
+    uuid: '550e8400-e29b-41d4-a716-446655442003',
+    courseUuid: '550e8400-e29b-41d4-a716-446655440000',
+    moduleUuid: '550e8400-e29b-41d4-a716-446655441002',
+    title: '01. Store Setup & State Slices',
+    description: 'Configuring Zustand stores with TypeScript.',
+    type: 'video',
+    status: 'published',
+    sortOrder: 1,
+    durationMinutes: 25,
+    isDemo: false,
+    unlockRule: 'immediate',
+    content: {
+      videoSource: 'upload',
+      videoUrl: 'https://assets.cubixskill.com/videos/zustand_setup.mp4',
+    },
+    subsections: [],
+    createdAt: '2026-08-02T10:30:00Z',
+    updatedAt: '2026-08-05T08:00:00Z',
+  },
+  {
+    uuid: '550e8400-e29b-41d4-a716-446655442004',
+    courseUuid: '550e8400-e29b-41d4-a716-446655440000',
+    moduleUuid: '550e8400-e29b-41d4-a716-446655441002',
+    title: '02. Persistence Middleware Guide',
+    description: 'Reading and writing state to localStorage.',
+    type: 'document',
+    status: 'published',
+    sortOrder: 2,
+    durationMinutes: 20,
+    isDemo: false,
+    unlockRule: 'immediate',
+    content: {
+      textContent: '# Zustand Persistence Middleware\n\nLearn how to configure localStorage persistence.',
+    },
+    subsections: [],
+    createdAt: '2026-08-02T11:00:00Z',
+    updatedAt: '2026-08-05T08:00:00Z',
+  },
 ];
+
+const updateModuleDurations = (modules: CourseModule[], lessons: CourseLesson[]): CourseModule[] => {
+  return modules.map((mod) => {
+    const modLessons = lessons.filter((l) => l.moduleUuid === mod.uuid);
+    const totalMins = modLessons.reduce((sum, l) => sum + (l.durationMinutes || 0), 0);
+    return { ...mod, durationMinutes: totalMins };
+  });
+};
 
 export const useCurriculumStore = create<CurriculumState>()(
   persist(
@@ -167,6 +188,13 @@ export const useCurriculumStore = create<CurriculumState>()(
       lessons: SEED_LESSONS,
 
       // MODULE ACTIONS
+      getModulesByCourse: (courseUuid) => {
+        const stateModules = get().modules;
+        const stateLessons = get().lessons;
+        const filteredMods = stateModules.filter((m) => m.courseUuid === courseUuid);
+        return updateModuleDurations(filteredMods, stateLessons).sort((a, b) => a.sortOrder - b.sortOrder);
+      },
+
       addModule: (courseUuid, data) => {
         const courseModules = get()
           .modules.filter((m) => m.courseUuid === courseUuid)
@@ -176,10 +204,13 @@ export const useCurriculumStore = create<CurriculumState>()(
           ...data,
           uuid: generateUuid(),
           courseUuid,
+          title: data.title.trim(),
+          description: data.description?.trim() || '',
           sortOrder: courseModules.length + 1,
-          durationMinutes: data.durationMinutes || 0,
+          durationMinutes: 0,
+          status: data.status || 'published',
           isCollapsed: false,
-          unlockRule: data.unlockRule || 'immediate',
+          unlockRule: 'immediate',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -237,7 +268,7 @@ export const useCurriculumStore = create<CurriculumState>()(
           ...targetMod,
           uuid: newModUuid,
           title: `${targetMod.title} Copy`,
-          status: 'draft',
+          status: 'published',
           sortOrder: targetMod.sortOrder + 1,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -275,21 +306,14 @@ export const useCurriculumStore = create<CurriculumState>()(
       reorderModules: (courseUuid, orderedModuleUuids) => {
         set((state) => ({
           modules: state.modules.map((m) => {
-            if (m.courseUuid === courseUuid) {
-              const newIdx = orderedModuleUuids.indexOf(m.uuid);
-              if (newIdx !== -1) {
-                return { ...m, sortOrder: newIdx + 1 };
-              }
+            if (m.courseUuid !== courseUuid) return m;
+            const newIndex = orderedModuleUuids.indexOf(m.uuid);
+            if (newIndex !== -1) {
+              return { ...m, sortOrder: newIndex + 1, updatedAt: new Date().toISOString() };
             }
             return m;
           }),
         }));
-      },
-
-      getModulesByCourse: (courseUuid) => {
-        return get()
-          .modules.filter((m) => m.courseUuid === courseUuid)
-          .sort((a, b) => a.sortOrder - b.sortOrder);
       },
 
       // LESSON ACTIONS
@@ -309,6 +333,7 @@ export const useCurriculumStore = create<CurriculumState>()(
           uuid: generateUuid(),
           courseUuid,
           moduleUuid,
+          status: data.status || 'published',
           sortOrder: moduleLessons.length + 1,
           content: data.content || {},
           subsections: [],
@@ -316,21 +341,29 @@ export const useCurriculumStore = create<CurriculumState>()(
           updatedAt: new Date().toISOString(),
         };
 
-        set((state) => ({
-          lessons: [...state.lessons, newLesson],
-        }));
+        set((state) => {
+          const newLessons = [...state.lessons, newLesson];
+          return {
+            lessons: newLessons,
+            modules: updateModuleDurations(state.modules, newLessons),
+          };
+        });
 
         return newLesson;
       },
 
       updateLesson: (lessonUuid, data) => {
-        set((state) => ({
-          lessons: state.lessons.map((l) =>
+        set((state) => {
+          const newLessons = state.lessons.map((l) =>
             l.uuid === lessonUuid
               ? { ...l, ...data, updatedAt: new Date().toISOString() }
               : l
-          ),
-        }));
+          );
+          return {
+            lessons: newLessons,
+            modules: updateModuleDurations(state.modules, newLessons),
+          };
+        });
       },
 
       deleteLesson: (lessonUuid) => {
@@ -349,7 +382,10 @@ export const useCurriculumStore = create<CurriculumState>()(
               return l;
             });
 
-          return { lessons: remaining };
+          return {
+            lessons: remaining,
+            modules: updateModuleDurations(state.modules, remaining),
+          };
         });
       },
 
@@ -363,7 +399,7 @@ export const useCurriculumStore = create<CurriculumState>()(
           ...targetLesson,
           uuid: generateUuid(),
           title: `${targetLesson.title} Copy`,
-          status: 'draft',
+          status: 'published',
           sortOrder: targetLesson.sortOrder + 1,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -377,8 +413,11 @@ export const useCurriculumStore = create<CurriculumState>()(
             return l;
           });
 
+          const newLessons = [...updatedLessons, duplicatedLesson];
+
           return {
-            lessons: [...updatedLessons, duplicatedLesson],
+            lessons: newLessons,
+            modules: updateModuleDurations(state.modules, newLessons),
           };
         });
 
@@ -389,39 +428,42 @@ export const useCurriculumStore = create<CurriculumState>()(
         const targetLesson = get().lessons.find((l) => l.uuid === lessonUuid);
         if (!targetLesson) return;
 
-        const sourceModuleUuid = targetLesson.moduleUuid;
-
         set((state) => {
+          const oldModuleUuid = targetLesson.moduleUuid;
           const targetModuleLessons = state.lessons
             .filter((l) => l.moduleUuid === targetModuleUuid && l.uuid !== lessonUuid)
             .sort((a, b) => a.sortOrder - b.sortOrder);
 
-          const insertAt =
-            targetIndex !== undefined ? targetIndex : targetModuleLessons.length;
+          const insertIndex =
+            typeof targetIndex === 'number'
+              ? Math.max(0, Math.min(targetIndex, targetModuleLessons.length))
+              : targetModuleLessons.length;
 
-          const updatedMovedLesson: CourseLesson = {
+          targetModuleLessons.splice(insertIndex, 0, {
             ...targetLesson,
             moduleUuid: targetModuleUuid,
-            sortOrder: insertAt + 1,
             updatedAt: new Date().toISOString(),
-          };
+          });
 
-          const remainingSourceLessons = state.lessons
-            .filter((l) => l.moduleUuid === sourceModuleUuid && l.uuid !== lessonUuid)
-            .map((l, idx) => ({ ...l, sortOrder: idx + 1 }));
-
-          targetModuleLessons.splice(insertAt, 0, updatedMovedLesson);
-          const reindexedTargetLessons = targetModuleLessons.map((l, idx) => ({
+          const updatedTargetLessons = targetModuleLessons.map((l, idx) => ({
             ...l,
             sortOrder: idx + 1,
           }));
 
           const otherLessons = state.lessons.filter(
-            (l) => l.moduleUuid !== sourceModuleUuid && l.moduleUuid !== targetModuleUuid
+            (l) => l.moduleUuid !== oldModuleUuid && l.moduleUuid !== targetModuleUuid
           );
 
+          const remainingOldLessons = state.lessons
+            .filter((l) => l.moduleUuid === oldModuleUuid && l.uuid !== lessonUuid)
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((l, idx) => ({ ...l, sortOrder: idx + 1 }));
+
+          const newLessons = [...otherLessons, ...remainingOldLessons, ...updatedTargetLessons];
+
           return {
-            lessons: [...otherLessons, ...remainingSourceLessons, ...reindexedTargetLessons],
+            lessons: newLessons,
+            modules: updateModuleDurations(state.modules, newLessons),
           };
         });
       },
@@ -429,13 +471,55 @@ export const useCurriculumStore = create<CurriculumState>()(
       reorderLessons: (moduleUuid, orderedLessonUuids) => {
         set((state) => ({
           lessons: state.lessons.map((l) => {
-            if (l.moduleUuid === moduleUuid) {
-              const newIdx = orderedLessonUuids.indexOf(l.uuid);
-              if (newIdx !== -1) {
-                return { ...l, sortOrder: newIdx + 1 };
-              }
+            if (l.moduleUuid !== moduleUuid) return l;
+            const newIndex = orderedLessonUuids.indexOf(l.uuid);
+            if (newIndex !== -1) {
+              return { ...l, sortOrder: newIndex + 1, updatedAt: new Date().toISOString() };
             }
             return l;
+          }),
+        }));
+      },
+
+      attachResourceToLesson: (lessonUuid, resource) => {
+        let attached = false;
+        set((state) => ({
+          lessons: state.lessons.map((lesson) => {
+            if (lesson.uuid !== lessonUuid) return lesson;
+            const currentResources = lesson.content?.resources || [];
+            const isDuplicate = currentResources.some(
+              (r) =>
+                r.url.toLowerCase() === resource.url.toLowerCase() ||
+                (resource.mediaAssetId && r.mediaAssetId === resource.mediaAssetId)
+            );
+            if (isDuplicate) return lesson;
+            attached = true;
+            return {
+              ...lesson,
+              content: {
+                ...lesson.content,
+                resources: [...currentResources, resource],
+              },
+              updatedAt: new Date().toISOString(),
+            };
+          }),
+        }));
+        return attached;
+      },
+
+      detachResourceFromLesson: (lessonUuid, resourceId) => {
+        set((state) => ({
+          lessons: state.lessons.map((lesson) => {
+            if (lesson.uuid !== lessonUuid) return lesson;
+            const currentResources = lesson.content?.resources || [];
+            return {
+              ...lesson,
+              content: {
+                ...lesson.content,
+                resources: currentResources.filter((r) => r.id !== resourceId),
+              },
+              updatedAt: new Date().toISOString(),
+            };
           }),
         }));
       },
@@ -443,13 +527,15 @@ export const useCurriculumStore = create<CurriculumState>()(
       // SUBSECTION ACTIONS
       addSubsection: (lessonUuid, data) => {
         const lesson = get().lessons.find((l) => l.uuid === lessonUuid);
-        const existingSubsections = lesson?.subsections || [];
+        if (!lesson) throw new Error('Lesson not found');
 
+        const currentSubsections = lesson.subsections || [];
         const newSubsection: CourseLessonSubsection = {
           ...data,
           uuid: generateUuid(),
           lessonUuid,
-          sortOrder: existingSubsections.length + 1,
+          sortOrder: currentSubsections.length + 1,
+          content: data.content || {},
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -457,7 +543,11 @@ export const useCurriculumStore = create<CurriculumState>()(
         set((state) => ({
           lessons: state.lessons.map((l) =>
             l.uuid === lessonUuid
-              ? { ...l, subsections: [...(l.subsections || []), newSubsection] }
+              ? {
+                  ...l,
+                  subsections: [...(l.subsections || []), newSubsection],
+                  updatedAt: new Date().toISOString(),
+                }
               : l
           ),
         }));
@@ -468,15 +558,13 @@ export const useCurriculumStore = create<CurriculumState>()(
       updateSubsection: (lessonUuid, subsectionUuid, data) => {
         set((state) => ({
           lessons: state.lessons.map((l) => {
-            if (l.uuid === lessonUuid) {
-              const updatedSubsections = (l.subsections || []).map((sub) =>
-                sub.uuid === subsectionUuid
-                  ? { ...sub, ...data, updatedAt: new Date().toISOString() }
-                  : sub
-              );
-              return { ...l, subsections: updatedSubsections };
-            }
-            return l;
+            if (l.uuid !== lessonUuid) return l;
+            const updated = (l.subsections || []).map((sub) =>
+              sub.uuid === subsectionUuid
+                ? { ...sub, ...data, updatedAt: new Date().toISOString() }
+                : sub
+            );
+            return { ...l, subsections: updated, updatedAt: new Date().toISOString() };
           }),
         }));
       },
@@ -484,13 +572,20 @@ export const useCurriculumStore = create<CurriculumState>()(
       deleteSubsection: (lessonUuid, subsectionUuid) => {
         set((state) => ({
           lessons: state.lessons.map((l) => {
-            if (l.uuid === lessonUuid) {
-              const remaining = (l.subsections || [])
-                .filter((sub) => sub.uuid !== subsectionUuid)
-                .map((sub, idx) => ({ ...sub, sortOrder: idx + 1 }));
-              return { ...l, subsections: remaining };
-            }
-            return l;
+            if (l.uuid !== lessonUuid) return l;
+            const targetSub = (l.subsections || []).find((s) => s.uuid === subsectionUuid);
+            if (!targetSub) return l;
+
+            const remaining = (l.subsections || [])
+              .filter((s) => s.uuid !== subsectionUuid)
+              .map((s) => {
+                if (s.sortOrder > targetSub.sortOrder) {
+                  return { ...s, sortOrder: s.sortOrder - 1 };
+                }
+                return s;
+              });
+
+            return { ...l, subsections: remaining, updatedAt: new Date().toISOString() };
           }),
         }));
       },
@@ -499,14 +594,13 @@ export const useCurriculumStore = create<CurriculumState>()(
         const lesson = get().lessons.find((l) => l.uuid === lessonUuid);
         if (!lesson) return null;
 
-        const targetSub = (lesson.subsections || []).find((sub) => sub.uuid === subsectionUuid);
+        const targetSub = (lesson.subsections || []).find((s) => s.uuid === subsectionUuid);
         if (!targetSub) return null;
 
-        const duplicatedSub: CourseLessonSubsection = {
+        const duplicated: CourseLessonSubsection = {
           ...targetSub,
           uuid: generateUuid(),
           title: `${targetSub.title} Copy`,
-          status: 'draft',
           sortOrder: targetSub.sortOrder + 1,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -514,42 +608,53 @@ export const useCurriculumStore = create<CurriculumState>()(
 
         set((state) => ({
           lessons: state.lessons.map((l) => {
-            if (l.uuid === lessonUuid) {
-              const subs = (l.subsections || []).map((sub) => {
-                if (sub.sortOrder > targetSub.sortOrder) {
-                  return { ...sub, sortOrder: sub.sortOrder + 1 };
-                }
-                return sub;
-              });
-              return { ...l, subsections: [...subs, duplicatedSub] };
-            }
-            return l;
+            if (l.uuid !== lessonUuid) return l;
+            const updated = (l.subsections || []).map((s) => {
+              if (s.sortOrder > targetSub.sortOrder) {
+                return { ...s, sortOrder: s.sortOrder + 1 };
+              }
+              return s;
+            });
+            return {
+              ...l,
+              subsections: [...updated, duplicated],
+              updatedAt: new Date().toISOString(),
+            };
           }),
         }));
 
-        return duplicatedSub;
+        return duplicated;
       },
 
       reorderSubsections: (lessonUuid, orderedSubsectionUuids) => {
         set((state) => ({
           lessons: state.lessons.map((l) => {
-            if (l.uuid === lessonUuid) {
-              const reordered = (l.subsections || []).map((sub) => {
-                const newIdx = orderedSubsectionUuids.indexOf(sub.uuid);
-                if (newIdx !== -1) {
-                  return { ...sub, sortOrder: newIdx + 1 };
-                }
-                return sub;
-              });
-              return { ...l, subsections: reordered.sort((a, b) => a.sortOrder - b.sortOrder) };
-            }
-            return l;
+            if (l.uuid !== lessonUuid) return l;
+            const updated = (l.subsections || []).map((sub) => {
+              const newIdx = orderedSubsectionUuids.indexOf(sub.uuid);
+              if (newIdx !== -1) {
+                return { ...sub, sortOrder: newIdx + 1, updatedAt: new Date().toISOString() };
+              }
+              return sub;
+            });
+            return { ...l, subsections: updated, updatedAt: new Date().toISOString() };
           }),
         }));
       },
+
+      // Helper Calculations
+      getCalculatedModuleDuration: (moduleUuid) => {
+        const modLessons = get().lessons.filter((l) => l.moduleUuid === moduleUuid);
+        return modLessons.reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
+      },
+
+      getCalculatedCourseDuration: (courseUuid) => {
+        const courseLessons = get().lessons.filter((l) => l.courseUuid === courseUuid);
+        return courseLessons.reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
+      },
     }),
     {
-      name: 'cubixskill-curriculum-store',
+      name: 'cubixskill-curriculum-store-v2',
     }
   )
 );

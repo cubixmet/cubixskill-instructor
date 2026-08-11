@@ -7,6 +7,7 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -26,9 +27,6 @@ import {
   FileText,
   Radio,
   Layers,
-  Eye,
-  ChevronDown,
-  ChevronUp,
   CircleHelp,
   Headphones,
   Files,
@@ -43,16 +41,15 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import type {
   CourseModule,
   CourseLesson,
-  CourseLessonSubsection,
   CurriculumLesson,
   LessonContent,
   LessonType,
 } from '../../../types/curriculum.types';
 import { SortableModuleCard } from '../components/curriculum/SortableModuleCard';
 import { ModuleFormModal } from '../components/curriculum/ModuleFormModal';
-import { LessonFormDrawer } from '../components/curriculum/LessonFormDrawer';
 import { AttachAssignmentModal } from '../components/curriculum/AttachAssignmentModal';
 import { AttachQuizModal } from '../components/curriculum/AttachQuizModal';
+import { AddLessonFlowModal } from '../components/curriculum/AddLessonFlowModal';
 import { CurriculumOverviewWidget } from '../components/curriculum/CurriculumOverviewWidget';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
@@ -103,26 +100,27 @@ export const CourseCurriculumPage: React.FC = () => {
   const publishedLessonCount = courseLessons.filter((l) => l.status === 'published').length;
   const draftLessonCount = courseLessons.filter((l) => l.status === 'draft').length;
 
+  const lessonsCountByModule = useMemo(() => {
+    const map: Record<string, number> = {};
+    modules.forEach((mod) => {
+      map[mod.uuid] = allLessons.filter((l) => l.moduleUuid === mod.uuid).length;
+    });
+    return map;
+  }, [modules, allLessons]);
+
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter] = useState<string>('all');
   const [typeFilter] = useState<string>('all');
-  const [isAllCollapsed, setIsAllCollapsed] = useState(false);
 
-  // Active Lesson Config Drawer State
-  const [activeLessonConfig, setActiveLessonConfig] = useState<CourseLesson | null>(null);
-  const [activeSubsectionTarget, setActiveSubsectionTarget] = useState<{
-    lessonUuid: string;
-    subsection?: CourseLessonSubsection | null;
-  } | null>(null);
+
 
   // Module Modal State
   const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
-  const [editingModule, setEditingModule] = useState<CourseModule | null>(null);
+  const editingModule = null;
 
   // Lesson Type Selector Modal State
   const [isLessonTypeSelectorOpen, setIsLessonTypeSelectorOpen] = useState(false);
-  const [targetModuleForLesson, setTargetModuleForLesson] = useState<string | null>(null);
 
   // Attach Assignment & Quiz Modal State
   const [isAttachAssignmentOpen, setIsAttachAssignmentOpen] = useState(Boolean(autoAttachedUuid));
@@ -140,9 +138,10 @@ export const CourseCurriculumPage: React.FC = () => {
     lessonCount?: number;
   } | null>(null);
 
-  // Sensors for dnd-kit
+  // Sensors for dnd-kit with touch support
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
@@ -167,13 +166,11 @@ export const CourseCurriculumPage: React.FC = () => {
 
   // MODULE SERVICE HANDLERS
   const handleOpenAddModuleModal = () => {
-    setEditingModule(null);
-    setIsModuleModalOpen(true);
+    navigate(`/courses/${courseUuid}/curriculum/modules/new`);
   };
 
   const handleOpenEditModuleModal = (mod: CourseModule) => {
-    setEditingModule(mod);
-    setIsModuleModalOpen(true);
+    navigate(`/courses/${courseUuid}/curriculum/modules/${mod.uuid}/edit`);
   };
 
   const handleSaveModule = (data: Partial<CourseModule>) => {
@@ -214,19 +211,37 @@ export const CourseCurriculumPage: React.FC = () => {
   };
 
   // LESSON SERVICE HANDLERS
-  const handleOpenLessonTypeSelector = (moduleUuid: string) => {
-    setTargetModuleForLesson(moduleUuid);
-    setIsLessonTypeSelectorOpen(true);
+  const handleOpenGeneralAddLesson = () => {
+    const firstModule = modules[0];
+    const targetUuid = firstModule ? firstModule.uuid : '';
+    navigate(
+      `/courses/${courseUuid}/curriculum/lessons/select-type${
+        targetUuid ? `?moduleUuid=${targetUuid}` : ''
+      }`
+    );
   };
 
-  const handleSelectLessonType = (type: LessonType) => {
-    const targetMod = targetModuleForLesson || modules[0]?.uuid;
-    if (!targetMod) {
-      showToast('Please create a module first before adding lessons.');
+  const handleOpenLessonTypeSelector = (moduleUuid: string) => {
+    navigate(
+      `/courses/${courseUuid}/curriculum/lessons/select-type?moduleUuid=${moduleUuid}`
+    );
+  };
+
+  const handleOpenAddResourcePage = (moduleUuid: string, lessonUuid?: string) => {
+    navigate(
+      `/courses/${courseUuid}/curriculum/resources/add?moduleUuid=${moduleUuid}${
+        lessonUuid ? `&lessonUuid=${lessonUuid}` : ''
+      }`
+    );
+  };
+
+  const handleSelectTypeAndModule = (type: LessonType, moduleUuid: string) => {
+    if (!moduleUuid) {
+      showToast('Please select a module first before adding lessons.');
       return;
     }
 
-    if (type === 'assignment') {
+    if (type === 'assignment' || type === 'project') {
       setIsLessonTypeSelectorOpen(false);
       setAttachTargetLesson(null);
       setIsAttachAssignmentOpen(true);
@@ -240,22 +255,18 @@ export const CourseCurriculumPage: React.FC = () => {
       return;
     }
 
-    const typeLabel = type.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-
-    const createdLesson = curriculumService.createLesson(courseUuid, targetMod, {
-      title: `New ${typeLabel} Lesson`,
-      description: `Description for ${typeLabel}...`,
-      type,
-      status: 'draft',
-      durationMinutes: 10,
-      isDemo: false,
-      unlockRule: 'immediate',
-      content: { videoSource: 'upload', allowDownload: true },
-    });
+    if (type === 'live_class') {
+      setIsLessonTypeSelectorOpen(false);
+      showToast('Live session scheduling window opened.');
+      return;
+    }
 
     setIsLessonTypeSelectorOpen(false);
-    setActiveLessonConfig(createdLesson);
-    showToast('Lesson created successfully.');
+    navigate(`/courses/${courseUuid}/curriculum/lessons/new?type=${type}&moduleUuid=${moduleUuid}`);
+  };
+
+  const _handleOpenEditLesson = (lesson: CourseLesson) => {
+    navigate(`/courses/${courseUuid}/curriculum/lessons/${lesson.uuid}/edit`);
   };
 
   const handleDuplicateLesson = (_moduleUuid: string, lessonUuid: string) => {
@@ -384,23 +395,23 @@ export const CourseCurriculumPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAllCollapsed(!isAllCollapsed)}
-              leftIcon={isAllCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-            >
-              {isAllCollapsed ? 'Expand All' : 'Collapse All'}
-            </Button>
-
+          <div className="flex items-center gap-2.5 shrink-0">
             <Button
               size="sm"
               leftIcon={<Plus className="w-4 h-4 stroke-[3]" />}
               onClick={handleOpenAddModuleModal}
-              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold px-4"
+              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold px-4 h-10"
             >
               Add Module
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              leftIcon={<Plus className="w-4 h-4 stroke-[3]" />}
+              onClick={handleOpenGeneralAddLesson}
+              className="border-[#2563EB] text-[#2563EB] hover:bg-blue-50/60 font-bold px-4 h-10"
+            >
+              Add Lesson
             </Button>
           </div>
         </div>
@@ -451,20 +462,24 @@ export const CourseCurriculumPage: React.FC = () => {
           )}
         </div>
 
-        {/* Mobile Quick Action Buttons Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-semibold">
-          <Button onClick={handleOpenAddModuleModal} leftIcon={<Plus className="w-4 h-4 stroke-[3]" />} className="h-[46px] w-full text-xs">
-            Add Module
-          </Button>
-          <Button onClick={() => setIsLessonTypeSelectorOpen(true)} variant="secondary" leftIcon={<Plus className="w-4 h-4 stroke-[3]" />} className="h-[46px] w-full text-xs">
-            Add Lesson
-          </Button>
-          <Button onClick={() => setIsAllCollapsed(!isAllCollapsed)} variant="outline" className="h-[46px] w-full text-xs">
-            {isAllCollapsed ? 'Expand All' : 'Collapse All'}
-          </Button>
-          <Button onClick={() => showToast('Course preview opened.')} variant="ghost" leftIcon={<Eye className="w-4 h-4" />} className="h-[46px] w-full text-xs">
-            Preview
-          </Button>
+        {/* Mobile / Page Action Buttons Grid (2 Equal Columns, No Truncation) */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full max-w-full">
+          <button
+            type="button"
+            onClick={handleOpenAddModuleModal}
+            className="h-11 sm:h-12 px-3 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-[0.98] text-white rounded-xl flex items-center justify-center gap-1.5 text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap min-w-0 w-full"
+          >
+            <Plus className="w-4 h-4 stroke-[3] shrink-0" />
+            <span className="whitespace-nowrap">Add Module</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenGeneralAddLesson}
+            className="h-11 sm:h-12 px-3 bg-white border-2 border-[#2563EB] text-[#2563EB] hover:bg-blue-50/60 active:scale-[0.98] rounded-xl flex items-center justify-center gap-1.5 text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap min-w-0 w-full"
+          >
+            <Plus className="w-4 h-4 stroke-[3] shrink-0" />
+            <span className="whitespace-nowrap">Add Lesson</span>
+          </button>
         </div>
       </div>
 
@@ -485,9 +500,9 @@ export const CourseCurriculumPage: React.FC = () => {
                   </Card>
                 ) : (
                   filteredModules.map((module, idx) => {
-                    const moduleLessons = (lessonsByModule[module.uuid] || []).map((l) => ({
+                    const moduleLessons = (lessonsByModule[module.uuid] || []).map((l, lIdx) => ({
                       ...l,
-                      id: l.uuid,
+                      id: l.uuid || `lesson-temp-${lIdx}-${l.title}`,
                     }));
 
                     return (
@@ -499,7 +514,9 @@ export const CourseCurriculumPage: React.FC = () => {
                           onAddLesson={handleOpenLessonTypeSelector}
                           onSelectLesson={(lesson: CurriculumLesson) => {
                             const full = lessonsByModule[module.uuid]?.find((l) => l.uuid === lesson.id);
-                            if (full) setActiveLessonConfig(full);
+                            if (full) {
+                              navigate(`/courses/${courseUuid}/curriculum/lessons/${full.uuid}/edit`);
+                            }
                           }}
                           onDeleteLesson={(modUuid, lessonUuid) =>
                             setDeleteModalTarget({
@@ -520,12 +537,7 @@ export const CourseCurriculumPage: React.FC = () => {
                           onDuplicateModule={handleDuplicateModule}
                           onEditModule={handleOpenEditModuleModal}
                           onDuplicateLesson={handleDuplicateLesson}
-                          onAddSubsection={(lessonUuid) => {
-                            setActiveSubsectionTarget({ lessonUuid, subsection: null });
-                          }}
-                          onEditSubsection={(lessonUuid, sub) => {
-                            setActiveSubsectionTarget({ lessonUuid, subsection: sub });
-                          }}
+                          onAddResource={handleOpenAddResourcePage}
                         />
                       </div>
                     );
@@ -559,43 +571,13 @@ export const CourseCurriculumPage: React.FC = () => {
         <Button onClick={handleOpenAddModuleModal} className="h-[44px] text-xs font-semibold flex-1">
           + Module
         </Button>
-        <Button onClick={() => setIsLessonTypeSelectorOpen(true)} variant="secondary" className="h-[44px] text-xs font-semibold flex-1">
+        <Button onClick={handleOpenGeneralAddLesson} variant="secondary" className="h-[44px] text-xs font-semibold flex-1">
           + Lesson
         </Button>
         <Button onClick={() => showToast('Course preview opened.')} variant="outline" className="h-[44px] text-xs font-semibold border-[#E2E8F0]">
           Preview
         </Button>
       </div>
-
-      {/* Lesson & Subsection Configuration Drawer */}
-      <LessonFormDrawer
-        isOpen={Boolean(activeLessonConfig || activeSubsectionTarget)}
-        onClose={() => {
-          setActiveLessonConfig(null);
-          setActiveSubsectionTarget(null);
-        }}
-        onSubmitLesson={(data) => {
-          if (activeSubsectionTarget) {
-            if (activeSubsectionTarget.subsection) {
-              curriculumService.updateSubsection(
-                activeSubsectionTarget.lessonUuid,
-                activeSubsectionTarget.subsection.uuid,
-                data
-              );
-              showToast('Subsection updated successfully.');
-            } else {
-              curriculumService.addSubsection(activeSubsectionTarget.lessonUuid, data);
-              showToast('Subsection added successfully.');
-            }
-            setActiveSubsectionTarget(null);
-          } else if (activeLessonConfig) {
-            curriculumService.updateLesson(activeLessonConfig.uuid, data);
-            showToast('Lesson updated successfully.');
-            setActiveLessonConfig(null);
-          }
-        }}
-        initialLesson={activeSubsectionTarget?.subsection || activeLessonConfig || undefined}
-      />
 
       {/* ADD / EDIT MODULE MODAL */}
       <ModuleFormModal
@@ -621,7 +603,7 @@ export const CourseCurriculumPage: React.FC = () => {
               const Icon = opt.icon;
               return (
                 <button
-                  key={opt.type}
+                  key={`type-opt-${opt.type}`}
                   type="button"
                   onClick={() => handleSelectLessonType(opt.type)}
                   className="p-3.5 bg-white hover:bg-blue-50/70 border border-[#E2E8F0] hover:border-[#2563EB] rounded-[14px] text-left transition-all cursor-pointer flex flex-col justify-between space-y-2 group shadow-xs min-h-[105px]"
@@ -713,6 +695,18 @@ export const CourseCurriculumPage: React.FC = () => {
             showToast(`Attached "${quiz.title}" to course curriculum.`);
           }
         }}
+      />
+
+      {/* ADD LESSON FLOW MODAL */}
+      <AddLessonFlowModal
+        isOpen={isLessonTypeSelectorOpen}
+        onClose={() => setIsLessonTypeSelectorOpen(false)}
+        modules={modules}
+        lessonsCountByModule={lessonsCountByModule}
+        preselectedModuleUuid={modules[0]?.uuid || null}
+        onSelectTypeAndModule={handleSelectTypeAndModule}
+        onCreateModule={handleOpenAddModuleModal}
+        courseUuid={courseUuid}
       />
     </div>
   );

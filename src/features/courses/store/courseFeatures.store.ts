@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 
 export interface CourseFeaturesConfig {
   // Learning Content Features
+  lessons: boolean;
   videoLessons: boolean;
   audioLessons: boolean;
   pdfLessons: boolean;
@@ -26,6 +27,9 @@ export interface CourseFeaturesConfig {
   courseCertificates: boolean;
   qrVerification: boolean;
   customCertificateDesigner: boolean;
+
+  // Fee & Billing Features
+  feeCollection: boolean;
 
   // Learning Control Features
   sequentialLearning: boolean;
@@ -68,6 +72,7 @@ export interface CourseFeaturesConfig {
 
 export const DEFAULT_COURSE_FEATURES: CourseFeaturesConfig = {
   // Learning Content Features
+  lessons: true,
   videoLessons: true,
   audioLessons: true,
   pdfLessons: true,
@@ -91,6 +96,9 @@ export const DEFAULT_COURSE_FEATURES: CourseFeaturesConfig = {
   courseCertificates: true,
   qrVerification: true,
   customCertificateDesigner: true,
+
+  // Fee & Billing Features
+  feeCollection: true,
 
   // Learning Control Features
   sequentialLearning: true,

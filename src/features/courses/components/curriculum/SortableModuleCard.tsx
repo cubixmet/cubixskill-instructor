@@ -10,13 +10,14 @@ import {
   Copy,
   Trash2,
   Clock,
-  Lock,
   MoreVertical,
+  AlertTriangle,
 } from 'lucide-react';
 import type { CurriculumLesson, CourseModule } from '../../../../types/curriculum.types';
 import { SortableLessonItem } from './SortableLessonItem';
 import { Badge } from '../../../../components/ui/Badge';
 import { Modal } from '../../../../components/ui/Modal';
+import { Button } from '../../../../components/ui/Button';
 
 interface SortableModuleCardProps {
   module: CourseModule;
@@ -31,8 +32,7 @@ interface SortableModuleCardProps {
   onEditModule: (module: CourseModule) => void;
   onTogglePublishModule?: (moduleUuid: string, currentStatus: string) => void;
   onDuplicateLesson?: (moduleUuid: string, lessonUuid: string) => void;
-  onAddSubsection?: (lessonUuid: string) => void;
-  onEditSubsection?: (lessonUuid: string, subsection: Record<string, unknown>) => void;
+  onAddResource?: (moduleUuid: string, lessonUuid?: string) => void;
 }
 
 export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
@@ -48,11 +48,11 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
   onEditModule,
   onTogglePublishModule: _onTogglePublishModule,
   onDuplicateLesson,
-  onAddSubsection,
-  onEditSubsection,
+  onAddResource,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: module.uuid,
@@ -64,11 +64,11 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
   };
 
   const lessonIds = lessons.map((l) => l.id);
-  const totalDuration = lessons.reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0) || module.durationMinutes;
+  const totalDuration = lessons.reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
 
   const hours = Math.floor(totalDuration / 60);
   const mins = totalDuration % 60;
-  const durationFormatted = hours > 0 ? `${hours}h ${mins}m` : `${mins} mins`;
+  const durationFormatted = hours > 0 ? `${hours}h ${mins}m` : `${mins} min`;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -82,20 +82,9 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
     }
   };
 
-  const getUnlockRuleLabel = (rule: string) => {
-    switch (rule) {
-      case 'previous_module':
-        return 'Previous Module Required';
-      case 'specific_date':
-        return `Date: ${module.unlockDate || 'Scheduled'}`;
-      case 'days_after_enrollment':
-        return `Enrollment +${module.unlockAfterDays || 1} Days`;
-      case 'manual':
-        return 'Manual Unlock';
-      case 'immediate':
-      default:
-        return 'Unlocked';
-    }
+  const handleConfirmDelete = () => {
+    setIsDeleteConfirmOpen(false);
+    onDeleteModule(module.uuid);
   };
 
   return (
@@ -109,11 +98,11 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
           : 'border-[#E2E8F0] hover:border-slate-300'
       }`}
     >
-      {/* Module Header Bar */}
-      <div className="p-4 bg-[#F8FAFC] border-b border-[#E2E8F0] space-y-2">
-        <div className="flex items-center justify-between gap-3">
-          {/* Left: Drag Handle, Number Badge & Title */}
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+      {/* Module Header Bar: Single Standard Content Card */}
+      <div className="p-3.5 sm:p-4 bg-[#F8FAFC] border-b border-[#E2E8F0] space-y-2.5 w-full min-w-0">
+        {/* 1. TOP UTILITY ROW: Drag Handle, Module Index | Expand Icon, Three-dot Menu */}
+        <div className="flex items-center justify-between gap-2 w-full min-w-0">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               {...attributes}
@@ -124,23 +113,18 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
               <GripVertical className="w-4 h-4" />
             </button>
 
-            <div className="w-7 h-7 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-semibold text-xs shrink-0 shadow-2xs">
+            <div className="w-6.5 h-6.5 sm:w-7 sm:h-7 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
               {moduleIndex}
             </div>
-
-            <h3 className="text-base font-semibold text-[#0F172A] tracking-tight truncate">
-              {module.title}
-            </h3>
           </div>
 
-          {/* Right: Status & Action Icons */}
-          <div className="flex items-center gap-2 shrink-0">
-            {getStatusBadge(module.status)}
-
+          {/* Right Controls: Expand & Menu */}
+          <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
               onClick={() => setIsExpanded(!isExpanded)}
               className="p-1.5 text-[#64748B] hover:text-[#0F172A] hover:bg-slate-200/60 rounded-lg transition-transform cursor-pointer"
+              title={isExpanded ? 'Collapse Module' : 'Expand Module'}
             >
               <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-[#2563EB]' : ''}`} />
             </button>
@@ -156,23 +140,37 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
           </div>
         </div>
 
-        {/* Clean Meta Strip Below Header */}
-        <div className="flex items-center gap-3 text-[13px] font-normal text-[#64748B] pl-9 flex-wrap">
-          <span>{lessons.length} Lessons</span>
-          <span>•</span>
-          <span className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-[#64748B]" /> {durationFormatted}
-          </span>
-          <span>•</span>
-          <span className="flex items-center gap-1 text-[#2563EB] font-medium">
-            <Lock className="w-3.5 h-3.5" /> {getUnlockRuleLabel(module.unlockRule)}
-          </span>
+        {/* 2. DEDICATED FULL-WIDTH MODULE TITLE & DESCRIPTION */}
+        <div className="w-full space-y-0.5">
+          <h3 className="text-sm sm:text-base font-bold text-[#0F172A] tracking-tight leading-snug break-words whitespace-normal font-sans w-full">
+            {module.title}
+          </h3>
+          {module.description && (
+            <p className="text-xs text-[#64748B] break-words whitespace-normal font-normal">
+              {module.description}
+            </p>
+          )}
+        </div>
+
+        {/* 3. METADATA & PUBLISHED STATUS ROW */}
+        <div className="flex items-center justify-between gap-2 text-xs font-medium text-[#64748B] flex-wrap pt-0.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span>{lessons.length} {lessons.length === 1 ? 'Lesson' : 'Lessons'}</span>
+            <span>•</span>
+            <span className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-[#64748B]" /> {durationFormatted}
+            </span>
+          </div>
+
+          <div>
+            {getStatusBadge(module.status || 'published')}
+          </div>
         </div>
       </div>
 
       {/* Module Expanded Lessons Container */}
       {isExpanded && (
-        <div className="p-4 bg-white space-y-3">
+        <div className="p-3 sm:p-4 bg-white space-y-3">
           {lessons.length === 0 ? (
             <div className="p-5 text-center bg-[#F8FAFC] rounded-[14px] border border-dashed border-[#E2E8F0] space-y-2">
               <p className="text-xs font-semibold text-[#0F172A]">No lessons in this module yet.</p>
@@ -190,15 +188,13 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
               <SortableContext items={lessonIds} strategy={verticalListSortingStrategy}>
                 {lessons.map((lesson, idx) => (
                   <SortableLessonItem
-                    key={lesson.id}
+                    key={lesson.id || lesson.uuid || `lesson-${module.uuid}-${idx}`}
                     lesson={lesson}
                     lessonIndex={`${moduleIndex}.${idx + 1}`}
                     onSelectLesson={(lesson: CurriculumLesson) => onSelectLesson(lesson)}
                     onDeleteLesson={(lessonId) => onDeleteLesson(module.uuid, lessonId)}
                     onDuplicateLesson={(lessonId) => onDuplicateLesson && onDuplicateLesson(module.uuid, lessonId)}
-                    onPreviewLesson={(lesson: CurriculumLesson) => onSelectLesson(lesson)}
-                    onAddSubsection={onAddSubsection}
-                    onEditSubsection={onEditSubsection}
+                    onAddResource={(lessonId) => onAddResource && onAddResource(module.uuid, lessonId)}
                   />
                 ))}
               </SortableContext>
@@ -217,7 +213,7 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
         </div>
       )}
 
-      {/* MORE MODULE ACTIONS BOTTOM SHEET / MODAL */}
+      {/* MORE MODULE ACTIONS MODAL */}
       <Modal
         isOpen={isMoreMenuOpen}
         onClose={() => setIsMoreMenuOpen(false)}
@@ -248,14 +244,56 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
             type="button"
             onClick={() => {
               setIsMoreMenuOpen(false);
-              onDeleteModule(module.uuid);
+              setIsDeleteConfirmOpen(true);
             }}
-            className="w-full p-3 rounded-xl hover:bg-rose-50 text-rose-600 flex items-center gap-3 font-semibold cursor-pointer"
+            className="w-full p-3 rounded-xl hover:bg-rose-50 text-rose-600 flex items-center gap-3 font-semibold cursor-pointer border-t border-slate-100 pt-3"
           >
             <Trash2 className="w-4 h-4 text-rose-600" /> Delete Module
           </button>
         </div>
       </Modal>
+
+      {/* SAFE DELETE CONFIRMATION MODAL */}
+      {isDeleteConfirmOpen && (
+        <div className="fixed inset-0 z-60 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl border border-[#E2E8F0] text-left">
+            <div className="flex items-center gap-2.5 text-rose-600 font-bold text-sm">
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              <span>Delete Module</span>
+            </div>
+
+            <p className="text-xs text-[#64748B] leading-relaxed">
+              Are you sure you want to delete <strong className="text-[#0F172A]">{module.title}</strong>?
+              {lessons.length > 0 && (
+                <span className="block mt-2 p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-rose-800 font-semibold text-[11px]">
+                  Warning: This module contains {lessons.length} {lessons.length === 1 ? 'lesson' : 'lessons'}. Deleting it will permanently remove all contained lessons.
+                </span>
+              )}
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="text-xs font-semibold h-9 px-3.5"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={handleConfirmDelete}
+                className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold h-9 px-4 cursor-pointer"
+              >
+                Delete Module
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -137,8 +137,10 @@ export const StudentPortalBrandingPage: React.FC = () => {
     setConfirmModalType(null);
   };
 
+  const [mobilePanel, setMobilePanel] = React.useState<'settings' | 'preview'>('settings');
+
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 space-y-5 font-sans text-xs text-slate-900 text-left overflow-x-hidden min-w-0 pb-28 sm:pb-12">
+    <div className="w-full max-w-[1600px] mx-auto px-2.5 sm:px-6 lg:px-8 py-3 sm:py-6 space-y-4 sm:space-y-5 font-sans text-xs text-slate-900 text-left overflow-x-hidden min-w-0 pb-28 sm:pb-12">
       {/* 1. STACKED MOBILE-FRIENDLY PAGE HEADER BAR */}
       <div className="flex flex-col space-y-4 border-b border-slate-200/80 pb-4 min-w-0">
         <div className="flex items-start gap-3 min-w-0">
@@ -151,7 +153,7 @@ export const StudentPortalBrandingPage: React.FC = () => {
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl lg:text-[28px] font-bold text-slate-900 tracking-tight leading-tight break-words">
+            <h1 className="text-base sm:text-xl font-medium text-slate-900 tracking-tight leading-tight break-words">
               Student Portal Branding
             </h1>
             <p className="text-slate-500 text-xs sm:text-sm font-normal mt-1 leading-normal break-words">
@@ -160,24 +162,24 @@ export const StudentPortalBrandingPage: React.FC = () => {
           </div>
         </div>
 
-        {/* HEADER ACTIONS (STACK ON MOBILE <390px, 2-COLUMN GRID ON SM, FLEX ON MD+) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:items-center md:justify-end gap-2.5 w-full pt-1">
+        {/* HEADER ACTIONS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:items-center md:justify-end gap-2 w-full pt-1">
           <Button
             type="button"
             variant="outline"
             size="md"
             onClick={() => setConfirmModalType('reset')}
-            className="text-slate-700 border-slate-200 hover:bg-slate-50 font-semibold h-11 rounded-[10px] text-xs sm:text-sm w-full md:w-auto min-h-[44px]"
-            leftIcon={<RotateCcw className="w-4 h-4 text-slate-500" />}
+            className="text-slate-700 border-slate-200 hover:bg-slate-50 font-medium h-[38px] min-h-[38px] rounded-xl text-xs w-full md:w-auto"
+            leftIcon={<RotateCcw className="w-3.5 h-3.5 text-slate-500" />}
           >
-            Reset Defaults
+            Reset
           </Button>
 
           <Button
             size="md"
             onClick={() => handleSave()}
             style={{ backgroundColor: activeTheme.primaryColor }}
-            className="text-white font-semibold shadow-xs h-11 rounded-[10px] text-xs sm:text-sm w-full md:w-auto min-h-[44px]"
+            className="text-white font-medium shadow-xs h-[38px] min-h-[38px] rounded-xl text-xs w-full md:w-auto"
           >
             Save Branding
           </Button>
@@ -185,20 +187,42 @@ export const StudentPortalBrandingPage: React.FC = () => {
       </div>
 
       {/* TOAST ALERT */}
+      {/* MOBILE SETTINGS / PREVIEW TAB SWITCHER */}
+      <div className="flex xl:hidden bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
+        <button
+          type="button"
+          onClick={() => setMobilePanel('settings')}
+          className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer min-h-[34px] ${
+            mobilePanel === 'settings' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'
+          }`}
+        >
+          Settings
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobilePanel('preview')}
+          className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer min-h-[34px] ${
+            mobilePanel === 'preview' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'
+          }`}
+        >
+          Preview
+        </button>
+      </div>
+
       {saveToast && (
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 shadow-xs animate-in fade-in min-w-0">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2 shadow-xs min-w-0">
           <Check className="w-4 h-4 text-emerald-600 shrink-0" />
           <span className="truncate">{saveToast}</span>
         </div>
       )}
 
       {/* 2. TWO-COLUMN RESPONSIVE LAYOUT */}
-      <form onSubmit={handleSave} className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start min-w-0">
+      <form onSubmit={handleSave} className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-6 items-start min-w-0">
         {/* LEFT PANEL: BRANDING SETTINGS */}
-        <div className="xl:col-span-6 space-y-5 min-w-0 w-full">
+        <div className={`xl:col-span-6 space-y-4 min-w-0 w-full ${mobilePanel === 'preview' ? 'hidden xl:block' : ''}`}>
           {/* SECTION 1: ACADEMY INFORMATION */}
           <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs space-y-4 min-w-0">
-            <h2 className="text-sm sm:text-base font-bold text-slate-900">1. Academy Information</h2>
+            <h2 className="text-sm font-medium text-slate-900">1. Academy Information</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs sm:text-[13px] font-medium text-slate-800 mb-1">
@@ -224,7 +248,7 @@ export const StudentPortalBrandingPage: React.FC = () => {
                     placeholder="support@academy.com"
                     className="w-full h-11 sm:h-12 text-xs sm:text-sm rounded-[10px]"
                   />
-                  {emailError && <p className="text-rose-600 text-[11px] mt-1 font-semibold">{emailError}</p>}
+                  {emailError && <p className="text-rose-600 text-[11px] mt-1 font-medium">{emailError}</p>}
                 </div>
 
                 <div>
@@ -244,8 +268,8 @@ export const StudentPortalBrandingPage: React.FC = () => {
           {/* SECTION 2: ACADEMY LOGO UPLOAD CARD */}
           <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs space-y-4 min-w-0">
             <div>
-              <h2 className="text-sm sm:text-base font-bold text-slate-900">2. Academy Logo</h2>
-              <p className="text-slate-500 text-xs mt-0.5">
+              <h2 className="text-sm font-medium text-slate-900">2. Academy Logo</h2>
+              <p className="text-slate-500 text-xs mt-0.5 font-normal">
                 Displays in the Student Portal header. Max file size: 5MB (PNG, JPG, SVG, WEBP).
               </p>
             </div>
@@ -256,8 +280,8 @@ export const StudentPortalBrandingPage: React.FC = () => {
                   <div className="flex items-center gap-3 min-w-0">
                     <img src={logoFileUrl} alt="Academy Logo" className="w-12 h-12 rounded-xl object-cover border p-0.5 bg-slate-50 shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <span className="font-bold text-slate-900 text-xs block truncate">Active Logo File</span>
-                      <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
+                      <span className="font-medium text-slate-900 text-xs block truncate">Active Logo File</span>
+                      <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
                         <Check className="w-3.5 h-3.5 shrink-0" /> Ready for Header
                       </span>
                     </div>
@@ -265,7 +289,7 @@ export const StudentPortalBrandingPage: React.FC = () => {
 
                   {/* BUTTONS GRID: 1-COLUMN BELOW 340PX, 2-COLUMN AT 340PX+ */}
                   <div className="grid grid-cols-1 min-[340px]:grid-cols-2 gap-2 w-full pt-1">
-                    <label className="h-11 px-3 rounded-[10px] border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer flex items-center justify-center gap-1.5 min-h-[44px] w-full">
+                    <label className="h-10 px-3 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium cursor-pointer flex items-center justify-center gap-1.5 min-h-[40px] w-full">
                       <RefreshCw className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                       <span>Replace</span>
                       <input type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp" onChange={(e) => handleFileUpload(e, 'logo')} className="hidden" />
@@ -273,7 +297,7 @@ export const StudentPortalBrandingPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setConfirmModalType('logo')}
-                      className="h-11 px-3 rounded-[10px] border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px] w-full"
+                      className="h-10 px-3 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer min-h-[40px] w-full"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                       <span>Remove</span>
@@ -282,11 +306,11 @@ export const StudentPortalBrandingPage: React.FC = () => {
                 </div>
               ) : (
                 <label className="flex flex-col items-center justify-center p-6 cursor-pointer text-center space-y-2">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-                    <Upload className="w-6 h-6" />
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                    <Upload className="w-5 h-5" />
                   </div>
-                  <span className="font-bold text-slate-900 text-xs">Click to upload Academy Logo</span>
-                  <span className="text-[11px] text-slate-400">PNG, JPG, JPEG, SVG or WEBP (Max 5MB)</span>
+                  <span className="font-medium text-slate-900 text-xs">Click to upload Academy Logo</span>
+                  <span className="text-[11px] text-slate-400 font-normal">PNG, JPG, JPEG, SVG or WEBP (Max 5MB)</span>
                   <input type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp" onChange={(e) => handleFileUpload(e, 'logo')} className="hidden" />
                 </label>
               )}
@@ -294,10 +318,10 @@ export const StudentPortalBrandingPage: React.FC = () => {
           </div>
 
           {/* SECTION 3: FAVICON UPLOAD */}
-          <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs space-y-4 min-w-0">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4 min-w-0">
             <div>
-              <h2 className="text-sm sm:text-base font-bold text-slate-900">3. Academy Favicon</h2>
-              <p className="text-slate-500 text-xs mt-0.5">Recommended 512×512 PNG, ICO, or SVG for browser tab icon.</p>
+              <h2 className="text-sm font-medium text-slate-900">3. Academy Favicon</h2>
+              <p className="text-slate-500 text-xs mt-0.5 font-normal">Recommended 512×512 PNG, ICO, or SVG for browser tab icon.</p>
             </div>
 
             <div className="p-3.5 sm:p-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 min-w-0">
@@ -305,18 +329,18 @@ export const StudentPortalBrandingPage: React.FC = () => {
                 <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 min-w-0">
                   <div className="flex items-center gap-3 min-w-0">
                     <img src={faviconFileUrl} alt="Favicon" className="w-8 h-8 rounded-lg object-contain border p-0.5 bg-slate-50 shrink-0" />
-                    <span className="font-bold text-xs text-slate-900 truncate">Favicon Uploaded</span>
+                    <span className="font-medium text-xs text-slate-900 truncate">Favicon Uploaded</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setConfirmModalType('favicon')}
-                    className="h-10 px-3 rounded-[10px] border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold flex items-center gap-1 cursor-pointer shrink-0"
+                    className="h-10 px-3 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-medium flex items-center gap-1 cursor-pointer shrink-0"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-rose-500" /> Remove
                   </button>
                 </div>
               ) : (
-                <label className="flex items-center justify-between p-3 cursor-pointer text-slate-700 font-semibold min-h-[44px]">
+                <label className="flex items-center justify-between p-3 cursor-pointer text-slate-700 font-medium min-h-[44px]">
                   <span className="text-xs">Upload Favicon (512×512)</span>
                   <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/x-icon" onChange={(e) => handleFileUpload(e, 'favicon')} className="hidden" />
                   <Upload className="w-4 h-4 text-slate-500 shrink-0" />
@@ -326,14 +350,14 @@ export const StudentPortalBrandingPage: React.FC = () => {
           </div>
 
           {/* SECTION 4: 20 PREBUILT THEMES GALLERY */}
-          <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs space-y-4 min-w-0">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4 min-w-0">
             <div>
-              <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+              <h2 className="text-sm font-medium text-slate-900 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500" />
-                <span>4. 20 Prebuilt Themes</span>
+                <span>4. Prebuilt Themes</span>
               </h2>
-              <p className="text-slate-500 text-xs mt-0.5">
-                Click any theme to apply it instantly to the Student Portal Live Preview.
+              <p className="text-slate-500 text-xs mt-0.5 font-normal">
+                Click any theme to apply it instantly to the Live Preview.
               </p>
             </div>
 
@@ -349,14 +373,14 @@ export const StudentPortalBrandingPage: React.FC = () => {
                     onClick={() => applyTheme(theme.id)}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-slate-900 text-xs truncate">{theme.name}</span>
+                      <span className="font-medium text-slate-900 text-xs truncate">{theme.name}</span>
                       <span className="text-[10px] text-slate-400 font-mono shrink-0">{theme.category}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full border shadow-2xs shrink-0" style={{ backgroundColor: theme.primaryColor }} title="Primary" />
                       <div className="w-6 h-6 rounded-full border shadow-2xs shrink-0" style={{ backgroundColor: theme.secondaryColor }} title="Secondary" />
-                      <div className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-white shadow-2xs truncate" style={{ backgroundColor: theme.buttonColor }}>
+                      <div className="px-2.5 py-1 rounded-lg text-[10px] font-medium text-white shadow-2xs truncate" style={{ backgroundColor: theme.buttonColor }}>
                         Button
                       </div>
                     </div>
@@ -364,12 +388,12 @@ export const StudentPortalBrandingPage: React.FC = () => {
                     <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
                       <span className="text-[10px] font-mono text-slate-400">{theme.primaryColor}</span>
                       {isSelected ? (
-                        <span className="text-[11px] font-bold text-blue-600 flex items-center gap-1">
+                        <span className="text-[11px] font-medium text-blue-600 flex items-center gap-1">
                           <Check className="w-3.5 h-3.5" /> Applied
                         </span>
                       ) : (
-                        <span className="text-[11px] font-semibold text-slate-400 hover:text-blue-600">
-                          Apply Theme
+                        <span className="text-[11px] font-medium text-slate-400 hover:text-blue-600">
+                          Apply
                         </span>
                       )}
                     </div>
@@ -380,13 +404,13 @@ export const StudentPortalBrandingPage: React.FC = () => {
           </div>
 
           {/* SECTION 5: CUSTOM BRAND COLOR OVERRIDES */}
-          <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs space-y-4 min-w-0">
-            <h2 className="text-sm sm:text-base font-bold text-slate-900">5. Custom Brand Color Overrides</h2>
-            <p className="text-slate-500 text-xs">Optionally override theme primary &amp; secondary colors using custom HEX codes.</p>
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4 min-w-0">
+            <h2 className="text-sm font-medium text-slate-900">5. Custom Brand Colors</h2>
+            <p className="text-slate-500 text-xs font-normal">Override theme primary &amp; secondary colors using custom HEX codes.</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-800">Primary Accent Color</label>
+                <label className="block text-xs font-medium text-slate-700">Primary Accent Color</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
@@ -405,7 +429,7 @@ export const StudentPortalBrandingPage: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-800">Secondary Accent Color</label>
+                <label className="block text-xs font-medium text-slate-700">Secondary Accent Color</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
@@ -427,12 +451,12 @@ export const StudentPortalBrandingPage: React.FC = () => {
         </div>
 
         {/* RIGHT PANEL: LIVE STUDENT PORTAL PREVIEW */}
-        <div className="xl:col-span-6 space-y-6 xl:sticky xl:top-6 min-w-0 w-full">
-          <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-md space-y-4 min-w-0">
+        <div className={`xl:col-span-6 space-y-4 xl:sticky xl:top-6 min-w-0 w-full ${mobilePanel === 'settings' ? 'hidden xl:block' : ''}`}>
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/90 shadow-md space-y-4 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
-                <h3 className="font-bold text-slate-900 text-xs sm:text-sm">Live Student Portal Preview</h3>
-                <span className="text-[11px] text-slate-400 font-medium">Updates in real time as you edit</span>
+                <h3 className="font-medium text-slate-900 text-xs sm:text-sm">Live Student Portal Preview</h3>
+                <span className="text-[11px] text-slate-400 font-normal">Updates in real time as you edit</span>
               </div>
 
               {/* SEGMENTED VIEWPORT CONTROLS */}
@@ -441,7 +465,7 @@ export const StudentPortalBrandingPage: React.FC = () => {
                   type="button"
                   onClick={() => setPreviewViewport('desktop')}
                   className={`py-1.5 px-3 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px] ${
-                    previewViewport === 'desktop' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-900'
+                    previewViewport === 'desktop' ? 'bg-white text-slate-900 shadow-2xs font-medium' : 'text-slate-500 hover:text-slate-900'
                   }`}
                   title="Desktop View"
                 >
@@ -452,7 +476,7 @@ export const StudentPortalBrandingPage: React.FC = () => {
                   type="button"
                   onClick={() => setPreviewViewport('tablet')}
                   className={`py-1.5 px-3 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px] ${
-                    previewViewport === 'tablet' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-900'
+                    previewViewport === 'tablet' ? 'bg-white text-slate-900 shadow-2xs font-medium' : 'text-slate-500 hover:text-slate-900'
                   }`}
                   title="Tablet View"
                 >
@@ -463,7 +487,7 @@ export const StudentPortalBrandingPage: React.FC = () => {
                   type="button"
                   onClick={() => setPreviewViewport('mobile')}
                   className={`py-1.5 px-3 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px] ${
-                    previewViewport === 'mobile' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-900'
+                    previewViewport === 'mobile' ? 'bg-white text-slate-900 shadow-2xs font-medium' : 'text-slate-500 hover:text-slate-900'
                   }`}
                   title="Mobile View"
                 >
@@ -492,7 +516,7 @@ export const StudentPortalBrandingPage: React.FC = () => {
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
                   </div>
                   <span className="font-mono text-[10px] text-slate-400 truncate max-w-[180px] sm:max-w-[240px]">
-                    http://localhost:5173/student/courses/overview
+                    {typeof window !== 'undefined' ? `${window.location.origin}/student/courses/overview` : 'https://student.cubixskill.com/student/courses/overview'}
                   </span>
                   <div className="w-4" />
                 </div>
@@ -507,14 +531,14 @@ export const StudentPortalBrandingPage: React.FC = () => {
                           <img src={logoFileUrl} alt="Logo" className="w-8 h-8 rounded-lg object-cover border border-slate-200 shadow-2xs shrink-0" />
                         ) : (
                           <div
-                            className="w-8 h-8 rounded-lg text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs"
+                            className="w-8 h-8 rounded-lg text-white font-medium flex items-center justify-center text-xs shrink-0 shadow-2xs"
                             style={{ backgroundColor: activeTheme.primaryColor }}
                           >
                             {(formName || 'C').substring(0, 1)}
                           </div>
                         )}
                         <div className="min-w-0">
-                          <span className="text-[12px] sm:text-[13px] font-semibold text-slate-950 truncate block leading-tight">
+                          <span className="text-[12px] sm:text-[13px] font-medium text-slate-950 truncate block leading-tight">
                             {formName || 'CodeVerse Software Academy'}
                           </span>
                           <span className="text-[10px] font-normal text-slate-500 truncate block">
@@ -539,17 +563,17 @@ export const StudentPortalBrandingPage: React.FC = () => {
                           <img src={logoFileUrl} alt="Logo" className="h-8 w-8 rounded-lg object-cover border border-slate-200 shrink-0" />
                         ) : (
                           <div
-                            className="h-8 w-8 rounded-lg text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs"
+                            className="h-8 w-8 rounded-lg text-white font-medium flex items-center justify-center text-xs shrink-0 shadow-2xs"
                             style={{ backgroundColor: activeTheme.primaryColor }}
                           >
                             {(formName || 'C').substring(0, 1)}
                           </div>
                         )}
                         <div className="min-w-0">
-                          <p className="truncate text-[13px] font-semibold text-slate-950 block leading-tight">
+                          <p className="truncate text-[13px] font-medium text-slate-950 block leading-tight">
                             {formName || 'CodeVerse Software Academy'}
                           </p>
-                          <p className="truncate text-[11px] text-slate-500 block max-w-[180px] sm:max-w-[240px]">
+                          <p className="truncate text-[11px] text-slate-500 font-normal block max-w-[180px] sm:max-w-[240px]">
                             Node.js Microservices &amp; Event-Driven Systems
                           </p>
                         </div>
@@ -570,7 +594,7 @@ export const StudentPortalBrandingPage: React.FC = () => {
                             alt="Alex Student"
                             className="h-8 w-8 rounded-full object-cover border border-slate-200 shrink-0"
                           />
-                          <span className="hidden text-[12px] font-semibold sm:block text-slate-900 truncate">
+                          <span className="hidden text-[12px] font-medium sm:block text-slate-900 truncate">
                             ALEX STUDENT
                           </span>
                           <ChevronDown className="hidden h-4 w-4 text-slate-400 sm:block shrink-0" />
@@ -604,18 +628,18 @@ export const StudentPortalBrandingPage: React.FC = () => {
                           <span className="text-[11px] text-slate-500 font-medium">• English</span>
                         </div>
 
-                        <h2 className="text-sm sm:text-base font-bold text-slate-900 leading-tight truncate">
+                        <h2 className="text-sm font-medium text-slate-900 leading-tight truncate">
                           Node.js Microservices &amp; Event-Driven Systems
                         </h2>
 
-                        <p className="text-[11px] text-slate-500 truncate">
-                          Lead Instructor: <strong className="font-semibold text-slate-700">Aarav Patel</strong>
+                        <p className="text-[11px] text-slate-500 font-normal truncate">
+                          Lead Instructor: <strong className="font-medium text-slate-700">Aarav Patel</strong>
                         </p>
 
                         <div className="pt-1 flex items-center gap-2">
                           <button
                             type="button"
-                            className="flex h-11 items-center justify-center gap-2 rounded-[10px] px-4 text-xs sm:text-sm font-semibold text-white shadow-2xs w-full sm:w-auto min-h-[44px]"
+                            className="flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-xs font-medium text-white shadow-2xs w-full sm:w-auto min-h-[40px]"
                             style={{ backgroundColor: activeTheme.primaryColor }}
                           >
                             <CirclePlay className="w-4 h-4" />
@@ -661,7 +685,7 @@ export const StudentPortalBrandingPage: React.FC = () => {
 
                 {/* MOBILE BOTTOM NAVIGATION BAR (5 EQUAL COLUMNS: My Course, Learn, Assignments, Live, More) */}
                 {previewViewport === 'mobile' && (
-                  <div className="absolute bottom-0 left-0 right-0 h-14 bg-white border-t border-slate-200/90 grid grid-cols-5 items-center font-sans text-[10px] font-semibold text-slate-500 z-30 shadow-lg">
+                  <div className="absolute bottom-0 left-0 right-0 h-14 bg-white border-t border-slate-200/90 grid grid-cols-5 items-center font-sans text-[10px] font-medium text-slate-500 z-30 shadow-lg">
                     <div className="flex flex-col items-center justify-center gap-0.5" style={{ color: activeTheme.primaryColor }}>
                       <BookOpen className="w-4 h-4 shrink-0" />
                       <span className="truncate">My Course</span>
@@ -691,14 +715,14 @@ export const StudentPortalBrandingPage: React.FC = () => {
       </form>
 
       {/* 3. STICKY MOBILE SAVE BAR (<640px) */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 sm:hidden shadow-lg pb-[calc(12px+env(safe-area-inset-bottom))] flex items-center justify-between gap-2.5">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 sm:hidden shadow-lg pb-[calc(12px+env(safe-area-inset-bottom))] flex items-center justify-between gap-2">
         <Button
           type="button"
           variant="outline"
           size="md"
           onClick={() => setConfirmModalType('reset')}
-          className="text-slate-700 border-slate-200 font-semibold h-11 flex-1 min-h-[44px] rounded-[10px] text-xs"
-          leftIcon={<RotateCcw className="w-4 h-4 text-slate-500" />}
+          className="text-slate-700 border-slate-200 font-medium h-[38px] min-h-[38px] flex-1 rounded-xl text-xs"
+          leftIcon={<RotateCcw className="w-3.5 h-3.5 text-slate-500" />}
         >
           Reset
         </Button>
@@ -707,7 +731,7 @@ export const StudentPortalBrandingPage: React.FC = () => {
           size="md"
           onClick={() => handleSave()}
           style={{ backgroundColor: activeTheme.primaryColor }}
-          className="text-white font-semibold shadow-xs h-11 flex-1 min-h-[44px] rounded-[10px] text-xs"
+          className="text-white font-medium shadow-xs h-[38px] min-h-[38px] flex-1 rounded-xl text-xs"
         >
           Save Branding
         </Button>
@@ -727,7 +751,7 @@ export const StudentPortalBrandingPage: React.FC = () => {
           }
         >
           <div className="space-y-4 text-xs font-sans text-left">
-            <p className="text-slate-600 text-sm">
+            <p className="text-slate-600 text-sm font-normal">
               {confirmModalType === 'logo'
                 ? 'Are you sure you want to remove the current academy logo?'
                 : confirmModalType === 'favicon'
@@ -736,14 +760,14 @@ export const StudentPortalBrandingPage: React.FC = () => {
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-              <Button variant="outline" size="md" onClick={() => setConfirmModalType(null)} className="font-semibold min-h-[44px] rounded-[10px]">
+              <Button variant="outline" size="md" onClick={() => setConfirmModalType(null)} className="font-medium min-h-[40px] rounded-xl">
                 Cancel
               </Button>
               <Button
                 size="md"
                 onClick={handleConfirmAction}
                 style={{ backgroundColor: confirmModalType === 'reset' ? '#DC2626' : activeTheme.primaryColor }}
-                className="text-white font-semibold min-h-[44px] rounded-[10px]"
+                className="text-white font-medium min-h-[40px] rounded-xl"
               >
                 Confirm
               </Button>

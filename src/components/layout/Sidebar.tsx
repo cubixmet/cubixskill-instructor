@@ -3,14 +3,10 @@ import {
   LayoutDashboard,
   BookOpen,
   Users,
-  FileCheck,
-  HelpCircle,
   Award,
-  BarChart3,
   CreditCard,
   Layers,
   MessageSquare,
-  Megaphone,
   Video,
   Settings,
   HelpCircle as SupportIcon,
@@ -21,6 +17,8 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  Ticket,
+  IndianRupee,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -49,11 +47,13 @@ export function isNavItemActive(href: string, pathname: string): boolean {
       pathname.includes("/quizzes") ||
       pathname.includes("/certificates") ||
       pathname.includes("/students") ||
+      pathname.includes("/coupons") ||
       pathname.includes("/reports") ||
       pathname.includes("/settings");
     return !isSubFeature && pathname.startsWith("/courses");
   }
 
+  if (href === "/coupons") return pathname.startsWith("/coupons");
   if (href === "/students") return pathname.includes("/students");
   if (href === "/assignments") return pathname.includes("/assignments");
   if (href === "/quizzes") return pathname.includes("/quizzes");
@@ -63,6 +63,7 @@ export function isNavItemActive(href: string, pathname: string): boolean {
   if (href === "/live-classroom") return pathname.includes("/live-classroom");
   if (href === "/reports") return pathname.includes("/reports") && !pathname.startsWith("/students");
   if (href === "/credits") return pathname.startsWith("/credits");
+  if (href === "/fees") return pathname.startsWith("/fees") || pathname.includes("/fees");
   if (href === "/media") return pathname.startsWith("/media");
   if (href === "/staff") return pathname.startsWith("/staff");
   if (href === "/roles") return pathname.startsWith("/roles");
@@ -93,17 +94,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { label: "Courses", href: "/courses", icon: BookOpen },
         { label: "Students", href: "/students", icon: Users },
         { label: "Demo Leads", href: "/demo-leads", icon: Sparkles },
-        { label: "Reports & Analytics", href: "/reports", icon: BarChart3 },
       ],
     },
     {
       group: "Teaching & Content",
       items: [
-        { label: "Assignments", href: "/assignments", icon: FileCheck },
-        { label: "Quizzes", href: "/quizzes", icon: HelpCircle },
         { label: "Certificates", href: "/certificates", icon: Award },
         { label: "Discussions", href: "/discussions", icon: MessageSquare },
-        { label: "Announcements", href: "/announcements", icon: Megaphone },
         { label: "Live Classroom", href: "/live-classroom", icon: Video },
         { label: "Media Library", href: "/media", icon: Layers },
       ],
@@ -111,6 +108,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       group: "Credits & Finance",
       items: [
+        { label: "Fees Collection", href: "/fees", icon: IndianRupee },
+        { label: "Coupons", href: "/coupons", icon: Ticket },
         { label: "Credits & Wallet", href: "/credits", icon: CreditCard },
       ],
     },
@@ -118,7 +117,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       group: "Academy & Team",
       items: [
         { label: "Website Builder", href: "/website-builder", icon: Globe },
-        { label: "Public Leads", href: "/leads", icon: UserCheck },
         { label: "Staff Directory", href: "/staff", icon: UserCheck },
         { label: "Roles & Access", href: "/roles", icon: ShieldAlert },
       ],
@@ -154,7 +152,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 Cubix<span className="text-blue-600">Skill</span>
               </span>
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block truncate">
-                Instructor Enterprise
+                Academy Platform
               </span>
             </div>
           )}

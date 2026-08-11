@@ -23,7 +23,6 @@ import { FeatureDisabledBanner } from '../../discussions/components/FeatureDisab
 import { LiveSessionSummaryCards } from '../../live-sessions/components/LiveSessionSummaryCards';
 import { LiveSessionCard } from '../../live-sessions/components/LiveSessionCard';
 import { LiveSessionCalendarView } from '../../live-sessions/components/LiveSessionCalendarView';
-import { CreateLiveSessionModal } from '../../live-sessions/components/CreateLiveSessionModal';
 import { LiveSessionAttendanceModal } from '../../live-sessions/components/LiveSessionAttendanceModal';
 import { LiveSessionRecordingModal } from '../../live-sessions/components/LiveSessionRecordingModal';
 import { LiveSessionAnalyticsModal } from '../../live-sessions/components/LiveSessionAnalyticsModal';
@@ -39,8 +38,7 @@ export const CourseLiveSessionsPage: React.FC = () => {
   const subPath = (params['*'] || '').replace(/^\/+/, '');
   const pathSegments = subPath.split('/').filter(Boolean);
 
-  const isCreateRoute = location.pathname.endsWith('/create');
-  const targetSessionUuid = !isCreateRoute && pathSegments[0] ? pathSegments[0] : null;
+  const targetSessionUuid = pathSegments[0] && !['new', 'create'].includes(pathSegments[0]) ? pathSegments[0] : null;
   const isAttendanceRoute = location.pathname.endsWith('/attendance');
   const isRecordingRoute = location.pathname.endsWith('/recording');
 
@@ -50,8 +48,6 @@ export const CourseLiveSessionsPage: React.FC = () => {
 
   // Live Sessions Store State
   const sessions = useLiveSessionStore((state) => state.sessions);
-  const addLiveSession = useLiveSessionStore((state) => state.addLiveSession);
-  const updateLiveSession = useLiveSessionStore((state) => state.updateLiveSession);
   const cancelLiveSession = useLiveSessionStore((state) => state.cancelLiveSession);
   const startLiveSession = useLiveSessionStore((state) => state.startLiveSession);
   const endLiveSession = useLiveSessionStore((state) => state.endLiveSession);
@@ -62,12 +58,8 @@ export const CourseLiveSessionsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [platformFilter, setPlatformFilter] = useState('all');
 
-  // Modal States
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingSession, setEditingSession] = useState<LiveSessionItem | null>(null);
-
+  // Modal States for Attendance / Recording / Analytics
   const [activeAttendanceSession, setActiveAttendanceSession] = useState<LiveSessionItem | null>(null);
   const [activeRecordingSession, setActiveRecordingSession] = useState<LiveSessionItem | null>(null);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
@@ -81,28 +73,25 @@ export const CourseLiveSessionsPage: React.FC = () => {
 
   // Handle route subpaths — setState deferred to avoid synchronous cascade
   useEffect(() => {
-    const apply = () => {
-      if (isCreateRoute) {
-        setEditingSession(null);
-        setIsModalOpen(true);
-      } else if (targetSessionUuid) {
+    const timer = setTimeout(() => {
+      if (targetSessionUuid) {
         const found = sessions.find((s) => s.id === targetSessionUuid);
         if (found) {
-          if (isAttendanceRoute) {
-            setActiveAttendanceSession(found);
-          } else if (isRecordingRoute) {
-            setActiveRecordingSession(found);
-          }
+          if (isAttendanceRoute) setActiveAttendanceSession(found);
+          else if (isRecordingRoute) setActiveRecordingSession(found);
         }
       }
-    };
-    const tid = setTimeout(apply, 0);
-    return () => clearTimeout(tid);
-  }, [location.pathname, targetSessionUuid, isCreateRoute, isAttendanceRoute, isRecordingRoute, sessions]);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [location.pathname, targetSessionUuid, isAttendanceRoute, isRecordingRoute, sessions]);
 
   const courseSessions = useMemo(() => {
     return sessions.filter((s) => s.courseUuid === courseUuid);
   }, [sessions, courseUuid]);
+
+  const liveNowSessions = useMemo(() => {
+    return courseSessions.filter((s) => s.status === 'live');
+  }, [courseSessions]);
 
   const filteredSessions = useMemo(() => {
     let list = [...courseSessions];
@@ -121,16 +110,12 @@ export const CourseLiveSessionsPage: React.FC = () => {
       list = list.filter((s) => s.status === statusFilter);
     }
 
-    if (platformFilter !== 'all') {
-      list = list.filter((s) => s.platform === platformFilter);
-    }
-
     return list.sort((a, b) => {
       if (a.status === 'live') return -1;
       if (b.status === 'live') return 1;
       return new Date(`${b.scheduledDate}T${b.scheduledTime}`).getTime() - new Date(`${a.scheduledDate}T${a.scheduledTime}`).getTime();
     });
-  }, [courseSessions, search, statusFilter, platformFilter]);
+  }, [courseSessions, search, statusFilter]);
 
   // Metrics
   const total = courseSessions.length;
@@ -154,36 +139,26 @@ export const CourseLiveSessionsPage: React.FC = () => {
         )
       : 0;
 
-  const handleSaveForm = (data: Omit<LiveSessionItem, 'id' | 'createdAt' | 'updatedAt' | 'attendanceRecords'>) => {
-    if (editingSession) {
-      updateLiveSession(editingSession.id, data);
-    } else {
-      addLiveSession({
-        ...data,
-        courseUuid,
-      });
-    }
-    navigate(`/courses/${courseUuid}/live-sessions`);
-  };
-
   const handleExportAllAttendance = () => {
     alert(`Exported master attendance report for course "${courseUuid}" (CSV format).`);
   };
 
   return (
-    <div className="space-y-6 text-left font-sans pb-16">
-      {/* 1. PAGE HEADER */}
-      <Card padding="md" className="bg-white border border-slate-200/90 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+    <div className="space-y-4 sm:space-y-6 text-left font-sans pb-36 md:pb-12">
+      {/* 1. COMPACT PAGE HEADER */}
+      <Card padding="sm" className="bg-white border border-slate-200/90 p-4 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0 space-y-0.5">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">Virtual Classroom &amp; Live Sessions</h1>
-              <Badge variant="info" size="sm" className="font-bold">
-                {total} Total Sessions
+              <h1 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight">
+                Live Sessions
+              </h1>
+              <Badge variant="info" size="sm" className="font-bold shrink-0">
+                {total} Total
               </Badge>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Schedule, conduct, and archive live interactive webinars for this course.
+            <p className="text-[11px] sm:text-xs text-slate-500 font-medium truncate">
+              Manage scheduled live classes for this course.
             </p>
           </div>
 
@@ -195,7 +170,7 @@ export const CourseLiveSessionsPage: React.FC = () => {
               className="h-9 text-xs font-semibold text-slate-700"
               leftIcon={<Download className="w-4 h-4 text-blue-600" />}
             >
-              Export Attendance
+              Export
             </Button>
 
             <Button
@@ -210,15 +185,11 @@ export const CourseLiveSessionsPage: React.FC = () => {
 
             <Button
               size="sm"
-              onClick={() => {
-                setEditingSession(null);
-                setIsModalOpen(true);
-                navigate(`/courses/${courseUuid}/live-sessions/create`);
-              }}
-              className="h-9 bg-[#2563EB] text-white font-extrabold text-xs px-4 hover:bg-blue-700"
+              onClick={() => navigate(`/courses/${courseUuid}/live-sessions/new`)}
+              className="h-9 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs px-4"
               leftIcon={<Plus className="w-4 h-4 stroke-[3]" />}
             >
-              Create Live Session
+              Schedule Session
             </Button>
           </div>
         </div>
@@ -244,71 +215,103 @@ export const CourseLiveSessionsPage: React.FC = () => {
             avgAttendanceRate={avgAttendanceRate}
           />
 
-          {/* 4. SEARCH, PLATFORM FILTERS & VIEW MODE SWITCH */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white border border-slate-200/90 p-3 rounded-2xl shadow-2xs font-sans text-xs">
-            <div className="flex flex-1 items-center gap-2">
+          {/* PROMINENT LIVE NOW SECTION */}
+          {liveNowSessions.length > 0 && (
+            <div className="space-y-2">
+              <h2 className="text-xs font-bold text-rose-600 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+                Live Now ({liveNowSessions.length})
+              </h2>
+
+              <div className="space-y-3">
+                {liveNowSessions.map((session) => (
+                  <LiveSessionCard
+                    key={session.id}
+                    session={session}
+                    onEdit={(s) => navigate(`/courses/${courseUuid}/live-sessions/${s.id}/edit`)}
+                    onStart={startLiveSession}
+                    onEnd={endLiveSession}
+                    onCancel={cancelLiveSession}
+                    onDelete={deleteLiveSession}
+                    onOpenAttendance={(s) => {
+                      setActiveAttendanceSession(s);
+                      navigate(`/courses/${courseUuid}/live-sessions/${s.id}/attendance`);
+                    }}
+                    onOpenRecording={(s) => {
+                      setActiveRecordingSession(s);
+                      navigate(`/courses/${courseUuid}/live-sessions/${s.id}/recording`);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 4. SEARCH, STATUS FILTER CHIPS & VIEW MODE SWITCH */}
+          <div className="space-y-3 bg-white border border-slate-200/90 p-3.5 rounded-2xl shadow-2xs font-sans text-xs">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <div className="flex-1">
                 <Input
                   placeholder="Search live sessions by title, platform, agenda..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   leftIcon={<Search className="w-4 h-4 text-slate-400" />}
+                  className="h-9 text-xs font-medium"
                 />
               </div>
 
-              <select
-                value={platformFilter}
-                onChange={(e) => setPlatformFilter(e.target.value)}
-                className="h-9 px-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-bold text-xs"
-              >
-                <option value="all">All Platforms</option>
-                <option value="Zoom">Zoom</option>
-                <option value="Google Meet">Google Meet</option>
-                <option value="Microsoft Teams">Microsoft Teams</option>
-                <option value="Jitsi">Jitsi</option>
-                <option value="Custom">Custom Link</option>
-              </select>
+              {/* View Mode Switcher */}
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0 self-end sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('list')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    viewMode === 'list'
+                      ? 'bg-white text-blue-600 shadow-2xs font-extrabold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span>List</span>
+                </button>
 
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-9 px-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-bold text-xs"
-              >
-                <option value="all">All Statuses</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="live">Live Now</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('calendar')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    viewMode === 'calendar'
+                      ? 'bg-white text-blue-600 shadow-2xs font-extrabold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <CalendarIcon className="w-3.5 h-3.5" />
+                  <span>Calendar</span>
+                </button>
+              </div>
             </div>
 
-            {/* View Mode Switcher ([ List View ] | [ Calendar View ]) */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                  viewMode === 'list'
-                    ? 'bg-white text-blue-600 shadow-xs font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <List className="w-3.5 h-3.5" />
-                <span>List Feed</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode('calendar')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                  viewMode === 'calendar'
-                    ? 'bg-white text-blue-600 shadow-xs font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <CalendarIcon className="w-3.5 h-3.5" />
-                <span>Calendar View</span>
-              </button>
+            {/* STATUS FILTER CHIPS */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 border-t border-slate-100">
+              {[
+                { id: 'all', label: `All (${total})` },
+                { id: 'upcoming', label: `Upcoming (${upcoming})` },
+                { id: 'live', label: `Live Now (${liveNow})` },
+                { id: 'completed', label: `Completed (${completed})` },
+                { id: 'cancelled', label: `Cancelled (${cancelled})` },
+              ].map((chip) => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => setStatusFilter(chip.id)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    statusFilter === chip.id
+                      ? 'bg-[#2563EB] text-white shadow-2xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -316,14 +319,8 @@ export const CourseLiveSessionsPage: React.FC = () => {
           {viewMode === 'calendar' ? (
             <LiveSessionCalendarView
               sessions={courseSessions}
-              onSelectSession={(s) => {
-                setEditingSession(s);
-                setIsModalOpen(true);
-              }}
-              onCreateNewDate={(_) => {
-                setEditingSession(null);
-                setIsModalOpen(true);
-              }}
+              onSelectSession={(s) => navigate(`/courses/${courseUuid}/live-sessions/${s.id}/edit`)}
+              onCreateNewDate={(_) => navigate(`/courses/${courseUuid}/live-sessions/new`)}
             />
           ) : isLoading ? (
             <div className="space-y-3">
@@ -340,10 +337,7 @@ export const CourseLiveSessionsPage: React.FC = () => {
                 <LiveSessionCard
                   key={session.id}
                   session={session}
-                  onEdit={(s) => {
-                    setEditingSession(s);
-                    setIsModalOpen(true);
-                  }}
+                  onEdit={(s) => navigate(`/courses/${courseUuid}/live-sessions/${s.id}/edit`)}
                   onStart={startLiveSession}
                   onEnd={endLiveSession}
                   onCancel={cancelLiveSession}
@@ -360,43 +354,29 @@ export const CourseLiveSessionsPage: React.FC = () => {
               ))}
             </div>
           ) : (
-            <Card padding="lg" className="bg-white border border-slate-200 text-center py-14 space-y-4 font-sans">
-              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
-                <Video className="w-8 h-8" />
+            <Card padding="lg" className="bg-white border border-slate-200 text-center py-12 space-y-4 font-sans rounded-2xl">
+              <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
+                <Video className="w-7 h-7" />
               </div>
               <div className="space-y-1 max-w-md mx-auto">
-                <h3 className="text-base font-extrabold text-slate-900">No Live Sessions Found</h3>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900">No Live Sessions Found</h3>
                 <p className="text-xs text-slate-500 font-medium">
-                  Schedule your first live Zoom, Google Meet, or Microsoft Teams session to interact directly with your course students.
+                  Schedule your first live Zoom, Google Meet, or Microsoft Teams session to interact directly with your students.
                 </p>
               </div>
               <Button
-                onClick={() => {
-                  setEditingSession(null);
-                  setIsModalOpen(true);
-                }}
-                className="bg-[#2563EB] text-white font-extrabold text-xs px-6"
-                leftIcon={<Plus className="w-4 h-4" />}
+                onClick={() => navigate(`/courses/${courseUuid}/live-sessions/new`)}
+                className="bg-[#2563EB] text-white font-bold text-xs px-5 h-10"
+                leftIcon={<Plus className="w-4 h-4 stroke-[3]" />}
               >
-                Schedule Live Session
+                Schedule Session
               </Button>
             </Card>
           )}
         </>
       )}
 
-      {/* SHARED MODALS */}
-      <CreateLiveSessionModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingSession(null);
-          navigate(`/courses/${courseUuid}/live-sessions`);
-        }}
-        onSubmit={handleSaveForm}
-        editingSession={editingSession}
-      />
-
+      {/* MODALS */}
       <LiveSessionAttendanceModal
         isOpen={!!activeAttendanceSession}
         onClose={() => {

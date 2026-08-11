@@ -25,29 +25,41 @@ import { CourseQuizzesPage } from '../features/courses/pages/CourseQuizzesPage';
 import { CourseCertificatesPage } from '../features/courses/pages/CourseCertificatesPage';
 import { CourseDiscussionsPage } from '../features/courses/pages/CourseDiscussionsPage';
 import { CourseAnnouncementsPage } from '../features/courses/pages/CourseAnnouncementsPage';
-import { GlobalAnnouncementsPage } from '../features/announcements/pages/GlobalAnnouncementsPage';
 import { CourseLiveSessionsPage } from '../features/courses/pages/CourseLiveSessionsPage';
 import { GlobalLiveClassroomPage } from '../features/live-sessions/pages/GlobalLiveClassroomPage';
 import { CourseReportsPage } from '../features/courses/pages/CourseReportsPage';
 import { CourseSettingsPage } from '../features/courses/pages/CourseSettingsPage';
+import { ModuleCreatePage } from '../features/courses/pages/ModuleCreatePage';
+import { ModuleEditPage } from '../features/courses/pages/ModuleEditPage';
+import { LessonCreatePage } from '../features/courses/pages/LessonCreatePage';
+import { LessonTypeSelectPage } from '../features/courses/pages/LessonTypeSelectPage';
+import { LessonEditPage } from '../features/courses/pages/LessonEditPage';
+import { ResourcePickerPage } from '../features/courses/pages/ResourcePickerPage';
 
 import { WebsiteBuilderLandingPage } from '../features/website-builder/pages/WebsiteBuilderLandingPage';
 import { StudentPortalBrandingPage } from '../features/website-builder/pages/StudentPortalBrandingPage';
 import { PublicSiteBuilderPage } from '../features/website-builder/pages/PublicSiteBuilderPage';
-import { ImageTemplateDesignerPage } from '../features/certificates/pages/ImageTemplateDesignerPage';
-import { CustomCertificateDesignerPage } from '../features/certificates/pages/CustomCertificateDesignerPage';
-import { LeadsManagementPage } from '../features/leads/pages/LeadsManagementPage';
+import { CertificateListPage } from '../features/certificates/pages/CertificateListPage';
+import { CertificateBuilderPage } from '../features/certificates/pages/CertificateBuilderPage';
+import { CertificateDetailPage } from '../features/certificates/pages/CertificateDetailPage';
 import { StudentListPage } from '../features/students/pages/StudentListPage';
 import { StudentCreatePage } from '../features/students/pages/StudentCreatePage';
 import { StudentSinglePage } from '../features/students/pages/StudentSinglePage';
 import { StudentEditPage } from '../features/students/pages/StudentEditPage';
 import { StudentReportsPage } from '../features/students/pages/StudentReportsPage';
-import { StaffRolesPage } from '../features/staff/pages/StaffRolesPage';
+import { StaffDirectoryPage } from '../features/staff/pages/StaffDirectoryPage';
+import { RolesPage } from '../features/staff/pages/RolesPage';
+import { GlobalFeesPage } from '../features/fees/pages/GlobalFeesPage';
+import { CourseFeesPage } from '../features/fees/pages/CourseFeesPage';
 import { SupportPage } from '../features/support/pages/SupportPage';
-import { ReportsPage } from '../features/reports/pages/ReportsPage';
-import { QuizBuilderPage } from '../features/quizzes/pages/QuizBuilderPage';
-import { AssignmentsPage } from '../features/assignments/pages/AssignmentsPage';
 import { DemoLeadsPage } from '../features/demo-leads/pages/DemoLeadsPage';
+import { BulkUploadStudentsPage } from '../features/students/pages/BulkUploadStudentsPage';
+import { EnrollStudentPage } from '../features/students/pages/EnrollStudentPage';
+import { CreateLiveSessionPage } from '../features/live-sessions/pages/CreateLiveSessionPage';
+import { CouponListPage } from '../features/coupons/pages/CouponListPage';
+import { CouponCreatePage } from '../features/coupons/pages/CouponCreatePage';
+import { CouponEditPage } from '../features/coupons/pages/CouponEditPage';
+import { CouponDetailPage } from '../features/coupons/pages/CouponDetailPage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -67,6 +79,12 @@ export const AppRoutes: React.FC = () => {
           {/* 1. Dashboard */}
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/demo-leads" element={<DemoLeadsPage />} />
+
+          {/* Global Coupons */}
+          <Route path="/coupons" element={<CouponListPage />} />
+          <Route path="/coupons/new" element={<CouponCreatePage />} />
+          <Route path="/coupons/:couponId" element={<CouponDetailPage />} />
+          <Route path="/coupons/:couponId/edit" element={<CouponEditPage />} />
 
           {/* 2. Courses */}
           <Route path="/courses" element={<CourseListPage />} />
@@ -92,54 +110,103 @@ export const AppRoutes: React.FC = () => {
             <Route path="announcements/*" element={<CourseAnnouncementsPage />} />
             <Route path="live-sessions" element={<CourseLiveSessionsPage />} />
             <Route path="live-sessions/*" element={<CourseLiveSessionsPage />} />
+            <Route path="fees" element={<CourseFeesPage />} />
+            <Route path="coupons" element={<CouponListPage />} />
             <Route path="reports" element={<CourseReportsPage />} />
             <Route path="features" element={<CourseFeaturesPage />} />
             <Route path="settings" element={<CourseSettingsPage />} />
           </Route>
           <Route path="/courses/:courseUuid/edit" element={<CourseCreateWizardPage />} />
 
+          {/* Course-Specific Fees Direct Route */}
+          <Route path="/courses/:courseUuid/fees" element={<CourseFeesPage />} />
+          <Route path="/courses/:courseId/fees" element={<CourseFeesPage />} />
+
+          {/* Course-Specific Coupon Dedicated Pages */}
+          <Route path="/courses/:courseUuid/coupons/new" element={<CouponCreatePage />} />
+          <Route path="/courses/:courseUuid/coupons/:couponId" element={<CouponDetailPage />} />
+          <Route path="/courses/:courseUuid/coupons/:couponId/edit" element={<CouponEditPage />} />
+          <Route path="/courses/:courseId/coupons" element={<CouponListPage />} />
+          <Route path="/courses/:courseId/coupons/new" element={<CouponCreatePage />} />
+          <Route path="/courses/:courseId/coupons/:couponId" element={<CouponDetailPage />} />
+          <Route path="/courses/:courseId/coupons/:couponId/edit" element={<CouponEditPage />} />
+
+          {/* Module Dedicated Form Pages */}
+          <Route path="/courses/:courseUuid/curriculum/modules/new" element={<ModuleCreatePage />} />
+          <Route path="/courses/:courseUuid/curriculum/modules/:moduleUuid/edit" element={<ModuleEditPage />} />
+
+          {/* Lesson Dedicated Form Pages */}
+          <Route path="/courses/:courseUuid/curriculum/lessons/select-type" element={<LessonTypeSelectPage />} />
+          <Route path="/courses/:courseUuid/curriculum/lessons/new" element={<LessonCreatePage />} />
+          <Route path="/courses/:courseUuid/curriculum/lessons/:lessonUuid/edit" element={<LessonEditPage />} />
+          <Route path="/courses/:courseUuid/curriculum/resources/add" element={<ResourcePickerPage />} />
+
+          {/* Students Dedicated Form & Bulk Pages */}
+          <Route path="/courses/:courseUuid/students/bulk-upload" element={<BulkUploadStudentsPage />} />
+          <Route path="/courses/:courseUuid/students/enroll" element={<EnrollStudentPage />} />
+          <Route path="/students/bulk-upload" element={<BulkUploadStudentsPage />} />
+          <Route path="/students/enroll" element={<EnrollStudentPage />} />
+
+          {/* Live Sessions Dedicated Form Pages */}
+          <Route path="/courses/:courseUuid/live-sessions/new" element={<CreateLiveSessionPage />} />
+          <Route path="/courses/:courseUuid/live-sessions/:sessionId/edit" element={<CreateLiveSessionPage />} />
+          <Route path="/live-classroom/new" element={<CreateLiveSessionPage />} />
+          <Route path="/live-classroom/:sessionId/edit" element={<CreateLiveSessionPage />} />
+
           {/* 3. Students */}
           <Route path="/students" element={<StudentListPage />} />
           <Route path="/students/create" element={<StudentCreatePage />} />
           <Route path="/students/:studentUuid" element={<StudentSinglePage />} />
           <Route path="/students/:studentUuid/edit" element={<StudentEditPage />} />
+          <Route path="/students/:studentUuid/enroll" element={<EnrollStudentPage />} />
           <Route path="/students/:studentUuid/reports" element={<StudentReportsPage />} />
 
-          {/* 4. Assignments */}
-          <Route path="/assignments" element={<AssignmentsPage />} />
-          <Route path="/assignments/:assignmentUuid/submissions" element={<AssignmentsPage />} />
-          <Route path="/assignments/:assignmentUuid/submissions/:submissionUuid" element={<AssignmentsPage />} />
+          {/* 4. Assignments (Redirected) */}
+          <Route path="/assignments" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/assignments/*" element={<Navigate to="/dashboard" replace />} />
 
-          {/* 5. Quizzes */}
-          <Route path="/quizzes" element={<CourseQuizzesPage />} />
-          <Route path="/quizzes/create" element={<QuizBuilderPage />} />
-          <Route path="/quizzes/*" element={<CourseQuizzesPage />} />
+          {/* 5. Quizzes (Redirected) */}
+          <Route path="/quizzes" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/quizzes/*" element={<Navigate to="/dashboard" replace />} />
 
           {/* 6. Certificates */}
-          <Route path="/certificates" element={<CourseCertificatesPage />} />
-          <Route path="/certificates/*" element={<CourseCertificatesPage />} />
+          <Route path="/certificates" element={<CertificateListPage />} />
+          <Route path="/certificates/new" element={<CertificateBuilderPage />} />
+          <Route path="/certificates/:certificateId" element={<CertificateDetailPage />} />
+          <Route path="/certificates/:certificateId/edit" element={<CertificateBuilderPage />} />
+
+          {/* Course-Specific Certificate Dedicated Builder & Detail Routes */}
+          <Route path="/courses/:courseUuid/certificates/new" element={<CertificateBuilderPage />} />
+          <Route path="/courses/:courseUuid/certificates/:certificateId" element={<CertificateDetailPage />} />
+          <Route path="/courses/:courseUuid/certificates/:certificateId/edit" element={<CertificateBuilderPage />} />
+          <Route path="/courses/:courseId/certificates" element={<CertificateListPage />} />
+          <Route path="/courses/:courseId/certificates/new" element={<CertificateBuilderPage />} />
+          <Route path="/courses/:courseId/certificates/:certificateId" element={<CertificateDetailPage />} />
+          <Route path="/courses/:courseId/certificates/:certificateId/edit" element={<CertificateBuilderPage />} />
 
           {/* 7. Discussions */}
           <Route path="/discussions" element={<CourseDiscussionsPage />} />
           <Route path="/discussions/*" element={<CourseDiscussionsPage />} />
 
-          {/* 8. Announcements */}
-          <Route path="/announcements" element={<GlobalAnnouncementsPage />} />
-          <Route path="/announcements/*" element={<GlobalAnnouncementsPage />} />
+          {/* 8. Announcements (Redirected) */}
+          <Route path="/announcements" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/announcements/*" element={<Navigate to="/dashboard" replace />} />
 
           {/* 8b. Live Classroom */}
           <Route path="/live-classroom" element={<GlobalLiveClassroomPage />} />
           <Route path="/live-classroom/*" element={<GlobalLiveClassroomPage />} />
 
-          {/* 9. Reports */}
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="/reports/*" element={<ReportsPage />} />
+          {/* 9. Reports (Redirected) */}
+          <Route path="/reports" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/reports/*" element={<Navigate to="/dashboard" replace />} />
 
-          {/* 10. Credits */}
+          {/* 10. Credits & Fees */}
           <Route path="/credits" element={<CreditsPage />} />
           <Route path="/credits/buy" element={<CreditsPage />} />
           <Route path="/credits/history" element={<CreditsPage />} />
           <Route path="/credits/usage" element={<CreditsPage />} />
+          <Route path="/fees" element={<GlobalFeesPage />} />
+          <Route path="/fees/*" element={<GlobalFeesPage />} />
           <Route path="/payments" element={<Navigate to="/credits" replace />} />
 
           {/* 11. Media Library */}
@@ -147,20 +214,17 @@ export const AppRoutes: React.FC = () => {
           <Route path="/media/*" element={<MediaPage />} />
 
           {/* 12 & 13. Staff Directory & Roles */}
-          <Route path="/staff" element={<StaffRolesPage />} />
-          <Route path="/staff/*" element={<StaffRolesPage />} />
-          <Route path="/roles" element={<StaffRolesPage />} />
-          <Route path="/roles/*" element={<StaffRolesPage />} />
+          <Route path="/staff" element={<StaffDirectoryPage />} />
+          <Route path="/staff/*" element={<StaffDirectoryPage />} />
+          <Route path="/roles" element={<RolesPage />} />
+          <Route path="/roles/*" element={<RolesPage />} />
 
           {/* 14. Website Builder & Portal Branding */}
           <Route path="/website-builder" element={<WebsiteBuilderLandingPage />} />
           <Route path="/website-builder/student-portal" element={<StudentPortalBrandingPage />} />
           <Route path="/website-builder/public-site" element={<PublicSiteBuilderPage />} />
-          <Route path="/certificate-builder/image-template" element={<ImageTemplateDesignerPage />} />
-          <Route path="/certificate-builder/custom" element={<CustomCertificateDesignerPage />} />
-
-          {/* 14b. Public Leads */}
-          <Route path="/leads" element={<LeadsManagementPage />} />
+          <Route path="/certificate-builder/image-template" element={<Navigate to="/certificates/new" replace />} />
+          <Route path="/certificate-builder/custom" element={<Navigate to="/certificates/new" replace />} />
 
           {/* 15. Support Desk */}
           <Route path="/support" element={<SupportPage />} />

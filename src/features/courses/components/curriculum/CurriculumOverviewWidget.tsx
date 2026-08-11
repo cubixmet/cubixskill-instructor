@@ -9,8 +9,6 @@ import {
   Plus,
   Save,
   Eye,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 
 interface CurriculumOverviewWidgetProps {
@@ -37,8 +35,8 @@ export const CurriculumOverviewWidget: React.FC<CurriculumOverviewWidgetProps> =
   onSaveDraft,
   onAddLesson,
   onPreviewCourse,
-  onExpandAll,
-  onCollapseAll,
+  _onExpandAll,
+  _onCollapseAll,
 }) => {
   // Format duration into hours and minutes
   const hours = Math.floor(totalDurationMinutes / 60);
@@ -198,23 +196,7 @@ export const CurriculumOverviewWidget: React.FC<CurriculumOverviewWidgetProps> =
             <span>Preview</span>
           </button>
 
-          <button
-            type="button"
-            onClick={onExpandAll}
-            className="h-9 px-2.5 bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#2563EB] text-[#0F172A] hover:text-[#2563EB] rounded-xl text-[12px] font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <ChevronDown className="w-3.5 h-3.5" />
-            <span>Expand All</span>
-          </button>
 
-          <button
-            type="button"
-            onClick={onCollapseAll}
-            className="h-9 px-2.5 bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#2563EB] text-[#0F172A] hover:text-[#2563EB] rounded-xl text-[12px] font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <ChevronUp className="w-3.5 h-3.5" />
-            <span>Collapse All</span>
-          </button>
         </div>
       </div>
     </motion.div>

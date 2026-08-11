@@ -17,6 +17,8 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import type { DashboardSummaryStats } from '../types/dashboard.types';
+import { DashboardPermissionGuard } from './DashboardPermissionGuard';
+import { formatCurrency } from '../../../utils/currency';
 
 interface DashboardStatGridProps {
   stats: DashboardSummaryStats;
@@ -33,6 +35,7 @@ export const DashboardStatGrid: React.FC<DashboardStatGridProps> = ({ stats }) =
       bgColor: 'bg-[#EFF6FF]',
       borderColor: 'border-[#BFDBFE]',
       trend: '+12%',
+      permission: 'courses' as const,
     },
     {
       title: 'Published Courses',
@@ -43,6 +46,7 @@ export const DashboardStatGrid: React.FC<DashboardStatGridProps> = ({ stats }) =
       bgColor: 'bg-[#F0FDF4]',
       borderColor: 'border-[#BBF7D0]',
       trend: '+8%',
+      permission: 'courses' as const,
     },
     {
       title: 'Draft Courses',
@@ -53,16 +57,18 @@ export const DashboardStatGrid: React.FC<DashboardStatGridProps> = ({ stats }) =
       bgColor: 'bg-[#FEF3C7]',
       borderColor: 'border-[#FDE68A]',
       trend: '2 pending',
+      permission: 'courses' as const,
     },
     {
       title: 'Total Students',
       value: stats.totalStudents.toLocaleString(),
-      subtitle: `${stats.activeStudents} currently active`,
+      subtitle: `${stats.activeStudents} active`,
       icon: Users,
       color: 'text-[#0EA5E9]',
       bgColor: 'bg-[#E0F2FE]',
       borderColor: 'border-[#BAE6FD]',
       trend: '+18.4%',
+      permission: 'students' as const,
     },
     {
       title: 'Active Students',
@@ -73,26 +79,29 @@ export const DashboardStatGrid: React.FC<DashboardStatGridProps> = ({ stats }) =
       bgColor: 'bg-[#CCFBF1]',
       borderColor: 'border-[#99F6E4]',
       trend: '84% rate',
+      permission: 'students' as const,
     },
     {
       title: 'Total Revenue',
-      value: `$${stats.totalRevenue.toLocaleString()}`,
-      subtitle: `${stats.totalSales} Course Sales`,
+      value: formatCurrency(stats.totalRevenue),
+      subtitle: `${stats.totalSales} Sales`,
       icon: DollarSign,
       color: 'text-[#16A34A]',
       bgColor: 'bg-[#F0FDF4]',
       borderColor: 'border-[#BBF7D0]',
       trend: '+24.5%',
+      permission: 'revenue' as const,
     },
     {
       title: 'Credits Remaining',
       value: stats.availableCredits.toLocaleString(),
-      subtitle: `${stats.usedCreditsThisMonth} used this month`,
+      subtitle: `${stats.usedCreditsThisMonth} used this mo`,
       icon: Coins,
       color: 'text-[#2563EB]',
       bgColor: 'bg-[#EFF6FF]',
       borderColor: 'border-[#BFDBFE]',
       trend: 'Est. 45 days',
+      permission: 'credits' as const,
     },
     {
       title: 'Storage Used',
@@ -117,7 +126,7 @@ export const DashboardStatGrid: React.FC<DashboardStatGridProps> = ({ stats }) =
     {
       title: 'Assignments Review',
       value: stats.pendingAssignments.toLocaleString(),
-      subtitle: 'Submissions awaiting grade',
+      subtitle: 'Awaiting grade',
       icon: FileCheck,
       color: 'text-[#EAB308]',
       bgColor: 'bg-[#FEF9C3]',
@@ -125,7 +134,7 @@ export const DashboardStatGrid: React.FC<DashboardStatGridProps> = ({ stats }) =
       trend: 'Action needed',
     },
     {
-      title: 'Quiz Attempts Pending',
+      title: 'Quiz Attempts',
       value: stats.quizAttemptsPending.toLocaleString(),
       subtitle: 'Manual review required',
       icon: HelpCircle,
@@ -147,42 +156,43 @@ export const DashboardStatGrid: React.FC<DashboardStatGridProps> = ({ stats }) =
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-left">
+    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 text-left">
       {cards.map((card, idx) => {
         const IconComponent = card.icon;
         return (
-          <motion.div
-            key={card.title}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, delay: idx * 0.03 }}
-            whileHover={{ y: -3 }}
-            className="bg-white border border-[#E2E8F0] hover:border-[#CBD5E1] rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between h-full group"
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div className={`p-2.5 rounded-xl ${card.bgColor} ${card.color} border ${card.borderColor} transition-transform group-hover:scale-105`}>
-                  <IconComponent className="w-5 h-5" />
+          <DashboardPermissionGuard key={card.title} permission={card.permission}>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, delay: idx * 0.02 }}
+              whileHover={{ y: -2 }}
+              className="bg-white border border-slate-200/90 hover:border-blue-300 rounded-2xl p-3 sm:p-4 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between h-full min-h-[145px] sm:min-h-[160px] group min-w-0"
+            >
+              <div>
+                <div className="flex items-center justify-between gap-1 mb-2">
+                  <div className={`p-1.5 sm:p-2 rounded-xl ${card.bgColor} ${card.color} border ${card.borderColor} transition-transform group-hover:scale-105 shrink-0`}>
+                    <IconComponent className="w-4 h-4" />
+                  </div>
+                  <span className="inline-flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold text-[#16A34A] bg-[#F0FDF4] border border-[#BBF7D0] px-1.5 py-0.5 rounded-full shrink-0 max-w-full truncate">
+                    <TrendingUp className="w-2.5 h-2.5 shrink-0" />
+                    <span className="truncate">{card.trend}</span>
+                  </span>
                 </div>
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#16A34A] bg-[#F0FDF4] border border-[#BBF7D0] px-2 py-0.5 rounded-full">
-                  <TrendingUp className="w-3 h-3" />
-                  {card.trend}
-                </span>
+
+                <p className="text-[11px] sm:text-xs font-semibold text-slate-600 mb-1 leading-snug line-clamp-2">
+                  {card.title}
+                </p>
+                <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight group-hover:text-[#2563EB] transition-colors truncate min-w-0">
+                  {card.value}
+                </h3>
               </div>
 
-              <p className="text-xs font-semibold text-[#64748B] mb-1">
-                {card.title}
-              </p>
-              <h3 className="text-2xl font-black text-[#0F172A] tracking-tight group-hover:text-[#2563EB] transition-colors">
-                {card.value}
-              </h3>
-            </div>
-
-            <div className="mt-3 pt-2.5 border-t border-[#F1F5F9] flex items-center justify-between text-[11px] font-medium text-[#64748B]">
-              <span className="truncate">{card.subtitle}</span>
-              <ArrowUpRight className="w-3.5 h-3.5 text-[#94A3B8] group-hover:text-[#2563EB] transition-colors shrink-0" />
-            </div>
-          </motion.div>
+              <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] sm:text-[11px] font-medium text-slate-500 min-w-0">
+                <span className="truncate">{card.subtitle}</span>
+                <ArrowUpRight className="w-3 h-3 text-slate-400 group-hover:text-[#2563EB] transition-colors shrink-0" />
+              </div>
+            </motion.div>
+          </DashboardPermissionGuard>
         );
       })}
     </div>

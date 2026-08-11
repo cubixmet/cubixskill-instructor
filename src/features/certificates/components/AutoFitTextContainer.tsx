@@ -3,6 +3,7 @@ import React, { useRef, useLayoutEffect, useState, useEffect, useCallback } from
 export interface AutoFitTextContainerProps {
   text?: string;
   maxFontSize: number;
+  minFontSize?: number;
   fontFamily?: string;
   fontWeight?: string | number;
   fontStyle?: string;
@@ -11,6 +12,8 @@ export interface AutoFitTextContainerProps {
   isUnderline?: boolean;
   letterSpacing?: number;
   opacity?: number;
+  isEditorMode?: boolean;
+  onFitCalculated?: (fontSize: number, isOverflowing: boolean) => void;
   className?: string;
   style?: React.CSSProperties;
   onClick?: (e: React.MouseEvent) => void;
@@ -18,16 +21,10 @@ export interface AutoFitTextContainerProps {
   children?: React.ReactNode;
 }
 
-/**
- * Container-Safe Dynamic Field Auto Font Fit Component.
- * Guarantees dynamic text NEVER overflows outside its assigned container boundaries.
- * - Enforces single-line text (no line breaks / no wrapping).
- * - Uses ResizeObserver and font loading triggers for instant pixel-perfect calculation.
- * - Recalculates dynamically in real-time on value or dimension changes.
- */
 export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
   text = '',
   maxFontSize,
+  minFontSize = 14,
   fontFamily = 'Inter',
   fontWeight = '600',
   fontStyle = 'normal',
@@ -36,6 +33,8 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
   isUnderline = false,
   letterSpacing = 0,
   opacity = 1,
+  isEditorMode = false,
+  onFitCalculated,
   className = '',
   style = {},
   onClick,
@@ -45,6 +44,7 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
   const [fittedFontSize, setFittedFontSize] = useState<number>(maxFontSize);
+  const [isOverflowing, setIsOverflowing] = useState<boolean>(false);
 
   const calculateFit = useCallback(() => {
     const container = containerRef.current;
@@ -56,27 +56,35 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
 
     if (containerWidth <= 0 || containerHeight <= 0) return;
 
-    // Calculate candidate font size based on container height (85% container height ceiling)
-    let size = Math.min(maxFontSize, Math.max(10, Math.floor(containerHeight * 0.85)));
+    // Start at maxFontSize ceiling or container height ratio
+    let size = Math.min(maxFontSize, Math.max(minFontSize, Math.floor(containerHeight * 0.85)));
     textSpan.style.fontSize = `${size}px`;
 
     const scrollWidth = textSpan.scrollWidth;
 
-    // If text exceeds container width, scale font size down proportionally to fit
+    // Scale font size down if text exceeds container width
     if (scrollWidth > containerWidth && scrollWidth > 0) {
       const widthRatio = containerWidth / scrollWidth;
-      size = Math.max(8, Math.floor(size * widthRatio));
+      size = Math.max(minFontSize, Math.floor(size * widthRatio));
       textSpan.style.fontSize = `${size}px`;
 
-      // Iterative step down to strictly guarantee zero container overflow
-      while (textSpan.scrollWidth > container.clientWidth && size > 8) {
+      // Iterative step down until text fits or minFontSize floor is reached
+      while (textSpan.scrollWidth > container.clientWidth && size > minFontSize) {
         size -= 1;
         textSpan.style.fontSize = `${size}px`;
       }
     }
 
-    setFittedFontSize(size);
-  }, [maxFontSize, text]);
+    const clampedSize = Math.min(maxFontSize, Math.max(minFontSize, size));
+    const overflowDetected = textSpan.scrollWidth > container.clientWidth;
+
+    setFittedFontSize(clampedSize);
+    setIsOverflowing(overflowDetected);
+
+    if (onFitCalculated) {
+      onFitCalculated(clampedSize, overflowDetected);
+    }
+  }, [maxFontSize, minFontSize, text, onFitCalculated]);
 
   useLayoutEffect(() => {
     calculateFit();
@@ -153,6 +161,13 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
         >
           {text}
         </span>
+      )}
+
+      {/* Editor Warning Indicator if text cannot fit even at minFontSize */}
+      {isEditorMode && isOverflowing && (
+        <div className="absolute -bottom-4 right-0 text-[8px] font-bold px-1 py-0.5 rounded shadow-xs pointer-events-none whitespace-nowrap bg-amber-500 text-white z-40">
+          ⚠️ Increase field size to fit
+        </div>
       )}
       {children}
     </div>

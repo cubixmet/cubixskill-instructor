@@ -8,21 +8,14 @@ import {
   Eye,
   Award,
   BarChart3,
-  Clock,
   UserCheck,
-  CreditCard,
   UserPlus,
   Download,
-  List,
-  LayoutGrid,
   X,
   Calendar,
-  AlertTriangle,
   UserX,
-  RefreshCw,
   SlidersHorizontal,
 } from 'lucide-react';
-import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { Modal } from '../../../components/ui/Modal';
@@ -154,10 +147,9 @@ export const CourseStudentsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [progressFilter, setProgressFilter] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('recent');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [selectedStudentUuids, setSelectedStudentUuids] = useState<string[]>([]);
+  void setSelectedStudentUuids;
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  void isMobileFilterOpen;
 
   // Modal Action States
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
@@ -204,40 +196,8 @@ export const CourseStudentsPage: React.FC = () => {
   // Statistics Summary Counts
   const totalEnrolled = studentList.length;
   const activeCount = studentList.filter((s) => s.status === 'Active').length;
-  const pendingCount = studentList.filter((s) => s.status === 'Pending').length;
   const completedCount = studentList.filter((s) => s.status === 'Completed').length;
-  const expiredCount = studentList.filter((s) => s.status === 'Expired').length;
-  const suspendedCount = studentList.filter((s) => s.status === 'Suspended').length;
   const avgProgress = Math.round(studentList.reduce((acc, curr) => acc + curr.progressPercent, 0) / (totalEnrolled || 1));
-  const totalCreditsConsumed = studentList.reduce((acc, curr) => acc + curr.creditsUsed, 0);
-
-  // Handlers
-  const handleToggleSelectAll = () => {
-    if (selectedStudentUuids.length === filteredStudents.length) {
-      setSelectedStudentUuids([]);
-    } else {
-      setSelectedStudentUuids(filteredStudents.map((s) => s.uuid));
-    }
-  };
-
-  const handleToggleSelectStudent = (uuid: string) => {
-    if (selectedStudentUuids.includes(uuid)) {
-      setSelectedStudentUuids(selectedStudentUuids.filter((id) => id !== uuid));
-    } else {
-      setSelectedStudentUuids([...selectedStudentUuids, uuid]);
-    }
-  };
-
-  const handleToggleStatus = (uuid: string) => {
-    setStudentList((prev) =>
-      prev.map((s) =>
-        s.uuid === uuid
-          ? { ...s, status: s.status === 'Active' ? 'Suspended' : 'Active' }
-          : s
-      )
-    );
-    showToast('Student enrollment status updated.');
-  };
 
   const handleViewStudent = (studentUuid: string) => {
     if (!courseUuid || !studentUuid) return;
@@ -303,7 +263,7 @@ export const CourseStudentsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 text-left font-sans pb-[calc(88px+env(safe-area-inset-bottom))] no-scrollbar max-w-[1600px] mx-auto">
+    <div className="space-y-4 sm:space-y-6 text-left font-sans pb-36 md:pb-12 no-scrollbar max-w-[1600px] mx-auto px-1 md:px-0">
       {/* Toast Alert */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 px-4 py-3 bg-[#0F172A] text-white text-xs font-semibold rounded-2xl shadow-xl flex items-center gap-2">
@@ -313,14 +273,14 @@ export const CourseStudentsPage: React.FC = () => {
       )}
 
       {/* 1. PAGE HEADER */}
-      <div className="bg-white p-5 sm:p-6 rounded-[16px] border border-[#E2E8F0] shadow-2xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded-[16px] border border-[#E2E8F0] shadow-2xs space-y-3 sm:space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-semibold text-[#0F172A] tracking-tight">
-              Course Students ({totalEnrolled})
+            <h1 className="text-lg sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+              Students ({totalEnrolled})
             </h1>
             <p className="text-xs text-[#64748B] font-medium mt-0.5">
-              Manage enrolled students, learning progress telemetry, access extensions, and credit usage.
+              Students enrolled in this course and learning progress.
             </p>
           </div>
 
@@ -328,28 +288,28 @@ export const CourseStudentsPage: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              leftIcon={<Download className="w-4 h-4" />}
+              leftIcon={<Download className="w-3.5 h-3.5" />}
               onClick={handleExportCSV}
-              className="border-[#E2E8F0] text-xs font-semibold text-[#0F172A]"
+              className="border-[#E2E8F0] text-xs font-semibold text-[#0F172A] h-9 px-3"
             >
               {selectedStudentUuids.length > 0
-                ? `Export Selected (${selectedStudentUuids.length})`
+                ? `Export (${selectedStudentUuids.length})`
                 : 'Export CSV'}
             </Button>
             <Button
               variant="outline"
               size="sm"
-              leftIcon={<Users className="w-4 h-4" />}
-              onClick={() => setIsBulkEnrollOpen(true)}
-              className="border-[#2563EB] text-[#2563EB] text-xs font-semibold"
+              leftIcon={<Users className="w-3.5 h-3.5" />}
+              onClick={() => navigate(`/courses/${courseUuid}/students/bulk-upload`)}
+              className="border-[#2563EB] text-[#2563EB] text-xs font-semibold h-9 px-3 hidden sm:inline-flex"
             >
               Bulk Enroll
             </Button>
             <Button
               size="sm"
-              leftIcon={<UserPlus className="w-4 h-4 stroke-[2.5]" />}
-              onClick={() => setIsEnrollModalOpen(true)}
-              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold"
+              leftIcon={<UserPlus className="w-3.5 h-3.5 stroke-[2.5]" />}
+              onClick={() => navigate(`/courses/${courseUuid}/students/enroll`)}
+              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold h-9 px-3 flex-1 sm:flex-initial"
             >
               Enroll Student
             </Button>
@@ -357,69 +317,45 @@ export const CourseStudentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. SUMMARY CARDS (2 to 8 Responsive Grid) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
+      {/* 2. SUMMARY STATS (Responsive Grid) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5 shadow-2xs">
           <Users className="w-4 h-4 text-[#2563EB] mx-auto" />
-          <span className="text-[10px] text-[#64748B] block font-medium">Total Enrolled</span>
-          <strong className="text-base font-bold text-[#0F172A]">{totalEnrolled}</strong>
+          <span className="text-[10px] text-[#64748B] block font-medium">Enrolled</span>
+          <strong className="text-sm sm:text-base font-bold text-[#0F172A]">{totalEnrolled}</strong>
         </div>
 
-        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
+        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5 shadow-2xs">
           <UserCheck className="w-4 h-4 text-emerald-600 mx-auto" />
           <span className="text-[10px] text-[#64748B] block font-medium">Active</span>
-          <strong className="text-base font-bold text-emerald-600">{activeCount}</strong>
+          <strong className="text-sm sm:text-base font-bold text-emerald-600">{activeCount}</strong>
         </div>
 
-        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
-          <Clock className="w-4 h-4 text-sky-600 mx-auto" />
-          <span className="text-[10px] text-[#64748B] block font-medium">Pending</span>
-          <strong className="text-base font-bold text-[#0F172A]">{pendingCount}</strong>
-        </div>
-
-        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
+        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5 shadow-2xs">
           <Award className="w-4 h-4 text-purple-600 mx-auto" />
           <span className="text-[10px] text-[#64748B] block font-medium">Completed</span>
-          <strong className="text-base font-bold text-[#0F172A]">{completedCount}</strong>
+          <strong className="text-sm sm:text-base font-bold text-[#0F172A]">{completedCount}</strong>
         </div>
 
-        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
-          <AlertTriangle className="w-4 h-4 text-amber-600 mx-auto" />
-          <span className="text-[10px] text-[#64748B] block font-medium">Expired</span>
-          <strong className="text-base font-bold text-amber-600">{expiredCount}</strong>
-        </div>
-
-        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
-          <UserX className="w-4 h-4 text-rose-600 mx-auto" />
-          <span className="text-[10px] text-[#64748B] block font-medium">Suspended</span>
-          <strong className="text-base font-bold text-rose-600">{suspendedCount}</strong>
-        </div>
-
-        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
+        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5 shadow-2xs">
           <BarChart3 className="w-4 h-4 text-[#2563EB] mx-auto" />
           <span className="text-[10px] text-[#64748B] block font-medium">Avg. Progress</span>
-          <strong className="text-base font-bold text-[#2563EB]">{avgProgress}%</strong>
-        </div>
-
-        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
-          <CreditCard className="w-4 h-4 text-[#2563EB] mx-auto" />
-          <span className="text-[10px] text-[#64748B] block font-medium">Credits Used</span>
-          <strong className="text-base font-bold text-[#2563EB]">{totalCreditsConsumed}</strong>
+          <strong className="text-sm sm:text-base font-bold text-[#2563EB]">{avgProgress}%</strong>
         </div>
       </div>
 
       {/* 3. SEARCH & FILTER TOOLBAR */}
       <div className="space-y-3">
-        <div className="bg-white p-4 rounded-[16px] border border-[#E2E8F0] shadow-2xs space-y-3">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="bg-white p-3.5 sm:p-4 rounded-[16px] border border-[#E2E8F0] shadow-2xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             {/* Search Input */}
-            <div className="relative w-full md:w-80">
+            <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B]" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search students by name, email, or phone..."
+                placeholder="Search students..."
                 className="w-full h-10 pl-10 pr-10 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs font-medium text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
               />
               {search && (
@@ -433,7 +369,7 @@ export const CourseStudentsPage: React.FC = () => {
               )}
             </div>
 
-            {/* Desktop Filters & View Toggle */}
+            {/* Desktop Filters */}
             <div className="hidden md:flex items-center gap-2 flex-wrap">
               <select
                 value={statusFilter}
@@ -470,32 +406,7 @@ export const CourseStudentsPage: React.FC = () => {
                 <option value="name-desc">Name Z–A</option>
                 <option value="highest-progress">Highest Progress</option>
                 <option value="lowest-progress">Lowest Progress</option>
-                <option value="most-credits">Most Credits Used</option>
               </select>
-
-              {/* View Mode Toggle */}
-              <div className="flex items-center bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                    viewMode === 'list' ? 'bg-white text-[#2563EB] shadow-xs' : 'text-[#64748B]'
-                  }`}
-                  title="List View"
-                >
-                  <List className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                    viewMode === 'grid' ? 'bg-white text-[#2563EB] shadow-xs' : 'text-[#64748B]'
-                  }`}
-                  title="Grid View"
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-              </div>
             </div>
 
             {/* Mobile Filter Button */}
@@ -509,22 +420,6 @@ export const CourseStudentsPage: React.FC = () => {
               >
                 Filters & Sort
               </Button>
-              <div className="flex items-center bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded-lg ${viewMode === 'list' ? 'bg-white text-[#2563EB]' : 'text-[#64748B]'}`}
-                >
-                  <List className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded-lg ${viewMode === 'grid' ? 'bg-white text-[#2563EB]' : 'text-[#64748B]'}`}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-              </div>
             </div>
           </div>
 
@@ -576,162 +471,32 @@ export const CourseStudentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. CONTENT VIEW (DESKTOP TABLE vs MOBILE GRID) */}
-      {viewMode === 'list' ? (
-        <Card padding="none" className="bg-white border border-[#E2E8F0] overflow-hidden rounded-[16px] shadow-2xs">
-          <div className="overflow-x-auto no-scrollbar">
-            <table className="w-full text-left text-xs font-medium text-[#0F172A]">
-              <thead>
-                <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#64748B] text-[11px] uppercase font-bold">
-                  <th className="py-3.5 px-4 w-10">
-                    <input
-                      type="checkbox"
-                      checked={selectedStudentUuids.length > 0 && selectedStudentUuids.length === filteredStudents.length}
-                      onChange={handleToggleSelectAll}
-                      className="rounded border-[#E2E8F0] text-[#2563EB] focus:ring-[#2563EB]"
-                    />
-                  </th>
-                  <th className="py-3.5 px-4">Student</th>
-                  <th className="py-3.5 px-4">Contact</th>
-                  <th className="py-3.5 px-4">Learning Progress</th>
-                  <th className="py-3.5 px-4">Enrolled Date</th>
-                  <th className="py-3.5 px-4">Expiry Date</th>
-                  <th className="py-3.5 px-4">Credits</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredStudents.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="p-8 text-center text-[#64748B]">
-                      No students match your search criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredStudents.map((student) => {
-                    const isSelected = selectedStudentUuids.includes(student.uuid);
-
-                    return (
-                      <tr
-                        key={student.uuid}
-                        tabIndex={0}
-                        onClick={() => handleViewStudent(student.uuid)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            handleViewStudent(student.uuid);
-                          }
-                        }}
-                        className={`border-b border-[#E2E8F0] transition-colors cursor-pointer ${
-                          isSelected ? 'bg-blue-50/40' : 'hover:bg-slate-50'
-                        }`}
-                      >
-                        <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleToggleSelectStudent(student.uuid)}
-                            className="rounded border-[#E2E8F0] text-[#2563EB] focus:ring-[#2563EB]"
-                          />
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-3 text-left font-semibold text-[#0F172A]">
-                            <div className="w-8 h-8 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-bold text-xs shrink-0">
-                              {student.name.charAt(0)}
-                            </div>
-                            <strong className="block text-xs">{student.name}</strong>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 text-[#64748B]">
-                          <div>{student.email}</div>
-                          <div className="text-[11px] text-[#64748B]">{student.phone}</div>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="w-32 bg-slate-100 h-2 rounded-full overflow-hidden mb-1">
-                            <div
-                              className={`h-full ${student.progressPercent === 100 ? 'bg-emerald-600' : 'bg-[#2563EB]'}`}
-                              style={{ width: `${student.progressPercent}%` }}
-                            />
-                          </div>
-                          <span className="text-[11px] font-semibold text-[#2563EB]">{student.progressPercent}% Completed</span>
-                        </td>
-                        <td className="py-3.5 px-4 text-[#64748B]">{student.enrollmentDate}</td>
-                        <td className="py-3.5 px-4 text-[#64748B]">{student.expiryDate}</td>
-                        <td className="py-3.5 px-4 font-bold text-[#2563EB]">{student.creditsUsed} Credits</td>
-                        <td className="py-3.5 px-4">
-                          <Badge variant={student.status === 'Active' || student.status === 'Completed' ? 'success' : student.status === 'Expired' ? 'warning' : 'secondary'} size="sm" dot>
-                            {student.status}
-                          </Badge>
-                        </td>
-                        <td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleViewStudent(student.uuid);
-                              }}
-                              leftIcon={<Eye className="w-4 h-4 shrink-0" />}
-                              className="bg-blue-50 text-[#2563EB] hover:bg-blue-100 font-semibold text-xs h-8 whitespace-nowrap shrink-0"
-                            >
-                              View Student
-                            </Button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setExtendAccessTarget(student);
-                              }}
-                              className="p-1.5 text-[#64748B] hover:text-[#2563EB] rounded-lg cursor-pointer"
-                              title="Extend Access"
-                            >
-                              <Calendar className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleStatus(student.uuid);
-                              }}
-                              className="p-1.5 text-[#64748B] hover:text-[#0F172A] rounded-lg cursor-pointer"
-                              title={student.status === 'Active' ? 'Suspend' : 'Reactivate'}
-                            >
-                              <RefreshCw className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setRemoveTarget(student);
-                              }}
-                              className="p-1.5 text-[#64748B] hover:text-rose-600 rounded-lg cursor-pointer"
-                              title="Remove from Course"
-                            >
-                              <UserX className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+      {/* 4. STUDENT CARDS GRID (MOBILE & DESKTOP RESPONSIVE) */}
+      {filteredStudents.length === 0 ? (
+        <div className="p-8 text-center bg-white border border-[#E2E8F0] rounded-2xl space-y-3">
+          <p className="text-xs text-[#64748B] font-medium">No students match your search criteria.</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSearch('');
+              setStatusFilter('All');
+              setProgressFilter('All');
+            }}
+            className="text-xs font-semibold"
+          >
+            Clear Filters
+          </Button>
+        </div>
       ) : (
-        /* GRID VIEW */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
           {filteredStudents.map((student) => {
-            const statusBadgeStyles = {
-              Active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-              Completed: 'bg-blue-50 text-[#2563EB] border-blue-200',
-              Pending: 'bg-amber-50 text-amber-700 border-amber-200',
-              Expired: 'bg-rose-50 text-rose-700 border-rose-200',
-              Suspended: 'bg-rose-50 text-rose-700 border-rose-200',
-            }[student.status] || 'bg-slate-50 text-slate-700 border-slate-200';
+            const statusBadgeVariant =
+              student.status === 'Active' || student.status === 'Completed'
+                ? 'success'
+                : student.status === 'Expired'
+                ? 'warning'
+                : 'secondary';
 
             return (
               <motion.div
@@ -740,81 +505,168 @@ export const CourseStudentsPage: React.FC = () => {
                 whileTap={{ scale: 0.99 }}
                 transition={{ duration: 0.2 }}
                 onClick={() => handleViewStudent(student.uuid)}
-                className="bg-white border border-[#E2E8F0] p-4 rounded-[18px] space-y-4 shadow-2xs cursor-pointer hover:border-slate-300 hover:shadow-md transition-all duration-200 font-sans text-left"
+                className="bg-white border border-[#E2E8F0] p-4 rounded-[18px] space-y-3.5 shadow-2xs cursor-pointer hover:border-blue-200 hover:shadow-md transition-all duration-200 font-sans text-left min-w-0"
               >
-                {/* HEADER: 48px Avatar + Name & Email + Status Badge */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-bold text-base shrink-0 shadow-2xs">
+                {/* HEADER: Avatar + Name & Email + Status Badge */}
+                <div className="flex items-start justify-between gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs">
                       {student.name.charAt(0)}
                     </div>
-                    <div className="min-w-0">
-                      <strong className="text-base font-semibold text-[#0F172A] leading-tight block truncate">
+                    <div className="min-w-0 flex-1">
+                      <strong className="text-xs sm:text-sm font-bold text-[#0F172A] leading-snug block whitespace-normal break-words">
                         {student.name}
                       </strong>
-                      <span className="text-[13px] font-normal text-[#64748B] block truncate max-w-[180px] sm:max-w-[220px]">
+                      <span className="text-[11px] font-medium text-[#64748B] block truncate">
                         {student.email}
                       </span>
                     </div>
                   </div>
 
-                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border shrink-0 ${statusBadgeStyles}`}>
+                  <Badge variant={statusBadgeVariant} size="sm" dot className="shrink-0">
                     {student.status}
-                  </span>
+                  </Badge>
                 </div>
 
-                {/* LEARNING PROGRESS BAR (8px height, 999px radius, smooth animation) */}
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-medium text-[#64748B] text-[12px]">Learning Progress</span>
-                    <strong className="text-[#2563EB] text-[14px] font-semibold">{student.progressPercent}%</strong>
+                {/* LEARNING PROGRESS BAR */}
+                <div className="space-y-1 pt-0.5">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="font-semibold text-[#64748B]">Learning Progress</span>
+                    <strong className="text-[#2563EB] font-bold">{student.progressPercent}%</strong>
                   </div>
                   <div className="w-full bg-[#E5E7EB] h-2 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${student.progressPercent}%` }}
                       transition={{ duration: 0.5, ease: 'easeOut' }}
-                      className="h-full bg-[#2563EB] rounded-full"
+                      className={`h-full rounded-full ${
+                        student.progressPercent === 100 ? 'bg-emerald-600' : 'bg-[#2563EB]'
+                      }`}
                     />
                   </div>
                 </div>
 
-                {/* INFORMATION GRID (2 Columns: Enrolled & Expiry) */}
-                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[#E2E8F0]">
-                  <div>
-                    <span className="text-[12px] font-medium text-[#64748B] block">Enrolled</span>
-                    <strong className="text-[14px] font-semibold text-[#0F172A] block mt-0.5">{student.enrollmentDate}</strong>
-                  </div>
-                  <div>
-                    <span className="text-[12px] font-medium text-[#64748B] block">Expiry</span>
-                    <strong className="text-[14px] font-semibold text-[#0F172A] block mt-0.5">{student.expiryDate}</strong>
-                  </div>
+                {/* INFORMATION METADATA ROW */}
+                <div className="flex items-center justify-between text-[11px] text-[#64748B] font-medium pt-2 border-t border-slate-100 flex-wrap gap-1">
+                  <span>Enrolled: <strong className="text-[#0F172A]">{student.enrollmentDate}</strong></span>
+                  <span>Last active: <strong className="text-[#0F172A]">{student.lastActive}</strong></span>
                 </div>
 
-                {/* FOOTER: Credits Used + View Student Button */}
-                <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#E2E8F0]">
-                  <div>
-                    <span className="text-[11px] font-medium text-[#64748B] block">Credits Used</span>
-                    <strong className="text-[14px] font-semibold text-[#2563EB] block">{student.creditsUsed} Credits</strong>
-                  </div>
+                {/* FOOTER ACTIONS */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#E2E8F0]">
+                  <span className="text-[11px] font-bold text-[#2563EB]">
+                    {student.lessonsCompleted}/{student.totalLessons} Lessons
+                  </span>
 
-                  <Button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleViewStudent(student.uuid);
-                    }}
-                    leftIcon={<Eye className="w-4 h-4 shrink-0" />}
-                    className="h-[40px] px-4 rounded-[12px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-sm flex items-center gap-2 shadow-2xs whitespace-nowrap shrink-0"
-                  >
-                    View Student
-                  </Button>
+                  <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewStudent(student.uuid);
+                      }}
+                      leftIcon={<Eye className="w-3.5 h-3.5 shrink-0" />}
+                      className="h-8 px-3 rounded-lg bg-blue-50 text-[#2563EB] hover:bg-blue-100 font-bold text-[11px] flex items-center gap-1 whitespace-nowrap shrink-0 border border-blue-100"
+                    >
+                      View
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExtendAccessTarget(student);
+                      }}
+                      className="p-1.5 text-[#64748B] hover:text-[#2563EB] hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+                      title="Extend Access"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setRemoveTarget(student);
+                      }}
+                      className="p-1.5 text-[#64748B] hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer transition-colors"
+                      title="Remove from Course"
+                    >
+                      <UserX className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             );
           })}
         </div>
       )}
+
+      {/* MOBILE FILTER MODAL */}
+      <Modal isOpen={isMobileFilterOpen} onClose={() => setIsMobileFilterOpen(false)} title="Filter & Sort Students">
+        <div className="space-y-4 text-xs font-sans text-left">
+          <div className="space-y-1">
+            <label className="block font-bold text-[#0F172A]">Enrollment Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full h-10 px-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl font-semibold text-[#0F172A] text-xs"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Pending">Pending</option>
+              <option value="Completed">Completed</option>
+              <option value="Expired">Expired</option>
+              <option value="Suspended">Suspended</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block font-bold text-[#0F172A]">Progress Range</label>
+            <select
+              value={progressFilter}
+              onChange={(e) => setProgressFilter(e.target.value)}
+              className="w-full h-10 px-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl font-semibold text-[#0F172A] text-xs"
+            >
+              <option value="All">All Progress</option>
+              <option value="0-25">0 – 25%</option>
+              <option value="26-50">26 – 50%</option>
+              <option value="51-75">51 – 75%</option>
+              <option value="76-100">76 – 100%</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block font-bold text-[#0F172A]">Sort Order</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full h-10 px-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl font-semibold text-[#0F172A] text-xs"
+            >
+              <option value="recent">Recently Enrolled</option>
+              <option value="name-asc">Name A–Z</option>
+              <option value="name-desc">Name Z–A</option>
+              <option value="highest-progress">Highest Progress</option>
+              <option value="lowest-progress">Lowest Progress</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-[#E2E8F0]">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStatusFilter('All');
+                setProgressFilter('All');
+                setSortBy('recent');
+              }}
+            >
+              Reset Filters
+            </Button>
+            <Button onClick={() => setIsMobileFilterOpen(false)} className="bg-[#2563EB] text-white font-semibold">
+              Apply Filters
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* EXTEND ACCESS MODAL */}
       <Modal isOpen={Boolean(extendAccessTarget)} onClose={() => setExtendAccessTarget(null)} title={`Extend Access: ${extendAccessTarget?.name}`}>

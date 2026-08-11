@@ -4,8 +4,6 @@ import {
   Plus,
   Download,
   Search,
-  LayoutGrid,
-  List,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
@@ -41,7 +39,7 @@ export const AssignmentsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'dueDate' | 'marks'>('newest');
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [_viewMode, _setViewMode] = useState<'table' | 'grid'>('table');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(shouldOpenCreate);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
 
@@ -200,29 +198,6 @@ export const AssignmentsPage: React.FC = () => {
               <option value="dueDate">Sort: Due Date</option>
               <option value="marks">Sort: Max Marks</option>
             </select>
-
-            <div className="flex items-center bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-1 shrink-0">
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  viewMode === 'table' ? 'bg-white text-[#2563EB] shadow-xs' : 'text-[#64748B]'
-                }`}
-                title="Table View"
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  viewMode === 'grid' ? 'bg-white text-[#2563EB] shadow-xs' : 'text-[#64748B]'
-                }`}
-                title="Grid View"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         </div>
       </div>

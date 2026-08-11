@@ -13,7 +13,6 @@ import type {
   QuizWidgetStats,
   AnnouncementItem,
   TransactionItem,
-  NotificationItem,
   ActivityTimelineItem,
   DashboardAlertItem,
 } from '../types/dashboard.types';
@@ -227,46 +226,6 @@ export const useDashboardData = () => {
     ];
   }, [creditTransactions]);
 
-  // Notifications List
-  const notifications: NotificationItem[] = [
-    {
-      id: 'notif-1',
-      title: 'New Assignment Submission',
-      description: 'Aarav Sharma submitted React 19 Final Project assignment for review.',
-      timestamp: '10 mins ago',
-      category: 'Unread',
-      iconType: 'info',
-      read: false,
-    },
-    {
-      id: 'notif-2',
-      title: 'Low Storage Warning',
-      description: 'Your media storage reached 84% of 100GB limit. Consider upgrading.',
-      timestamp: '1 hour ago',
-      category: 'Priority',
-      iconType: 'warning',
-      read: false,
-    },
-    {
-      id: 'notif-3',
-      title: 'Credit Pack Purchased',
-      description: 'Successfully added 1,000 AI & Media credits to your academy balance.',
-      timestamp: '3 hours ago',
-      category: 'Read',
-      iconType: 'credit',
-      read: true,
-    },
-    {
-      id: 'notif-4',
-      title: 'Certificate Auto-Generated',
-      description: 'Priya Verma completed Full-Stack TypeScript course.',
-      timestamp: '1 day ago',
-      category: 'Read',
-      iconType: 'success',
-      read: true,
-    },
-  ];
-
   // Recent Activity Feed
   const recentActivities: ActivityTimelineItem[] = [
     {
@@ -384,7 +343,6 @@ export const useDashboardData = () => {
     quizStats,
     announcements,
     recentTransactions,
-    notifications,
     recentActivities,
     pendingItems,
     alerts,

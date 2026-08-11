@@ -8,12 +8,13 @@ import {
   Plus,
   Search,
   Sparkles,
+  SlidersHorizontal,
+  X,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { Modal } from '../../../components/ui/Modal';
-import { CreditCalculator } from '../../../components/common/CreditCalculator';
 import { exportToCsv, type CsvColumn } from '../../../utils/export-csv';
 
 interface CreditTransactionRecord {
@@ -93,7 +94,7 @@ const VALID_COUPONS: Record<string, { type: 'percent' | 'flat'; value: number; l
 };
 
 export const CreditsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'calculator' | 'buy' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'buy' | 'history'>('overview');
   const [availableBalance, setAvailableBalance] = useState<number>(12450);
   const [transactions, setTransactions] = useState<CreditTransactionRecord[]>(SEED_TRANSACTIONS);
 
@@ -114,6 +115,7 @@ export const CreditsPage: React.FC = () => {
   const [historyFilter, setHistoryFilter] = useState<'all' | 'purchase' | 'usage' | 'refund' | 'bonus'>('all');
   const [historySearch, setHistorySearch] = useState('');
   const [selectedTx, setSelectedTx] = useState<CreditTransactionRecord | null>(null);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   const packs = [
     { id: 'pkg-1', name: 'Starter Pack', credits: 1000, bonusCredits: 0, price: 1999 },
@@ -198,58 +200,59 @@ export const CreditsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 font-sans text-left bg-[#F8FAFC]">
+    <div className="space-y-4 sm:space-y-6 font-sans text-left pb-24 sm:pb-16 px-2.5 sm:px-6 max-w-7xl mx-auto w-full max-w-full overflow-x-hidden min-w-0">
       {/* 1. PAGE HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 border border-[#E2E8F0] rounded-[16px] shadow-2xs">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-[#0F172A] tracking-tight">
-            Credit Wallet &amp; Billing
-          </h1>
-          <p className="text-xs sm:text-sm text-[#64748B] mt-0.5 font-normal">
-            Manage your pay-per-student credits, live calculators, billing packages, and transaction history.
-          </p>
+      <Card padding="md" className="bg-white border border-slate-200/90 shadow-2xs w-full max-w-full min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+          <div className="min-w-0 flex-1 space-y-1">
+            <h1 className="text-base sm:text-xl font-medium text-slate-900 tracking-tight">
+              Credits
+            </h1>
+            <p className="text-xs text-slate-500 font-normal leading-relaxed">
+              Manage your credit balance and usage.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto shrink-0 pt-1 sm:pt-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadStatement}
+              leftIcon={<Download className="w-3.5 h-3.5 text-[#2563EB]" />}
+              className="h-[38px] min-h-[38px] text-[11.5px] sm:text-xs font-medium text-slate-700 rounded-xl w-full sm:w-auto px-2.5 sm:px-3.5 inline-flex items-center justify-center gap-1.5"
+            >
+              Statement
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setActiveTab('buy')}
+              leftIcon={<Plus className="w-3.5 h-3.5 text-white stroke-[2.5]" />}
+              className="h-[38px] min-h-[38px] bg-[#2563EB] text-white font-medium text-[11.5px] sm:text-xs px-2.5 sm:px-4 rounded-xl hover:bg-blue-700 w-full sm:w-auto inline-flex items-center justify-center gap-1.5"
+            >
+              Add Credits
+            </Button>
+          </div>
         </div>
+      </Card>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadStatement}
-            leftIcon={<Download className="w-4 h-4 text-[#2563EB]" />}
-            className="h-11 px-4 text-xs font-semibold"
-          >
-            Download Statement
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => setActiveTab('buy')}
-            leftIcon={<Plus className="w-4 h-4 text-white stroke-[3]" />}
-            className="h-11 px-5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-[12px]"
-          >
-            Buy Credits
-          </Button>
-        </div>
-      </div>
-
-      {/* 2. TAB NAVIGATION (STRICT 4 TABS - PAYMENT REMOVED) */}
-      <div className="bg-white border border-[#E2E8F0] rounded-[16px] p-2 flex items-center gap-2 overflow-x-auto no-scrollbar shadow-2xs">
+      {/* 2. TAB NAVIGATION STRIP */}
+      <div className="flex items-center gap-1.5 border-b border-slate-200 pb-1 overflow-x-auto no-scrollbar touch-pan-x w-full">
         {[
           { id: 'overview', label: 'Credit Overview' },
-          { id: 'calculator', label: 'Credit Calculator' },
           { id: 'buy', label: 'Buy Credits' },
           { id: 'history', label: 'Transaction History' },
         ].map((tab) => (
           <button
             key={tab.id}
             type="button"
-            onClick={() => setActiveTab(tab.id as 'overview' | 'calculator' | 'buy' | 'history')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+            onClick={() => setActiveTab(tab.id as 'overview' | 'buy' | 'history')}
+            className={`px-3.5 py-2 text-xs font-medium rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === tab.id
                 ? 'bg-[#2563EB] text-white shadow-2xs'
-                : 'text-[#64748B] hover:bg-slate-100 hover:text-[#0F172A]'
+                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
             }`}
           >
             {tab.label}
@@ -259,102 +262,94 @@ export const CreditsPage: React.FC = () => {
 
       {/* TAB 1: CREDIT OVERVIEW DASHBOARD */}
       {activeTab === 'overview' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card padding="md" className="bg-white border border-[#E2E8F0] rounded-[16px] shadow-2xs">
-              <div className="flex items-center justify-between text-[#64748B] mb-2">
-                <span className="text-xs font-medium">Available Balance</span>
-                <Wallet className="w-4.5 h-4.5 text-[#2563EB]" />
+        <div className="space-y-4 sm:space-y-6">
+          {/* Summary Metric Cards Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Card padding="sm" className="bg-white border border-slate-200/90 rounded-2xl shadow-2xs p-3 space-y-1">
+              <div className="flex items-center justify-between text-slate-500 text-[10.5px] font-normal">
+                <span>Available Credits</span>
+                <Wallet className="w-4 h-4 text-[#2563EB]" />
               </div>
-              <strong className="text-2xl font-bold text-[#0F172A]">{availableBalance.toLocaleString()} Credits</strong>
-              <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">
-                Sufficient for ~{Math.floor(availableBalance / 17)} students
+              <span className="text-base sm:text-xl font-medium text-slate-900 block">{availableBalance.toLocaleString()}</span>
+              <span className="text-[10px] text-emerald-600 font-normal block truncate">
+                ~{Math.floor(availableBalance / 17)} students
               </span>
             </Card>
 
-            <Card padding="md" className="bg-white border border-[#E2E8F0] rounded-[16px] shadow-2xs">
-              <div className="flex items-center justify-between text-[#64748B] mb-2">
-                <span className="text-xs font-medium">Used (This Month)</span>
-                <ArrowDownRight className="w-4.5 h-4.5 text-rose-600" />
+            <Card padding="sm" className="bg-white border border-slate-200/90 rounded-2xl shadow-2xs p-3 space-y-1">
+              <div className="flex items-center justify-between text-slate-500 text-[10.5px] font-normal">
+                <span>Used This Month</span>
+                <ArrowDownRight className="w-4 h-4 text-rose-600" />
               </div>
-              <strong className="text-2xl font-bold text-rose-600">833 Credits</strong>
-              <span className="text-[11px] text-[#64748B] mt-1 block">Across 4 active courses</span>
+              <span className="text-base sm:text-xl font-medium text-rose-600 block">833</span>
+              <span className="text-[10px] text-slate-500 font-normal block truncate">Across 4 courses</span>
             </Card>
 
-            <Card padding="md" className="bg-white border border-[#E2E8F0] rounded-[16px] shadow-2xs">
-              <div className="flex items-center justify-between text-[#64748B] mb-2">
-                <span className="text-xs font-medium">Total Purchased</span>
-                <ArrowUpRight className="w-4.5 h-4.5 text-emerald-600" />
+            <Card padding="sm" className="bg-white border border-slate-200/90 rounded-2xl shadow-2xs p-3 space-y-1">
+              <div className="flex items-center justify-between text-slate-500 text-[10.5px] font-normal">
+                <span>Purchased</span>
+                <ArrowUpRight className="w-4 h-4 text-emerald-600" />
               </div>
-              <strong className="text-2xl font-bold text-[#0F172A]">5,500 Credits</strong>
-              <span className="text-[11px] text-[#64748B] mt-1 block">Last order on Aug 01</span>
+              <span className="text-base sm:text-xl font-medium text-slate-900 block">5,500</span>
+              <span className="text-[10px] text-slate-500 font-normal block truncate">Last order Aug 01</span>
             </Card>
 
-            <Card padding="md" className="bg-white border border-[#E2E8F0] rounded-[16px] shadow-2xs">
-              <div className="flex items-center justify-between text-[#64748B] mb-2">
-                <span className="text-xs font-medium">Reserved Credits</span>
-                <CreditCard className="w-4.5 h-4.5 text-amber-600" />
+            <Card padding="sm" className="bg-white border border-slate-200/90 rounded-2xl shadow-2xs p-3 space-y-1">
+              <div className="flex items-center justify-between text-slate-500 text-[10.5px] font-normal">
+                <span>Reserved</span>
+                <CreditCard className="w-4 h-4 text-amber-600" />
               </div>
-              <strong className="text-2xl font-bold text-[#0F172A]">300 Credits</strong>
-              <span className="text-[11px] text-[#64748B] mt-1 block">Pending assignment evaluations</span>
+              <span className="text-base sm:text-xl font-medium text-slate-900 block">300</span>
+              <span className="text-[10px] text-slate-500 font-normal block truncate">Evaluations pending</span>
             </Card>
           </div>
 
           {/* CREDIT USAGE BREAKDOWN */}
-          <Card padding="lg" className="bg-white border border-[#E2E8F0] rounded-[16px] space-y-4 shadow-2xs">
-            <h3 className="text-base font-semibold text-[#0F172A] border-b pb-2">Credit Usage Breakdown</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
-              <div className="p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
-                <span className="text-[#64748B] block">Video Upload:</span>
-                <strong className="text-[#0F172A] font-bold text-sm">340 Credits</strong>
+          <Card padding="md" className="bg-white border border-slate-200/90 rounded-2xl space-y-3 shadow-2xs p-4">
+            <h3 className="text-xs sm:text-sm font-medium text-slate-900 border-b border-slate-100 pb-2">
+              Credit Usage Breakdown
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
+              <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-0.5">
+                <span className="text-slate-500 text-[11px] block font-normal">Video Processing</span>
+                <span className="text-slate-900 font-medium text-xs sm:text-sm block">340 Credits</span>
               </div>
-              <div className="p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
-                <span className="text-[#64748B] block">Assignment Storage:</span>
-                <strong className="text-[#0F172A] font-bold text-sm">210 Credits</strong>
+              <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-0.5">
+                <span className="text-slate-500 text-[11px] block font-normal">Assignment Storage</span>
+                <span className="text-slate-900 font-medium text-xs sm:text-sm block">210 Credits</span>
               </div>
-              <div className="p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
-                <span className="text-[#64748B] block">Certificate PDF:</span>
-                <strong className="text-[#0F172A] font-bold text-sm">32 Credits</strong>
+              <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-0.5">
+                <span className="text-slate-500 text-[11px] block font-normal">Certificate PDF</span>
+                <span className="text-slate-900 font-medium text-xs sm:text-sm block">32 Credits</span>
               </div>
-              <div className="p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
-                <span className="text-[#64748B] block">Student Enrollment:</span>
-                <strong className="text-[#0F172A] font-bold text-sm">180 Credits</strong>
+              <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-0.5">
+                <span className="text-slate-500 text-[11px] block font-normal">Enrollment</span>
+                <span className="text-slate-900 font-medium text-xs sm:text-sm block">180 Credits</span>
               </div>
-              <div className="p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
-                <span className="text-[#64748B] block">Media Upload:</span>
-                <strong className="text-[#0F172A] font-bold text-sm">55 Credits</strong>
+              <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-0.5">
+                <span className="text-slate-500 text-[11px] block font-normal">Media Storage</span>
+                <span className="text-slate-900 font-medium text-xs sm:text-sm block">55 Credits</span>
               </div>
-              <div className="p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
-                <span className="text-[#64748B] block">AI Features:</span>
-                <strong className="text-[#0F172A] font-bold text-sm">16 Credits</strong>
+              <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-0.5">
+                <span className="text-slate-500 text-[11px] block font-normal">AI Features</span>
+                <span className="text-slate-900 font-medium text-xs sm:text-sm block">16 Credits</span>
               </div>
             </div>
           </Card>
         </div>
       )}
 
-      {/* TAB 2: LIVE CREDIT CALCULATOR (USES SHARED APPROVED FEATURES LIST) */}
-      {activeTab === 'calculator' && (
-        <div>
-          <CreditCalculator
-            initialEnrolledCount={50}
-            availableBalance={availableBalance}
-            onSelectPackage={() => setActiveTab('buy')}
-          />
-        </div>
-      )}
-
-      {/* TAB 3: BUY CREDITS & COUPON CODE + PAYMENT GATEWAY */}
+      {/* TAB 2: BUY CREDITS */}
       {activeTab === 'buy' && (
-        <div className="space-y-6">
-          <div className="text-center max-w-xl mx-auto space-y-1 py-2">
-            <h2 className="text-xl font-semibold text-[#0F172A]">Choose a Credit Package</h2>
-            <p className="text-xs text-[#64748B]">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="text-center max-w-xl mx-auto space-y-1 py-1">
+            <h2 className="text-sm sm:text-base font-medium text-slate-900">Choose a Credit Package</h2>
+            <p className="text-xs text-slate-500 font-normal">
               Purchase credits to enroll students, host video lessons, evaluate assignments, and generate certificates.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {packs.map((pack) => {
               const isSelected = selectedPackId === pack.id;
 
@@ -362,42 +357,42 @@ export const CreditsPage: React.FC = () => {
                 <div
                   key={pack.id}
                   onClick={() => setSelectedPackId(pack.id)}
-                  className={`p-5 rounded-[20px] border text-left transition-all cursor-pointer relative flex flex-col justify-between ${
+                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative flex flex-col justify-between ${
                     isSelected
-                      ? 'bg-blue-50/70 border-[#2563EB] shadow-md ring-2 ring-blue-100'
-                      : 'bg-white border-[#E2E8F0] hover:bg-slate-50'
+                      ? 'bg-blue-50/70 border-[#2563EB] shadow-xs'
+                      : 'bg-white border-slate-200 hover:bg-slate-50'
                   }`}
                 >
                   {pack.popular && (
-                    <Badge variant="success" size="sm" className="absolute -top-3 right-4 bg-[#2563EB] text-white border-none">
+                    <Badge variant="success" size="sm" className="absolute -top-2.5 right-3 bg-[#2563EB] text-white border-none font-medium text-[10px]">
                       Most Popular
                     </Badge>
                   )}
 
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-base text-[#0F172A]">{pack.name}</h3>
+                  <div className="space-y-2">
+                    <h3 className="font-medium text-sm text-slate-900">{pack.name}</h3>
                     <div className="space-y-0.5">
-                      <strong className="text-3xl font-bold text-[#2563EB]">
+                      <span className="text-xl sm:text-2xl font-medium text-[#2563EB] block">
                         {pack.credits.toLocaleString()}
-                      </strong>
-                      <span className="text-xs text-[#64748B] block">Base Credits</span>
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-normal block">Base Credits</span>
                     </div>
 
                     {pack.bonusCredits > 0 && (
-                      <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs font-semibold flex items-center gap-1.5">
+                      <div className="p-1.5 bg-emerald-50 border border-emerald-200/80 rounded-xl text-emerald-900 text-[11px] font-medium flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                         <span>+{pack.bonusCredits.toLocaleString()} Bonus Credits</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="pt-4 border-t border-[#E2E8F0] mt-4 space-y-3">
-                    <strong className="text-xl font-bold text-[#0F172A] block">₹{pack.price.toLocaleString()}</strong>
+                  <div className="pt-3 border-t border-slate-100 mt-3 space-y-2">
+                    <span className="text-base sm:text-lg font-medium text-slate-900 block">₹{pack.price.toLocaleString()}</span>
                     <Button
                       type="button"
                       size="sm"
-                      className={`w-full h-10 text-xs font-semibold ${
-                        isSelected ? 'bg-[#2563EB] text-white' : 'bg-slate-100 text-[#0F172A] hover:bg-blue-50 hover:text-[#2563EB]'
+                      className={`w-full h-9 text-xs font-medium rounded-xl ${
+                        isSelected ? 'bg-[#2563EB] text-white' : 'bg-slate-100 text-slate-900 hover:bg-blue-50 hover:text-[#2563EB]'
                       }`}
                     >
                       {isSelected ? 'Selected' : 'Select Pack'}
@@ -409,67 +404,67 @@ export const CreditsPage: React.FC = () => {
           </div>
 
           {/* COUPON CODE & PAYMENT SUMMARY PANEL */}
-          <Card padding="lg" className="bg-white border border-[#E2E8F0] rounded-[20px] max-w-2xl mx-auto space-y-5 shadow-2xs">
-            <h3 className="text-base font-semibold text-[#0F172A] border-b pb-2">Order &amp; Payment Summary</h3>
+          <Card padding="lg" className="bg-white border border-slate-200/90 rounded-2xl max-w-2xl mx-auto space-y-4 shadow-2xs p-4 sm:p-6 text-left">
+            <h3 className="text-xs sm:text-sm font-medium text-slate-900 border-b border-slate-100 pb-2">Order &amp; Payment Summary</h3>
 
             {/* Coupon Code Section */}
             <div className="space-y-2 text-xs">
-              <label className="block font-semibold text-[#0F172A]">Have a Coupon Code?</label>
+              <label className="block font-medium text-slate-900">Have a Coupon Code?</label>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={couponCodeInput}
                   onChange={(e) => setCouponCodeInput(e.target.value)}
                   placeholder="Try CUBIX20, WELCOME10, FESTIVE500"
-                  className="flex-1 h-11 px-4 border border-[#E2E8F0] rounded-xl text-xs font-mono uppercase focus:outline-none focus:border-[#2563EB]"
+                  className="flex-1 h-10 px-3 border border-slate-200 rounded-xl text-xs font-mono uppercase focus:outline-none focus:border-[#2563EB] font-normal"
                 />
-                <Button type="button" onClick={handleApplyCoupon} className="h-11 px-5 bg-[#0F172A] text-white text-xs font-semibold">
-                  Apply Coupon
+                <Button type="button" onClick={handleApplyCoupon} className="h-10 px-4 bg-slate-900 text-white text-xs font-medium rounded-xl">
+                  Apply
                 </Button>
               </div>
 
               {appliedCoupon && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 font-semibold flex items-center justify-between">
-                  <span>✓ Coupon "{appliedCoupon.code}" Applied ({appliedCoupon.label})</span>
-                  <button type="button" onClick={() => setAppliedCoupon(null)} className="text-rose-600 hover:underline">
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200/80 rounded-xl text-emerald-900 font-medium flex items-center justify-between text-xs">
+                  <span>✓ Coupon "{appliedCoupon.code}" ({appliedCoupon.label})</span>
+                  <button type="button" onClick={() => setAppliedCoupon(null)} className="text-rose-600 hover:underline ml-2">
                     Remove
                   </button>
                 </div>
               )}
 
-              {couponError && <p className="text-xs text-rose-600 font-semibold">{couponError}</p>}
+              {couponError && <p className="text-xs text-rose-600 font-normal">{couponError}</p>}
             </div>
 
             {/* Cost Breakdown */}
-            <div className="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl space-y-2 text-xs text-[#0F172A]">
-              <div className="flex justify-between">
-                <span>Selected Package ({selectedPack.name}):</span>
-                <strong>₹{rawPrice.toLocaleString()}</strong>
+            <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5 text-xs text-slate-900">
+              <div className="flex justify-between font-normal">
+                <span>Selected ({selectedPack.name}):</span>
+                <span className="font-medium">₹{rawPrice.toLocaleString()}</span>
               </div>
               {discountAmount > 0 && (
-                <div className="flex justify-between text-emerald-600 font-semibold">
-                  <span>Coupon Discount ({appliedCoupon?.code}):</span>
+                <div className="flex justify-between text-emerald-600 font-medium">
+                  <span>Discount ({appliedCoupon?.code}):</span>
                   <span>-₹{discountAmount.toLocaleString()}</span>
                 </div>
               )}
-              <div className="flex justify-between text-[#64748B]">
+              <div className="flex justify-between text-slate-500 font-normal">
                 <span>GST Tax (18%):</span>
                 <span>+₹{gstTax.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between pt-2 border-t text-sm font-bold text-[#0F172A]">
+              <div className="flex justify-between pt-2 border-t border-slate-200 text-xs sm:text-sm font-medium text-slate-900">
                 <span>Grand Total:</span>
-                <span className="text-[#2563EB] text-lg">₹{grandTotal.toLocaleString()}</span>
+                <span className="text-[#2563EB]">₹{grandTotal.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between pt-1 text-[11px] text-[#64748B]">
+              <div className="flex justify-between pt-1 text-[11px] text-slate-500 font-normal">
                 <span>Credits Added to Wallet:</span>
-                <strong className="text-emerald-600 font-bold">+{totalCreditsEarned.toLocaleString()} Credits</strong>
+                <span className="text-emerald-600 font-medium">+{totalCreditsEarned.toLocaleString()} Credits</span>
               </div>
             </div>
 
             <Button
               type="button"
               onClick={() => setIsPaymentModalOpen(true)}
-              className="w-full h-12 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-sm rounded-xl shadow-xs"
+              className="w-full h-10 text-xs font-medium bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl shadow-xs"
             >
               Proceed to Secure Payment (₹{grandTotal.toLocaleString()})
             </Button>
@@ -477,18 +472,57 @@ export const CreditsPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 4: TRANSACTION HISTORY & STATEMENT DOWNLOAD */}
+      {/* TAB 3: TRANSACTION HISTORY & STATEMENT DOWNLOAD */}
       {activeTab === 'history' && (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 border border-[#E2E8F0] rounded-xl">
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
+        <div className="space-y-3">
+          {/* Mobile Filter & Search Bar */}
+          <div className="md:hidden space-y-3 bg-white border border-slate-200/90 p-3 rounded-2xl shadow-2xs">
+            <div className="relative w-full">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={historySearch}
+                onChange={(e) => setHistorySearch(e.target.value)}
+                placeholder="Search transactions..."
+                className="w-full h-10 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-normal focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 w-full">
               {(['all', 'purchase', 'usage', 'refund', 'bonus'] as const).map((filter) => (
                 <button
                   key={filter}
                   type="button"
                   onClick={() => setHistoryFilter(filter)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold capitalize transition-all cursor-pointer ${
-                    historyFilter === filter ? 'bg-[#2563EB] text-white' : 'bg-slate-100 text-[#64748B]'
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize shrink-0 transition-colors ${
+                    historyFilter === filter ? 'bg-[#2563EB] text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  {filter}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => setIsFilterSheetOpen(true)}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 font-medium text-xs shrink-0 transition-colors ml-auto cursor-pointer"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
+                <span>Filter</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop Filter Bar */}
+          <div className="hidden md:flex flex-row items-center justify-between gap-3 bg-white p-3.5 border border-slate-200/90 rounded-2xl shadow-2xs">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+              {(['all', 'purchase', 'usage', 'refund', 'bonus'] as const).map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  onClick={() => setHistoryFilter(filter)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-medium capitalize transition-all cursor-pointer ${
+                    historyFilter === filter ? 'bg-[#2563EB] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   {filter}
@@ -496,56 +530,95 @@ export const CreditsPage: React.FC = () => {
               ))}
             </div>
 
-            <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
+            <div className="relative w-64">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 value={historySearch}
                 onChange={(e) => setHistorySearch(e.target.value)}
                 placeholder="Search transactions..."
-                className="w-full h-9 pl-9 pr-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs font-normal"
+                className="w-full h-8.5 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-normal"
               />
             </div>
           </div>
 
-          <div className="bg-white border border-[#E2E8F0] rounded-[16px] overflow-hidden shadow-2xs">
+          {/* Mobile Stacked Cards (< md) */}
+          <div className="md:hidden space-y-2.5 w-full min-w-0">
+            {filteredTransactions.length > 0 ? (
+              filteredTransactions.map((tx) => (
+                <Card
+                  key={tx.id}
+                  padding="sm"
+                  className="bg-white border border-slate-200/90 p-3 rounded-2xl shadow-2xs space-y-2 text-xs font-sans min-w-0 w-full"
+                >
+                  <div className="flex items-start justify-between gap-2 min-w-0">
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <span className="font-mono font-medium text-[#2563EB] text-[11px] block">{tx.referenceId}</span>
+                      <h4 className="font-medium text-slate-900 text-xs leading-snug break-words">{tx.description}</h4>
+                    </div>
+                    <span className={`font-medium text-xs shrink-0 ${tx.credits > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {tx.credits > 0 ? `+${tx.credits}` : tx.credits}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[10.5px] font-normal text-slate-500">
+                    <span>{tx.date}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTx(tx)}
+                      className="text-blue-600 hover:underline font-medium cursor-pointer"
+                    >
+                      Details
+                    </button>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <Card padding="lg" className="bg-white border border-slate-200 text-center py-12 space-y-2 rounded-2xl">
+                <p className="text-xs text-slate-500 font-normal">No credit activity found matching filters.</p>
+              </Card>
+            )}
+          </div>
+
+          {/* Desktop Table View (>= md) */}
+          <div className="hidden md:block bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-2xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-sans">
-                <thead className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#64748B] font-semibold">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-medium">
                   <tr>
-                    <th className="py-3.5 px-4">Ref ID</th>
-                    <th className="py-3.5 px-4">Date</th>
-                    <th className="py-3.5 px-4">Type</th>
-                    <th className="py-3.5 px-4">Description</th>
-                    <th className="py-3.5 px-4">Credits</th>
-                    <th className="py-3.5 px-4">Amount</th>
-                    <th className="py-3.5 px-4 text-right">Action</th>
+                    <th className="py-3 px-4">Ref ID</th>
+                    <th className="py-3 px-4">Date</th>
+                    <th className="py-3 px-4">Type</th>
+                    <th className="py-3 px-4">Description</th>
+                    <th className="py-3 px-4">Credits</th>
+                    <th className="py-3 px-4">Amount</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E2E8F0]">
+                <tbody className="divide-y divide-slate-100">
                   {filteredTransactions.map((tx) => (
                     <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-4 px-4 font-mono font-bold text-[#2563EB]">{tx.referenceId}</td>
-                      <td className="py-4 px-4 text-[#64748B]">{tx.date}</td>
-                      <td className="py-4 px-4 uppercase text-[10px] font-bold text-[#64748B]">
-                        <Badge variant={tx.credits > 0 ? 'success' : 'secondary'} size="sm">
+                      <td className="py-3 px-4 font-mono font-medium text-[#2563EB]">{tx.referenceId}</td>
+                      <td className="py-3 px-4 text-slate-500 font-normal">{tx.date}</td>
+                      <td className="py-3 px-4 uppercase text-[10px] font-medium text-slate-600">
+                        <Badge variant={tx.credits > 0 ? 'success' : 'secondary'} size="sm" className="font-medium">
                           {tx.type}
                         </Badge>
                       </td>
-                      <td className="py-4 px-4 text-[#0F172A] font-medium">{tx.description}</td>
-                      <td className={`py-4 px-4 font-bold ${tx.credits > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      <td className="py-3 px-4 text-slate-900 font-medium">{tx.description}</td>
+                      <td className={`py-3 px-4 font-medium ${tx.credits > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {tx.credits > 0 ? `+${tx.credits}` : tx.credits}
                       </td>
-                      <td className="py-4 px-4 font-bold text-[#0F172A]">
+                      <td className="py-3 px-4 font-medium text-slate-900">
                         {tx.amount > 0 ? `₹${tx.amount.toLocaleString()}` : '-'}
                       </td>
-                      <td className="py-4 px-4 text-right">
+                      <td className="py-3 px-4 text-right">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedTx(tx)}
-                          className="h-7 text-[10px] px-2.5"
+                          className="h-7 text-[10px] px-2.5 font-medium"
                         >
                           View Details
                         </Button>
@@ -559,7 +632,48 @@ export const CreditsPage: React.FC = () => {
         </div>
       )}
 
-      {/* PAYMENT GATEWAY MODAL (BUY CREDITS WORKFLOW) */}
+      {/* MOBILE FILTER BOTTOM SHEET */}
+      {isFilterSheetOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end md:hidden bg-slate-900/50 backdrop-blur-xs">
+          <div className="fixed inset-0" onClick={() => setIsFilterSheetOpen(false)} />
+          <div className="relative bg-white rounded-t-2xl p-4 space-y-4 max-h-[85vh] overflow-y-auto z-10 shadow-2xl animate-in slide-in-from-bottom duration-200 text-left font-sans text-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-medium text-slate-900 text-sm">Filter Activity</h3>
+              <button
+                type="button"
+                onClick={() => setIsFilterSheetOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1.5">Transaction Type</label>
+              <select
+                value={historyFilter}
+                onChange={(e) => setHistoryFilter(e.target.value as 'all' | 'purchase' | 'usage' | 'refund' | 'bonus')}
+                className="w-full h-10 rounded-xl border border-slate-200 px-3 bg-white text-slate-900 font-medium text-xs"
+              >
+                <option value="all">All Transactions</option>
+                <option value="purchase">Purchase</option>
+                <option value="usage">Usage</option>
+                <option value="refund">Refund</option>
+                <option value="bonus">Bonus</option>
+              </select>
+            </div>
+
+            <Button
+              onClick={() => setIsFilterSheetOpen(false)}
+              className="w-full h-10 text-xs font-medium bg-[#2563EB] text-white rounded-xl mt-2"
+            >
+              Apply Filters
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* PAYMENT GATEWAY MODAL */}
       <Modal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
@@ -568,27 +682,27 @@ export const CreditsPage: React.FC = () => {
         maxWidth="md"
       >
         <div className="space-y-4 font-sans text-xs text-left">
-          <div className="p-4 bg-slate-50 border border-[#E2E8F0] rounded-xl space-y-2">
-            <div className="flex justify-between font-semibold text-[#0F172A]">
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+            <div className="flex justify-between font-normal text-slate-700">
               <span>Credits Added:</span>
-              <span className="text-[#2563EB]">+{totalCreditsEarned.toLocaleString()} Credits</span>
+              <span className="text-[#2563EB] font-medium">+{totalCreditsEarned.toLocaleString()} Credits</span>
             </div>
-            <div className="flex justify-between font-bold text-sm text-[#0F172A]">
+            <div className="flex justify-between font-medium text-xs sm:text-sm text-slate-900 pt-1 border-t border-slate-200">
               <span>Total Payable:</span>
               <span>₹{grandTotal.toLocaleString()}</span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="block font-semibold text-[#0F172A]">Select Payment Method</label>
+            <label className="block font-medium text-slate-900">Select Payment Method</label>
             <div className="grid grid-cols-3 gap-2">
               {(['upi', 'card', 'netbanking'] as const).map((method) => (
                 <button
                   key={method}
                   type="button"
                   onClick={() => setPaymentMethod(method)}
-                  className={`p-3 rounded-xl border text-center font-semibold uppercase text-[11px] cursor-pointer ${
-                    paymentMethod === method ? 'bg-blue-50 border-[#2563EB] text-[#2563EB]' : 'bg-white border-[#E2E8F0]'
+                  className={`p-2.5 rounded-xl border text-center font-medium uppercase text-[10px] sm:text-[11px] cursor-pointer ${
+                    paymentMethod === method ? 'bg-blue-50 border-[#2563EB] text-[#2563EB]' : 'bg-white border-slate-200'
                   }`}
                 >
                   {method}
@@ -597,11 +711,11 @@ export const CreditsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E2E8F0]">
-            <Button variant="outline" onClick={() => setIsPaymentModalOpen(false)} className="h-10 text-xs font-semibold">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <Button variant="outline" onClick={() => setIsPaymentModalOpen(false)} className="h-9 text-xs font-medium">
               Cancel
             </Button>
-            <Button onClick={handleExecutePayment} className="h-10 bg-[#2563EB] text-white text-xs font-semibold px-6">
+            <Button onClick={handleExecutePayment} className="h-9 bg-[#2563EB] text-white text-xs font-medium px-4">
               Pay &amp; Add Credits
             </Button>
           </div>
@@ -618,31 +732,31 @@ export const CreditsPage: React.FC = () => {
       >
         {selectedTx && (
           <div className="space-y-4 font-sans text-xs text-left">
-            <div className="p-4 bg-[#F8FAFC] border rounded-xl space-y-2">
-              <div className="flex justify-between text-[#64748B]">
+            <div className="p-3.5 bg-slate-50 border rounded-xl space-y-1.5">
+              <div className="flex justify-between text-slate-500 font-normal">
                 <span>Description:</span>
-                <strong className="text-[#0F172A]">{selectedTx.description}</strong>
+                <span className="text-slate-900 font-medium">{selectedTx.description}</span>
               </div>
-              <div className="flex justify-between text-[#64748B]">
+              <div className="flex justify-between text-slate-500 font-normal">
                 <span>Credits Transacted:</span>
-                <strong className={selectedTx.credits > 0 ? 'text-emerald-600' : 'text-rose-600'}>
+                <span className={`font-medium ${selectedTx.credits > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                   {selectedTx.credits > 0 ? `+${selectedTx.credits}` : selectedTx.credits}
-                </strong>
+                </span>
               </div>
-              <div className="flex justify-between text-[#64748B]">
+              <div className="flex justify-between text-slate-500 font-normal">
                 <span>Amount Paid:</span>
-                <strong className="text-[#0F172A]">₹{selectedTx.amount.toLocaleString()}</strong>
+                <span className="text-slate-900 font-medium">₹{selectedTx.amount.toLocaleString()}</span>
               </div>
               {selectedTx.paymentMethod && (
-                <div className="flex justify-between text-[#64748B]">
+                <div className="flex justify-between text-slate-500 font-normal">
                   <span>Payment Gateway:</span>
-                  <strong className="text-[#0F172A]">{selectedTx.paymentMethod}</strong>
+                  <span className="text-slate-900 font-medium">{selectedTx.paymentMethod}</span>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center justify-end pt-3 border-t border-[#E2E8F0]">
-              <Button onClick={() => setSelectedTx(null)} className="h-10 bg-[#2563EB] text-white text-xs font-semibold px-6">
+            <div className="flex items-center justify-end pt-3 border-t border-slate-100">
+              <Button onClick={() => setSelectedTx(null)} className="h-9 bg-[#2563EB] text-white text-xs font-medium px-4">
                 Close
               </Button>
             </div>
@@ -652,3 +766,4 @@ export const CreditsPage: React.FC = () => {
     </div>
   );
 };
+

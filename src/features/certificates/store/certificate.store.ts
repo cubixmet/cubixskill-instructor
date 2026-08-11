@@ -44,7 +44,7 @@ const SEED_TEMPLATES: CertificateTemplate[] = [
     autoIssueConditions: DEFAULT_AUTO_ISSUE_CONDITIONS,
     version: 1,
     canvasSize: 'a4_landscape',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     elements: [
       {
         id: 'el-1',
@@ -177,7 +177,9 @@ const SEED_TEMPLATES: CertificateTemplate[] = [
   },
 ];
 
-const SEED_ISSUED: IssuedCertificate[] = [
+const getBaseOrigin = () => (typeof window !== 'undefined' ? window.location.origin : '');
+
+export const INITIAL_ISSUED_CERTIFICATES: IssuedCertificate[] = [
   {
     id: 'CERT-2026-8841',
     templateId: 'cert-tmpl-101',
@@ -189,7 +191,7 @@ const SEED_ISSUED: IssuedCertificate[] = [
     issuedAt: '2026-08-04T16:20:00Z',
     completionDate: '2026-08-04',
     status: 'issued',
-    qrVerificationUrl: 'http://localhost:5173/verify/certificate/CERT-2026-8841',
+    qrVerificationUrl: `${getBaseOrigin()}/verify/certificate/CERT-2026-8841`,
     downloadCount: 14,
     verificationScanCount: 28,
   },
@@ -204,7 +206,7 @@ const SEED_ISSUED: IssuedCertificate[] = [
     issuedAt: '2026-08-05T09:15:00Z',
     completionDate: '2026-08-05',
     status: 'issued',
-    qrVerificationUrl: 'http://localhost:5173/verify/certificate/CERT-2026-8842',
+    qrVerificationUrl: `${getBaseOrigin()}/verify/certificate/CERT-2026-8842`,
     downloadCount: 8,
     verificationScanCount: 19,
   },
@@ -214,7 +216,7 @@ export const useCertificateStore = create<CertificateState>()(
   persist(
     (set, get) => ({
       templates: SEED_TEMPLATES,
-      issuedCertificates: SEED_ISSUED,
+      issuedCertificates: INITIAL_ISSUED_CERTIFICATES,
 
       // TEMPLATE ACTIONS
       addTemplate: (data) => {
@@ -328,7 +330,7 @@ export const useCertificateStore = create<CertificateState>()(
           templateVersion: tmpl?.version || 1,
           issuedAt: new Date().toISOString(),
           status: 'issued',
-          qrVerificationUrl: `http://localhost:5173/verify/certificate/${certNumber}`,
+          qrVerificationUrl: `${getBaseOrigin()}/verify/certificate/${certNumber}`,
           downloadCount: 0,
           verificationScanCount: 0,
         };

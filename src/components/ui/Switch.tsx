@@ -3,6 +3,7 @@ import React from 'react';
 interface SwitchProps {
   checked: boolean;
   onCheckedChange?: (checked: boolean) => void;
+  onChange?: (checked: boolean) => void;
   disabled?: boolean;
   className?: string;
   id?: string;
@@ -11,10 +12,17 @@ interface SwitchProps {
 export const Switch: React.FC<SwitchProps> = ({
   checked,
   onCheckedChange,
+  onChange,
   disabled = false,
   className = '',
   id,
 }) => {
+  const handleClick = () => {
+    const nextState = !checked;
+    if (onCheckedChange) onCheckedChange(nextState);
+    if (onChange) onChange(nextState);
+  };
+
   return (
     <button
       id={id}
@@ -22,7 +30,7 @@ export const Switch: React.FC<SwitchProps> = ({
       role="switch"
       aria-checked={checked}
       disabled={disabled}
-      onClick={() => onCheckedChange && onCheckedChange(!checked)}
+      onClick={handleClick}
       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-2 ${
         checked ? 'bg-[#2563EB]' : 'bg-slate-200'
       } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}

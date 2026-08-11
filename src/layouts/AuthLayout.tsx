@@ -26,7 +26,7 @@ export const AuthLayout: React.FC = () => {
             </span>
           </div>
           <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-            Instructor Portal
+            CubixSkill Academy
           </span>
         </div>
 

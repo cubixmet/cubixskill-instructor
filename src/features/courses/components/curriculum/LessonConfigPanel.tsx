@@ -121,14 +121,12 @@ export const LessonConfigPanel: React.FC<LessonConfigPanelProps> = ({
                 >
                   <option value="video">Video Lesson</option>
                   <option value="audio">Audio Lesson</option>
-                  <option value="pdf">PDF Document</option>
-                  <option value="document">Text Article</option>
-                  <option value="download">Downloadable Asset</option>
-                  <option value="external_url">External Link</option>
-                  <option value="embed">Embed iFrame</option>
-                  <option value="quiz">Quiz Assessment</option>
-                  <option value="assignment">Assignment Task</option>
-                  <option value="live_class">Live Webinar</option>
+                  <option value="document">Document Lesson</option>
+                  <option value="image">Image Lesson</option>
+                  <option value="text">Text Lesson</option>
+                  <option value="quiz">Quiz</option>
+                  <option value="assignment">Assignment</option>
+                  <option value="project">Project</option>
                 </select>
               </div>
 

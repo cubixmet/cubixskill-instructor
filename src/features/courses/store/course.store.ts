@@ -44,6 +44,7 @@ interface CourseStoreState {
     courseData: Omit<CourseDetails, 'uuid' | 'createdAt' | 'updatedAt' | 'enrolledStudentsCount' | 'rating' | 'totalRevenue'>
   ) => CourseDetails;
   updateCourse: (uuid: string, updates: Partial<CourseDetails>) => void;
+  duplicateCourse: (sourceUuid: string, newTitle?: string) => CourseDetails;
   deleteCourse: (uuid: string) => void;
 }
 
@@ -93,6 +94,36 @@ export const useCourseStore = create<CourseStoreState>()(
             },
           };
         });
+      },
+
+      duplicateCourse: (sourceUuid, newTitle) => {
+        const source = get().coursesByUuid[sourceUuid] || DEFAULT_COURSE;
+        const newUuid = generateUuid();
+        const title = newTitle || `${source.title} — Copy`;
+        const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
+        // Deep clone reusable content, resetting all operational/student data
+        const duplicatedCourse: CourseDetails = JSON.parse(JSON.stringify({
+          ...source,
+          uuid: newUuid,
+          slug,
+          title,
+          status: 'draft',
+          enrolledStudentsCount: 0,
+          rating: 5.0,
+          totalRevenue: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
+
+        set((state) => ({
+          coursesByUuid: {
+            [newUuid]: duplicatedCourse,
+            ...state.coursesByUuid,
+          },
+        }));
+
+        return duplicatedCourse;
       },
 
       deleteCourse: (uuid) => {

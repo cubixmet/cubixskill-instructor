@@ -135,32 +135,6 @@ export interface TransactionItem {
   invoiceUrl?: string;
 }
 
-export interface NotificationItem {
-  id: string;
-  title: string;
-  description: string;
-  timestamp: string;
-  category: 'Unread' | 'Read' | 'Priority' | 'Archive';
-  iconType: 'info' | 'success' | 'warning' | 'credit';
-  read: boolean;
-}
-
-export interface RecentOrderItem {
-  id: string;
-  student: string;
-  course: string;
-  amount: number;
-  date: string;
-  status: 'Paid' | 'Pending' | 'Failed' | 'Refunded';
-  paymentMethod: string;
-}
-
-export interface CreditUsageCategory {
-  category: string;
-  credits: number;
-  percentage: number;
-}
-
 export interface ActivityTimelineItem {
   id: string;
   type: 'Student Enrolled' | 'Course Purchased' | 'Assignment Submitted' | 'Quiz Completed' | 'Certificate Generated' | 'Credits Purchased' | 'Media Uploaded';
@@ -178,12 +152,4 @@ export interface DashboardAlertItem {
   description: string;
   timestamp: string;
   primaryAction?: { label: string; href: string };
-}
-
-export interface SupportSummary {
-  openTickets: number;
-  inProgressTickets: number;
-  resolvedTickets: number;
-  avgResponseTime: string;
-  liveChatAvailable: boolean;
 }

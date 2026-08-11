@@ -1,138 +1,128 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Palette, Globe, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Palette, Globe, CheckCircle2, ArrowRight, Layout, Search } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 
 export const WebsiteBuilderLandingPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-6 font-sans text-xs text-slate-900 text-left pb-16 w-full max-w-full">
-      {/* HEADER SECTION */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-          Website Builder &amp; Portal Branding
+    <div className="space-y-4 sm:space-y-6 font-sans text-xs text-slate-900 text-left pb-24 sm:pb-16 w-full max-w-full min-w-0 px-2.5 sm:px-0 overflow-x-hidden">
+      {/* PAGE HEADER */}
+      <div className="space-y-1">
+        <h1 className="text-base sm:text-xl font-medium text-slate-900 tracking-tight">
+          Website Builder
         </h1>
-        <p className="text-slate-500 text-xs mt-1">
-          Select between customizing fixed Student Portal branding or launching the drag-and-drop Public Website Builder.
+        <p className="text-slate-500 text-xs font-normal leading-relaxed">
+          Customize your Student Portal branding or configure your public-facing academy website.
         </p>
       </div>
 
-      {/* TWO SEPARATED CARDS SYSTEM */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+      {/* TWO BUILDER OPTIONS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* CARD 1: STUDENT PORTAL BRANDING */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-md p-6 sm:p-8 flex flex-col justify-between space-y-6 hover:border-blue-300 transition-all">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-                <Palette className="w-6 h-6" />
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 flex flex-col justify-between space-y-4 hover:border-blue-200 transition-all">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shrink-0">
+                <Palette className="w-5 h-5" />
               </div>
-              <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 uppercase tracking-wider">
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100 shrink-0">
                 Fixed Portal Layout
               </span>
             </div>
 
             <div className="space-y-1">
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900">Student Portal Branding</h2>
-              <p className="text-slate-600 text-xs leading-relaxed">
-                Customize branding assets for the student learning environment. Layout remains fixed for student UX consistency.
+              <h2 className="text-sm font-medium text-slate-900">Student Portal</h2>
+              <p className="text-slate-500 text-xs font-normal leading-relaxed">
+                Customize the logged-in student learning experience with logos, colors, and branding.
               </p>
             </div>
 
-            <div className="pt-2 space-y-2 border-t border-slate-100">
-              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Customizable Properties:</span>
-              <ul className="space-y-2 text-xs text-slate-700">
+            <div className="pt-2 space-y-1.5 border-t border-slate-100">
+              <ul className="space-y-1.5 text-xs text-slate-600">
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Academy Name &amp; Support Contact</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="font-normal">Academy Name &amp; Support Contact</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Academy Logo File Upload (PNG, JPG, SVG, WEBP)</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="font-normal">Logo &amp; Favicon Upload</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Favicon &amp; Brand Assets</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="font-normal">20 Prebuilt Themes with Color Accents</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Support Email &amp; Support Phone Number</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>20 Prebuilt Themes (Accents, Buttons, Progress &amp; Typography)</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="font-normal">Support Email &amp; Phone</span>
                 </li>
               </ul>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-100">
+          <div className="pt-3 border-t border-slate-100">
             <Button
-              size="lg"
+              size="sm"
               onClick={() => navigate('/website-builder/student-portal')}
-              className="w-full font-semibold justify-center text-white min-h-[48px]"
-              rightIcon={<ArrowRight className="w-4 h-4" />}
+              className="w-full h-[38px] min-h-[38px] font-medium text-xs justify-center text-white rounded-xl"
+              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
             >
-              Open Branding Settings
+              Customize Portal
             </Button>
           </div>
         </div>
 
         {/* CARD 2: PUBLIC WEBSITE BUILDER */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-md p-6 sm:p-8 flex flex-col justify-between space-y-6 hover:border-emerald-300 transition-all">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-                <Globe className="w-6 h-6" />
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 flex flex-col justify-between space-y-4 hover:border-emerald-200 transition-all">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
+                <Globe className="w-5 h-5" />
               </div>
-              <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase tracking-wider">
-                Drag-and-Drop Studio
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-100 shrink-0">
+                Builder Studio
               </span>
             </div>
 
             <div className="space-y-1">
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900">Public Website Builder</h2>
-              <p className="text-slate-600 text-xs leading-relaxed">
-                Create and manage a high-converting public storefront for your academy with custom pages and live course grids.
+              <h2 className="text-sm font-medium text-slate-900">Public Site</h2>
+              <p className="text-slate-600 text-xs font-normal leading-relaxed">
+                Create and manage the public academy website with pages, hero sections, and SEO settings.
               </p>
             </div>
 
-            <div className="pt-2 space-y-2 border-t border-slate-100">
-              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Features &amp; Modules:</span>
-              <ul className="space-y-2 text-xs text-slate-700">
+            <div className="pt-2 space-y-1.5 border-t border-slate-100">
+              <ul className="space-y-1.5 text-xs text-slate-600">
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Public Academy Website &amp; Landing Pages</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="font-normal">Public Academy Landing Pages</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Live Course Grid (Binds directly to published courses)</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="font-normal">Live Course Grid &amp; Navigation</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Header, Navigation &amp; Footer Builder</span>
+                  <Layout className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="font-normal">Hero, Branding &amp; Footer Builder</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>SEO Schema &amp; Meta Settings</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Automated Lead Capture &amp; Student Registration</span>
+                  <Search className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="font-normal">SEO Schema &amp; Meta Settings</span>
                 </li>
               </ul>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-100">
+          <div className="pt-3 border-t border-slate-100">
             <Button
-              size="lg"
+              size="sm"
               style={{ backgroundColor: '#059669' }}
               onClick={() => navigate('/website-builder/public-site')}
-              className="w-full font-semibold justify-center text-white min-h-[48px]"
-              rightIcon={<ArrowRight className="w-4 h-4" />}
+              className="w-full h-[38px] min-h-[38px] font-medium text-xs justify-center text-white rounded-xl"
+              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
             >
-              Open Website Builder Studio
+              Customize Public Site
             </Button>
           </div>
         </div>

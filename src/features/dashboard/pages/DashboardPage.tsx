@@ -11,15 +11,14 @@ import { CoursePerformance } from '../components/CoursePerformance';
 import { PendingItemsWidget } from '../components/PendingItemsWidget';
 import { RecentActivityTimeline } from '../components/RecentActivityTimeline';
 import { StorageWidget } from '../components/StorageWidget';
-import { CreditWidget } from '../components/CreditWidget';
 import { CertificateWidget } from '../components/CertificateWidget';
 import { AssignmentQuizWidget } from '../components/AssignmentQuizWidget';
 import { AnnouncementsWidget } from '../components/AnnouncementsWidget';
 import { RecentTransactionsWidget } from '../components/RecentTransactionsWidget';
-import { NotificationCenterWidget } from '../components/NotificationCenterWidget';
 import { DashboardAlerts } from '../components/DashboardAlerts';
+import { DashboardPermissionGuard } from '../components/DashboardPermissionGuard';
 
-// Common UI Modals & Shared Elements
+// Shared Modals
 import { BuyCreditsModal } from '../../../components/common/BuyCreditsModal';
 import { CreditCalculatorModal } from '../../../components/common/CreditCalculatorModal';
 import { SkeletonDashboard } from '../../../components/ui/SkeletonDashboard';
@@ -45,14 +44,13 @@ export const DashboardPage: React.FC = () => {
     quizStats,
     announcements,
     recentTransactions,
-    notifications,
     recentActivities,
     pendingItems,
     alerts,
   } = data;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16 text-left overflow-x-hidden">
+    <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto pb-16 text-left overflow-x-hidden">
       {/* 1. Critical System Alerts */}
       <DashboardAlerts alerts={alerts} />
 
@@ -62,35 +60,30 @@ export const DashboardPage: React.FC = () => {
         onOpenBuyCredits={() => setBuyCreditsOpen(true)}
       />
 
-      {/* 3. Available Credit Engine Banner */}
-      <CreditWidget
-        availableCredits={stats.availableCredits}
-        usedThisMonth={stats.usedCreditsThisMonth}
-        estimatedRemaining={stats.estimatedUpcomingCredits}
-        onOpenBuyCredits={() => setBuyCreditsOpen(true)}
-        onOpenCalculator={() => setCalculatorOpen(true)}
-      />
-
-      {/* 4. Quick Actions Grid */}
+      {/* 3. Quick Actions Grid */}
       <QuickActions onOpenBuyCredits={() => setBuyCreditsOpen(true)} />
 
-      {/* 5. 12 Professional Summary Statistics Cards */}
+      {/* 4. Compact Mobile 2-Column / Desktop 4-Column Summary Statistics Cards */}
       <DashboardStatGrid stats={stats} />
 
-      {/* 6. Revenue Analytics & Student Retention */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RevenueOverview data={revenueTrendData} />
-        <EnrollmentOverview data={studentGrowthData} />
+      {/* 5. Revenue Analytics & Student Retention */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <DashboardPermissionGuard permission="revenue">
+          <RevenueOverview data={revenueTrendData} />
+        </DashboardPermissionGuard>
+        <DashboardPermissionGuard permission="students">
+          <EnrollmentOverview data={studentGrowthData} />
+        </DashboardPermissionGuard>
       </div>
 
-      {/* 7. Course Performance & Pending Items Queue */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* 6. Course Performance & Pending Items Queue */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <CoursePerformance courses={coursePerformance} />
         <PendingItemsWidget items={pendingItems} />
       </div>
 
-      {/* 8. Storage Analytics & Certificates Hub */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* 7. Storage Analytics & Certificates Hub */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <StorageWidget
           usedGB={stats.storageUsedGB}
           totalGB={stats.storageTotalGB}
@@ -99,23 +92,22 @@ export const DashboardPage: React.FC = () => {
         <CertificateWidget stats={certificateStats} />
       </div>
 
-      {/* 9. Assignment & Quiz Evaluation Widgets */}
+      {/* 8. Assignment & Quiz Evaluation Widgets */}
       <AssignmentQuizWidget
         assignmentStats={assignmentStats}
         quizStats={quizStats}
       />
 
-      {/* 10. Real-time Activity Timeline & Announcements */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* 9. Real-time Activity Timeline & Announcements */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <RecentActivityTimeline activities={recentActivities} />
         <AnnouncementsWidget announcements={announcements} />
       </div>
 
-      {/* 11. Credit Transactions & Notification Center */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* 10. Financial Transactions (Permission Guarded) */}
+      <DashboardPermissionGuard permission="revenue">
         <RecentTransactionsWidget transactions={recentTransactions} />
-        <NotificationCenterWidget notifications={notifications} />
-      </div>
+      </DashboardPermissionGuard>
 
       {/* Shared Modals */}
       <BuyCreditsModal

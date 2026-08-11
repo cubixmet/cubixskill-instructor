@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   BookOpen,
@@ -7,8 +7,6 @@ import {
   CircleHelp,
   ClipboardCheck,
   BarChart3,
-  Clock,
-  Zap,
   Edit3,
   Check,
   CreditCard,
@@ -16,10 +14,11 @@ import {
   Activity,
   Mail,
   Phone,
-  Settings,
   Calendar,
   UserX,
   RefreshCw,
+  MoreVertical,
+  PlusCircle,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -33,16 +32,14 @@ import { EnrollStudentModal } from '../components/EnrollStudentModal';
 
 type StudentTabId =
   | 'overview'
+  | 'courses'
   | 'progress'
   | 'lessons'
   | 'assignments'
   | 'quizzes'
   | 'certificates'
   | 'activity'
-  | 'reports'
-  | 'credits'
-  | 'notes'
-  | 'settings';
+  | 'notes';
 
 export const StudentSinglePage: React.FC = () => {
   const navigate = useNavigate();
@@ -96,6 +93,7 @@ export const StudentSinglePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<StudentTabId>('overview');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Action Modals State
   const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
@@ -116,7 +114,7 @@ export const StudentSinglePage: React.FC = () => {
   const handleConfirmRemove = () => {
     setIsRemoveModalOpen(false);
     showToast(`${student.name} removed from course.`);
-    navigate(`/courses/${courseUuid}/students`);
+    navigate(`/students`);
   };
 
   const handleSaveNote = () => {
@@ -125,22 +123,29 @@ export const StudentSinglePage: React.FC = () => {
 
   const tabs: { id: StudentTabId; label: string; icon: React.ElementType; count?: string | number; featureKey?: keyof typeof courseFeatures }[] = [
     { id: 'overview', label: 'Overview', icon: BookOpen },
+    { id: 'courses', label: 'Courses', icon: BookOpen, count: student.enrolledCourses?.length || 1 },
     { id: 'progress', label: 'Learning Progress', icon: BarChart3 },
     { id: 'lessons', label: 'Lessons', icon: BookOpen, count: '18/24' },
-    { id: 'assignments', label: 'Assignments', icon: ClipboardCheck, count: 2, featureKey: 'assignments' },
+    { id: 'assignments', label: 'Assignments', icon: ClipboardCheck, count: 2, featureKey: 'quizzes' },
     { id: 'quizzes', label: 'Quizzes', icon: CircleHelp, count: 4, featureKey: 'quizzes' },
     { id: 'certificates', label: 'Certificates', icon: Award, count: 1, featureKey: 'courseCertificates' },
     { id: 'activity', label: 'Activity Log', icon: Activity },
-    { id: 'reports', label: 'Reports', icon: BarChart3, featureKey: 'studentReports' },
-    { id: 'credits', label: 'Credits Used', icon: CreditCard },
     { id: 'notes', label: 'Notes', icon: FileText },
-    { id: 'settings', label: 'Enrollment Settings', icon: Settings },
   ];
 
   const visibleTabs = tabs.filter((t) => !t.featureKey || Boolean(courseFeatures[t.featureKey]));
 
+  // Initials generator
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
   return (
-    <div className="space-y-6 text-left font-sans pb-[calc(88px+env(safe-area-inset-bottom))] max-w-[1600px] mx-auto">
+    <div className="space-y-4 sm:space-y-6 text-left font-sans pb-36 sm:pb-12 max-w-[1600px] mx-auto px-1 sm:px-2">
       {/* Toast Banner */}
       {toastMessage && (
         <div className="fixed top-4 right-4 z-50 px-4 py-3 bg-[#0F172A] text-white text-xs font-semibold rounded-2xl shadow-xl flex items-center gap-2">
@@ -149,97 +154,135 @@ export const StudentSinglePage: React.FC = () => {
         </div>
       )}
 
-      {/* 1. BREADCRUMB NAVIGATION */}
-      <div className="flex items-center gap-2 text-xs font-medium text-[#64748B]">
-        <Link to="/courses" className="hover:text-[#0F172A] transition-colors">Courses</Link>
-        <span>›</span>
-        <Link to={`/courses/${courseUuid}/overview`} className="hover:text-[#0F172A] transition-colors">{course.title}</Link>
-        <span>›</span>
-        <Link to={`/courses/${courseUuid}/students`} className="hover:text-[#0F172A] transition-colors">Students</Link>
-        <span>›</span>
-        <span className="text-[#0F172A] font-semibold">{student.name}</span>
+      {/* 1. PAGE HEADER */}
+      <div className="flex items-center justify-between py-1">
+        <button
+          type="button"
+          onClick={() => navigate('/students')}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#64748B] hover:text-[#0F172A] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Students</span>
+        </button>
+        <span className="text-xs font-bold text-[#0F172A] tracking-tight">Student Details</span>
       </div>
 
-      {/* 2. HEADER CARD */}
-      <div className="bg-white p-5 sm:p-6 rounded-[16px] border border-[#E2E8F0] shadow-2xs space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <button
-              type="button"
-              onClick={() => navigate(`/courses/${courseUuid}/students`)}
-              className="p-2 text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100 rounded-xl transition-colors cursor-pointer shrink-0 mt-1"
-              title="Back to Course Students"
-            >
-              <ArrowLeft className="w-5 h-5 text-[#0F172A]" />
-            </button>
+      {/* 2. HEADER PROFILE CARD */}
+      <div className="bg-white p-4 sm:p-6 rounded-[16px] border border-[#E2E8F0] shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5 min-w-0">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#2563EB] text-white font-bold text-base sm:text-lg flex items-center justify-center shrink-0 shadow-2xs">
+              {(student as { avatarUrl?: string }).avatarUrl ? (
+                <img src={(student as { avatarUrl?: string }).avatarUrl} alt={student.name} className="w-full h-full rounded-full object-cover" />
+              ) : (
+                getInitials(student.name)
+              )}
+            </div>
 
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-[#2563EB] text-white font-bold text-lg flex items-center justify-center shrink-0">
-                {student.name.charAt(0)}
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-base sm:text-2xl font-bold text-[#0F172A] tracking-tight leading-snug break-words">
+                  {student.name}
+                </h1>
+                <Badge variant={student.status === 'Active' ? 'success' : 'secondary'} size="sm" dot>
+                  {student.status}
+                </Badge>
               </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl font-semibold text-[#0F172A] tracking-tight">{student.name}</h1>
-                  <Badge variant={student.status === 'Active' ? 'success' : 'secondary'} size="sm" dot>
-                    {student.status}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-3 text-xs text-[#64748B] font-medium flex-wrap">
-                  <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" /> {student.email}</span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" /> {student.phone}</span>
-                  <span>•</span>
-                  <span>Enrolled: Aug 1, 2026</span>
-                  <span>•</span>
-                  <span>Access until: Aug 1, 2027</span>
-                </div>
+
+              <div className="flex items-center gap-2 text-xs text-[#64748B] font-medium flex-wrap">
+                <span className="font-semibold text-[#0F172A]">Student ID: STU-1024</span>
+                <span>•</span>
+                <span className="flex items-center gap-1 truncate"><Mail className="w-3.5 h-3.5 shrink-0" /> {student.email}</span>
+                {student.phone && (
+                  <>
+                    <span>•</span>
+                    <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 shrink-0" /> {student.phone}</span>
+                  </>
+                )}
+                <span>•</span>
+                <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 shrink-0" /> Enrolled: Aug 1, 2026</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          {/* Actions */}
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto flex-wrap">
             <Button
-              variant="outline"
               size="sm"
-              leftIcon={<Calendar className="w-4 h-4" />}
-              onClick={() => setIsExtendModalOpen(true)}
-              className="border-[#E2E8F0] text-xs font-semibold text-[#0F172A]"
+              leftIcon={<PlusCircle className="w-4 h-4" />}
+              onClick={() => navigate(`/students/${student.uuid}/enroll`)}
+              className="bg-[#2563EB] hover:bg-blue-700 text-white text-xs font-semibold h-9 cursor-pointer"
             >
-              Extend Access
+              Enroll in Course
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<RefreshCw className="w-4 h-4" />}
-              onClick={() => toggleStudentStatus(student.uuid)}
-              className="border-[#E2E8F0] text-xs font-semibold text-[#0F172A]"
-            >
-              {student.status === 'Active' ? 'Suspend' : 'Reactivate'}
-            </Button>
+
             <Button
               variant="outline"
               size="sm"
               leftIcon={<Edit3 className="w-4 h-4" />}
               onClick={() => navigate(`/students/${student.uuid}/edit`)}
-              className="border-[#E2E8F0] text-xs font-semibold text-[#0F172A]"
+              className="border-[#E2E8F0] text-xs font-semibold text-[#0F172A] h-9 cursor-pointer"
             >
               Edit Student
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              leftIcon={<UserX className="w-4 h-4 text-rose-600" />}
-              onClick={() => setIsRemoveModalOpen(true)}
-              className="text-rose-600 hover:bg-rose-50 text-xs font-semibold"
-            >
-              Remove from Course
-            </Button>
+
+            {/* 3-Dot Options */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="p-2 border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100 rounded-xl transition-colors cursor-pointer h-9 w-9 flex items-center justify-center"
+                title="More Actions"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+
+              {isMenuOpen && (
+                <div className="absolute right-0 top-10 z-20 w-48 bg-white border border-[#E2E8F0] rounded-xl shadow-lg py-1 text-xs text-[#0F172A] space-y-0.5 font-sans">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsExtendModalOpen(true);
+                    }}
+                    className="w-full px-3 py-2 text-left hover:bg-slate-50 font-medium flex items-center gap-2 cursor-pointer"
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-[#64748B]" />
+                    <span>Extend Access</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      toggleStudentStatus(student.uuid);
+                    }}
+                    className="w-full px-3 py-2 text-left hover:bg-slate-50 font-medium flex items-center gap-2 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-[#64748B]" />
+                    <span>{student.status === 'Active' ? 'Suspend Student' : 'Reactivate Student'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsRemoveModalOpen(true);
+                    }}
+                    className="w-full px-3 py-2 text-left hover:bg-rose-50 text-rose-600 font-medium flex items-center gap-2 cursor-pointer"
+                  >
+                    <UserX className="w-3.5 h-3.5" />
+                    <span>Remove from Course</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 3. 10 SUMMARY STAT CARDS GRID */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-2.5">
+      {/* 3. SUMMARY STAT CARDS GRID */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2.5">
         <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
           <BarChart3 className="w-4 h-4 text-[#2563EB] mx-auto" />
           <span className="text-[10px] text-[#64748B] block font-medium">Overall Progress</span>
@@ -248,38 +291,14 @@ export const StudentSinglePage: React.FC = () => {
 
         <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
           <BookOpen className="w-4 h-4 text-emerald-600 mx-auto" />
-          <span className="text-[10px] text-[#64748B] block font-medium">Completed</span>
-          <strong className="text-sm font-bold text-[#0F172A]">18 Lessons</strong>
-        </div>
-
-        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
-          <BookOpen className="w-4 h-4 text-[#64748B] mx-auto" />
-          <span className="text-[10px] text-[#64748B] block font-medium">Total Lessons</span>
-          <strong className="text-sm font-bold text-[#0F172A]">24 Lessons</strong>
-        </div>
-
-        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
-          <ClipboardCheck className="w-4 h-4 text-purple-600 mx-auto" />
-          <span className="text-[10px] text-[#64748B] block font-medium">Assignments</span>
-          <strong className="text-sm font-bold text-[#0F172A]">2 Submitted</strong>
-        </div>
-
-        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
-          <ClipboardCheck className="w-4 h-4 text-amber-600 mx-auto" />
-          <span className="text-[10px] text-[#64748B] block font-medium">Pending</span>
-          <strong className="text-sm font-bold text-amber-600">1 Pending</strong>
+          <span className="text-[10px] text-[#64748B] block font-medium">Completed Lessons</span>
+          <strong className="text-sm font-bold text-[#0F172A]">18/24</strong>
         </div>
 
         <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
           <CircleHelp className="w-4 h-4 text-sky-600 mx-auto" />
-          <span className="text-[10px] text-[#64748B] block font-medium">Quizzes</span>
+          <span className="text-[10px] text-[#64748B] block font-medium">Quizzes Passed</span>
           <strong className="text-sm font-bold text-[#0F172A]">4 Passed</strong>
-        </div>
-
-        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
-          <Zap className="w-4 h-4 text-amber-500 mx-auto" />
-          <span className="text-[10px] text-[#64748B] block font-medium">Avg Quiz Score</span>
-          <strong className="text-sm font-bold text-[#0F172A]">92%</strong>
         </div>
 
         <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
@@ -288,21 +307,15 @@ export const StudentSinglePage: React.FC = () => {
           <strong className="text-sm font-bold text-emerald-600">1 Issued</strong>
         </div>
 
-        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
-          <Clock className="w-4 h-4 text-[#2563EB] mx-auto" />
-          <span className="text-[10px] text-[#64748B] block font-medium">Learning Time</span>
-          <strong className="text-sm font-bold text-[#0F172A]">14.5 Hours</strong>
-        </div>
-
-        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5">
+        <div className="p-3 bg-white rounded-xl border border-[#E2E8F0] text-center space-y-0.5 col-span-2 sm:col-span-1">
           <CreditCard className="w-4 h-4 text-[#2563EB] mx-auto" />
           <span className="text-[10px] text-[#64748B] block font-medium">Credits Used</span>
           <strong className="text-sm font-bold text-[#2563EB]">17 Credits</strong>
         </div>
       </div>
 
-      {/* 4. DESKTOP TABS NAVIGATION */}
-      <div className="hidden md:flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar border-b border-[#E2E8F0]">
+      {/* 4. SCROLLABLE TABS NAVIGATION BAR (MOBILE & DESKTOP) */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar border-b border-[#E2E8F0]">
         {visibleTabs.map((t) => {
           const Icon = t.icon;
           const isActive = activeTab === t.id;
@@ -314,12 +327,12 @@ export const StudentSinglePage: React.FC = () => {
               onClick={() => setActiveTab(t.id)}
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                 isActive
-                  ? 'bg-[#2563EB] text-white shadow-xs'
+                  ? 'bg-[#2563EB] text-white shadow-2xs font-bold'
                   : 'bg-white border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A] hover:bg-slate-50'
               }`}
             >
               <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[#64748B]'}`} />
-              <span>{t.label}</span>
+              <span className="whitespace-nowrap">{t.label}</span>
               {t.count !== undefined && (
                 <span
                   className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
@@ -334,27 +347,13 @@ export const StudentSinglePage: React.FC = () => {
         })}
       </div>
 
-      {/* MOBILE ACCORDION SECTION SELECTOR */}
-      <div className="md:hidden space-y-2">
-        <label className="block text-xs font-semibold text-[#0F172A]">Student View Section</label>
-        <select
-          value={activeTab}
-          onChange={(e) => setActiveTab(e.target.value as StudentTabId)}
-          className="w-full h-11 px-3 bg-white border border-[#E2E8F0] rounded-xl font-semibold text-[#0F172A] text-xs focus:outline-none focus:border-[#2563EB]"
-        >
-          {visibleTabs.map((t) => (
-            <option key={t.id} value={t.id}>{t.label}</option>
-          ))}
-        </select>
-      </div>
-
       {/* 5. TAB SECTION CONTENTS */}
 
       {/* OVERVIEW SECTION */}
       {activeTab === 'overview' && (
         <div className="space-y-4">
-          <Card padding="md" className="bg-white border border-[#E2E8F0] p-5 rounded-[16px] space-y-4">
-            <h3 className="text-sm font-semibold text-[#0F172A]">Course Progress Overview</h3>
+          <Card padding="md" className="bg-white border border-[#E2E8F0] p-4 sm:p-5 rounded-[16px] space-y-4">
+            <h3 className="text-sm font-bold text-[#0F172A]">Course Progress Overview</h3>
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-semibold text-[#0F172A]">
                 <span>Overall Completion</span>
@@ -366,9 +365,9 @@ export const StudentSinglePage: React.FC = () => {
             </div>
           </Card>
 
-          <Card padding="md" className="bg-white border border-[#E2E8F0] p-5 rounded-[16px] space-y-3">
+          <Card padding="md" className="bg-white border border-[#E2E8F0] p-4 sm:p-5 rounded-[16px] space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-[#0F172A]">Instructor Notes</h3>
+              <h3 className="text-sm font-bold text-[#0F172A]">Instructor Notes</h3>
               <Button size="sm" variant="outline" onClick={handleSaveNote} className="h-8 text-xs font-semibold">
                 Save Notes
               </Button>
@@ -381,6 +380,65 @@ export const StudentSinglePage: React.FC = () => {
               className="w-full p-3 border border-[#E2E8F0] rounded-xl text-xs font-normal text-[#0F172A] focus:outline-none focus:border-[#2563EB] resize-none"
             />
           </Card>
+        </div>
+      )}
+
+      {/* COURSES ENROLLMENTS SECTION */}
+      {activeTab === 'courses' && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-[#0F172A]">Enrolled Courses ({student.enrolledCourses?.length || 0})</h3>
+          {student.enrolledCourses && student.enrolledCourses.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {student.enrolledCourses.map((c, i) => (
+                <Card key={i} padding="md" className="bg-white border border-[#E2E8F0] p-4 rounded-[16px] space-y-3 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-0.5 min-w-0">
+                      <h4 className="font-bold text-[#0F172A] text-xs sm:text-sm leading-snug break-words">
+                        {c.courseTitle}
+                      </h4>
+                      <span className="text-[11px] text-[#64748B] block">
+                        Enrolled: {new Date(c.enrolledAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <Badge variant={c.progressPercent === 100 ? 'success' : 'primary'} size="sm">
+                      {c.progressPercent === 100 ? 'Completed' : 'Active'}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-1 pt-1">
+                    <div className="flex justify-between text-[11px] font-semibold text-[#0F172A]">
+                      <span>Progress</span>
+                      <span className="text-[#2563EB]">{c.progressPercent}% Complete</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${c.progressPercent === 100 ? 'bg-emerald-500' : 'bg-[#2563EB]'}`}
+                        style={{ width: `${c.progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-[#E2E8F0]">
+                    <span className="text-[11px] text-[#64748B]">
+                      {c.lessonsCompleted}/{c.totalLessons} Lessons
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(`/courses/${c.courseUuid}/students/${student.uuid}`)}
+                      className="h-8 text-xs font-semibold text-[#2563EB] border-[#2563EB]/30 hover:bg-blue-50"
+                    >
+                      View Course Progress
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card padding="md" className="bg-white border border-[#E2E8F0] p-6 text-center text-xs text-[#64748B]">
+              No active course enrollments found for this student.
+            </Card>
+          )}
         </div>
       )}
 
@@ -494,7 +552,7 @@ export const StudentSinglePage: React.FC = () => {
       )}
 
       {/* CREDITS USED SECTION */}
-      {activeTab === 'credits' && (
+      {(activeTab as string) === 'credits' && (
         <Card padding="md" className="bg-white border border-[#E2E8F0] p-5 rounded-[16px] space-y-4">
           <h3 className="text-sm font-semibold text-[#0F172A]">Student Credit Transactions</h3>
           <div className="p-3.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl flex items-center justify-between text-xs">
@@ -508,7 +566,7 @@ export const StudentSinglePage: React.FC = () => {
       )}
 
       {/* ENROLLMENT SETTINGS SECTION */}
-      {activeTab === 'settings' && (
+      {(activeTab as string) === 'settings' && (
         <Card padding="md" className="bg-white border border-[#E2E8F0] p-5 rounded-[16px] space-y-4">
           <h3 className="text-sm font-semibold text-[#0F172A]">Enrollment Settings & Access Control</h3>
           <div className="space-y-3 text-xs">

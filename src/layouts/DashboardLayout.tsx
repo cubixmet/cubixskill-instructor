@@ -3,12 +3,14 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Header } from "../components/layout/Header";
 import { Sidebar } from "../components/layout/Sidebar";
 import { MobileBottomNav } from "../components/layout/MobileBottomNav";
+import { MobileProfileDrawer } from "../components/layout/MobileProfileDrawer";
 import { Drawer } from "../components/ui/Drawer";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../lib/cn";
 
 export const DashboardLayout: React.FC = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
 
@@ -28,7 +30,7 @@ export const DashboardLayout: React.FC = () => {
         onClose={() => setMobileSidebarOpen(false)}
         side="left"
         size="sm"
-        title="Navigation"
+        title="Academy Navigation"
         noPadding={true}
       >
         <Sidebar
@@ -37,10 +39,16 @@ export const DashboardLayout: React.FC = () => {
         />
       </Drawer>
 
+      {/* Mobile Profile Action Drawer */}
+      <MobileProfileDrawer
+        isOpen={mobileProfileOpen}
+        onClose={() => setMobileProfileOpen(false)}
+      />
+
       {/* Main Content Area - Left margin equals sidebar width with smooth transition */}
       <div
         className={cn(
-          "flex-1 flex flex-col min-w-0 pb-16 md:pb-0 transition-all duration-300 ease-in-out min-h-screen",
+          "flex-1 flex flex-col min-w-0 pb-20 md:pb-0 transition-all duration-300 ease-in-out min-h-screen",
           isCollapsed ? "md:ml-20" : "md:ml-64"
         )}
       >
@@ -65,7 +73,10 @@ export const DashboardLayout: React.FC = () => {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <MobileBottomNav onOpenSidebar={() => setMobileSidebarOpen(true)} />
+      <MobileBottomNav
+        onOpenSidebar={() => setMobileSidebarOpen(true)}
+        onOpenProfile={() => setMobileProfileOpen(true)}
+      />
     </div>
   );
 };

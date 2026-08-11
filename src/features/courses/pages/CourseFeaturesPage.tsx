@@ -217,54 +217,61 @@ export const CourseFeaturesPage: React.FC = () => {
     return list;
   }, [activeCategory, searchQuery, statusFilter, localFeatures]);
 
+  const enabledFeaturesList = useMemo(() => {
+    return COURSE_FEATURE_DEFINITIONS.filter((f) => localFeatures[f.id] && !f.isRequired).map((f) => ({
+      name: f.name,
+      cost: f.creditCostPerStudent,
+    }));
+  }, [localFeatures]);
+
   return (
-    <div className="space-y-6 text-left font-sans pb-16">
+    <div className="space-y-4 sm:space-y-6 text-left font-sans pb-36 md:pb-12">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white font-extrabold text-xs px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-800 animate-bounce">
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-800 animate-bounce">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* 1. PAGE HEADER */}
-      <Card padding="md" className="bg-white border border-slate-200/90 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+      <Card padding="sm" className="bg-white border border-slate-200/90 p-4 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0 space-y-0.5">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">Course Features &amp; Capability Control</h1>
-              <Badge variant="info" size="sm" className="font-bold">
-                {enabledFeaturesCount} Active Tools
+              <h1 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight">Course Features</h1>
+              <Badge variant="info" size="sm" className="font-bold shrink-0">
+                {enabledFeaturesCount} Active
               </Badge>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Enable learning tools, assessment engines, communication modules, and report tabs for this course.
+            <p className="text-[11px] sm:text-xs text-slate-500 font-medium truncate">
+              Choose the capabilities available in this course.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={handleResetRecommended}
-              className="h-9 text-xs font-semibold text-slate-700"
+              className="h-9 text-xs font-semibold text-slate-700 px-3"
               leftIcon={<RotateCcw className="w-3.5 h-3.5 text-slate-500" />}
             >
-              Reset Recommended
+              Reset
             </Button>
 
             <Button
               size="sm"
               onClick={handleSaveChanges}
               disabled={unsavedCount === 0}
-              className={`h-9 font-extrabold text-xs px-5 shadow-xs transition-all ${
+              className={`h-9 font-bold text-xs px-4 shadow-2xs transition-all ${
                 unsavedCount > 0
-                  ? 'bg-[#2563EB] text-white hover:bg-blue-700'
+                  ? 'bg-[#2563EB] text-white hover:bg-blue-700 cursor-pointer'
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
               leftIcon={<Save className="w-4 h-4" />}
             >
-              Save Changes {unsavedCount > 0 ? `(${unsavedCount})` : ''}
+              Save {unsavedCount > 0 ? `(${unsavedCount})` : ''}
             </Button>
           </div>
         </div>
@@ -277,6 +284,7 @@ export const CourseFeaturesPage: React.FC = () => {
         finalCreditsPerStudent={finalCreditsPerStudent}
         enabledFeaturesCount={enabledFeaturesCount}
         unsavedCount={unsavedCount}
+        enabledFeaturesList={enabledFeaturesList}
       />
 
       {/* 3. SEARCH & CATEGORY CHIPS */}

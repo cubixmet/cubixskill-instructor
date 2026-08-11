@@ -208,7 +208,7 @@ export const CourseDiscussionsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 text-left font-sans pb-16">
+    <div className="space-y-4 sm:space-y-6 text-left font-sans pb-24 sm:pb-8 px-2.5 sm:px-6 max-w-7xl mx-auto w-full max-w-full overflow-x-hidden min-w-0">
       {/* 1. PAGE HEADER */}
       <DiscussionHomeHeader
         totalCount={totalCount}

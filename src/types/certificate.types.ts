@@ -1,4 +1,4 @@
-export type CertificateType = 'uploaded_template' | 'custom_builder';
+export type CertificateType = 'uploaded_template' | 'custom_builder' | 'dynamic_unified';
 
 export type CertificateStatus = 'Draft' | 'Active' | 'Archived';
 
@@ -9,7 +9,17 @@ export type AutoIssueRule =
   | 'assignment_approval'
   | 'manual';
 
-export type CanvasSizeType = 'a4_landscape' | 'a4_portrait' | 'letter';
+export type CanvasSizeType = 'a4_landscape' | 'a4_portrait' | 'custom' | 'letter';
+
+export type FieldGroupKey = 'student' | 'course' | 'assessments' | 'progress' | 'certificate';
+
+export interface DynamicFieldItem {
+  key: string; // e.g. 'student.full_name', 'course.name', 'assessment.assign-1.mark'
+  label: string; // e.g. 'Student Full Name'
+  group: FieldGroupKey;
+  sampleValue: string;
+  description?: string;
+}
 
 export type PlaceholderKey =
   | '{{student_name}}'
@@ -36,21 +46,25 @@ export type PlaceholderKey =
 
 export interface CanvasElement {
   id: string;
-  type: 'text' | 'image' | 'qr_code' | 'signature' | 'logo' | 'placeholder';
+  type: 'text' | 'image' | 'qr_code' | 'signature' | 'logo' | 'placeholder' | 'dynamic_field';
   label: string;
+  fieldKey?: string; // Stable field identifier e.g. 'student.full_name'
   placeholderKey?: PlaceholderKey;
   text?: string;
   imageUrl?: string;
-  x: number; // percentage (0-100) or pixels
-  y: number; // percentage (0-100) or pixels
-  width: number;
-  height: number;
+  x: number; // percentage (0-100) relative to canvas width
+  y: number; // percentage (0-100) relative to canvas height
+  width: number; // percentage (0-100) relative to canvas width
+  height: number; // percentage (0-100) relative to canvas height
   fontFamily: string;
-  fontSize: number;
+  fontSize: number; // preferred font size in px
+  preferredFontSize?: number;
+  minimumFontSize?: number;
   fontWeight: '400' | '500' | '600' | '700' | '800';
   fontColor: string;
   textAlign: 'left' | 'center' | 'right';
   opacity: number;
+  zIndex?: number;
   isLocked: boolean;
 }
 
@@ -101,15 +115,24 @@ export interface CertificateTemplate {
   id: string;
   courseUuid: string;
   title: string;
-  description: string;
+  description?: string;
   type: CertificateType;
   status: CertificateStatus;
   autoIssueRule: AutoIssueRule;
   autoIssueConditions: AutoIssueConditions;
+  autoIssueOnCompletion?: boolean; // Automatic Certificate on Course Completion [ON/OFF]
+  allowStudentDownload?: boolean; // Allow Student Download After Completion [ON/OFF]
   version: number;
   canvasSize: CanvasSizeType;
+  canvasWidth?: number;
+  canvasHeight?: number;
+  canvasUnit?: 'px' | 'mm' | 'in';
+  orientation?: 'landscape' | 'portrait';
   backgroundUrl?: string;
   backgroundColor?: string;
+  bgFit?: 'cover' | 'contain';
+  bgPosition?: 'center' | 'top' | 'bottom' | 'left' | 'right';
+  bgOpacity?: number;
   elements: CanvasElement[];
   issuedCount: number;
   createdAt: string;
@@ -131,4 +154,5 @@ export interface IssuedCertificate {
   pdfDownloadUrl?: string;
   downloadCount: number;
   verificationScanCount: number;
+  resolvedData?: Record<string, string>; // Frozen dynamic values snapshot
 }

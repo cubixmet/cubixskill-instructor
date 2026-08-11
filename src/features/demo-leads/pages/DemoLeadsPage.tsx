@@ -1,12 +1,21 @@
 import React, { useState, useMemo } from 'react';
 import {
   Search,
-  Filter,
   TrendingUp,
   Download,
+  Plus,
+  MoreVertical,
+  Calendar,
+  UserCheck,
+  Clock,
+  Mail,
+  Phone,
+  Building2,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Modal } from '../../../components/ui/Modal';
+import { Badge } from '../../../components/ui/Badge';
 
 export interface DemoLeadItem {
   uuid: string;
@@ -89,17 +98,27 @@ export const DemoLeadsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedLead, setSelectedLead] = useState<DemoLeadItem | null>(null);
+  const [activeMenuUuid, setActiveMenuUuid] = useState<string | null>(null);
 
   // Extend Demo Modal
   const [extendModalOpen, setExtendModalOpen] = useState(false);
   const [extendLeadUuid, setExtendLeadUuid] = useState<string | null>(null);
   const [extraDays, setExtraDays] = useState<number>(3);
 
+  // Add Lead Modal State
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [newFullName, setNewFullName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newOrg, setNewOrg] = useState('');
+  const [newCourse, setNewCourse] = useState('Full-Stack Web Development Bootcamp');
+
   const filteredLeads = useMemo(() => {
     return leads.filter((l) => {
       const matchSearch =
         l.fullName.toLowerCase().includes(search.toLowerCase()) ||
         l.email.toLowerCase().includes(search.toLowerCase()) ||
+        (l.phone && l.phone.toLowerCase().includes(search.toLowerCase())) ||
         (l.organization && l.organization.toLowerCase().includes(search.toLowerCase())) ||
         l.courseTitle.toLowerCase().includes(search.toLowerCase());
       const matchStatus = selectedStatus === 'all' || l.status === selectedStatus;
@@ -107,7 +126,7 @@ export const DemoLeadsPage: React.FC = () => {
     });
   }, [leads, search, selectedStatus]);
 
-  // Statistics calculation — stable reference for purity
+  // Statistics calculation
   const [now] = useState(() => Date.now());
   const totalRegistrations = leads.length;
   const activeDemoUsers = leads.filter(
@@ -122,6 +141,7 @@ export const DemoLeadsPage: React.FC = () => {
   const handleExtendDemo = (leadUuid: string) => {
     setExtendLeadUuid(leadUuid);
     setExtendModalOpen(true);
+    setActiveMenuUuid(null);
   };
 
   const submitExtendDemo = (e: React.FormEvent) => {
@@ -148,6 +168,41 @@ export const DemoLeadsPage: React.FC = () => {
 
   const handleConvert = (leadUuid: string) => {
     setLeads((prev) => prev.map((l) => (l.uuid === leadUuid ? { ...l, status: 'converted' } : l)));
+    setActiveMenuUuid(null);
+  };
+
+  const handleDeleteLead = (leadUuid: string) => {
+    setLeads((prev) => prev.filter((l) => l.uuid !== leadUuid));
+    setActiveMenuUuid(null);
+  };
+
+  const handleAddLeadSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFullName.trim() || !newEmail.trim()) return;
+
+    const newLeadItem: DemoLeadItem = {
+      uuid: `lead-${Date.now()}`,
+      fullName: newFullName,
+      email: newEmail,
+      phone: newPhone,
+      organization: newOrg || 'Individual',
+      courseTitle: newCourse,
+      status: 'active',
+      interestedStatus: 'hot',
+      demoStartDate: new Date().toISOString(),
+      demoExpiryDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      magicToken: `demo-tok-${Date.now()}`,
+      completionPercent: 0,
+      completedLessonUuids: [],
+      createdAt: new Date().toISOString(),
+    };
+
+    setLeads((prev) => [newLeadItem, ...prev]);
+    setAddModalOpen(false);
+    setNewFullName('');
+    setNewEmail('');
+    setNewPhone('');
+    setNewOrg('');
   };
 
   const exportCSV = () => {
@@ -169,297 +224,355 @@ export const DemoLeadsPage: React.FC = () => {
     a.click();
   };
 
-  return (
-    <div className="space-y-6 font-sans text-xs text-slate-900 text-left pb-12 w-full max-w-full overflow-x-hidden">
-      {/* 1. HEADER BAR */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Demo Leads &amp; Temporary Access
-          </h1>
-          <p className="text-slate-500 text-xs mt-1">
-            Track automated 5-day demo registrations, course progress, and conversion pipelines.
-          </p>
-        </div>
+  // Initials generator
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
 
-        <div className="w-full sm:w-auto">
-          <Button variant="outline" size="sm" onClick={exportCSV} className="w-full sm:w-auto justify-center" leftIcon={<Download className="w-4 h-4" />}>
-            Export Leads CSV
-          </Button>
+  return (
+    <div className="space-y-4 sm:space-y-6 font-sans text-xs text-slate-900 text-left pb-36 sm:pb-12 max-w-[1600px] mx-auto px-1 sm:px-2">
+      {/* 1. HEADER BAR */}
+      <div className="bg-white p-4 sm:p-6 rounded-[16px] border border-[#E2E8F0] shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-semibold text-[#0F172A] tracking-tight">
+              Demo Leads
+            </h1>
+            <p className="text-xs text-[#64748B] font-medium mt-0.5">
+              Manage demo requests, temporary access, and conversion pipelines.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportCSV}
+              leftIcon={<Download className="w-4 h-4 text-[#0F172A]" />}
+              className="border-[#E2E8F0] text-xs font-semibold text-[#0F172A] h-9 sm:h-10 cursor-pointer"
+            >
+              Export CSV
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={() => setAddModalOpen(true)}
+              leftIcon={<Plus className="w-4 h-4 stroke-[3]" />}
+              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold h-9 sm:h-10 cursor-pointer shadow-2xs"
+            >
+              Add Lead
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* 2. METRICS SUMMARY GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1">
-          <span className="text-slate-500 text-xs font-medium">Total Demo Registrations</span>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
+        <div className="bg-white p-3 sm:p-4 rounded-xl border border-[#E2E8F0] shadow-2xs space-y-1">
+          <span className="text-[10px] sm:text-xs text-[#64748B] font-medium block">Total Registrations</span>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-slate-900">{totalRegistrations}</span>
-            <span className="text-xs text-emerald-600 font-bold flex items-center gap-0.5">
+            <span className="text-lg sm:text-2xl font-bold text-[#0F172A]">{totalRegistrations}</span>
+            <span className="text-[10px] text-emerald-600 font-bold hidden sm:flex items-center gap-0.5">
               <TrendingUp className="w-3.5 h-3.5" /> +100%
             </span>
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1">
-          <span className="text-slate-500 text-xs font-medium">Active Demo Users</span>
+        <div className="bg-white p-3 sm:p-4 rounded-xl border border-[#E2E8F0] shadow-2xs space-y-1">
+          <span className="text-[10px] sm:text-xs text-[#64748B] font-medium block">Active Demo Users</span>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-blue-600">{activeDemoUsers}</span>
-            <span className="text-[11px] text-slate-400">Within 5-day window</span>
+            <span className="text-lg sm:text-2xl font-bold text-[#2563EB]">{activeDemoUsers}</span>
+            <span className="text-[10px] text-[#64748B] hidden sm:inline">5-day window</span>
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1">
-          <span className="text-slate-500 text-xs font-medium">Expired Demos</span>
+        <div className="bg-white p-3 sm:p-4 rounded-xl border border-[#E2E8F0] shadow-2xs space-y-1">
+          <span className="text-[10px] sm:text-xs text-[#64748B] font-medium block">Expired Demos</span>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-amber-600">{expiredDemos}</span>
-            <span className="text-[11px] text-slate-400">Pending conversion</span>
+            <span className="text-lg sm:text-2xl font-bold text-amber-600">{expiredDemos}</span>
+            <span className="text-[10px] text-[#64748B] hidden sm:inline">Pending</span>
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1">
-          <span className="text-slate-500 text-xs font-medium">Demo Conversion Rate</span>
+        <div className="bg-white p-3 sm:p-4 rounded-xl border border-[#E2E8F0] shadow-2xs space-y-1">
+          <span className="text-[10px] sm:text-xs text-[#64748B] font-medium block">Conversion Rate</span>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-emerald-600">{conversionRate}%</span>
-            <span className="text-[11px] text-slate-400">{convertedCount} Converted</span>
+            <span className="text-lg sm:text-2xl font-bold text-emerald-600">{conversionRate}%</span>
+            <span className="text-[10px] text-[#64748B] hidden sm:inline">{convertedCount} Converted</span>
           </div>
         </div>
       </div>
 
       {/* 3. SEARCH & FILTER BAR */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center justify-between">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+      <div className="bg-white p-3.5 sm:p-4 rounded-[16px] border border-[#E2E8F0] shadow-2xs space-y-3">
+        <div className="relative">
+          <Search className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search lead name, email, company, course..."
+            placeholder="Search leads by name, email, phone, company..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 pl-9 pr-4 rounded-xl border border-slate-200 text-xs focus:outline-hidden focus:border-blue-600"
+            className="w-full h-10 pl-10 pr-4 rounded-xl border border-[#E2E8F0] text-xs font-medium text-[#0F172A] bg-white focus:outline-none focus:border-[#2563EB]"
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter className="w-4 h-4 text-slate-400 shrink-0" />
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full sm:w-auto h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 focus:outline-hidden"
-          >
-            <option value="all">All Lead Statuses</option>
-            <option value="active">Active (Within 5 Days)</option>
-            <option value="converted">Converted to Paid</option>
-            <option value="expired">Expired</option>
-            <option value="deactivated">Deactivated</option>
-          </select>
+        {/* STATUS FILTER CHIPS */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+          {[
+            { id: 'all', label: 'All Statuses' },
+            { id: 'active', label: 'Active Demo' },
+            { id: 'converted', label: 'Converted' },
+            { id: 'expired', label: 'Expired' },
+            { id: 'deactivated', label: 'Deactivated' },
+          ].map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setSelectedStatus(f.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                selectedStatus === f.id
+                  ? 'bg-[#2563EB] text-white shadow-2xs'
+                  : 'bg-slate-50 border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+
+          {selectedStatus !== 'all' && (
+            <button
+              type="button"
+              onClick={() => setSelectedStatus('all')}
+              className="px-2 py-1.5 text-xs text-[#2563EB] font-bold hover:underline cursor-pointer shrink-0"
+            >
+              Reset
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 4. DEMO LEADS DATA TABLE (DESKTOP) */}
-      <div className="hidden md:block bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[950px]">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="p-4">Lead Name &amp; Contact</th>
-                <th className="p-4">Organization</th>
-                <th className="p-4">Requested Course</th>
-                <th className="p-4">Demo Period</th>
-                <th className="p-4">Progress</th>
-                <th className="p-4 whitespace-nowrap">Status</th>
-                <th className="p-4 text-right whitespace-nowrap min-w-[220px]">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
-              {filteredLeads.map((lead) => {
-                const isExpired = new Date(lead.demoExpiryDate).getTime() <= now;
-                return (
-                  <tr key={lead.uuid} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900">{lead.fullName}</div>
-                      <div className="text-slate-500 font-mono text-[11px] break-all">{lead.email}</div>
-                      {lead.phone && <div className="text-slate-400 text-[10px]">{lead.phone}</div>}
-                    </td>
+      {/* 4. DEMO LEADS LIST (MOBILE CARDS & DESKTOP ROWS) */}
+      {filteredLeads.length === 0 ? (
+        <div className="bg-white p-8 rounded-[16px] border border-[#E2E8F0] text-center space-y-3">
+          <p className="text-xs font-semibold text-[#64748B]">
+            {search ? 'No demo leads match your search criteria.' : 'No demo leads found.'}
+          </p>
+          {search && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSearch('')}
+              className="text-xs font-semibold h-8 px-3"
+            >
+              Clear Search
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredLeads.map((lead) => {
+            const isExpired = new Date(lead.demoExpiryDate).getTime() <= now;
 
-                    <td className="p-4 text-slate-700 font-medium">
-                      {lead.organization || <span className="text-slate-400 font-normal">Individual</span>}
-                    </td>
+            return (
+              <div
+                key={lead.uuid}
+                className="bg-white p-4 rounded-[16px] border border-[#E2E8F0] shadow-2xs space-y-3 text-xs"
+              >
+                {/* Header: Avatar, Name, Status Badge & Menu */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                      {getInitials(lead.fullName)}
+                    </div>
 
-                    <td className="p-4">
-                      <span className="font-semibold text-slate-900 block max-w-xs truncate" title={lead.courseTitle}>
-                        {lead.courseTitle}
-                      </span>
-                    </td>
-
-                    <td className="p-4 text-slate-600 whitespace-nowrap">
-                      <div>Start: {new Date(lead.demoStartDate).toLocaleDateString()}</div>
-                      <div className={`font-semibold ${isExpired ? 'text-rose-600' : 'text-slate-900'}`}>
-                        Expiry: {new Date(lead.demoExpiryDate).toLocaleDateString()}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <h3 className="font-bold text-[#0F172A] text-sm leading-snug break-words">
+                        {lead.fullName}
+                      </h3>
+                      <div>
+                        <Badge
+                          variant={
+                            lead.status === 'converted'
+                              ? 'success'
+                              : lead.status === 'deactivated'
+                              ? 'secondary'
+                              : isExpired
+                              ? 'warning'
+                              : 'primary'
+                          }
+                          size="sm"
+                        >
+                          {lead.status === 'converted'
+                            ? 'Converted'
+                            : lead.status === 'deactivated'
+                            ? 'Deactivated'
+                            : isExpired
+                            ? 'Expired'
+                            : 'Active Demo'}
+                        </Badge>
                       </div>
-                    </td>
+                    </div>
+                  </div>
 
-                    <td className="p-4">
-                      <div className="space-y-1 w-28">
-                        <div className="flex justify-between text-[10px] font-bold text-slate-700">
-                          <span>{lead.completionPercent}%</span>
-                        </div>
-                        <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                          <div className="h-full bg-blue-600 rounded-full" style={{ width: `${lead.completionPercent}%` }} />
-                        </div>
-                      </div>
-                    </td>
+                  {/* 3-Dot Action Menu */}
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setActiveMenuUuid(activeMenuUuid === lead.uuid ? null : lead.uuid)}
+                      className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#E2E8F0] text-[#64748B] hover:bg-slate-50 cursor-pointer"
+                      title="More options"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
 
-                    <td className="p-4 whitespace-nowrap">
-                      {lead.status === 'converted' ? (
-                        <span className="whitespace-nowrap inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                          Converted
-                        </span>
-                      ) : lead.status === 'deactivated' ? (
-                        <span className="whitespace-nowrap inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
-                          Deactivated
-                        </span>
-                      ) : isExpired ? (
-                        <span className="whitespace-nowrap inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                          Expired
-                        </span>
-                      ) : (
-                        <span className="whitespace-nowrap inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
-                          Active Demo
-                        </span>
-                      )}
-                    </td>
+                    {activeMenuUuid === lead.uuid && (
+                      <div className="absolute right-0 top-10 z-20 w-48 bg-white border border-[#E2E8F0] rounded-xl shadow-lg py-1 text-xs text-[#0F172A] space-y-0.5">
+                        <button
+                          type="button"
+                          onClick={() => handleExtendDemo(lead.uuid)}
+                          className="w-full px-3 py-2 text-left hover:bg-slate-50 font-medium flex items-center gap-2 cursor-pointer"
+                        >
+                          <Calendar className="w-3.5 h-3.5 text-[#64748B]" />
+                          <span>Extend Demo (+3 Days)</span>
+                        </button>
 
-                    <td className="p-4 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-2 shrink-0">
-                        <Button variant="ghost" size="xs" onClick={() => setSelectedLead(lead)}>
-                          Details
-                        </Button>
-                        <Button variant="outline" size="xs" onClick={() => handleExtendDemo(lead.uuid)}>
-                          + Extend
-                        </Button>
                         {lead.status !== 'converted' && (
-                          <Button variant="outline" size="xs" className="text-emerald-700 border-emerald-300 hover:bg-emerald-50" onClick={() => handleConvert(lead.uuid)}>
-                            Convert
-                          </Button>
+                          <button
+                            type="button"
+                            onClick={() => handleConvert(lead.uuid)}
+                            className="w-full px-3 py-2 text-left hover:bg-emerald-50 text-emerald-700 font-medium flex items-center gap-2 cursor-pointer"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" />
+                            <span>Convert to Paid Student</span>
+                          </button>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
 
-      {/* 5. MOBILE LEAD CARDS VIEW (TABLET & MOBILE) */}
-      <div className="block md:hidden space-y-3">
-        {filteredLeads.map((lead) => {
-          const isExpired = new Date(lead.demoExpiryDate).getTime() <= now;
-          return (
-            <div key={lead.uuid} className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3">
-              <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">{lead.fullName}</h3>
-                  <p className="text-slate-500 font-mono text-[11px] break-all">{lead.email}</p>
-                  {lead.phone && <p className="text-slate-400 text-[11px] mt-0.5">{lead.phone}</p>}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteLead(lead.uuid)}
+                          className="w-full px-3 py-2 text-left hover:bg-rose-50 text-rose-600 font-medium flex items-center gap-2 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete Lead</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  {lead.status === 'converted' ? (
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 shrink-0">
-                      Converted
-                    </span>
-                  ) : lead.status === 'deactivated' ? (
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 shrink-0">
-                      Deactivated
-                    </span>
-                  ) : isExpired ? (
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 shrink-0">
-                      Expired
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 shrink-0">
-                      Active Demo
-                    </span>
+
+                {/* Contact Information Rows (Full Width) */}
+                <div className="space-y-1.5 pt-1 text-xs text-[#64748B] font-medium">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <Mail className="w-4 h-4 text-[#64748B] shrink-0 mt-0.5" />
+                    <span className="flex-1 min-w-0 break-all text-[#0F172A]">{lead.email}</span>
+                  </div>
+
+                  {lead.phone && (
+                    <div className="flex items-start gap-2 min-w-0">
+                      <Phone className="w-4 h-4 text-[#64748B] shrink-0 mt-0.5" />
+                      <span className="flex-1 min-w-0 break-words text-[#0F172A]">{lead.phone}</span>
+                    </div>
+                  )}
+
+                  {lead.organization && (
+                    <div className="flex items-start gap-2 min-w-0">
+                      <Building2 className="w-4 h-4 text-[#64748B] shrink-0 mt-0.5" />
+                      <span className="flex-1 min-w-0 break-words text-[#0F172A]">{lead.organization}</span>
+                    </div>
                   )}
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-slate-400 text-[10px] uppercase font-mono block">Organization</span>
-                  <span className="font-semibold text-slate-800">{lead.organization || 'Individual'}</span>
+                <div className="border-t border-[#E2E8F0] pt-3 space-y-3">
+                  {/* Requested Course */}
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider block">
+                      Requested Course
+                    </span>
+                    <h4 className="font-bold text-[#0F172A] text-xs leading-snug break-words">
+                      {lead.courseTitle}
+                    </h4>
+                  </div>
+
+                  {/* Demo Progress */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-[#64748B]">Demo Completion</span>
+                      <span className="font-bold text-[#2563EB]">{lead.completionPercent}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200/50">
+                      <div
+                        className="h-full bg-[#2563EB] rounded-full transition-all"
+                        style={{ width: `${lead.completionPercent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Dates Footer */}
+                  <div className="flex items-center justify-between text-[11px] text-[#64748B] pt-1 flex-wrap gap-2">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-[#64748B]" /> Start: {new Date(lead.demoStartDate).toLocaleDateString()}
+                    </span>
+                    <span className={`font-semibold flex items-center gap-1 ${isExpired ? 'text-rose-600 font-bold' : 'text-[#0F172A]'}`}>
+                      <Calendar className="w-3.5 h-3.5" /> Expiry: {new Date(lead.demoExpiryDate).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  {/* View Details Action Button */}
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLead(lead)}
+                      className="w-full py-2.5 px-4 rounded-xl border border-[#E2E8F0] bg-slate-50 hover:bg-slate-100 text-[#0F172A] font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <span>View Details</span>
+                      <span className="text-[#2563EB]">→</span>
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-slate-400 text-[10px] uppercase font-mono block">Progress</span>
-                  <span className="font-bold text-blue-600">{lead.completionPercent}%</span>
-                </div>
               </div>
+            );
+          })}
+        </div>
+      )}
 
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase font-mono block">Requested Course</span>
-                <span className="font-semibold text-slate-900 leading-snug block">{lead.courseTitle}</span>
-              </div>
-
-              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
-                <span>Start: {new Date(lead.demoStartDate).toLocaleDateString()}</span>
-                <span className={`font-semibold ${isExpired ? 'text-rose-600' : 'text-slate-900'}`}>
-                  Expiry: {new Date(lead.demoExpiryDate).toLocaleDateString()}
-                </span>
-              </div>
-
-              <div className="pt-1 flex items-center gap-2">
-                <Button variant="ghost" size="xs" onClick={() => setSelectedLead(lead)} className="flex-1 justify-center min-h-[36px]">
-                  Details
-                </Button>
-                <Button variant="outline" size="xs" onClick={() => handleExtendDemo(lead.uuid)} className="flex-1 justify-center min-h-[36px]">
-                  + Extend
-                </Button>
-                {lead.status !== 'converted' && (
-                  <Button variant="outline" size="xs" className="flex-1 justify-center min-h-[36px] text-emerald-700 border-emerald-300 hover:bg-emerald-50" onClick={() => handleConvert(lead.uuid)}>
-                    Convert
-                  </Button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* 6. LEAD DETAILS MODAL */}
+      {/* 5. LEAD DETAILS MODAL */}
       {selectedLead && (
         <Modal isOpen={!!selectedLead} onClose={() => setSelectedLead(null)} title={`Demo Lead: ${selectedLead.fullName}`}>
-          <div className="space-y-6 text-xs font-sans text-left">
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-4 text-xs font-sans text-left">
+            <div className="p-4 rounded-xl bg-slate-50 border border-[#E2E8F0] grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <span className="text-slate-400 font-mono text-[10px] uppercase block">Lead Email</span>
-                <span className="font-bold text-slate-900 break-all">{selectedLead.email}</span>
+                <span className="text-[#64748B] text-[10px] font-semibold uppercase block">Lead Email</span>
+                <span className="font-bold text-[#0F172A] break-all">{selectedLead.email}</span>
               </div>
               <div>
-                <span className="text-slate-400 font-mono text-[10px] uppercase block">Organization</span>
-                <span className="font-bold text-slate-900">{selectedLead.organization || 'Individual'}</span>
+                <span className="text-[#64748B] text-[10px] font-semibold uppercase block">Organization</span>
+                <span className="font-bold text-[#0F172A]">{selectedLead.organization || 'Individual'}</span>
               </div>
               <div>
-                <span className="text-slate-400 font-mono text-[10px] uppercase block">Requested Course</span>
-                <span className="font-bold text-slate-900">{selectedLead.courseTitle}</span>
+                <span className="text-[#64748B] text-[10px] font-semibold uppercase block">Requested Course</span>
+                <span className="font-bold text-[#0F172A]">{selectedLead.courseTitle}</span>
               </div>
               <div>
-                <span className="text-slate-400 font-mono text-[10px] uppercase block">Expiry Date</span>
-                <span className="font-bold text-slate-900">{new Date(selectedLead.demoExpiryDate).toLocaleString()}</span>
+                <span className="text-[#64748B] text-[10px] font-semibold uppercase block">Expiry Date</span>
+                <span className="font-bold text-[#0F172A]">{new Date(selectedLead.demoExpiryDate).toLocaleString()}</span>
               </div>
             </div>
 
             <div className="space-y-2">
-              <h4 className="font-bold text-slate-900">Demo Progress &amp; Activity Log</h4>
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-3">
+              <h4 className="font-bold text-[#0F172A]">Demo Progress &amp; Activity Log</h4>
+              <div className="p-3.5 rounded-xl bg-white border border-[#E2E8F0] space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-slate-700">Course Completion Rate</span>
-                  <span className="font-extrabold text-blue-600">{selectedLead.completionPercent}%</span>
+                  <span className="font-semibold text-[#64748B]">Course Completion Rate</span>
+                  <span className="font-bold text-[#2563EB]">{selectedLead.completionPercent}%</span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div className="h-full bg-blue-600 rounded-full" style={{ width: `${selectedLead.completionPercent}%` }} />
+                  <div className="h-full bg-[#2563EB] rounded-full" style={{ width: `${selectedLead.completionPercent}%` }} />
                 </div>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-[#64748B]">
                   Last login: {selectedLead.lastLoginAt ? new Date(selectedLead.lastLoginAt).toLocaleString() : 'Not recorded'}
                 </p>
               </div>
@@ -467,22 +580,22 @@ export const DemoLeadsPage: React.FC = () => {
 
             {selectedLead.notes && (
               <div className="space-y-1">
-                <h4 className="font-bold text-slate-900">Instructor Notes</h4>
+                <h4 className="font-bold text-[#0F172A]">Notes</h4>
                 <p className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
                   {selectedLead.notes}
                 </p>
               </div>
             )}
 
-            <div className="pt-2 flex flex-col sm:flex-row justify-between gap-3">
-              <Button variant="outline" size="md" onClick={() => setSelectedLead(null)} className="w-full sm:w-auto">
+            <div className="pt-2 flex flex-col sm:flex-row justify-between gap-2 border-t border-[#E2E8F0]">
+              <Button variant="outline" size="sm" onClick={() => setSelectedLead(null)} className="w-full sm:w-auto">
                 Close
               </Button>
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <Button size="md" variant="outline" onClick={() => handleExtendDemo(selectedLead.uuid)} className="w-full sm:w-auto justify-center">
+                <Button size="sm" variant="outline" onClick={() => handleExtendDemo(selectedLead.uuid)} className="w-full sm:w-auto justify-center">
                   Extend Demo (+3 Days)
                 </Button>
-                <Button size="md" style={{ backgroundColor: '#2563EB' }} className="text-white w-full sm:w-auto justify-center" onClick={() => handleConvert(selectedLead.uuid)}>
+                <Button size="sm" className="bg-[#2563EB] text-white w-full sm:w-auto justify-center font-semibold" onClick={() => handleConvert(selectedLead.uuid)}>
                   Convert to Paid Student
                 </Button>
               </div>
@@ -491,16 +604,16 @@ export const DemoLeadsPage: React.FC = () => {
         </Modal>
       )}
 
-      {/* 7. EXTEND DEMO MODAL */}
+      {/* 6. EXTEND DEMO MODAL */}
       <Modal isOpen={extendModalOpen} onClose={() => setExtendModalOpen(false)} title="Extend Demo Access">
         <form onSubmit={submitExtendDemo} className="space-y-4 font-sans text-xs text-left">
-          <p className="text-slate-600">Choose the number of additional days to extend demo access for this lead.</p>
+          <p className="text-[#64748B]">Choose the number of additional days to extend demo access for this lead.</p>
           <div>
-            <label className="block font-semibold text-slate-900 mb-1">Additional Extension Days</label>
+            <label className="block font-semibold text-[#0F172A] mb-1">Additional Extension Days</label>
             <select
               value={extraDays}
               onChange={(e) => setExtraDays(Number(e.target.value))}
-              className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white text-xs font-semibold focus:outline-hidden"
+              className="w-full h-10 rounded-xl border border-[#E2E8F0] px-3 bg-white text-xs font-semibold focus:outline-none"
             >
               <option value={3}>+3 Days Extension</option>
               <option value={5}>+5 Days Extension</option>
@@ -508,9 +621,79 @@ export const DemoLeadsPage: React.FC = () => {
               <option value={14}>+14 Days Extension</option>
             </select>
           </div>
-          <Button type="submit" size="md" style={{ backgroundColor: '#2563EB' }} className="w-full font-semibold text-white justify-center min-h-[44px]">
+          <Button type="submit" size="sm" className="w-full font-semibold bg-[#2563EB] text-white justify-center h-10">
             Confirm Extension
           </Button>
+        </form>
+      </Modal>
+
+      {/* 7. ADD LEAD MODAL */}
+      <Modal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} title="Add Demo Lead">
+        <form onSubmit={handleAddLeadSubmit} className="space-y-3.5 font-sans text-xs text-left">
+          <div className="space-y-1">
+            <label className="block font-semibold text-[#0F172A]">Full Name *</label>
+            <input
+              type="text"
+              required
+              value={newFullName}
+              onChange={(e) => setNewFullName(e.target.value)}
+              placeholder="e.g. Rahul Sharma"
+              className="w-full h-9 px-3 rounded-xl border border-[#E2E8F0] text-xs font-medium focus:outline-none focus:border-[#2563EB]"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block font-semibold text-[#0F172A]">Email Address *</label>
+            <input
+              type="email"
+              required
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="e.g. rahul@example.com"
+              className="w-full h-9 px-3 rounded-xl border border-[#E2E8F0] text-xs font-medium focus:outline-none focus:border-[#2563EB]"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block font-semibold text-[#0F172A]">Phone Number</label>
+            <input
+              type="text"
+              value={newPhone}
+              onChange={(e) => setNewPhone(e.target.value)}
+              placeholder="e.g. +91 98765 43210"
+              className="w-full h-9 px-3 rounded-xl border border-[#E2E8F0] text-xs font-medium focus:outline-none focus:border-[#2563EB]"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block font-semibold text-[#0F172A]">Organization / Company</label>
+            <input
+              type="text"
+              value={newOrg}
+              onChange={(e) => setNewOrg(e.target.value)}
+              placeholder="e.g. Tech Corp"
+              className="w-full h-9 px-3 rounded-xl border border-[#E2E8F0] text-xs font-medium focus:outline-none focus:border-[#2563EB]"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block font-semibold text-[#0F172A]">Interested Course</label>
+            <input
+              type="text"
+              value={newCourse}
+              onChange={(e) => setNewCourse(e.target.value)}
+              className="w-full h-9 px-3 rounded-xl border border-[#E2E8F0] text-xs font-medium focus:outline-none focus:border-[#2563EB]"
+            />
+          </div>
+
+          <div className="pt-2 flex justify-end gap-2 border-t border-[#E2E8F0]">
+            <Button type="button" variant="outline" size="sm" onClick={() => setAddModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" className="bg-[#2563EB] text-white font-semibold">
+              Create Lead
+            </Button>
+          </div>
         </form>
       </Modal>
     </div>

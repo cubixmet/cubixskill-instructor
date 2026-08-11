@@ -1,909 +1,643 @@
 import React, { useState } from 'react';
 import {
+  Video,
   UploadCloud,
-  Film,
   Globe,
   Layers,
-  ExternalLink,
-  Check,
-  Info,
-  RefreshCw,
-  XCircle,
-  Lock,
-  PlayCircle,
-  FileText,
-  Sparkles,
   CheckCircle2,
+  Clock,
+  AlertCircle,
+  FileCheck,
+  Zap,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
-import type { CurriculumLesson, UnlockRuleType } from '../../../../types/curriculum.types';
-
-export type VideoSourceType =
-  | 'direct'
-  | 'youtube'
-  | 'vimeo'
-  | 'bunny'
-  | 's3'
-  | 'cloudflare'
-  | 'gdrive'
-  | 'external';
-
-export type VideoDeliveryMode = 'standard' | 'adaptive';
-export type UploadStatus = 'waiting' | 'uploading' | 'processing' | 'ready' | 'failed' | 'cancelled';
-export type CompletionMode = 'manual' | 'playback_end' | 'watch_percent' | 'watch_time' | 'full_completion';
+import { Badge } from '../../../../components/ui/Badge';
+import type { CourseLesson } from '../../../../types/curriculum.types';
+import { calculateVideoCredits } from '../../utils/videoCredits.util';
+import { LessonResourcesSection } from './LessonResourcesSection';
+import { useCurriculumStore } from '../../store/curriculum.store';
+import { MediaPickerModal } from '../../../../components/media/MediaPickerModal';
 
 interface VideoLessonSettingsProps {
-  lesson: CurriculumLesson;
-  onSaveLesson: (updated: CurriculumLesson) => void;
+  lesson: CourseLesson;
+  moduleTitle?: string;
+  onSaveLesson: (updated: Partial<CourseLesson>) => void;
+  onChangeModule?: () => void;
+  isCreateMode?: boolean;
 }
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const parseEmbedVideoUrl = (url: string) => {
+  if (!url) return null;
+  const cleanUrl = url.trim();
+
+  // YouTube match
+  const ytMatch = cleanUrl.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/
+  );
+  if (ytMatch && ytMatch[1]) {
+    return {
+      provider: 'youtube',
+      embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}`,
+      id: ytMatch[1],
+    };
+  }
+
+  // Vimeo match
+  const vimeoMatch = cleanUrl.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vimeoMatch && vimeoMatch[1]) {
+    return {
+      provider: 'vimeo',
+      embedUrl: `https://player.vimeo.com/video/${vimeoMatch[1]}`,
+      id: vimeoMatch[1],
+    };
+  }
+
+  // Generic https url fallback
+  if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+    return {
+      provider: 'generic',
+      embedUrl: cleanUrl,
+      id: 'custom',
+    };
+  }
+
+  return null;
+};
 
 export const VideoLessonSettings: React.FC<VideoLessonSettingsProps> = ({
   lesson,
+  moduleTitle = 'Selected Module',
   onSaveLesson,
+  onChangeModule,
+  isCreateMode = false,
 }) => {
-  // 1. Video Source State
-  const [sourceType, setSourceType] = useState<VideoSourceType>(
-    (lesson.content?.videoSource as VideoSourceType) || 'direct'
-  );
-  const [externalUrl, setExternalUrl] = useState(lesson.content?.videoUrl || '');
+  // Stepper state
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
-  // 2. Direct File Delivery Mode & Upload State
-  const [deliveryMode, setDeliveryMode] = useState<VideoDeliveryMode>('standard');
-  const [uploadStatus, setUploadStatus] = useState<UploadStatus>('ready');
-  const [uploadProgress, setUploadProgress] = useState(100);
-  const [processingProgress, setProcessingProgress] = useState(100);
-  const [selectedFile, setSelectedFile] = useState<{ name: string; sizeMb: number } | null>({
-    name: 'react19_deepdive_lecture.mp4',
-    sizeMb: 450,
-  });
-
-  // 3. Video Details State
-  const [title, setTitle] = useState(lesson.title);
-  const [shortDesc, setShortDesc] = useState('Comprehensive video tutorial explaining React 19 RSC and Actions.');
-  const [fullDesc, setFullDesc] = useState('In this video lesson, we deep-dive into React 19 architecture, Server Components, Action hooks, and optimistic UI updates.');
-  const [thumbnailUrl, setThumbnailUrl] = useState('https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&auto=format&fit=crop&q=80');
-  const [captionsUrl, setCaptionsUrl] = useState('');
-  const [transcriptText, setTranscriptText] = useState('Welcome to React 19 Server Components deep dive session...');
-  const [durationMinutes, setDurationMinutes] = useState(lesson.durationMinutes || 15);
-  const [isDemo, setIsDemo] = useState(lesson.isDemo || false);
-  const [allowDownload, setAllowDownload] = useState(false);
-  const [preventSkipping, setPreventSkipping] = useState(true);
-  const [resumePlayback, setResumePlayback] = useState(true);
-  const [playbackSpeedControl, setPlaybackSpeedControl] = useState(true);
-  const [autoPlayNext, setAutoPlayNext] = useState(true);
-  const [watermark, setWatermark] = useState(true);
-  const [deviceRestrictions, setDeviceRestrictions] = useState<'none' | 'mobile_only' | 'desktop_only' | 'restrict_tv'>('none');
-
-  // Helper to safely extract unlock rule details
-  const unlockRuleObj = typeof lesson.unlockRule === 'object' && lesson.unlockRule ? lesson.unlockRule : null;
-
-  // 4. Video Completion Settings State
-  const [completionMode, setCompletionMode] = useState<CompletionMode>('watch_percent');
-  const [minWatchPercentPreset, setMinWatchPercentPreset] = useState<number | 'custom'>(
-    (unlockRuleObj as { minWatchPercent?: number } | null)?.minWatchPercent || 80
-  );
-  const [customWatchPercent, setCustomWatchPercent] = useState<number>(85);
-  const [minWatchTimeMinutes, setMinWatchTimeMinutes] = useState<number>(10);
-  const [_minWatchTimeSeconds, _setMinWatchTimeSeconds] = useState<number>(0);
-  const [allowRewinding, setAllowRewinding] = useState(true);
-  const [unlockNextAfterCompletion, setUnlockNextAfterCompletion] = useState(true);
-
-  // 5. Unlock Rules State
-  const [unlockType, setUnlockType] = useState<UnlockRuleType>(
-    ((unlockRuleObj as { type?: UnlockRuleType } | null)?.type) || 'min_watch_percent'
-  );
-  const [unlockScheduledDate, setUnlockScheduledDate] = useState(
-    (unlockRuleObj as { scheduledDate?: string } | null)?.scheduledDate || '2026-09-01'
-  );
-  const [unlockDaysAfterEnrollment, setUnlockDaysAfterEnrollment] = useState(
-    (unlockRuleObj as { daysAfterEnrollment?: number } | null)?.daysAfterEnrollment || 3
-  );
-
-  // Calculated Effective Watch Percentage
-  const _effectiveWatchPercent = minWatchPercentPreset === 'custom' ? customWatchPercent : minWatchPercentPreset;
-
-  // Pre-Upload Media Credit Breakdown Calculation (NO storage quota displayed)
-  const fileSizeMb = selectedFile ? selectedFile.sizeMb : 450;
-  const estUploadCredits = Math.max(0.1, Math.round((fileSizeMb / 100) * 10) / 10);
-  const estProcessingCredits = deliveryMode === 'adaptive' ? 1.5 : 0;
-  const totalEstMediaCredits = Math.round((estUploadCredits + estProcessingCredits) * 10) / 10;
-
-  // Form Validation State
+  // Section 1: General
+  const [title, setTitle] = useState(lesson.title || '');
+  const [description, setDescription] = useState(lesson.description || '');
   const [titleError, setTitleError] = useState('');
+
+  // Section 2: Video Content & Source
+  const [sourceMode, setSourceMode] = useState<'upload' | 'url'>(
+    lesson.content?.videoSource === 'url' ? 'url' : 'upload'
+  );
+  const [videoUrl, setVideoUrl] = useState(lesson.content?.videoUrl || '');
   const [urlError, setUrlError] = useState('');
+  const [selectedFile, setSelectedFile] = useState<{ name: string; sizeMb: number; url?: string } | null>(
+    lesson.content?.fileUrl
+      ? { name: lesson.content.fileUrl, sizeMb: 250, url: lesson.content.fileUrl }
+      : null
+  );
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
+  const [uploadProgress, _setUploadProgress] = useState<number | null>(null);
+  const [durationMinutes, setDurationMinutes] = useState(lesson.durationMinutes || 15);
+  const [isDurationAuto, setIsDurationAuto] = useState(true);
+  const [adaptiveStreaming, setAdaptiveStreaming] = useState(
+    lesson.content?.allowDownload !== false
+  );
 
-  // Handle Simulate Upload
-  const handleSimulateUpload = () => {
-    setUploadStatus('uploading');
-    setUploadProgress(0);
-    setProcessingProgress(0);
+  const parsedEmbed = parseEmbedVideoUrl(videoUrl);
 
-    const uploadInterval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(uploadInterval);
-          if (deliveryMode === 'adaptive') {
-            setUploadStatus('processing');
-            const procInterval = setInterval(() => {
-              setProcessingProgress((proc) => {
-                if (proc >= 100) {
-                  clearInterval(procInterval);
-                  setUploadStatus('ready');
-                  return 100;
-                }
-                return proc + 20;
-              });
-            }, 300);
-          } else {
-            setUploadStatus('ready');
-          }
-          return 100;
-        }
-        return prev + 25;
-      });
-    }, 250);
-  };
-
-  const handleCancelUpload = () => {
-    setUploadStatus('cancelled');
-    setUploadProgress(0);
-    setProcessingProgress(0);
-  };
-
-  const handleRetryUpload = () => {
-    handleSimulateUpload();
-  };
-
-  const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      const sizeMb = Math.round(file.size / (1024 * 1024));
-      setSelectedFile({ name: file.name, sizeMb });
-      handleSimulateUpload();
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const sizeMb = Math.round(file.size / (1024 * 1024));
-      setSelectedFile({ name: file.name, sizeMb });
-      handleSimulateUpload();
-    }
-  };
-
-  const handleSave = () => {
-    let valid = true;
+  const handleNextFromGeneral = () => {
     if (!title.trim()) {
-      setTitleError('Video title is required');
-      valid = false;
-    } else {
-      setTitleError('');
+      setTitleError('Lesson title is required.');
+      return;
     }
+    setTitleError('');
+    setCurrentStep(2);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-    if (sourceType !== 'direct' && !externalUrl.trim()) {
-      setUrlError('Valid external URL or video identifier is required');
-      valid = false;
-    } else {
-      setUrlError('');
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) {
+      setTitleError('Lesson title is required.');
+      setCurrentStep(1);
+      return;
     }
+    setTitleError('');
 
-    if (!valid) return;
+    if (sourceMode === 'url' && videoUrl.trim()) {
+      if (!parsedEmbed) {
+        setUrlError('Please enter a valid video iFrame/embed URL.');
+        setCurrentStep(2);
+        return;
+      }
+    }
+    setUrlError('');
 
     onSaveLesson({
-      ...lesson,
-      title,
-      description: shortDesc,
-      videoSource: sourceType === 'direct' ? 'upload' : sourceType,
-      videoUrl: sourceType === 'direct' ? 'https://assets.cubixskill.com/videos/react19.mp4' : externalUrl,
+      title: title.trim(),
+      description: description.trim(),
+      type: 'video',
+      status: isCreateMode ? 'published' : (lesson.status || 'published'),
       durationMinutes,
-      isDemo,
-      unlockRule: unlockType,
+      isDemo: false,
+      content: {
+        ...lesson.content,
+        videoSource: sourceMode,
+        videoUrl: sourceMode === 'url' ? videoUrl.trim() : undefined,
+        fileUrl: sourceMode === 'upload' ? selectedFile?.name : undefined,
+        allowDownload: sourceMode === 'upload' ? adaptiveStreaming : false,
+      },
     });
   };
 
   return (
-    <div className="space-y-6 text-left text-xs">
-      {/* ========================================================================= */}
-      {/* 1. VIDEO SOURCE PROVIDER SELECTION */}
-      {/* ========================================================================= */}
-      <div className="space-y-3 p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80">
-        <div className="flex items-center justify-between">
-          <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider text-blue-950 flex items-center gap-1.5">
-            <Film className="w-4 h-4 text-blue-600" />
-            1. Select Video Source
-          </h4>
-          <span className="text-[10px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">
-            Feature: Video Lessons
-          </span>
+    <form onSubmit={handleSubmit} className="space-y-4 text-left font-sans max-w-3xl mx-auto pb-36 md:pb-10 w-full min-w-0 px-1 md:px-0">
+      {/* Top Header & Context Banner */}
+      <div className="p-3.5 sm:p-4 bg-white border border-[#E2E8F0] rounded-2xl shadow-2xs space-y-3">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#2563EB] border border-blue-100 flex items-center justify-center shrink-0">
+              <Video className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-[#0F172A]">
+                  {isCreateMode ? 'Create Video Lesson' : 'Edit Video Lesson'}
+                </h3>
+                <Badge variant="primary" size="sm" className="text-[10px] px-2 py-0.5">Video</Badge>
+              </div>
+              <p className="text-[11px] text-[#64748B] font-medium flex items-center gap-1 mt-0.5">
+                <Layers className="w-3.5 h-3.5 text-[#2563EB]" />
+                <span>Adding to: <strong>{moduleTitle}</strong></span>
+              </p>
+            </div>
+          </div>
+
+          {onChangeModule && (
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              onClick={onChangeModule}
+              className="text-[11px] font-semibold h-7 px-2.5 text-[#2563EB]"
+            >
+              Change Module
+            </Button>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {[
-            { id: 'direct', label: 'Direct File Upload', icon: UploadCloud },
-            { id: 'youtube', label: 'YouTube', icon: Globe },
-            { id: 'vimeo', label: 'Vimeo', icon: Globe },
-            { id: 'bunny', label: 'Bunny Stream', icon: Layers },
-            { id: 'cloudflare', label: 'Cloudflare Stream', icon: Film },
-            { id: 's3', label: 'AWS S3', icon: Film },
-            { id: 'gdrive', label: 'Google Drive', icon: Globe },
-            { id: 'external', label: 'External URL', icon: ExternalLink },
-          ].map((src) => {
-            const Icon = src.icon;
-            const isSelected = sourceType === src.id;
-            return (
-              <button
-                key={src.id}
-                type="button"
-                onClick={() => setSourceType(src.id as VideoSourceType)}
-                className={`p-2.5 rounded-xl border text-[11px] font-extrabold flex items-center gap-2 transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
-                <span className="truncate">{src.label}</span>
-              </button>
-            );
-          })}
+        {/* Compact 2-Step Stepper Bar */}
+        <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+          <button
+            type="button"
+            onClick={() => setCurrentStep(1)}
+            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              currentStep === 1
+                ? 'bg-[#2563EB] text-white shadow-2xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[10px]">1</span>
+            <span>General</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (title.trim()) {
+                setCurrentStep(2);
+              } else {
+                setTitleError('Lesson title is required.');
+              }
+            }}
+            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              currentStep === 2
+                ? 'bg-[#2563EB] text-white shadow-2xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[10px]">2</span>
+            <span>Content</span>
+          </button>
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* 2. DIRECT FILE UPLOAD WORKFLOW VS EXTERNAL PROVIDERS */}
-      {/* ========================================================================= */}
-      {sourceType === 'direct' ? (
-        <div className="space-y-4 p-4 bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider text-blue-950 flex items-center gap-1.5">
-              <UploadCloud className="w-4 h-4 text-blue-600" />
-              2. Video Delivery Mode Selection
+      {/* STEP 1: GENERAL */}
+      {currentStep === 1 && (
+        <div className="p-4 sm:p-5 bg-white border border-[#E2E8F0] rounded-2xl shadow-2xs space-y-4">
+          <div className="border-b border-[#E2E8F0] pb-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#0F172A]">
+              1. General Details
             </h4>
-            <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-              Media Credits Meter Only
-            </span>
+            <p className="text-[11px] text-[#64748B]">Primary title and description for this video lesson.</p>
           </div>
 
-          {/* Delivery Mode Cards: Standard vs Adaptive */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Option 1: Standard Upload */}
-            <div
-              onClick={() => setDeliveryMode('standard')}
-              className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
-                deliveryMode === 'standard'
-                  ? 'bg-blue-50/70 border-blue-600 ring-2 ring-blue-600/20'
-                  : 'bg-white border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-slate-900 text-xs">Standard Upload</span>
-                  <div
-                    className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                      deliveryMode === 'standard'
-                        ? 'border-blue-600 bg-blue-600 text-white'
-                        : 'border-slate-300'
-                    }`}
-                  >
-                    {deliveryMode === 'standard' && <Check className="w-3 h-3 stroke-[3]" />}
-                  </div>
-                </div>
-                <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                  Play the uploaded video in its original uploaded format.
-                </p>
-              </div>
-
-              <ul className="text-[10px] space-y-1 font-semibold text-slate-600 pt-2 border-t border-slate-200/60">
-                <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-600" /> Faster processing</li>
-                <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-600" /> Lower media credit cost</li>
-                <li className="flex items-center gap-1.5 text-slate-400">• No automatic quality conversion</li>
-                <li className="flex items-center gap-1.5 text-slate-400">• No adaptive bitrate streaming</li>
-                <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-600" /> Suitable for normal course videos</li>
-              </ul>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-[#0F172A] mb-1">
+                Lesson Title <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                value={title}
+                autoFocus
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (e.target.value.trim()) setTitleError('');
+                }}
+                placeholder="e.g. Introduction to React Components"
+                className="h-11 text-xs sm:text-sm font-medium rounded-xl"
+                error={titleError}
+              />
             </div>
 
-            {/* Option 2: Adaptive Streaming */}
-            <div
-              onClick={() => setDeliveryMode('adaptive')}
-              className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
-                deliveryMode === 'adaptive'
-                  ? 'bg-blue-50/70 border-blue-600 ring-2 ring-blue-600/20'
-                  : 'bg-white border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-slate-900 text-xs">Adaptive Streaming</span>
-                    <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-extrabold text-[9px] rounded-md">
-                      360p - 4K
-                    </span>
-                  </div>
-                  <div
-                    className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                      deliveryMode === 'adaptive'
-                        ? 'border-blue-600 bg-blue-600 text-white'
-                        : 'border-slate-300'
-                    }`}
-                  >
-                    {deliveryMode === 'adaptive' && <Check className="w-3 h-3 stroke-[3]" />}
-                  </div>
-                </div>
-                <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                  Process the uploaded video into multiple streaming qualities (360p, 480p, 720p, 1080p, 2K, 4K).
-                </p>
-              </div>
-
-              <ul className="text-[10px] space-y-1 font-semibold text-slate-600 pt-2 border-t border-slate-200/60">
-                <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-600" /> Adaptive bitrate streaming</li>
-                <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-600" /> Automatic quality selection</li>
-                <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-600" /> Better playback on slow internet</li>
-                <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-600" /> Faster seeking & mobile optimization</li>
-                <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-600" /> Professional streaming experience</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Pre-Upload Media Credits Summary Box */}
-          <div className="p-4 bg-blue-50/90 border border-blue-200 rounded-2xl space-y-2 text-blue-950">
-            <div className="flex items-center justify-between font-extrabold text-xs">
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-                Pre-Upload Media Credit Summary
-              </span>
-              <span className="text-blue-800 font-black text-sm bg-white px-2.5 py-0.5 rounded-full border border-blue-200">
-                {totalEstMediaCredits} Total Media Credits
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-medium pt-2 border-t border-blue-200/70">
-              <div>File Size: <strong className="text-blue-900 font-bold">{fileSizeMb} MB</strong></div>
-              <div>Mode: <strong className="text-blue-900 font-bold capitalize">{deliveryMode}</strong></div>
-              <div>Upload Credits: <strong className="text-blue-900 font-bold">{estUploadCredits} Cr</strong></div>
-              <div>Processing Credits: <strong className="text-blue-900 font-bold">{estProcessingCredits} Cr</strong></div>
-            </div>
-
-            <p className="text-[10px] text-blue-800 font-semibold pt-1 italic">
-              * Media credits are deducted only after a successful upload or successful processing action.
-            </p>
-          </div>
-
-          {/* Drag & Drop Upload Zone & Status Panel */}
-          <div className="space-y-3">
-            <div
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={handleFileDrop}
-              className="p-6 border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50/60 rounded-2xl text-center space-y-2 transition-colors cursor-pointer"
-            >
-              <UploadCloud className="w-8 h-8 text-blue-600 mx-auto stroke-[1.5]" />
-              <div>
-                <p className="font-extrabold text-slate-900 text-xs">
-                  Drag and drop your video file here, or{' '}
-                  <label className="text-blue-600 underline cursor-pointer">
-                    browse file
-                    <input
-                      type="file"
-                      accept=".mp4,.mov,.mkv,.webm,.avi"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-                  </label>
-                </p>
-                <p className="text-[10px] text-slate-400 font-semibold mt-1">
-                  Supported formats: MP4, MOV, MKV, WEBM, AVI (Max file size: 2 GB)
-                </p>
-              </div>
-            </div>
-
-            {/* Selected File & Progress Card */}
-            {selectedFile && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 truncate">
-                    <Film className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span className="font-extrabold text-slate-900 truncate">{selectedFile.name}</span>
-                    <span className="text-[10px] font-bold text-slate-400 shrink-0">({selectedFile.sizeMb} MB)</span>
-                  </div>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full font-extrabold text-[10px] uppercase ${
-                      uploadStatus === 'ready'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : uploadStatus === 'uploading'
-                        ? 'bg-blue-100 text-blue-800'
-                        : uploadStatus === 'processing'
-                        ? 'bg-purple-100 text-purple-800'
-                        : uploadStatus === 'failed'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-slate-200 text-slate-700'
-                    }`}
-                  >
-                    {uploadStatus}
-                  </span>
-                </div>
-
-                {/* Upload Progress Bar */}
-                {uploadStatus === 'uploading' && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] font-bold text-slate-600">
-                      <span>Uploading File to Server...</span>
-                      <span>{uploadProgress}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-600 transition-all duration-300"
-                        style={{ width: `${uploadProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Processing Progress Bar */}
-                {uploadStatus === 'processing' && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] font-bold text-slate-600">
-                      <span>Transcoding Qualities (360p, 720p, 1080p, 4K)...</span>
-                      <span>{processingProgress}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-purple-600 transition-all duration-300"
-                        style={{ width: `${processingProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Ready Video Preview Mockup */}
-                {uploadStatus === 'ready' && (
-                  <div className="p-3 bg-slate-900 rounded-xl text-white flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <PlayCircle className="w-5 h-5 text-emerald-400" />
-                      <div>
-                        <p className="text-[11px] font-bold text-slate-100">Video Transcoded & Ready for Streaming</p>
-                        <p className="text-[9px] text-slate-400">
-                          Mode: {deliveryMode === 'adaptive' ? 'Adaptive HLS (360p-4K)' : 'Original MP4'} • Actual Credits Used: {totalEstMediaCredits} Cr
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">
-                      Preview Active
-                    </span>
-                  </div>
-                )}
-
-                {/* Upload Control Actions */}
-                <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-200/60">
-                  {uploadStatus === 'uploading' || uploadStatus === 'processing' ? (
-                    <Button size="sm" variant="outline" onClick={handleCancelUpload} className="text-red-600 border-red-200">
-                      <XCircle className="w-3.5 h-3.5" /> Cancel Upload
-                    </Button>
-                  ) : uploadStatus === 'cancelled' || uploadStatus === 'failed' ? (
-                    <Button size="sm" variant="outline" onClick={handleRetryUpload}>
-                      <RefreshCw className="w-3.5 h-3.5" /> Retry Upload
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="outline" onClick={handleSimulateUpload}>
-                      <RefreshCw className="w-3.5 h-3.5" /> Re-upload File
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        /* EXTERNAL VIDEO PROVIDER CONFIGURATION */
-        <div className="space-y-4 p-4 bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="space-y-1">
-            <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider text-blue-950 flex items-center gap-1.5">
-              <ExternalLink className="w-4 h-4 text-blue-600" />
-              External Video Provider Settings
-            </h4>
-            <p className="text-[11px] text-slate-500 font-medium">
-              Enter your video ID, embed code, or full URL for {sourceType.toUpperCase()}.
-            </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-semibold text-slate-700">
-              External Video URL or Asset Key <span className="text-red-500">*</span>
-            </label>
-            <Input
-              value={externalUrl}
-              onChange={(e) => {
-                setExternalUrl(e.target.value);
-                if (e.target.value.trim()) setUrlError('');
-              }}
-              placeholder={
-                sourceType === 'youtube'
-                  ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
-                  : sourceType === 'vimeo'
-                  ? 'https://vimeo.com/76979871'
-                  : sourceType === 'bunny'
-                  ? 'https://video.bunnycdn.com/play/libraryId/videoId'
-                  : 'https://cdn.example.com/video.mp4'
-              }
-              className={`w-full font-medium ${urlError ? 'border-red-500' : ''}`}
-            />
-            {urlError && <p className="text-[10px] text-red-500 font-bold">{urlError}</p>}
-          </div>
-
-          {/* Provider Notice */}
-          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-start gap-3 text-xs text-slate-700 font-medium">
-            <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-            <div className="space-y-1 text-[11px]">
-              <p className="font-extrabold text-slate-900">
-                Video quality and streaming are managed by the selected provider.
-              </p>
-              <p className="text-slate-500 leading-relaxed">
-                Direct upload processing credits are not charged for provider-hosted videos. Apply credits only according to the configured external video usage rule.
-              </p>
+            <div>
+              <label className="block text-xs font-bold text-[#0F172A] mb-1">
+                Short Description <span className="text-[#64748B] font-normal">(Optional)</span>
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Write a short overview of what students will learn in this video lesson..."
+                rows={3}
+                className="w-full p-3 bg-white border border-[#E2E8F0] rounded-xl text-xs sm:text-sm text-[#0F172A] focus:outline-none focus:border-[#2563EB] transition-all resize-y font-normal"
+              />
             </div>
           </div>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* 3. VIDEO DETAILS FIELDS */}
-      {/* ========================================================================= */}
-      <div className="space-y-4 p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80">
-        <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider text-blue-950 flex items-center gap-1.5">
-          <FileText className="w-4 h-4 text-blue-600" />
-          3. Video Details & Content Information
-        </h4>
-
-        <div className="space-y-3">
-          {/* Title */}
-          <div className="space-y-1">
-            <label className="block text-[11px] font-semibold text-slate-700">
-              Video Title <span className="text-red-500">*</span>
-            </label>
-            <Input
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                if (e.target.value.trim()) setTitleError('');
-              }}
-              placeholder="e.g. Lesson 1.2: React 19 Server Components Deep Dive"
-              className={`w-full font-semibold ${titleError ? 'border-red-500' : ''}`}
-            />
-            {titleError && <p className="text-[10px] text-red-500 font-bold">{titleError}</p>}
+      {/* STEP 2: CONTENT */}
+      {currentStep === 2 && (
+        <div className="p-4 sm:p-5 bg-white border border-[#E2E8F0] rounded-2xl shadow-2xs space-y-4">
+          <div className="border-b border-[#E2E8F0] pb-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#0F172A]">
+              2. Video Content & Source
+            </h4>
+            <p className="text-[11px] text-[#64748B]">Configure video payload, storage, and playback options.</p>
           </div>
 
-          {/* Short Description */}
-          <div className="space-y-1">
-            <label className="block text-[11px] font-semibold text-slate-700">Short Description</label>
-            <Input
-              value={shortDesc}
-              onChange={(e) => setShortDesc(e.target.value)}
-              placeholder="Brief 1-line summary displayed in lesson list"
-              className="w-full"
-            />
-          </div>
-
-          {/* Full Description */}
-          <div className="space-y-1">
-            <label className="block text-[11px] font-semibold text-slate-700">Full Description</label>
-            <textarea
-              value={fullDesc}
-              onChange={(e) => setFullDesc(e.target.value)}
-              rows={3}
-              placeholder="Detailed lesson overview, key takeaways, and prerequisites..."
-              className="w-full p-3 bg-white border border-slate-200 rounded-xl font-medium text-slate-900 text-xs focus:outline-none focus:border-blue-600 resize-none"
-            />
-          </div>
-
-          {/* Thumbnail & Captions */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="block text-[11px] font-semibold text-slate-700">Custom Video Thumbnail URL</label>
-              <Input
-                value={thumbnailUrl}
-                onChange={(e) => setThumbnailUrl(e.target.value)}
-                placeholder="https://images.unsplash.com/photo-..."
-                className="w-full"
-              />
+          {/* Source Segmented Control */}
+          <div className="space-y-3">
+            <label className="block text-xs font-bold text-[#0F172A]">Content Source</label>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0]">
+              <button
+                type="button"
+                onClick={() => setSourceMode('upload')}
+                className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  sourceMode === 'upload'
+                    ? 'bg-[#2563EB] text-white shadow-xs'
+                    : 'text-[#64748B] hover:text-[#0F172A]'
+                }`}
+              >
+                <UploadCloud className="w-4 h-4" />
+                <span>Upload File</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSourceMode('url')}
+                className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  sourceMode === 'url'
+                    ? 'bg-[#2563EB] text-white shadow-xs'
+                    : 'text-[#64748B] hover:text-[#0F172A]'
+                }`}
+              >
+                <Globe className="w-4 h-4" />
+                <span>iFrame URL</span>
+              </button>
             </div>
-            <div className="space-y-1">
-              <label className="block text-[11px] font-semibold text-slate-700">Captions / Subtitles File (.vtt / .srt)</label>
-              <Input
-                value={captionsUrl}
-                onChange={(e) => setCaptionsUrl(e.target.value)}
-                placeholder="https://assets.cubixskill.com/subtitles/english.vtt"
-                className="w-full"
-              />
-            </div>
-          </div>
 
-          {/* Transcript & Duration */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="sm:col-span-2 space-y-1">
-              <label className="block text-[11px] font-semibold text-slate-700">Lesson Transcript</label>
-              <Input
-                value={transcriptText}
-                onChange={(e) => setTranscriptText(e.target.value)}
-                placeholder="Full text transcript for accessibility and search..."
-                className="w-full"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-[11px] font-semibold text-slate-700">Duration (Minutes)</label>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  min={1}
-                  value={durationMinutes}
-                  onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                  className="w-full font-bold text-blue-700"
-                />
-              </div>
-            </div>
-          </div>
+            {/* MODE A: UPLOAD FILE / CHOOSE FROM MEDIA LIBRARY */}
+            {sourceMode === 'upload' && (
+              <div className="space-y-3 pt-1">
+                {!selectedFile ? (
+                  <div
+                    onClick={() => setIsMediaPickerOpen(true)}
+                    className="border-2 border-dashed border-[#2563EB]/40 hover:border-[#2563EB] bg-blue-50/20 p-5 rounded-2xl text-center space-y-2 cursor-pointer transition-colors"
+                  >
+                    <UploadCloud className="w-7 h-7 text-[#2563EB] mx-auto" />
+                    <div>
+                      <strong className="text-xs font-bold text-[#0F172A] block">
+                        Choose Video from Media Library or Upload New
+                      </strong>
+                      <span className="text-[10px] text-[#64748B]">
+                        Supports MP4, WebM formats
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs px-3 border-[#2563EB] text-[#2563EB] font-semibold mx-auto"
+                    >
+                      Select / Upload Video
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="p-3.5 bg-white border border-[#E2E8F0] rounded-xl space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 text-[#2563EB] flex items-center justify-center shrink-0">
+                          <FileCheck className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <strong className="text-xs font-bold text-[#0F172A] block truncate">
+                            {selectedFile.name}
+                          </strong>
+                          <span className="text-[10px] text-[#64748B]">
+                            {selectedFile.sizeMb} MB • Ready for streaming
+                          </span>
+                        </div>
+                      </div>
 
-          {/* Video Options & Restrictions Grid */}
-          <div className="pt-2">
-            <label className="block text-[11px] font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-              Playback Controls & Restrictions
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-semibold text-slate-700">
-              <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isDemo}
-                  onChange={(e) => setIsDemo(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded"
-                />
-                <span>Free Demo Lesson Preview</span>
-              </label>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setIsMediaPickerOpen(true)}
+                          className="text-[11px] font-bold text-[#2563EB] hover:underline cursor-pointer"
+                        >
+                          Replace
+                        </button>
+                        <span className="text-slate-300">•</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFile(null)}
+                          className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
+                          title="Remove from lesson"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
 
-              <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={allowDownload}
-                  onChange={(e) => setAllowDownload(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded"
-                />
-                <span>Allow Offline Video Download</span>
-              </label>
+                    {/* 16:9 Video Player Preview */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs border-b border-slate-100 pb-1">
+                        <span className="font-bold text-slate-900 flex items-center gap-1.5 text-xs">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Video Preview
+                        </span>
+                        <Badge variant="success" size="sm" className="text-[10px] px-2 py-0.5">
+                          {adaptiveStreaming ? 'Ready • Adaptive' : 'Ready • MP4'}
+                        </Badge>
+                      </div>
 
-              <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={preventSkipping}
-                  onChange={(e) => setPreventSkipping(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded"
-                />
-                <span>Prevent Seeking Forward (Fast-Forwarding)</span>
-              </label>
-
-              <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={resumePlayback}
-                  onChange={(e) => setResumePlayback(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded"
-                />
-                <span>Resume Playback Position</span>
-              </label>
-
-              <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={playbackSpeedControl}
-                  onChange={(e) => setPlaybackSpeedControl(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded"
-                />
-                <span>Playback Speed Control (0.5x - 2x)</span>
-              </label>
-
-              <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={autoPlayNext}
-                  onChange={(e) => setAutoPlayNext(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded"
-                />
-                <span>Auto-play Next Lesson</span>
-              </label>
-
-              <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={watermark}
-                  onChange={(e) => setWatermark(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded"
-                />
-                <span>Dynamic Watermark (Student ID Overlay)</span>
-              </label>
-
-              <div className="space-y-1">
-                <select
-                  value={deviceRestrictions}
-                  onChange={(e) => setDeviceRestrictions(e.target.value as 'none' | 'mobile_only' | 'desktop_only' | 'restrict_tv')}
-                  className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-semibold text-slate-800 text-[11px] focus:outline-none focus:border-blue-600"
-                >
-                  <option value="none">Device Restrictions: None (All Devices)</option>
-                  <option value="mobile_only">Mobile & Tablet Only</option>
-                  <option value="desktop_only">Desktop Web Only</option>
-                  <option value="restrict_tv">Restrict Smart TVs & Emulators</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 4. VIDEO COMPLETION SETTINGS */}
-      {/* ========================================================================= */}
-      <div className="space-y-3 p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80">
-        <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider text-blue-950 flex items-center gap-1.5">
-          <CheckCircle2 className="w-4 h-4 text-blue-600" />
-          4. Video Completion Criteria
-        </h4>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Completion Mode Dropdown */}
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-semibold text-slate-700">Completion Trigger Condition</label>
-            <select
-              value={completionMode}
-              onChange={(e) => setCompletionMode(e.target.value as CompletionMode)}
-              className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
-            >
-              <option value="watch_percent">Minimum Watch Percentage Required</option>
-              <option value="playback_end">Mark Complete After Playback Ends</option>
-              <option value="watch_time">Minimum Watch Time (Minutes)</option>
-              <option value="full_completion">Full Video Completion Required (100%)</option>
-              <option value="manual">Mark Complete Manually by Student</option>
-            </select>
-          </div>
-
-          {/* Dynamic Inputs based on Completion Mode */}
-          {completionMode === 'watch_percent' && (
-            <div className="space-y-1.5">
-              <label className="block text-[11px] font-semibold text-slate-700">Required Watch Percentage</label>
-              <div className="flex gap-2">
-                <select
-                  value={minWatchPercentPreset}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === 'custom') {
-                      setMinWatchPercentPreset('custom');
-                    } else {
-                      setMinWatchPercentPreset(Number(val));
-                    }
-                  }}
-                  className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold text-blue-700 focus:outline-none focus:border-blue-600"
-                >
-                  <option value={50}>50% Watch Minimum</option>
-                  <option value={75}>75% Watch Minimum</option>
-                  <option value={80}>80% Watch Minimum</option>
-                  <option value={90}>90% Watch Minimum</option>
-                  <option value={100}>100% Full Completion</option>
-                  <option value="custom">Custom Percentage...</option>
-                </select>
-
-                {minWatchPercentPreset === 'custom' && (
-                  <Input
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={customWatchPercent}
-                    onChange={(e) => setCustomWatchPercent(Number(e.target.value))}
-                    className="w-24 font-bold text-blue-700"
-                  />
+                      <div className="aspect-video w-full max-h-72 bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center relative shadow-inner">
+                        <video
+                          controls
+                          preload="metadata"
+                          autoPlay={false}
+                          className="w-full h-full object-contain"
+                          poster="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800"
+                        >
+                          <source
+                            src={
+                              selectedFile.url ||
+                              'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4'
+                            }
+                            type="video/mp4"
+                          />
+                          Your browser does not support HTML5 video preview.
+                        </video>
+                      </div>
+                    </div>
+                  </div>
                 )}
+
+                {/* Media Picker Modal */}
+                <MediaPickerModal
+                  isOpen={isMediaPickerOpen}
+                  onClose={() => setIsMediaPickerOpen(false)}
+                  defaultMediaType="video"
+                  title="Select Video Asset"
+                  onSelectAsset={(asset) => {
+                    setSelectedFile({
+                      name: asset.name,
+                      sizeMb: asset.sizeMb,
+                      url: asset.url,
+                    });
+                  }}
+                />
+
+                {/* Adaptive Streaming Option */}
+                <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl flex items-center justify-between gap-3">
+                  <div>
+                    <strong className="text-xs font-bold text-[#0F172A] flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-[#2563EB]" /> Adaptive Streaming
+                    </strong>
+                    <span className="text-[10px] text-[#64748B] block mt-0.5">
+                      Optimize playback for different internet speeds.
+                    </span>
+                  </div>
+
+                  <input
+                    type="checkbox"
+                    checked={adaptiveStreaming}
+                    onChange={(e) => setAdaptiveStreaming(e.target.checked)}
+                    className="w-4 h-4 text-[#2563EB] rounded cursor-pointer shrink-0"
+                  />
+                </div>
+
+                {/* Storage & Credit Calculation */}
+                {selectedFile && (() => {
+                  const creditsInfo = calculateVideoCredits(selectedFile.sizeMb, adaptiveStreaming);
+                  const availableCredits = 50;
+                  const hasInsufficientCredits = creditsInfo.totalCreditsRequired > availableCredits;
+
+                  return (
+                    <div className="p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl space-y-2 font-sans">
+                      <div className="flex items-center justify-between text-xs border-b border-[#E2E8F0] pb-1.5">
+                        <span className="font-bold text-[#0F172A]">Storage & Credits</span>
+                        <span className="text-[10px] text-[#64748B]">Available: <strong>{availableCredits} Credits</strong></span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                        <div className="p-2 bg-white border border-[#E2E8F0] rounded-lg">
+                          <span className="text-[10px] text-[#64748B] block font-semibold">File Size</span>
+                          <strong className="text-xs text-[#0F172A]">{selectedFile.sizeMb} MB</strong>
+                        </div>
+
+                        {adaptiveStreaming && (
+                          <div className="p-2 bg-white border border-[#E2E8F0] rounded-lg">
+                            <span className="text-[10px] text-[#64748B] block font-semibold">Streaming Storage</span>
+                            <strong className="text-xs text-[#0F172A]">
+                              {(creditsInfo.estimatedStreamingMb / 1024).toFixed(1)} GB
+                            </strong>
+                          </div>
+                        )}
+
+                        <div className="p-2 bg-blue-50 border border-blue-100 rounded-lg">
+                          <span className="text-[10px] text-[#2563EB] block font-semibold">Credits Required</span>
+                          <strong className="text-xs text-[#2563EB] font-bold">
+                            {creditsInfo.totalCreditsRequired} Credits
+                          </strong>
+                        </div>
+                      </div>
+
+                      {hasInsufficientCredits && (
+                        <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-[11px] text-rose-700 font-semibold flex items-center justify-between gap-2">
+                          <span>Insufficient Credits ({creditsInfo.totalCreditsRequired} needed)</span>
+                          <Button type="button" variant="outline" size="xs" className="border-rose-300 text-rose-700 bg-white h-7">
+                            Buy Credits
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* MODE B: IFRAME URL */}
+            {sourceMode === 'url' && (
+              <div className="space-y-3 pt-1">
+                <div className="p-2.5 bg-blue-50 border border-blue-100 rounded-xl text-[11px] font-medium text-[#2563EB] flex items-center gap-2">
+                  <Zap className="w-3.5 h-3.5 shrink-0" />
+                  <span>Embedded video uses <strong>0 Storage Credits</strong>.</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#0F172A] mb-1">
+                    Video iFrame URL <span className="text-rose-500">*</span>
+                  </label>
+                  <Input
+                    value={videoUrl}
+                    onChange={(e) => {
+                      setVideoUrl(e.target.value);
+                      if (e.target.value.trim()) setUrlError('');
+                    }}
+                    placeholder="https://www.youtube.com/embed/VIDEO_ID"
+                    className="h-11 text-xs sm:text-sm font-medium rounded-xl"
+                    error={urlError}
+                  />
+                </div>
+
+                {/* 16:9 Responsive Embed Preview */}
+                {parsedEmbed ? (
+                  <div className="p-3 bg-white border border-[#E2E8F0] rounded-xl space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-[#0F172A] flex items-center gap-1.5 text-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        Provider: <strong>{parsedEmbed.provider}</strong>
+                      </span>
+                      <Badge variant="success" size="sm" className="text-[10px] px-2 py-0.5">Valid Embed</Badge>
+                    </div>
+
+                    <div className="aspect-video w-full max-h-72 bg-slate-900 rounded-xl overflow-hidden shadow-inner">
+                      <iframe
+                        src={parsedEmbed.embedUrl}
+                        title="Video Preview"
+                        className="w-full h-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                ) : videoUrl.trim() ? (
+                  <div className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>Please enter a valid video iFrame/embed URL.</span>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {/* DURATION */}
+            <div className="pt-1">
+              <div className="p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-[#2563EB] shrink-0" />
+                  <div>
+                    <span className="text-xs font-bold text-[#0F172A] block">
+                      Duration: {durationMinutes} mins
+                    </span>
+                    <span className="text-[10px] text-[#64748B]">
+                      {isDurationAuto ? 'Auto-detected metadata' : 'Manual duration'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {!isDurationAuto ? (
+                    <div className="flex items-center gap-1 text-xs">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={600}
+                        value={durationMinutes}
+                        onChange={(e) => setDurationMinutes(Number(e.target.value) || 1)}
+                        className="w-20 h-8 text-xs font-bold"
+                      />
+                      <span className="text-[11px] text-[#64748B]">mins</span>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      onClick={() => setIsDurationAuto(false)}
+                      className="text-[11px] text-[#2563EB] font-bold h-7"
+                    >
+                      Edit Duration
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
-          )}
-
-          {completionMode === 'watch_time' && (
-            <div className="space-y-1.5">
-              <label className="block text-[11px] font-semibold text-slate-700">Minimum Watch Time (Minutes)</label>
-              <Input
-                type="number"
-                min={1}
-                value={minWatchTimeMinutes}
-                onChange={(e) => setMinWatchTimeMinutes(Number(e.target.value))}
-                className="w-full font-bold text-blue-700"
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 text-[11px] font-semibold text-slate-700">
-          <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={allowRewinding}
-              onChange={(e) => setAllowRewinding(e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded"
-            />
-            <span>Allow Rewinding Video</span>
-          </label>
-
-          <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={unlockNextAfterCompletion}
-              onChange={(e) => setUnlockNextAfterCompletion(e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded"
-            />
-            <span>Unlock Next Lesson Automatically</span>
-          </label>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 5. UNLOCK RULES */}
-      {/* ========================================================================= */}
-      <div className="space-y-3 p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80">
-        <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider text-blue-950 flex items-center gap-1.5">
-          <Lock className="w-4 h-4 text-blue-600" />
-          5. Lesson Access & Unlock Rules
-        </h4>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-semibold text-slate-700">Unlock Condition</label>
-            <select
-              value={unlockType}
-              onChange={(e) => setUnlockType(e.target.value as UnlockRuleType)}
-              className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
-            >
-              <option value="immediate">Unlock Immediately</option>
-              <option value="previous_lesson">Unlock After Previous Lesson</option>
-              <option value="min_watch_percent">Unlock After Required Watch Percentage</option>
-              <option value="full_video_completion">Unlock After Full Video Completion</option>
-              <option value="assignment_approval">Unlock After Assignment Approval</option>
-              <option value="quiz_pass">Unlock After Quiz Passing</option>
-              <option value="scheduled_date">Unlock On Specific Date</option>
-              <option value="days_after_enrollment">Unlock Days After Enrollment</option>
-              <option value="manual">Unlock Manually by Instructor</option>
-            </select>
           </div>
 
-          {/* Dynamic Unlock Fields */}
-          {(unlockType as string) === 'scheduled_date' && (
-            <div className="space-y-1.5">
-              <label className="block text-[11px] font-semibold text-slate-700">Scheduled Date</label>
-              <Input
-                type="date"
-                value={unlockScheduledDate}
-                onChange={(e) => setUnlockScheduledDate(e.target.value)}
-                className="w-full font-bold text-blue-700"
-              />
-            </div>
-          )}
-
-          {unlockType === 'days_after_enrollment' && (
-            <div className="space-y-1.5">
-              <label className="block text-[11px] font-semibold text-slate-700">Days After Student Enrollment</label>
-              <Input
-                type="number"
-                min={1}
-                value={unlockDaysAfterEnrollment}
-                onChange={(e) => setUnlockDaysAfterEnrollment(Number(e.target.value))}
-                className="w-full font-bold text-blue-700"
-              />
-            </div>
-          )}
+          {/* LESSON ATTACHED RESOURCES SECTION */}
+          <LessonResourcesSection
+            resources={lesson?.content?.resources || []}
+            courseUuid={lesson?.courseUuid || '550e8400-e29b-41d4-a716-446655440000'}
+            moduleUuid={lesson?.moduleUuid}
+            lessonUuid={lesson?.uuid}
+            onRemoveResource={(resId) => {
+              if (lesson?.uuid) {
+                useCurriculumStore.getState().detachResourceFromLesson(lesson.uuid, resId);
+              }
+            }}
+          />
         </div>
-      </div>
+      )}
 
-      {/* Save Action Banner */}
-      <div className="flex items-center justify-between pt-2">
-        <span className="text-[10px] text-slate-400 font-semibold">
-          All changes are updated live into the Curriculum state.
-        </span>
-        <Button size="sm" onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5">
-          <Check className="w-4 h-4 mr-1 stroke-[3]" /> Save Video Settings
-        </Button>
+      {/* Sticky Mobile Bottom Action Bar (Above App Bottom Nav) / Desktop Action Bar */}
+      <div className="fixed md:relative bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 z-35 p-3 md:p-0 bg-white/95 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-t md:border-0 border-[#E2E8F0] shadow-lg md:shadow-none flex items-center justify-between gap-3 md:pt-2 max-w-3xl mx-auto">
+        {currentStep === 1 ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onSaveLesson({ title })}
+              className="h-11 md:h-10 text-xs font-bold px-4 md:px-5 shrink-0"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleNextFromGeneral}
+              className="h-11 md:h-10 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-[0.98] text-white text-xs sm:text-sm font-bold px-5 md:px-6 shadow-md flex-1 md:flex-initial"
+            >
+              Next: Content
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCurrentStep(1)}
+              className="h-11 md:h-10 text-xs font-bold px-4 md:px-5 shrink-0"
+            >
+              Back
+            </Button>
+            <Button
+              type="submit"
+              disabled={uploadProgress !== null}
+              leftIcon={<CheckCircle2 className="w-4 h-4 stroke-[3]" />}
+              className="h-11 md:h-10 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-[0.98] text-white text-xs sm:text-sm font-bold px-5 md:px-6 shadow-md flex-1 md:flex-initial"
+            >
+              {isCreateMode ? 'Create Lesson' : 'Save Changes'}
+            </Button>
+          </>
+        )}
       </div>
-    </div>
+    </form>
   );
 };

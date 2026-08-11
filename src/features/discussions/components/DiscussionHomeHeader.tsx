@@ -14,29 +14,29 @@ export const DiscussionHomeHeader: React.FC<DiscussionHomeHeaderProps> = ({
   onOpenSettings,
 }) => {
   return (
-    <Card padding="md" className="bg-white border border-slate-200/90 shadow-2xs space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">Course Discussions</h1>
-            <Badge variant="info" size="sm" className="font-bold">
-              {totalCount} Active Topics
+    <Card padding="md" className="bg-white border border-slate-200/90 shadow-2xs font-sans text-left w-full max-w-full min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+        <div className="space-y-1 min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <h1 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight">
+              Discussions
+            </h1>
+            <Badge variant="info" size="sm" className="font-semibold shrink-0 text-[10px]">
+              {totalCount} Active
             </Badge>
           </div>
-
-          <p className="text-xs text-slate-500 font-medium">
-            Private course forum to communicate, answer questions, moderate student threads, and issue announcements.
+          <p className="text-xs text-slate-500 font-normal leading-relaxed">
+            Manage course discussions, answer student questions, and publish announcements.
           </p>
         </div>
 
-        {/* Action Controls - Only Settings Button Kept */}
         <div className="flex items-center gap-2 shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={onOpenSettings}
-            className="h-9 text-xs font-semibold text-slate-700"
-            leftIcon={<Settings className="w-4 h-4 text-slate-500" />}
+            className="h-8 text-xs font-semibold text-slate-700"
+            leftIcon={<Settings className="w-3.5 h-3.5 text-slate-500" />}
           >
             Settings
           </Button>
@@ -45,3 +45,5 @@ export const DiscussionHomeHeader: React.FC<DiscussionHomeHeaderProps> = ({
     </Card>
   );
 };
+
+

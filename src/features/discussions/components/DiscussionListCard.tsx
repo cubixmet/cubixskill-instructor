@@ -50,58 +50,46 @@ export const DiscussionListCard: React.FC<DiscussionListCardProps> = ({
     year: 'numeric',
   });
 
+  const replyCountLabel = discussion.repliesCount === 1 ? '1 Reply' : `${discussion.repliesCount} Replies`;
+
   return (
     <Card
-      padding="md"
-      className={`border bg-white transition-all hover:border-blue-300 hover:shadow-xs space-y-3 font-sans text-left ${
+      padding="none"
+      className={`border bg-white transition-all hover:border-blue-300 hover:shadow-xs p-3 sm:p-4 space-y-3 font-sans text-left w-full max-w-full min-w-0 ${
         discussion.isPinned ? 'border-l-4 border-l-blue-600 bg-blue-50/20' : 'border-slate-200/80'
       } ${discussion.isArchived ? 'opacity-70 bg-slate-50' : ''}`}
     >
-      {/* Top badges & Title */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1.5 flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-1.5 text-xs">
-            {discussion.isAnnouncement && (
-              <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 font-bold px-2 py-0.5 rounded-md border border-amber-200 text-[10px]">
-                <Megaphone className="w-3 h-3" /> Announcement
-              </span>
-            )}
-            {discussion.isPinned && (
-              <Badge variant="info" size="sm" className="font-bold flex items-center gap-1">
-                <Pin className="w-3 h-3" /> Pinned
-              </Badge>
-            )}
-            {discussion.isResolved && (
-              <Badge variant="success" size="sm" className="font-bold flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> Resolved
-              </Badge>
-            )}
-            {discussion.isLocked && (
-              <Badge variant="neutral" size="sm" className="font-bold flex items-center gap-1">
-                <Lock className="w-3 h-3" /> Locked
-              </Badge>
-            )}
-            {discussion.isArchived && (
-              <Badge variant="warning" size="sm" className="font-bold">
-                Archived
-              </Badge>
-            )}
-
-            <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-              {discussion.category}
+      {/* Header: Badges & Three dot menu */}
+      <div className="flex items-start justify-between gap-2 w-full min-w-0">
+        <div className="flex flex-wrap items-center gap-1.5 min-w-0 flex-1">
+          {discussion.isAnnouncement && (
+            <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 font-bold px-2 py-0.5 rounded-md border border-amber-200 text-[10px]">
+              <Megaphone className="w-3 h-3 shrink-0" /> Announcement
             </span>
-          </div>
-
-          <h3
-            onClick={() => onOpen(discussion.id)}
-            className="text-base font-extrabold text-slate-900 hover:text-blue-600 cursor-pointer transition-colors line-clamp-1"
-          >
-            {discussion.title}
-          </h3>
-
-          <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-            {discussion.shortDescription || discussion.content}
-          </p>
+          )}
+          {discussion.isPinned && (
+            <Badge variant="info" size="sm" className="font-bold flex items-center gap-1 text-[10px] py-0.5">
+              <Pin className="w-3 h-3 shrink-0" /> Pinned
+            </Badge>
+          )}
+          {discussion.isResolved && (
+            <Badge variant="success" size="sm" className="font-bold flex items-center gap-1 text-[10px] py-0.5">
+              <CheckCircle2 className="w-3 h-3 shrink-0" /> Resolved
+            </Badge>
+          )}
+          {discussion.isLocked && (
+            <Badge variant="neutral" size="sm" className="font-bold flex items-center gap-1 text-[10px] py-0.5">
+              <Lock className="w-3 h-3 shrink-0" /> Locked
+            </Badge>
+          )}
+          {discussion.isArchived && (
+            <Badge variant="warning" size="sm" className="font-bold text-[10px] py-0.5">
+              Archived
+            </Badge>
+          )}
+          <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+            {discussion.category}
+          </span>
         </div>
 
         {/* Quick Menu */}
@@ -109,7 +97,7 @@ export const DiscussionListCard: React.FC<DiscussionListCardProps> = ({
           <button
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors"
+            className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors"
           >
             <MoreVertical className="w-4 h-4" />
           </button>
@@ -203,23 +191,37 @@ export const DiscussionListCard: React.FC<DiscussionListCardProps> = ({
         </div>
       </div>
 
-      {/* Author & Footer Stats */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100 text-xs">
-        <div className="flex items-center gap-2">
+      {/* Discussion Title */}
+      <h3
+        onClick={() => onOpen(discussion.id)}
+        className="text-xs sm:text-sm font-semibold text-slate-900 hover:text-blue-600 cursor-pointer transition-colors leading-snug break-words whitespace-normal"
+      >
+        {discussion.title}
+      </h3>
+
+
+      {/* Short preview */}
+      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+        {discussion.shortDescription || discussion.content}
+      </p>
+
+      {/* Author Section & Date */}
+      <div className="flex flex-wrap items-center gap-2 text-xs pt-1 border-t border-slate-100/80">
+        <div className="flex items-center gap-2 min-w-0 flex-wrap">
           {discussion.author.avatar ? (
             <img
               src={discussion.author.avatar}
               alt={discussion.author.name}
-              className="w-6 h-6 rounded-full object-cover border border-slate-200"
+              className="w-6 h-6 rounded-full object-cover border border-slate-200 shrink-0"
             />
           ) : (
-            <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-[10px] flex items-center justify-center">
+            <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
               {discussion.author.name.charAt(0)}
             </div>
           )}
-          <span className="font-bold text-slate-800">{discussion.author.name}</span>
+          <span className="font-bold text-slate-800 break-words">{discussion.author.name}</span>
           <span
-            className={`text-[10px] font-bold px-1.5 py-0.2 rounded uppercase ${
+            className={`text-[9.5px] font-bold px-1.5 py-0.2 rounded uppercase shrink-0 ${
               discussion.author.role === 'instructor'
                 ? 'bg-blue-100 text-blue-700'
                 : 'bg-slate-100 text-slate-600'
@@ -227,15 +229,18 @@ export const DiscussionListCard: React.FC<DiscussionListCardProps> = ({
           >
             {discussion.author.role}
           </span>
-          <span className="text-slate-400">•</span>
-          <span className="text-slate-500 font-medium">{formattedDate}</span>
         </div>
+        <span className="text-slate-400 hidden sm:inline">•</span>
+        <span className="text-slate-500 font-medium text-[11px] w-full sm:w-auto">{formattedDate}</span>
+      </div>
 
-        <div className="flex items-center gap-4 text-slate-500 text-xs font-semibold">
+      {/* Stats & Replies CTA Button */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+        <div className="flex items-center gap-3 text-slate-500 text-xs font-semibold">
           {discussion.attachments.length > 0 && (
             <span className="flex items-center gap-1 text-slate-600">
-              <Paperclip className="w-3.5 h-3.5 text-blue-600" />
-              {discussion.attachments.length} Files
+              <Paperclip className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              {discussion.attachments.length}
             </span>
           )}
 
@@ -254,17 +259,17 @@ export const DiscussionListCard: React.FC<DiscussionListCardProps> = ({
             <Eye className="w-3.5 h-3.5" />
             {discussion.views}
           </span>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onOpen(discussion.id)}
-            className="h-7 text-xs font-bold text-blue-600 hover:bg-blue-50"
-            leftIcon={<MessageCircle className="w-3.5 h-3.5" />}
-          >
-            {discussion.repliesCount} Replies
-          </Button>
         </div>
+
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onOpen(discussion.id)}
+          className="h-7 text-xs font-bold text-blue-600 hover:bg-blue-50 w-auto shrink-0 max-w-full"
+          leftIcon={<MessageCircle className="w-3.5 h-3.5" />}
+        >
+          {replyCountLabel}
+        </Button>
       </div>
     </Card>
   );

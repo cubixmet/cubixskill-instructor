@@ -4,7 +4,9 @@ import {
   LayoutDashboard,
   BookOpen,
   Users,
-  Coins,
+  IndianRupee,
+  MessageSquare,
+  Layers,
   Menu,
 } from "lucide-react";
 import { cn } from "../../lib/cn";
@@ -12,20 +14,26 @@ import { isNavItemActive } from "./Sidebar";
 
 export interface MobileNavProps {
   onOpenSidebar: () => void;
+  onOpenProfile: () => void;
 }
 
-export const MobileBottomNav: React.FC<MobileNavProps> = ({ onOpenSidebar }) => {
+export const MobileBottomNav: React.FC<MobileNavProps> = ({
+  onOpenSidebar,
+}) => {
   const location = useLocation();
 
+  // Exactly 7 items as required by specification
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Courses", href: "/courses", icon: BookOpen },
     { label: "Students", href: "/students", icon: Users },
-    { label: "Credits", href: "/credits", icon: Coins },
+    { label: "Fees", href: "/fees", icon: IndianRupee },
+    { label: "Discussions", href: "/discussions", icon: MessageSquare },
+    { label: "Media", href: "/media", icon: Layers },
   ];
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 flex items-center justify-around z-40 shadow-lg select-none">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-1 flex items-center justify-between z-40 shadow-lg select-none pb-[env(safe-area-inset-bottom)]">
       {navItems.map((item) => {
         const active = isNavItemActive(item.href, location.pathname);
 
@@ -35,25 +43,30 @@ export const MobileBottomNav: React.FC<MobileNavProps> = ({ onOpenSidebar }) => 
             to={item.href}
             className={() =>
               cn(
-                "flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-all min-w-[48px] min-h-[48px] rounded-xl px-2",
-                active ? "text-[#2563EB] font-bold bg-blue-50/80" : "text-slate-500 hover:text-slate-900"
+                "flex-1 flex flex-col items-center justify-center gap-0.5 text-[9px] transition-all min-w-0 h-11 px-0.5 cursor-pointer",
+                active
+                  ? "text-[#2563EB] font-medium"
+                  : "text-slate-500 font-normal hover:text-slate-900"
               )
             }
           >
-            <item.icon className="w-5 h-5" />
-            <span>{item.label}</span>
+            <item.icon className="w-4 h-4 shrink-0" />
+            <span className="truncate w-full text-center">{item.label}</span>
           </NavLink>
         );
       })}
 
+      {/* Item 7: More (Sidebar Drawer trigger) */}
       <button
         type="button"
         onClick={onOpenSidebar}
-        className="flex flex-col items-center justify-center gap-1 text-[10px] font-semibold text-slate-500 hover:text-slate-900 min-w-[48px] min-h-[48px] rounded-xl px-2 cursor-pointer"
+        className={cn(
+          "flex-1 flex flex-col items-center justify-center gap-0.5 text-[9px] transition-all min-w-0 h-11 px-0.5 cursor-pointer text-slate-500 font-normal hover:text-slate-900"
+        )}
       >
-        <Menu className="w-5 h-5" />
-        <span>Menu</span>
+        <Menu className="w-4 h-4 shrink-0" />
+        <span className="truncate w-full text-center">More</span>
       </button>
-    </div>
+    </nav>
   );
 };

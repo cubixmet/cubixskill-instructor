@@ -112,7 +112,7 @@ export const EnrollmentConfirmationDialog: React.FC<EnrollmentConfirmationDialog
                   </div>
                   <div>
                     <h3 className="text-base font-extrabold text-slate-900 leading-tight">
-                      Confirm Student Enrollment
+                      Enrollment
                     </h3>
                     <p className="text-xs text-slate-500">
                       Review total credit deduction before confirmation

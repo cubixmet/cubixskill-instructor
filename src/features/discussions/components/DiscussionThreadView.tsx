@@ -115,40 +115,34 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
   };
 
   return (
-    <div className="space-y-4 font-sans text-xs text-left">
+    <div className="space-y-4 font-sans text-xs text-left w-full max-w-full min-w-0 pb-20 sm:pb-0">
       {/* 1. THREAD NAVIGATION HEADER */}
-      <Card padding="sm" className="bg-white border border-slate-200/90 shadow-2xs">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <Card padding="none" className="bg-white border border-slate-200/90 p-3 shadow-2xs w-full max-w-full min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-start gap-2.5 min-w-0 flex-1">
             <button
               type="button"
               onClick={onBack}
-              className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold flex items-center gap-1 cursor-pointer transition-colors"
+              className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold flex items-center gap-1 cursor-pointer transition-colors shrink-0 mt-0.5"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
             </button>
 
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase bg-slate-100 px-1.5 py-0.2 rounded">
-                  UUID: {discussion.id}
-                </span>
-                <span className="text-slate-300">•</span>
-                <span className="text-xs font-extrabold text-blue-600">{discussion.category}</span>
-              </div>
-              <h2 className="text-base font-black text-slate-900 line-clamp-1">{discussion.title}</h2>
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] font-extrabold text-blue-600 uppercase tracking-wider block">{discussion.category}</span>
+              <h2 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-snug break-words whitespace-normal">{discussion.title}</h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
             {discussion.isAnnouncement && (
-              <Badge variant="warning" size="sm" className="font-bold flex items-center gap-1">
+              <Badge variant="warning" size="sm" className="font-bold flex items-center gap-1 text-[10px]">
                 <Megaphone className="w-3 h-3" /> Announcement
               </Badge>
             )}
             {discussion.isResolved && (
-              <Badge variant="success" size="sm" className="font-bold flex items-center gap-1">
+              <Badge variant="success" size="sm" className="font-bold flex items-center gap-1 text-[10px]">
                 <CheckCircle2 className="w-3 h-3" /> Resolved
               </Badge>
             )}
@@ -157,26 +151,26 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
       </Card>
 
       {/* 2. ORIGINAL QUESTION CARD */}
-      <div className="p-5 bg-white border border-slate-200/90 rounded-2xl space-y-4 shadow-2xs">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <div className="p-3.5 sm:p-5 bg-white border border-slate-200/90 rounded-2xl space-y-3 sm:space-y-4 shadow-2xs w-full max-w-full min-w-0">
+        <div className="flex items-start justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
             {discussion.author.avatar ? (
               <img
                 src={discussion.author.avatar}
                 alt={discussion.author.name}
-                className="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border border-slate-200 shrink-0"
               />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-blue-600 text-white font-bold text-xs sm:text-sm flex items-center justify-center shrink-0">
                 {discussion.author.name.charAt(0)}
               </div>
             )}
 
-            <div>
-              <div className="flex items-center gap-2">
-                <strong className="font-extrabold text-slate-900 text-sm">{discussion.author.name}</strong>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <strong className="font-extrabold text-slate-900 text-xs sm:text-sm break-words">{discussion.author.name}</strong>
                 <span
-                  className={`text-[10px] font-bold px-1.5 py-0.2 rounded uppercase ${
+                  className={`text-[9.5px] font-bold px-1.5 py-0.2 rounded uppercase shrink-0 ${
                     discussion.author.role === 'instructor'
                       ? 'bg-blue-100 text-blue-700'
                       : 'bg-slate-100 text-slate-600'
@@ -185,8 +179,8 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
                   {discussion.author.role}
                 </span>
               </div>
-              <span className="text-[10px] text-slate-400 font-medium">
-                Asked on {new Date(discussion.createdAt).toLocaleString()}
+              <span className="text-[10px] text-slate-400 font-medium block">
+                {new Date(discussion.createdAt).toLocaleString()}
               </span>
             </div>
           </div>
@@ -194,14 +188,15 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
           <button
             type="button"
             onClick={() => onReport(discussion.id)}
-            className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer"
+            className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer shrink-0"
             title="Report Discussion"
           >
             <Flag className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="text-sm text-slate-800 leading-relaxed font-normal whitespace-pre-line">
+        {/* Discussion Body */}
+        <div className="text-xs sm:text-sm text-slate-800 leading-relaxed font-normal whitespace-pre-line break-words overflow-wrap-anywhere w-full min-w-0">
           {discussion.content}
         </div>
 
@@ -215,11 +210,11 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
                   key={att.id}
                   href={att.url}
                   onClick={(e) => e.preventDefault()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-bold hover:border-blue-500 hover:text-blue-600 transition-colors text-xs"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-bold hover:border-blue-500 hover:text-blue-600 transition-colors text-xs max-w-full truncate"
                 >
                   <Paperclip className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span>{att.name}</span>
-                  <span className="text-[10px] text-slate-400 font-normal">({att.sizeMb} MB)</span>
+                  <span className="truncate">{att.name}</span>
+                  <span className="text-[10px] text-slate-400 font-normal shrink-0">({att.sizeMb} MB)</span>
                 </a>
               ))}
             </div>
@@ -241,16 +236,16 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
 
           <span className="flex items-center gap-1.5 font-semibold">
             <MessageCircle className="w-4 h-4 text-blue-600" />
-            <span>{discussionReplies.length} Total Replies</span>
+            <span>{discussionReplies.length} Replies</span>
           </span>
         </div>
       </div>
 
-      {/* 3. OFFICIAL INSTRUCTOR ANSWER (Pinned directly below question) */}
+      {/* 3. OFFICIAL INSTRUCTOR ANSWER */}
       {officialAnswer && (
         <div className="space-y-1">
           <div className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 flex items-center gap-1 pl-1">
-            <Award className="w-3.5 h-3.5 text-blue-600" /> OFFICIAL INSTRUCTOR SOLUTION
+            <Award className="w-3.5 h-3.5 text-blue-600 shrink-0" /> OFFICIAL INSTRUCTOR SOLUTION
           </div>
           <DiscussionMessageCard
             reply={officialAnswer}
@@ -273,7 +268,7 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
       {/* 4. REPLIES STREAM */}
       <div className="space-y-3 pt-2">
         <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
-          Conversation Replies ({regularReplies.length})
+          Replies ({regularReplies.length})
         </h4>
 
         {topLevelReplies.length > 0 ? (
@@ -299,9 +294,9 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
                     currentUserRole={currentUserRole}
                   />
 
-                  {/* Nested Comments */}
+                  {/* Capped Nested Comments for Mobile */}
                   {childReplies.length > 0 && (
-                    <div className="pl-6 space-y-2 border-l-2 border-slate-200 ml-4">
+                    <div className="pl-2 sm:pl-5 border-l-2 border-slate-200/80 ml-2 sm:ml-4 space-y-2">
                       {childReplies.map((child) => (
                         <DiscussionMessageCard
                           key={child.id}
@@ -327,17 +322,20 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
             })}
           </div>
         ) : (
-          <div className="p-8 border-2 border-dashed border-slate-200 rounded-2xl text-center text-slate-400 space-y-1">
-            <MessageCircle className="w-8 h-8 mx-auto text-slate-300" />
+          <div className="p-6 border-2 border-dashed border-slate-200 rounded-2xl text-center text-slate-400 space-y-1">
+            <MessageCircle className="w-7 h-7 mx-auto text-slate-300" />
             <p className="font-bold text-slate-600 text-xs">No replies yet.</p>
-            <p className="text-[11px]">Be the first to post an answer or share your perspective in this thread.</p>
+            <p className="text-[11px]">Be the first to post an answer in this thread.</p>
           </div>
         )}
       </div>
 
-      {/* 5. STICKY REPLY INPUT BOX */}
+      {/* 5. REPLY INPUT BOX (Fixed Above Bottom Nav on Mobile if needed, sticky/responsive) */}
       {!discussion.isLocked ? (
-        <form onSubmit={handleSendReply} className="p-3 bg-white border border-slate-200/90 rounded-2xl shadow-md space-y-2 relative">
+        <form
+          onSubmit={handleSendReply}
+          className="p-3 bg-white border border-slate-200/90 rounded-2xl shadow-md space-y-2 relative w-full max-w-full min-w-0"
+        >
           {/* Quote / Replying To Indicator */}
           {(replyingToParentId || quotedReply) && (
             <div className="flex items-center justify-between bg-blue-50/90 border border-blue-200 px-3 py-1.5 rounded-xl text-blue-800 font-semibold text-[11px]">
@@ -356,7 +354,7 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
                   setReplyingToParentId(undefined);
                   setQuotedReply(undefined);
                 }}
-                className="p-1 text-blue-600 hover:text-blue-900 cursor-pointer"
+                className="p-1 text-blue-600 hover:text-blue-900 cursor-pointer shrink-0"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -374,7 +372,7 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
               required
             />
 
-            <div className="absolute right-3 top-3 flex items-center gap-1.5 text-slate-400">
+            <div className="absolute right-3 top-3 flex items-center gap-1 text-slate-400">
               <button
                 type="button"
                 onClick={() => setShowMentionMenu(!showMentionMenu)}
@@ -396,7 +394,7 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
 
             {/* Mention Menu */}
             {showMentionMenu && (
-              <div className="absolute right-0 bottom-12 w-60 bg-white border border-slate-200 rounded-xl shadow-xl z-30 p-1 space-y-0.5">
+              <div className="absolute right-0 bottom-12 w-56 sm:w-60 bg-white border border-slate-200 rounded-xl shadow-xl z-30 p-1 space-y-0.5 max-h-48 overflow-y-auto">
                 <div className="text-[10px] font-bold text-slate-400 uppercase px-2 py-1">Mention Course Member</div>
                 {MENTIONABLE_USERS.map((user) => (
                   <button
@@ -405,8 +403,8 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
                     onClick={() => handleInsertMention(user.name)}
                     className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-blue-50 text-xs font-semibold text-slate-800 flex items-center justify-between cursor-pointer"
                   >
-                    <span>{user.name}</span>
-                    <span className="text-[10px] text-blue-600 font-bold">{user.role}</span>
+                    <span className="truncate">{user.name}</span>
+                    <span className="text-[10px] text-blue-600 font-bold shrink-0">{user.role}</span>
                   </button>
                 ))}
               </div>
@@ -414,7 +412,7 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
 
             {/* Emoji Menu */}
             {showEmojiPicker && (
-              <div className="absolute right-8 bottom-12 bg-white border border-slate-200 rounded-xl shadow-xl z-30 p-1 flex items-center gap-1">
+              <div className="absolute right-2 bottom-12 bg-white border border-slate-200 rounded-xl shadow-xl z-30 p-1 flex items-center gap-1 flex-wrap max-w-xs">
                 {EMOJIS.map((e) => (
                   <button
                     key={e}
@@ -432,7 +430,7 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
             )}
           </div>
 
-          {/* Instructor Storage Notice (If attaching file) */}
+          {/* Instructor Storage Notice */}
           {isInstructor && currentUserRole === 'instructor' && (
             <div className="text-[10px] text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100 flex items-center gap-1.5">
               <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
@@ -440,13 +438,13 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
             <span className="text-[10px] text-slate-400 font-medium">
               Markdown and @mentions supported.
             </span>
             <Button
               type="submit"
-              className="bg-[#2563EB] text-white px-5 font-bold h-9 text-xs"
+              className="bg-[#2563EB] text-white px-5 font-bold h-9 text-xs w-full sm:w-auto"
               leftIcon={<Send className="w-3.5 h-3.5" />}
             >
               Post Reply
@@ -455,8 +453,8 @@ export const DiscussionThreadView: React.FC<DiscussionThreadViewProps> = ({
         </form>
       ) : (
         <div className="p-4 bg-slate-100 border border-slate-200 rounded-2xl text-center font-bold text-slate-600 flex items-center justify-center gap-2 text-xs">
-          <Lock className="w-4 h-4 text-slate-500" />
-          This discussion thread is locked by the instructor. Replies are disabled.
+          <Lock className="w-4 h-4 text-slate-500 shrink-0" />
+          <span>This discussion thread is locked by the instructor. Replies are disabled.</span>
         </div>
       )}
     </div>

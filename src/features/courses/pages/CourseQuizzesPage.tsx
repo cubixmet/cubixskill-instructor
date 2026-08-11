@@ -6,8 +6,6 @@ import {
   CheckCircle2,
   Download,
   Search,
-  LayoutGrid,
-  List,
   Edit,
   Trash2,
   Copy,
@@ -37,7 +35,6 @@ export const CourseQuizzesPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusTab, setStatusTab] = useState<'All' | 'Published' | 'Draft' | 'Archived' | 'Pending Review'>('All');
   const [quizTypeFilter] = useState('All');
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
 
@@ -204,27 +201,6 @@ export const CourseQuizzesPage: React.FC = () => {
                 placeholder="Search quizzes by title..."
                 className="w-full h-10 pl-9 pr-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs font-normal text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
               />
-            </div>
-
-            <div className="flex items-center border border-[#E2E8F0] rounded-xl p-1 bg-[#F8FAFC] shrink-0">
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  viewMode === 'table' ? 'bg-white shadow-2xs text-[#2563EB]' : 'text-[#64748B]'
-                }`}
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  viewMode === 'grid' ? 'bg-white shadow-2xs text-[#2563EB]' : 'text-[#64748B]'
-                }`}
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
             </div>
           </div>
         </div>
