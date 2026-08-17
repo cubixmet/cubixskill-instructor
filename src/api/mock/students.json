@@ -1,5 +1,1 @@
-[
-  { "id": "s1", "name": "John Doe", "email": "john@example.com", "enrolledCourses": 3, "progress": 85 },
-  { "id": "s2", "name": "Sarah Smith", "email": "sarah@example.com", "enrolledCourses": 2, "progress": 92 },
-  { "id": "s3", "name": "Michael Brown", "email": "michael@example.com", "enrolledCourses": 4, "progress": 70 }
-]
+{}

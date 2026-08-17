@@ -13,6 +13,7 @@ import {
   Megaphone,
   Menu,
   Coins,
+  KeyRound,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../features/auth/hooks/useAuth";
@@ -292,13 +293,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
               className="flex items-center space-x-2 p-1 rounded-xl hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
             >
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white font-bold text-xs flex items-center justify-center shadow-xs">
-                {user?.full_name?.charAt(0).toUpperCase() || "R"}
+                {user?.full_name?.charAt(0).toUpperCase() || "A"}
               </div>
               <div className="text-left">
                 <p className="text-xs font-bold text-slate-900 leading-tight">
-                  {user?.full_name || "Dr. Rajesh Varma"}
+                  {user?.full_name || "Academy Admin"}
                 </p>
-                <p className="text-[10px] font-medium text-slate-500">Academy Educator</p>
+                <p className="text-[10px] font-medium text-slate-500">
+                  {user?.role === 'ACADEMY_STAFF' ? 'Academy Staff' : 'Academy Admin'}
+                </p>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
             </button>
@@ -314,12 +317,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                 >
                   <div className="px-3 py-2 border-b border-slate-100">
                     <p className="text-xs font-bold text-slate-900">
-                      {user?.full_name || "Dr. Rajesh Varma"}
+                      {user?.full_name || "Academy Admin"}
                     </p>
                     <p className="text-[11px] text-slate-500 truncate">
-                      {user?.email || "instructor@example.com"}
+                      {user?.email || ""}
                     </p>
                   </div>
+
 
                   <div className="py-1 space-y-0.5">
                     <Link
@@ -329,6 +333,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
                       <span>Account Settings</span>
+                    </Link>
+                    <Link
+                      to="/change-password"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-50 rounded-xl"
+                    >
+                      <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Change Password</span>
                     </Link>
                     <div className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-emerald-700">
                       <ShieldCheck className="w-3.5 h-3.5" />

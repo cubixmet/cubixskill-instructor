@@ -1,11 +1,13 @@
-export type UserRole = "instructor";
+export type UserRole = "ACADEMY_ADMIN" | "ACADEMY_STAFF";
 
 export interface AuthUser {
   id: string;
-  full_name: string;
   email: string;
-  role: UserRole;
-  is_active: boolean;
+  full_name: string;
+  role: UserRole | string;
+  academy_id: string | null;
+  is_email_verified?: boolean;
+  is_active?: boolean;
 }
 
 export interface LoginPayload {
@@ -14,10 +16,16 @@ export interface LoginPayload {
   remember_me?: boolean;
 }
 
-export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
+export interface LoginResponseData {
+  access: string;
+  refresh: string;
   user: AuthUser;
+}
+
+export interface BackendApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
 }
 
 export interface ForgotPasswordPayload {
@@ -25,12 +33,35 @@ export interface ForgotPasswordPayload {
 }
 
 export interface ForgotPasswordResponse {
+  success?: boolean;
+  message: string;
+}
+
+export interface ResetPasswordPayload {
+  token: string;
+  new_password: string;
+  confirm_password: string;
+}
+
+export interface ResetPasswordResponse {
+  success?: boolean;
+  message: string;
+}
+
+export interface ChangePasswordPayload {
+  current_password: string;
+  new_password: string;
+  confirm_password: string;
+}
+
+export interface ChangePasswordResponse {
+  success?: boolean;
   message: string;
 }
 
 export interface SetupPasswordPayload {
   token: string;
-  password: string;
+  new_password: string;
   confirm_password: string;
 }
 
@@ -39,12 +70,14 @@ export interface TokenValidationPayload {
 }
 
 export interface TokenValidationResponse {
-  valid: boolean;
+  valid?: boolean;
   message?: string;
+  password_setup_token?: string;
 }
 
+
 export interface LogoutPayload {
-  refresh_token: string;
+  refresh: string;
 }
 
 export interface ApiError {
@@ -53,3 +86,5 @@ export interface ApiError {
   status?: number;
   fieldErrors?: Record<string, string>;
 }
+
+

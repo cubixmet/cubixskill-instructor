@@ -3,6 +3,8 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../features/auth/hooks/useAuth";
 import { Spinner } from "../components/ui/Spinner";
 
+const ALLOWED_ROLES = ["ACADEMY_ADMIN", "ACADEMY_STAFF"];
+
 export const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, isInitializing, user } = useAuth();
 
@@ -19,9 +21,10 @@ export const ProtectedRoute: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.role !== "instructor") {
+  if (!ALLOWED_ROLES.includes(user.role)) {
     return <Navigate to="/login" replace />;
   }
 
   return <Outlet />;
 };
+

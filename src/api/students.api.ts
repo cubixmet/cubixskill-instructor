@@ -1,14 +1,7 @@
-import { api } from "../lib/api";
-import studentsMock from "./mock/students.json";
-
-const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === "true" || true;
+import { studentsService } from "../services/students.service";
 
 export const studentsApi = {
-  async getStudents() {
-    if (USE_MOCK) {
-      return studentsMock;
-    }
-    const response = await api.get("/api/v1/instructor/students/");
-    return response.data;
-  },
+  listStudents: (params?: Record<string, any>) => studentsService.listStudents(params),
+  getStudent: (id: string) => studentsService.getStudent(id),
+  enrollStudent: (payload: { student_id: string; course_id: string }) => studentsService.enrollStudent(payload),
 };

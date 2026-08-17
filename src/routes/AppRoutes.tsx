@@ -6,7 +6,10 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { ForgotPasswordPage } from '../features/auth/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '../features/auth/pages/ResetPasswordPage';
+import { ChangePasswordPage } from '../features/auth/pages/ChangePasswordPage';
 import { SetupPasswordPage } from '../features/auth/pages/SetupPasswordPage';
+
 
 import { DashboardPage } from '../features/dashboard/pages/DashboardPage';
 import { CreditsPage } from '../features/credits/pages/CreditsPage';
@@ -69,6 +72,7 @@ export const AppRoutes: React.FC = () => {
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/setup-password" element={<SetupPasswordPage />} />
         </Route>
       </Route>
@@ -78,7 +82,9 @@ export const AppRoutes: React.FC = () => {
         <Route element={<DashboardLayout />}>
           {/* 1. Dashboard */}
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/change-password" element={<ChangePasswordPage />} />
           <Route path="/demo-leads" element={<DemoLeadsPage />} />
+
 
           {/* Global Coupons */}
           <Route path="/coupons" element={<CouponListPage />} />

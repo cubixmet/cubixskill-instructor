@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
@@ -9,18 +9,22 @@ import { Input } from "../../../components/ui/Input";
 import { Checkbox } from "../../../components/ui/Checkbox";
 import { Button } from "../../../components/ui/Button";
 import { PasswordField } from "./PasswordField";
-import { AuthFeedback } from "./AuthFeedback";
+import { ApiErrorAlert } from "../../../components/ui/ApiErrorAlert";
 import { useAuth } from "../hooks/useAuth";
+import { useFormScrollAndErrorMap } from "../../../hooks/useFormScrollAndErrorMap";
 
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate();
   const { error: storeError, clearError } = useAuth();
   const loginMutation = useLogin();
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const { mapApiErrorsToForm, scrollToFirstError } = useFormScrollAndErrorMap<LoginSchemaType>();
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<LoginSchemaType>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -32,34 +36,60 @@ export const LoginForm: React.FC = () => {
 
   const onSubmit = (data: LoginSchemaType) => {
     clearError();
+    setGlobalError(null);
+
     loginMutation.mutate(data, {
       onSuccess: () => {
         navigate("/dashboard", { replace: true });
       },
+      onError: (err) => {
+        const parsed = mapApiErrorsToForm(err, setError);
+        if (parsed.code === "INVALID_CREDENTIALS") {
+          // Highlight both Email and Password inputs as invalid
+          setError("email", { type: "server", message: "" });
+          setError("password", { type: "server", message: "Email or password is incorrect. Please try again." });
+          scrollToFirstError("email");
+        } else if (parsed.code === "ACCOUNT_SETUP_PENDING") {
+          setGlobalError(parsed.message);
+          scrollToFirstError("email");
+        } else if (!parsed.fieldErrors || Object.keys(parsed.fieldErrors).length === 0) {
+          setGlobalError(parsed.message);
+        }
+      },
     });
   };
 
+  const onInvalidSubmit = () => {
+    scrollToFirstError();
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left">
-      <AuthFeedback error={storeError} onClearError={clearError} />
+    <form onSubmit={handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-4 text-left">
+      <ApiErrorAlert message={globalError || storeError} onClose={() => { setGlobalError(null); clearError(); }} />
 
-      <Input
-        label="Email address"
-        type="email"
-        placeholder="instructor@example.com"
-        autoComplete="email"
-        leftIcon={<Mail className="w-4 h-4" />}
-        error={errors.email?.message}
-        {...register("email")}
-      />
+      <div data-field-name="email">
+        <Input
+          label="Email address"
+          type="email"
+          placeholder="admin@academy.com"
+          autoComplete="email"
+          leftIcon={<Mail className="w-4 h-4" />}
+          error={errors.email?.message}
+          aria-invalid={Boolean(errors.email)}
+          {...register("email")}
+        />
+      </div>
 
-      <PasswordField
-        label="Password"
-        placeholder="••••••••"
-        autoComplete="current-password"
-        error={errors.password?.message}
-        {...register("password")}
-      />
+      <div data-field-name="password">
+        <PasswordField
+          label="Password"
+          placeholder="••••••••"
+          autoComplete="current-password"
+          error={errors.password?.message}
+          aria-invalid={Boolean(errors.password)}
+          {...register("password")}
+        />
+      </div>
 
       <div className="flex items-center justify-between pt-1">
         <Checkbox
@@ -78,10 +108,12 @@ export const LoginForm: React.FC = () => {
       <Button
         type="submit"
         size="lg"
-        className="w-full mt-2"
-        isLoading={loginMutation.isPending}
+        className="w-full mt-2 font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#3B82F6] active:scale-[0.98] transition-all duration-200 shadow-md shadow-[#2563EB]/25 disabled:bg-blue-300 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+        isLoading={loginMutation.isPending || isSubmitting}
+        disabled={loginMutation.isPending || isSubmitting}
+        loadingText="Signing In..."
       >
-        Sign In to Instructor Panel
+        Sign In
       </Button>
     </form>
   );

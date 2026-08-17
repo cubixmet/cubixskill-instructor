@@ -69,15 +69,16 @@ export const MobileProfileDrawer: React.FC<MobileProfileDrawerProps> = ({
         <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-md space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white font-bold text-lg flex items-center justify-center shadow-md">
-              {user?.full_name?.charAt(0).toUpperCase() || "R"}
+              {user?.full_name?.charAt(0).toUpperCase() || "A"}
             </div>
             <div className="min-w-0 flex-1">
               <h4 className="text-sm font-bold truncate">
-                {user?.full_name || "Dr. Rajesh Varma"}
+                {user?.full_name || "Academy Admin"}
               </h4>
               <p className="text-xs text-slate-300 truncate">
-                {user?.email || "instructor@example.com"}
+                {user?.email || ""}
               </p>
+
               <div className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/60">
                 <ShieldCheck className="w-3 h-3" />
                 <span>Verified Account</span>

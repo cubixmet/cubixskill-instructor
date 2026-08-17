@@ -1,14 +1,9 @@
-import { api } from "../lib/api";
-import coursesMock from "./mock/courses.json";
-
-const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === "true" || true;
+import { coursesService } from "../services/courses.service";
 
 export const coursesApi = {
-  async getCourses() {
-    if (USE_MOCK) {
-      return coursesMock;
-    }
-    const response = await api.get("/api/v1/instructor/courses/");
-    return response.data;
-  },
+  listCourses: (params?: Record<string, any>) => coursesService.listCourses(params),
+  getCourse: (id: string) => coursesService.getCourse(id),
+  createCourse: (payload: any) => coursesService.createCourse(payload),
+  updateCourse: (id: string, payload: any) => coursesService.updateCourse(id, payload),
+  deleteCourse: (id: string) => coursesService.deleteCourse(id),
 };

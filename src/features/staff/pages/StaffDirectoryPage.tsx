@@ -16,53 +16,10 @@ import { Button } from '../../../components/ui/Button';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
 
-// ─── Seed data ──────────────────────────────────────────────────────────────
-const INITIAL_STAFF: StaffMember[] = [
-  {
-    id: '550e8400-e29b-41d4-a716-446655440201',
-    name: 'Ananya Roy',
-    email: 'ananya.roy@cubixskill.com',
-    phone: '+91 98989 12345',
-    department: 'Teaching Assistance',
-    roleId: '550e8400-e29b-41d4-a716-446655440301',
-    roleName: 'Teaching Assistant',
-    status: 'Active',
-    assignedCoursesCount: 4,
-    assignedStudentsCount: 450,
-    creditCost: 0,
-    lastActiveAt: '2026-08-10T14:23:00Z',
-  },
-  {
-    id: '550e8400-e29b-41d4-a716-446655440202',
-    name: 'Vikas Kumar',
-    email: 'vikas.k@cubixskill.com',
-    phone: '+91 97777 88888',
-    department: 'Finance & Support',
-    roleId: '550e8400-e29b-41d4-a716-446655440302',
-    roleName: 'Billing Admin',
-    status: 'Active',
-    assignedCoursesCount: 0,
-    assignedStudentsCount: 0,
-    creditCost: 0,
-    lastActiveAt: '2026-08-09T09:00:00Z',
-  },
-  {
-    id: '550e8400-e29b-41d4-a716-446655440203',
-    name: 'Priya Nair',
-    email: 'priya.nair@cubixskill.com',
-    phone: '+91 99911 00001',
-    department: 'Curriculum',
-    roleId: '550e8400-e29b-41d4-a716-446655440303',
-    roleName: 'Course Manager',
-    status: 'Inactive',
-    assignedCoursesCount: 2,
-    assignedStudentsCount: 180,
-    creditCost: 0,
-    lastActiveAt: '2026-07-28T11:15:00Z',
-  },
-];
+const INITIAL_STAFF: StaffMember[] = [];
 
-const AVAILABLE_ROLES = ['Teaching Assistant', 'Billing Admin', 'Course Manager'];
+const AVAILABLE_ROLES = ['Academy Admin', 'Academy Staff'];
+
 
 // ─── Avatar initials helper ──────────────────────────────────────────────────
 function initials(name: string) {

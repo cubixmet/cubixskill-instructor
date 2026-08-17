@@ -7,18 +7,20 @@ import { forgotPasswordSchema, type ForgotPasswordSchemaType } from "../schemas/
 import { useForgotPassword } from "../hooks/useForgotPassword";
 import { Input } from "../../../components/ui/Input";
 import { Button } from "../../../components/ui/Button";
-import { Alert } from "../../../components/ui/Alert";
-import { formatAuthError } from "../utils/auth-errors";
+import { ApiErrorAlert } from "../../../components/ui/ApiErrorAlert";
+import { useFormScrollAndErrorMap } from "../../../hooks/useFormScrollAndErrorMap";
 
 export const ForgotPasswordForm: React.FC = () => {
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [globalError, setGlobalError] = useState<string | null>(null);
   const forgotPasswordMutation = useForgotPassword();
+  const { mapApiErrorsToForm, scrollToFirstError } = useFormScrollAndErrorMap<ForgotPasswordSchemaType>();
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<ForgotPasswordSchemaType>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
@@ -27,25 +29,31 @@ export const ForgotPasswordForm: React.FC = () => {
   });
 
   const onSubmit = (data: ForgotPasswordSchemaType) => {
-    setApiError(null);
+    setGlobalError(null);
     forgotPasswordMutation.mutate(data, {
       onSuccess: () => {
         setSubmittedEmail(data.email);
       },
       onError: (err) => {
-        setApiError(formatAuthError(err));
+        const parsed = mapApiErrorsToForm(err, setError);
+        if (!parsed.fieldErrors || Object.keys(parsed.fieldErrors).length === 0) {
+          setGlobalError(parsed.message);
+        }
       },
     });
   };
 
   const handleResend = () => {
     if (!submittedEmail) return;
-    setApiError(null);
+    setGlobalError(null);
     forgotPasswordMutation.mutate(
       { email: submittedEmail },
       {
         onError: (err) => {
-          setApiError(formatAuthError(err));
+          const parsed = mapApiErrorsToForm(err, setError);
+          if (!parsed.fieldErrors || Object.keys(parsed.fieldErrors).length === 0) {
+            setGlobalError(parsed.message);
+          }
         },
       }
     );
@@ -61,16 +69,11 @@ export const ForgotPasswordForm: React.FC = () => {
         <div className="space-y-2">
           <h2 className="text-xl font-bold text-[#0F172A]">Check Your Email</h2>
           <p className="text-sm text-[#64748B] leading-relaxed">
-            We sent a password setup link to{" "}
-            <span className="font-semibold text-[#0F172A]">{submittedEmail}</span>.
+            If an account exists for <span className="font-semibold text-[#0F172A]">{submittedEmail}</span>, password reset instructions have been sent.
           </p>
         </div>
 
-        {apiError && (
-          <Alert type="error" onClose={() => setApiError(null)}>
-            {apiError}
-          </Alert>
-        )}
+        <ApiErrorAlert message={globalError} onClose={() => setGlobalError(null)} />
 
         <div className="space-y-3 pt-2">
           <Button
@@ -100,30 +103,30 @@ export const ForgotPasswordForm: React.FC = () => {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left">
-      {apiError && (
-        <Alert type="error" onClose={() => setApiError(null)}>
-          {apiError}
-        </Alert>
-      )}
+    <form onSubmit={handleSubmit(onSubmit, () => scrollToFirstError())} className="space-y-4 text-left">
+      <ApiErrorAlert message={globalError} onClose={() => setGlobalError(null)} />
 
-      <Input
-        label="Email address"
-        type="email"
-        placeholder="instructor@example.com"
-        autoComplete="email"
-        leftIcon={<Mail className="w-4 h-4" />}
-        error={errors.email?.message}
-        {...register("email")}
-      />
+      <div data-field-name="email">
+        <Input
+          label="Email address"
+          type="email"
+          placeholder="admin@academy.com"
+          autoComplete="email"
+          leftIcon={<Mail className="w-4 h-4" />}
+          error={errors.email?.message}
+          aria-invalid={Boolean(errors.email)}
+          {...register("email")}
+        />
+      </div>
 
       <Button
         type="submit"
         size="lg"
         className="w-full mt-2"
-        isLoading={forgotPasswordMutation.isPending}
+        isLoading={forgotPasswordMutation.isPending || isSubmitting}
+        disabled={forgotPasswordMutation.isPending || isSubmitting}
       >
-        Send Password Setup Link
+        Send Password Reset Link
       </Button>
 
       <div className="text-center pt-2">

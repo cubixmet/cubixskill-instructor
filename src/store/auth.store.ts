@@ -78,7 +78,9 @@ class AuthStore {
           }
         }
 
-        if (user && user.role === "instructor" && user.is_active) {
+        const isAllowedRole = (r?: string) => r === "ACADEMY_ADMIN" || r === "ACADEMY_STAFF";
+
+        if (user && isAllowedRole(user.role) && (user.is_active ?? true)) {
           this.setState({
             user,
             accessToken,
@@ -88,10 +90,10 @@ class AuthStore {
             error: null,
           });
           return;
-        } else if (user && user.role !== "instructor") {
+        } else if (user && !isAllowedRole(user.role)) {
           this.clearSession(AUTH_MESSAGES.UNAUTHORIZED_ROLE);
           return;
-        } else if (user && !user.is_active) {
+        } else if (user && user.is_active === false) {
           this.clearSession(AUTH_MESSAGES.INACTIVE_USER);
           return;
         }
@@ -111,15 +113,17 @@ class AuthStore {
   }
 
   public setSession(user: AuthUser, accessToken: string, refreshToken: string) {
-    if (user.role !== "instructor") {
+    const isAllowedRole = user.role === "ACADEMY_ADMIN" || user.role === "ACADEMY_STAFF";
+    if (!isAllowedRole) {
       this.clearSession(AUTH_MESSAGES.UNAUTHORIZED_ROLE);
       throw new Error(AUTH_MESSAGES.UNAUTHORIZED_ROLE);
     }
 
-    if (!user.is_active) {
+    if (user.is_active === false) {
       this.clearSession(AUTH_MESSAGES.INACTIVE_USER);
       throw new Error(AUTH_MESSAGES.INACTIVE_USER);
     }
+
 
     tokenStorage.setAccessToken(accessToken);
     tokenStorage.setRefreshToken(refreshToken);
@@ -138,7 +142,7 @@ class AuthStore {
   public clearSession(errorMessage: string | null = null) {
     const refreshToken = this.state.refreshToken || tokenStorage.getRefreshToken();
     if (refreshToken) {
-      authApi.logout(refreshToken).catch(() => {});
+      authApi.logout(refreshToken).catch(() => { });
     }
 
     tokenStorage.clearTokens();

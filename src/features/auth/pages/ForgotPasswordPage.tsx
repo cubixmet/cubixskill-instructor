@@ -9,7 +9,7 @@ export const ForgotPasswordPage: React.FC = () => {
           Forgot Password?
         </h1>
         <p className="text-sm text-[#64748B]">
-          Enter your instructor email to receive a password setup link
+          Enter your academy email to receive a password reset link
         </p>
       </div>
 

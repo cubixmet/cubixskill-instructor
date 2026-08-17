@@ -1,28 +1,26 @@
 import { useMutation } from "@tanstack/react-query";
 import { authApi } from "../../../api/auth.api";
 import { authStore } from "../../../store/auth.store";
-import type { LoginPayload } from "../types/auth.types";
+import type { LoginPayload, UserRole } from "../types/auth.types";
 import { formatAuthError } from "../utils/auth-errors";
 import { AUTH_MESSAGES } from "../constants/auth.constants";
+
+const ALLOWED_ROLES: UserRole[] = ["ACADEMY_ADMIN", "ACADEMY_STAFF"];
 
 export function useLogin() {
   return useMutation({
     mutationFn: async (payload: LoginPayload) => {
       const data = await authApi.login(payload);
-      
-      if (!data.user) {
+
+      if (!data || !data.user || !data.access) {
         throw new Error("Invalid response from server.");
       }
 
-      if (data.user.role !== "instructor") {
+      if (!ALLOWED_ROLES.includes(data.user.role)) {
         throw new Error(AUTH_MESSAGES.UNAUTHORIZED_ROLE);
       }
 
-      if (!data.user.is_active) {
-        throw new Error(AUTH_MESSAGES.INACTIVE_USER);
-      }
-
-      authStore.setSession(data.user, data.access_token, data.refresh_token);
+      authStore.setSession(data.user, data.access, data.refresh);
       return data;
     },
     onError: (error: unknown) => {
@@ -31,3 +29,4 @@ export function useLogin() {
     },
   });
 }
+

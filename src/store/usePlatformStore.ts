@@ -136,49 +136,8 @@ interface PlatformStoreState {
 export const usePlatformStore = create<PlatformStoreState>()(
   persist(
     (set, get) => ({
-      // INITIAL COURSES MOCK DATA
-      courses: [
-        {
-          id: '550e8400-e29b-41d4-a716-446655440000',
-          title: 'React 19 & Next.js 15 Masterclass',
-          subtitle: 'Master Server Components, Server Actions, useOptimistic, and Enterprise Architecture.',
-          category: 'Web Development',
-          level: 'Advanced',
-          language: 'English',
-          pricingType: 'paid',
-          priceAmount: 149,
-          status: 'Published',
-          instructorName: 'Sarah Miller',
-          coverImageUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&auto=format&fit=crop&q=80',
-          enrolledStudentsCount: 1420,
-          rating: 4.9,
-          totalDurationMinutes: 720,
-          totalModulesCount: 3,
-          totalLessonsCount: 8,
-          createdAt: '2026-07-01T00:00:00Z',
-          updatedAt: '2026-08-04T12:00:00Z',
-        },
-        {
-          id: '550e8400-e29b-41d4-a716-446655440001',
-          title: 'Full-Stack TypeScript & Node.js Microservices',
-          subtitle: 'Build scalable event-driven microservices with Docker, Kubernetes, and gRPC.',
-          category: 'Backend Development',
-          level: 'Intermediate',
-          language: 'English',
-          pricingType: 'paid',
-          priceAmount: 199,
-          status: 'Published',
-          instructorName: 'Alex Rivera',
-          coverImageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
-          enrolledStudentsCount: 890,
-          rating: 4.8,
-          totalDurationMinutes: 540,
-          totalModulesCount: 2,
-          totalLessonsCount: 5,
-          createdAt: '2026-07-15T00:00:00Z',
-          updatedAt: '2026-08-02T10:00:00Z',
-        },
-      ],
+      courses: [],
+
 
       addCourse: (courseData) => {
         const newUuid = `550e8400-e29b-41d4-a716-446655${Date.now().toString().slice(-6)}`;
@@ -252,68 +211,8 @@ export const usePlatformStore = create<PlatformStoreState>()(
         }));
       },
 
-      // INITIAL CURRICULUM MODULES BY COURSE
-      modulesByCourse: {
-        '550e8400-e29b-41d4-a716-446655440000': [
-          {
-            id: '550e8400-e29b-41d4-a716-446655441001',
-            uuid: '550e8400-e29b-41d4-a716-446655441001',
-            courseUuid: '550e8400-e29b-41d4-a716-446655440000',
-            title: 'Module 1: React 19 Architecture & Server Components',
-            description: 'Foundational concepts covering React 19 RSC, Actions, and Server Functions.',
-            status: 'published',
-            sortOrder: 1,
-            unlockRule: 'immediate',
-            isCollapsed: false,
-            durationMinutes: 180,
-            createdAt: '2026-08-01T00:00:00Z',
-            updatedAt: '2026-08-01T00:00:00Z',
-            lessons: [
-              {
-                id: '550e8400-e29b-41d4-a716-446655442001',
-                uuid: '550e8400-e29b-41d4-a716-446655442001',
-                courseUuid: '550e8400-e29b-41d4-a716-446655440000',
-                moduleUuid: '550e8400-e29b-41d4-a716-446655441001',
-                title: 'Lesson 1.1: Deep Dive into React 19 Server Components',
-                type: 'video',
-                status: 'published',
-                sortOrder: 1,
-                durationMinutes: 45,
-                isDemo: true,
-                description: 'Understand RSC boundaries, server vs client bundles, and zero-bundle server components.',
-                unlockRule: 'immediate',
-                content: {
-                  videoSource: 'upload',
-                  videoUrl: 'https://assets.cubixskill.com/videos/react19_rsc.mp4',
-                },
-                createdAt: '2026-08-01T00:00:00Z',
-                updatedAt: '2026-08-01T00:00:00Z',
-              },
-              {
-                id: '550e8400-e29b-41d4-a716-446655442002',
-                uuid: '550e8400-e29b-41d4-a716-446655442002',
-                courseUuid: '550e8400-e29b-41d4-a716-446655440000',
-                moduleUuid: '550e8400-e29b-41d4-a716-446655441001',
-                title: 'Lesson 1.2: Server Actions & Form State Management',
-                type: 'video',
-                status: 'published',
-                sortOrder: 2,
-                durationMinutes: 50,
-                isDemo: false,
-                description: 'Learn useActionState, useFormStatus, and progressive enhancement with Server Actions.',
-                unlockRule: 'video_completion',
-                content: {
-                  videoSource: 'upload',
-                  videoUrl: 'https://assets.cubixskill.com/videos/react19_actions.mp4',
-                  minimumWatchPercentage: 80,
-                },
-                createdAt: '2026-08-01T00:00:00Z',
-                updatedAt: '2026-08-01T00:00:00Z',
-              },
-            ],
-          },
-        ],
-      },
+      modulesByCourse: {},
+
 
       addModule: (courseUuid, title, description) => {
         const newModule: CurriculumModule = {
@@ -476,39 +375,8 @@ export const usePlatformStore = create<PlatformStoreState>()(
         });
       },
 
-      // INITIAL STUDENTS MOCK DATA
-      students: [
-        {
-          id: 'stu-101',
-          name: 'Alex Johnson',
-          email: 'alex.johnson@example.com',
-          phone: '+91 98765 43210',
-          countryCode: '+91',
-          country: 'India',
-          status: 'Active',
-          enrolledCoursesCount: 3,
-          completedCoursesCount: 1,
-          creditsConsumed: 45,
-          progressPercent: 78,
-          lastActivity: '2026-06-10T00:00:00Z',
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        },
-        {
-          id: 'stu-102',
-          name: 'Sophia Chen',
-          email: 'sophia.chen@example.com',
-          phone: '+91 98765 43211',
-          countryCode: '+91',
-          country: 'India',
-          status: 'Active',
-          enrolledCoursesCount: 4,
-          completedCoursesCount: 2,
-          creditsConsumed: 90,
-          progressPercent: 92,
-          lastActivity: '2026-05-18T00:00:00Z',
-          avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-        },
-      ],
+      students: [],
+
 
       addStudent: (studentData) => {
         const newStudent: Student = {
@@ -623,37 +491,8 @@ export const usePlatformStore = create<PlatformStoreState>()(
         }));
       },
 
-      // STAFF & ROLES MOCK STATE
-      staffMembers: [
-        {
-          id: 'staff-1',
-          name: 'Sarah Miller',
-          email: 'sarah.miller@cubixskill.com',
-          phone: '+91 98765 43210',
-          department: 'Academic Operations',
-          roleName: 'Lead Instructor',
-          roleId: 'role-1',
-          status: 'Active',
-          assignedCoursesCount: 4,
-          assignedStudentsCount: 450,
-          creditCost: 100,
-          lastActiveAt: '2026-08-05T09:45:00Z',
-          avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-        },
-      ],
-      roles: [
-        {
-          id: 'role-1',
-          name: 'Lead Instructor',
-          description: 'Full course management, grading, and content creation permissions.',
-          creditCost: 100,
-          permissions: {
-            courses: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
-            grading: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
-          },
-          assignedStaffCount: 1,
-        },
-      ],
+      staffMembers: [],
+      roles: [],
       addStaff: (staffData) => {
         const newStaff: StaffMember = {
           ...staffData,
@@ -671,69 +510,10 @@ export const usePlatformStore = create<PlatformStoreState>()(
       },
 
       // MEDIA & CREDIT ENGINE STATE
-      mediaAssets: [
-        {
-          id: 'med-1',
-          name: 'react19_deepdive_lecture.mp4',
-          sizeMb: 450,
-          format: 'video/mp4',
-          mediaType: 'video',
-          url: 'https://assets.cubixskill.com/videos/react19_rsc.mp4',
-          folder: 'Course Videos',
-          uploadedAt: '2026-08-01T10:00:00Z',
-          lastUsedAt: '2026-08-09T14:00:00Z',
-          durationMinutes: 45,
-          resolution: '1080p',
-          creditsConsumed: 1.5,
-        },
-        {
-          id: 'med-2',
-          name: 'podcast_state_management.mp3',
-          sizeMb: 25,
-          format: 'audio/mp3',
-          mediaType: 'audio',
-          url: 'https://assets.cubixskill.com/audio/state_podcast.mp3',
-          folder: 'Audio Clips',
-          uploadedAt: '2026-08-03T11:20:00Z',
-          lastUsedAt: '2026-08-08T16:30:00Z',
-          durationMinutes: 20,
-          creditsConsumed: 0.3,
-        },
-        {
-          id: 'med-3',
-          name: 'react19_architecture_diagram.png',
-          sizeMb: 4.2,
-          format: 'image/png',
-          mediaType: 'image',
-          url: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&auto=format&fit=crop&q=80',
-          folder: 'Infographics',
-          uploadedAt: '2026-08-04T09:15:00Z',
-          lastUsedAt: '2026-08-07T12:00:00Z',
-          creditsConsumed: 0.1,
-        },
-        {
-          id: 'med-4',
-          name: 'course_handbook_v2.pdf',
-          sizeMb: 12.8,
-          format: 'application/pdf',
-          mediaType: 'document',
-          url: 'https://assets.cubixskill.com/docs/handbook.pdf',
-          folder: 'Documents',
-          uploadedAt: '2026-08-05T14:10:00Z',
-          lastUsedAt: '2026-08-06T18:45:00Z',
-          creditsConsumed: 0.2,
-        },
-      ],
-      totalCredits: 1250.5,
-      creditTransactions: [
-        {
-          id: 'tx-1',
-          type: 'deduction',
-          amount: 1.5,
-          reason: 'Direct Video Upload: react19_deepdive_lecture.mp4',
-          timestamp: '2026-08-01T10:00:00Z',
-        },
-      ],
+      mediaAssets: [],
+      totalCredits: 0,
+      creditTransactions: [],
+
 
       uploadMediaAsset: (file) => {
         const requiredCredits = Math.max(0.1, Math.round((file.sizeMb / 100) * 10) / 10);

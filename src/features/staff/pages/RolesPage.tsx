@@ -5,12 +5,30 @@ import { Button } from '../../../components/ui/Button';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
 
-// ─── INITIAL ROLES DATA WITH FULL PERMISSION MODEL ─────────────────────────────
 const INITIAL_ROLES: Role[] = [
   {
-    id: '550e8400-e29b-41d4-a716-446655440301',
-    name: 'Teaching Assistant',
-    description: 'Can manage assignments, review submissions, and view student progress.',
+    id: 'role-academy-admin',
+    name: 'Academy Admin',
+    description: 'Full administrative access to manage academy settings, courses, students, and staff.',
+    creditCost: 0,
+    permissions: {
+      Courses: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
+      Students: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
+      Curriculum: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
+      Media: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
+      Certificates: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
+      Discussions: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
+      LiveClasses: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
+      Coupons: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
+      WebsiteBuilder: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
+      Staff: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
+      Settings: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
+    },
+  },
+  {
+    id: 'role-academy-staff',
+    name: 'Academy Staff',
+    description: 'Staff access to manage assigned courses, review submissions, and assist students.',
     creditCost: 0,
     permissions: {
       Courses: { view: true, create: false, edit: true, delete: false, publish: false, export: true, approve: false },
@@ -26,26 +44,8 @@ const INITIAL_ROLES: Role[] = [
       Settings: { view: false, create: false, edit: false, delete: false, publish: false, export: false, approve: false },
     },
   },
-  {
-    id: '550e8400-e29b-41d4-a716-446655440302',
-    name: 'Billing Admin',
-    description: 'Access to fee collections, credits wallet, payments, and financial orders.',
-    creditCost: 0,
-    permissions: {
-      Courses: { view: true, create: false, edit: false, delete: false, publish: false, export: false, approve: false },
-      Students: { view: true, create: false, edit: false, delete: false, publish: false, export: true, approve: false },
-      Curriculum: { view: false, create: false, edit: false, delete: false, publish: false, export: false, approve: false },
-      Media: { view: false, create: false, edit: false, delete: false, publish: false, export: false, approve: false },
-      Certificates: { view: false, create: false, edit: false, delete: false, publish: false, export: false, approve: false },
-      Discussions: { view: false, create: false, edit: false, delete: false, publish: false, export: false, approve: false },
-      LiveClasses: { view: false, create: false, edit: false, delete: false, publish: false, export: false, approve: false },
-      Coupons: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
-      WebsiteBuilder: { view: false, create: false, edit: false, delete: false, publish: false, export: false, approve: false },
-      Staff: { view: false, create: false, edit: false, delete: false, publish: false, export: false, approve: false },
-      Settings: { view: true, create: false, edit: true, delete: false, publish: false, export: true, approve: false },
-    },
-  },
 ];
+
 
 const PERMISSION_GROUPS = [
   'Courses',
