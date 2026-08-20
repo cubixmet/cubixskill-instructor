@@ -33,7 +33,7 @@ export const MobileBottomNav: React.FC<MobileNavProps> = ({
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-1 flex items-center justify-between z-40 shadow-lg select-none pb-[env(safe-area-inset-bottom)]">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-white/95 dark:bg-[#0B1120] backdrop-blur-md border-t border-slate-200/90 dark:border-[#1E293B] px-1 flex items-center justify-between z-40 shadow-lg select-none pb-[env(safe-area-inset-bottom)]">
       {navItems.map((item) => {
         const active = isNavItemActive(item.href, location.pathname);
 
@@ -45,8 +45,8 @@ export const MobileBottomNav: React.FC<MobileNavProps> = ({
               cn(
                 "flex-1 flex flex-col items-center justify-center gap-0.5 text-[9px] transition-all min-w-0 h-11 px-0.5 cursor-pointer",
                 active
-                  ? "text-[#2563EB] font-medium"
-                  : "text-slate-500 font-normal hover:text-slate-900"
+                  ? "text-[#2563EB] dark:text-[#60A5FA] font-medium"
+                  : "text-slate-500 dark:text-[#94A3B8] font-normal hover:text-slate-900 dark:hover:text-[#F8FAFC]"
               )
             }
           >
@@ -61,7 +61,7 @@ export const MobileBottomNav: React.FC<MobileNavProps> = ({
         type="button"
         onClick={onOpenSidebar}
         className={cn(
-          "flex-1 flex flex-col items-center justify-center gap-0.5 text-[9px] transition-all min-w-0 h-11 px-0.5 cursor-pointer text-slate-500 font-normal hover:text-slate-900"
+          "flex-1 flex flex-col items-center justify-center gap-0.5 text-[9px] transition-all min-w-0 h-11 px-0.5 cursor-pointer text-slate-500 dark:text-[#94A3B8] font-normal hover:text-slate-900 dark:hover:text-[#F8FAFC]"
         )}
       >
         <Menu className="w-4 h-4 shrink-0" />

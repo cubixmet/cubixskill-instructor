@@ -74,7 +74,7 @@ export const CreditSummaryCard: React.FC<CreditSummaryCardProps> = ({
       </div>
 
       {/* Primary Hero Calculation Box */}
-      <div className="p-4 bg-slate-900 rounded-2xl text-white space-y-3 shadow-inner">
+      <div className="p-4 bg-[#0F172A] dark:bg-[#172033] border border-slate-200 dark:border-[#263244] rounded-2xl text-white space-y-3 shadow-inner">
         <div className="flex items-center justify-between text-xs text-slate-300 font-medium">
           <span>Total Required Credits</span>
           <span className="font-bold text-blue-400">

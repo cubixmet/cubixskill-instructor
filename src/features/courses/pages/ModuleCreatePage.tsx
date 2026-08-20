@@ -48,12 +48,12 @@ export const ModuleCreatePage: React.FC = () => {
   const titleValue = watch('title') || '';
   const descriptionValue = watch('description') || '';
 
-  const onSubmit = (data: ModuleFormValues) => {
+  const onSubmit = async (data: ModuleFormValues) => {
     if (isSubmitting) return;
     try {
       setIsSubmitting(true);
       setServerError(null);
-      curriculumService.createModule(courseUuid, {
+      await curriculumService.createModule(courseUuid, {
         title: data.title,
         description: data.description || '',
         status: data.status,
@@ -90,19 +90,19 @@ export const ModuleCreatePage: React.FC = () => {
         className="space-y-4 max-w-xl mx-auto font-sans pb-36 md:pb-8 w-full min-w-0 px-1 md:px-0"
       >
         {serverError && (
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold">
+          <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 rounded-xl text-rose-700 dark:text-[#F87171] text-xs font-semibold">
             {serverError}
           </div>
         )}
 
-        <div className="p-4 sm:p-5 bg-white border border-[#E2E8F0] rounded-2xl shadow-2xs space-y-4 w-full min-w-0">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-[#E2E8F0]">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center shrink-0">
+        <div className="p-4 sm:p-5 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl shadow-2xs space-y-4 w-full min-w-0">
+          <div className="flex items-center gap-2.5 pb-3 border-b border-[#E2E8F0] dark:border-[#263244]">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center shrink-0">
               <Layers className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[#0F172A]">Module Details</h3>
-              <p className="text-[11px] text-[#64748B]">Quickly set up your new course section.</p>
+              <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Module Details</h3>
+              <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">Quickly set up your new course section.</p>
             </div>
           </div>
 
@@ -110,10 +110,10 @@ export const ModuleCreatePage: React.FC = () => {
             {/* Field 1: Module Title */}
             <div>
               <div className="flex items-center justify-between gap-2 mb-1">
-                <label className="block text-xs font-bold text-[#0F172A]">
-                  Module Title <span className="text-rose-500">*</span>
+                <label className="block text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1]">
+                  Module Title <span className="text-[#2563EB] dark:text-[#60A5FA]">*</span>
                 </label>
-                <span className="text-[10px] font-medium text-[#64748B]">
+                <span className="text-[10px] font-medium text-[#64748B] dark:text-[#94A3B8]">
                   {titleValue.length} / 120
                 </span>
               </div>
@@ -129,10 +129,10 @@ export const ModuleCreatePage: React.FC = () => {
             {/* Field 2: Description */}
             <div>
               <div className="flex items-center justify-between gap-2 mb-1">
-                <label className="block text-xs font-bold text-[#0F172A]">
-                  Description <span className="text-[#64748B] font-normal">(Optional)</span>
+                <label className="block text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1]">
+                  Description <span className="text-[#64748B] dark:text-[#94A3B8] font-normal">(Optional)</span>
                 </label>
-                <span className="text-[10px] font-medium text-[#64748B]">
+                <span className="text-[10px] font-medium text-[#64748B] dark:text-[#94A3B8]">
                   {descriptionValue.length} / 500
                 </span>
               </div>
@@ -140,34 +140,42 @@ export const ModuleCreatePage: React.FC = () => {
                 {...register('description')}
                 rows={3}
                 placeholder="Brief overview of what students will learn..."
-                className="w-full p-3 bg-white border border-[#E2E8F0] rounded-xl text-xs sm:text-sm text-[#0F172A] focus:outline-none focus:border-[#2563EB] transition-all resize-y font-normal"
+                className={`w-full p-3 bg-white dark:bg-[#0F172A] border ${
+                  errors.description
+                    ? 'border-rose-500 dark:border-rose-400/70 ring-1 ring-rose-500/20'
+                    : 'border-[#E2E8F0] dark:border-[#334155]'
+                } rounded-xl text-xs sm:text-sm text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] dark:placeholder:text-[#64748B] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] focus:ring-2 focus:ring-[#2563EB]/10 dark:focus:ring-[#3B82F6]/10 transition-all resize-y font-normal`}
               />
               {errors.description && (
-                <p className="text-[11px] text-rose-500 font-medium mt-1">{errors.description.message}</p>
+                <p className="text-[11px] text-rose-600 dark:text-[#F87171] font-medium mt-1">{errors.description.message}</p>
               )}
             </div>
 
             {/* Field 3: Status */}
             <div>
-              <label className="block text-xs font-bold text-[#0F172A] mb-1">Publish Status</label>
+              <label className="block text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] mb-1">Publish Status</label>
               <select
                 {...register('status')}
-                className="w-full h-11 px-3 bg-white border border-[#E2E8F0] rounded-xl text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#2563EB] cursor-pointer"
+                className="w-full h-11 px-3 bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] focus:ring-2 focus:ring-[#2563EB]/10 dark:focus:ring-[#3B82F6]/10 cursor-pointer"
               >
-                <option value="published">Published (Visible to students)</option>
-                <option value="draft">Draft (Hidden from students)</option>
+                <option value="published" className="bg-white dark:bg-[#111827] text-[#0F172A] dark:text-[#F8FAFC]">
+                  Published (Visible to students)
+                </option>
+                <option value="draft" className="bg-white dark:bg-[#111827] text-[#0F172A] dark:text-[#F8FAFC]">
+                  Draft (Hidden from students)
+                </option>
               </select>
             </div>
           </div>
         </div>
 
-        {/* Mobile Sticky Action Bar (Above App Bottom Nav) / Desktop Action Bar */}
-        <div className="fixed md:relative bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 z-35 p-3 md:p-0 bg-white/95 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-t md:border-0 border-[#E2E8F0] shadow-lg md:shadow-none flex items-center justify-between gap-3 md:pt-2 max-w-xl mx-auto">
+        {/* Mobile Sticky Action Bar / Desktop Action Bar */}
+        <div className="fixed md:relative bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 z-35 p-3 md:p-0 bg-white/95 dark:bg-[#111827]/95 md:bg-transparent dark:md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-t md:border-0 border-[#E2E8F0] dark:border-[#263244] shadow-lg md:shadow-none flex items-center justify-between gap-3 md:pt-2 max-w-xl mx-auto">
           <Button
             type="button"
             variant="outline"
             onClick={() => navigate(`/courses/${courseUuid}/curriculum`)}
-            className="h-11 md:h-10 text-xs font-bold px-4 md:px-5 shrink-0"
+            className="h-11 md:h-10 text-xs font-semibold px-4 md:px-5 shrink-0 bg-white dark:bg-[#111827] border-[#E2E8F0] dark:border-[#334155] text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC]"
           >
             Cancel
           </Button>
@@ -175,7 +183,7 @@ export const ModuleCreatePage: React.FC = () => {
             type="submit"
             disabled={isSubmitting}
             leftIcon={<CheckCircle2 className="w-4 h-4 stroke-[3]" />}
-            className="h-11 md:h-10 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-[0.98] text-white text-xs sm:text-sm font-bold px-5 md:px-6 shadow-md flex-1 md:flex-initial"
+            className="h-11 md:h-10 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-[0.98] text-white text-xs sm:text-sm font-medium px-5 md:px-6 shadow-[0_4px_12px_rgba(37,99,235,0.12)] flex-1 md:flex-initial"
           >
             {isSubmitting ? 'Creating Module...' : 'Create Module'}
           </Button>

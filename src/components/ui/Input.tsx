@@ -30,9 +30,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const inputId = id || generatedId;
 
     const sizeClasses = {
-      sm: "h-9 min-h-[36px] text-xs px-3 rounded-[10px]",
-      md: "h-[48px] min-h-[48px] text-[14px] px-4 rounded-[12px]",
-      lg: "h-[52px] min-h-[52px] text-base px-4 rounded-[12px]",
+      sm: "h-9 min-h-[36px] text-xs px-3 rounded-lg",
+      md: "h-[46px] min-h-[46px] text-[14px] sm:text-[15px] px-3.5 rounded-[10px]",
+      lg: "h-[50px] min-h-[50px] text-base px-4 rounded-[10px]",
     };
 
     const currentSizeClass = typeof size === "string" ? sizeClasses[size] || sizeClasses.md : sizeClasses.md;
@@ -45,14 +45,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-[14px] font-medium text-[#0F172A]"
+            className="block text-[13px] sm:text-[14px] font-medium text-[#475569] dark:text-[#CBD5E1]"
           >
             {label}
           </label>
         )}
-        <div className="relative flex items-center">
+        <div className="relative flex items-center w-full min-w-0">
           {leftIcon && (
-            <div className="absolute left-3.5 pointer-events-none text-[#64748B] shrink-0">
+            <div className="absolute left-3.5 pointer-events-none text-[#64748B] dark:text-[#94A3B8] shrink-0">
               {leftIcon}
             </div>
           )}
@@ -64,27 +64,27 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             aria-invalid={Boolean(error)}
             aria-describedby={error ? errorId : undefined}
             className={cn(
-              "w-full bg-white text-[#0F172A] placeholder:text-[#64748B] font-normal border border-[#E2E8F0] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-slate-50 disabled:opacity-60 shadow-xs",
+              "w-full bg-[#FFFFFF] dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#94A3B8] dark:placeholder:text-[#64748B] font-normal border border-[#CBD5E1] dark:border-[#334155] transition-all duration-200 focus:outline-none focus:border-[#3B82F6] focus:ring-3 focus:ring-[#3B82F6]/10 disabled:bg-slate-100 dark:disabled:bg-slate-900 disabled:opacity-60 shadow-2xs min-w-0",
               currentSizeClass,
               leftIcon && (size === "sm" ? "pl-9" : "pl-10"),
               rightIcon && (size === "sm" ? "pr-9" : "pr-10"),
-              error && "border-rose-500 ring-1 ring-rose-500/20 focus:ring-rose-500/20 focus:border-rose-600 bg-rose-50/10",
+              error && "border-rose-500 dark:border-rose-500/80 focus:border-rose-600 focus:ring-rose-500/10 bg-rose-50/20 dark:bg-rose-900/10",
               className
             )}
             {...props}
           />
           {rightIcon && (
-            <div className="absolute right-3.5 text-[#64748B]">
+            <div className="absolute right-3.5 text-[#64748B] dark:text-[#94A3B8]">
               {rightIcon}
             </div>
           )}
         </div>
         {error ? (
-          <p id={errorId} role="alert" aria-live="polite" className="text-[12px] font-medium text-rose-600 flex items-center gap-1 mt-1">
+          <p id={errorId} role="alert" aria-live="polite" className="text-[12px] font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-1">
             <span>{error}</span>
           </p>
         ) : helperText ? (
-          <p className="text-[13px] font-normal text-[#64748B] mt-1">{helperText}</p>
+          <p className="text-[12px] font-normal text-[#64748B] dark:text-[#94A3B8] mt-1">{helperText}</p>
         ) : null}
       </div>
     );

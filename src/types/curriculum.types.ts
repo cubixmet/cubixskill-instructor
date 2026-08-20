@@ -32,9 +32,9 @@ export interface CourseModule {
   description: string;
   status: ContentStatus;
   sortOrder: number;
-  durationMinutes: number;
-  isCollapsed: boolean;
-  unlockRule: UnlockRule;
+  durationMinutes?: number;
+  isCollapsed?: boolean;
+  unlockRule?: UnlockRule;
   unlockDate?: string;
   unlockAfterDays?: number;
   createdAt: string;
@@ -44,10 +44,13 @@ export interface CourseModule {
 export interface LessonResourceAttachment {
   id: string;
   name: string;
-  type: 'video' | 'audio' | 'document' | 'image' | 'web_link' | 'archive' | 'other';
+  title?: string;
+  description?: string;
+  type: 'video' | 'audio' | 'document' | 'image' | 'web_link' | 'archive' | 'other' | string;
   url: string;
   sizeMb?: number;
   provider?: string;
+  allowDownload?: boolean;
   attachedAt: string;
   mediaAssetId?: string;
 }
@@ -56,10 +59,14 @@ export interface LessonContent {
   videoSource?: string;
   videoUrl?: string;
   videoDeliveryMode?: 'standard' | 'adaptive';
+  mediaUrl?: string;
   fileUrl?: string;
+  fileName?: string;
   externalUrl?: string;
   embedCode?: string;
   textContent?: string;
+  body?: string;
+  article?: string;
   downloadable?: boolean;
   allowDownload?: boolean;
   thumbnailUrl?: string;
@@ -74,6 +81,13 @@ export interface LessonContent {
   liveClassUrl?: string;
   scheduledAt?: string;
   resources?: LessonResourceAttachment[];
+  sourceMode?: 'UPLOAD' | 'URL';
+  mediaFileId?: string | null;
+  mediaFile?: { id?: string; original_filename?: string; file_size?: number; url: string } | null;
+  instructions?: string;
+  maxScore?: number;
+  submissionType?: 'file' | 'text' | 'both';
+  questions?: Record<string, unknown>[];
 }
 
 export interface CourseLessonSubsection {
@@ -105,7 +119,8 @@ export interface CourseLesson {
   sortOrder: number;
   durationMinutes: number;
   isDemo: boolean;
-  unlockRule: UnlockRule;
+  allowDownload?: boolean;
+  unlockRule?: UnlockRule;
   unlockDate?: string;
   unlockAfterDays?: number;
   content: LessonContent;

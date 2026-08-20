@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { useStudentStore } from '../store/student.store';
 import { useCourseStore } from '../../courses/store/course.store';
 import { authStore } from '../../../store/auth.store';
@@ -47,7 +48,15 @@ export const StudentListPage: React.FC = () => {
   const canDelete = userRole === 'admin' || userRole === 'instructor';
 
   // Filters & State
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>(() => {
+    return (localStorage.getItem('student-view-mode') as 'table' | 'grid') || 'table';
+  });
+
+  const handleSetViewMode = (mode: 'table' | 'grid') => {
+    setViewMode(mode);
+    localStorage.setItem('student-view-mode', mode);
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [courseFilter, setCourseFilter] = useState<string>(courseUuid || 'all');
@@ -99,11 +108,11 @@ export const StudentListPage: React.FC = () => {
         const aProgress = a.enrolledCourses?.[0]?.progressPercent ?? 0;
         const bProgress = b.enrolledCourses?.[0]?.progressPercent ?? 0;
 
-        if (sortBy === 'name_asc') return a.name.localeCompare(b.name);
-        if (sortBy === 'name_desc') return b.name.localeCompare(a.name);
         if (sortBy === 'progress_high') return bProgress - aProgress;
         if (sortBy === 'progress_low') return aProgress - bProgress;
-
+        if (sortBy === 'name_asc') return a.name.localeCompare(b.name);
+        if (sortBy === 'name_desc') return b.name.localeCompare(a.name);
+        
         // Default: 'recent'
         const aTime = a.enrollmentDate ? new Date(a.enrollmentDate).getTime() : 0;
         const bTime = b.enrollmentDate ? new Date(b.enrollmentDate).getTime() : 0;
@@ -132,21 +141,22 @@ export const StudentListPage: React.FC = () => {
       return;
     }
 
-    const dateStr = new Date().toISOString().split('T')[0];
-    const filename = `cubixskill-students-${dateStr}.csv`;
-
+    const filename = `students_export_${new Date().toISOString().slice(0, 10)}.csv`;
     const columns: CsvColumn<StudentDetail>[] = [
       { header: 'Full Name', value: (row) => row.name },
-      { header: 'Email', value: (row) => row.email },
-      { header: 'Country Code', value: (row) => row.countryCode || '+91' },
+      { header: 'Email Address', value: (row) => row.email },
       { header: 'Phone Number', value: (row) => row.phone || '' },
-      { header: 'Country', value: (row) => row.country || 'India' },
-      { header: 'Student Status', value: (row) => row.status },
-      { header: 'Joined Date', value: (row) => new Date(row.enrollmentDate).toISOString().split('T')[0] },
-      { header: 'Enrolled Course Count', value: (row) => row.enrolledCourses?.length || 0 },
-      { header: 'Primary Course Progress', value: (row) => `${row.enrolledCourses?.[0]?.progressPercent || 0}%` },
-      { header: 'Total Credits Used', value: (row) => row.creditsConsumed || 17 },
-      { header: 'Last Activity', value: (row) => row.lastActivity || 'Active' },
+      { header: 'Status', value: (row) => row.status },
+      {
+        header: 'Primary Enrolled Course',
+        value: (row) => row.enrolledCourses?.[0]?.courseTitle || 'N/A',
+      },
+      {
+        header: 'Progress Percent',
+        value: (row) => row.enrolledCourses?.[0]?.progressPercent ?? 0,
+      },
+      { header: 'Total Courses', value: (row) => row.enrolledCourses?.length || 0 },
+      { header: 'Enrollment Date', value: (row) => row.enrollmentDate || '' },
       { header: 'Internal Notes', value: (row) => row.notes || '' },
     ];
 
@@ -180,18 +190,18 @@ export const StudentListPage: React.FC = () => {
       )}
 
       {/* HEADER BAR */}
-      <div className="bg-white p-4 sm:p-6 rounded-[16px] border border-[#E2E8F0] shadow-2xs space-y-4">
+      <div className="bg-white dark:bg-[#111827] p-4 sm:p-6 rounded-[16px] border border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-semibold text-[#0F172A] tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
                 Students
               </h1>
-              <span className="px-2.5 py-0.5 bg-blue-50 text-[#2563EB] text-xs font-bold rounded-full border border-blue-100">
+              <span className="px-2.5 py-0.5 bg-blue-50 dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] text-xs font-bold rounded-full border border-blue-100 dark:border-[#263244]">
                 {students.length}
               </span>
             </div>
-            <p className="text-xs text-[#64748B] font-medium mt-0.5">
+            <p className="text-xs text-[#64748B] dark:text-[#94A3B8] font-medium mt-0.5">
               <span className="hidden sm:inline">Manage student accounts, course enrollments, and learning activity.</span>
               <span className="sm:hidden">Manage your Academy students.</span>
             </p>
@@ -202,9 +212,9 @@ export const StudentListPage: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              leftIcon={<Download className="w-4 h-4 text-[#0F172A]" />}
+              leftIcon={<Download className="w-4 h-4 text-[#0F172A] dark:text-[#F8FAFC]" />}
               onClick={handleExportCSV}
-              className="border-[#E2E8F0] text-xs font-semibold text-[#0F172A] h-9 sm:h-10 cursor-pointer"
+              className="border-[#E2E8F0] dark:border-[#334155] text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] bg-white dark:bg-[#172033] hover:bg-slate-50 dark:hover:bg-[#1E293B] h-9 sm:h-10 cursor-pointer"
             >
               <span className="hidden sm:inline">Export CSV</span>
               <span className="sm:hidden">Export</span>
@@ -215,45 +225,46 @@ export const StudentListPage: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  leftIcon={<UsersRound className="w-4 h-4 text-[#2563EB]" />}
+                  leftIcon={<UsersRound className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />}
                   onClick={() => navigate('/students/bulk-upload')}
-                  className="border-[#2563EB] text-[#2563EB] text-xs font-semibold h-9 sm:h-10 cursor-pointer"
+                  className="border-[#2563EB] dark:border-[#3B82F6] text-[#2563EB] dark:text-[#60A5FA] bg-white dark:bg-[#172033] hover:bg-blue-50 dark:hover:bg-[#1E293B] text-xs font-semibold h-9 sm:h-10 cursor-pointer"
                 >
-                  <span className="hidden sm:inline">Bulk Add Students</span>
-                  <span className="sm:hidden">Bulk Add</span>
+                  <span className="hidden sm:inline">Bulk Import</span>
+                  <span className="sm:hidden">Import</span>
                 </Button>
 
                 <Button
+                  variant="primary"
                   size="sm"
-                  leftIcon={<Plus className="w-4 h-4 stroke-[3]" />}
+                  leftIcon={<Plus className="w-4 h-4 text-white" />}
                   onClick={() => navigate('/students/create')}
-                  className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold h-9 sm:h-10 cursor-pointer shadow-2xs"
+                  className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold h-9 sm:h-10 cursor-pointer shadow-xs shadow-[#2563EB]/25"
                 >
-                  Add Student
+                  <span>Add Student</span>
                 </Button>
               </>
             )}
           </div>
         </div>
 
-        {/* SEARCH & FILTERS TOOLBAR */}
-        <div className="space-y-3 pt-3 border-t border-[#E2E8F0]">
+        {/* Filter & View Controls */}
+        <div className="space-y-3 pt-3 border-t border-[#E2E8F0] dark:border-[#263244]">
           {/* Search Input */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="relative w-full sm:w-80">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B] dark:text-[#94A3B8]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search students by name, email, or phone..."
-                className="w-full h-10 pl-9 pr-8 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs font-medium text-[#0F172A] focus:outline-none focus:border-[#2563EB] focus:bg-white transition-all"
+                className="w-full h-10 pl-9 pr-8 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] transition-all"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#0F172A] p-0.5 rounded-full cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] p-0.5 rounded-full cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -262,14 +273,14 @@ export const StudentListPage: React.FC = () => {
 
             {/* View Toggle on Desktop */}
             <div className="hidden md:flex items-center gap-2">
-              <div className="flex items-center bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-1 shrink-0">
+              <div className="flex items-center bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl p-1 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setViewMode('table')}
+                  onClick={() => handleSetViewMode('table')}
                   className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                     viewMode === 'table'
-                      ? 'bg-white text-[#2563EB] shadow-2xs font-semibold'
-                      : 'text-[#64748B] hover:text-[#0F172A]'
+                      ? 'bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs font-semibold'
+                      : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
                   }`}
                   title="Table View"
                 >
@@ -277,11 +288,11 @@ export const StudentListPage: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setViewMode('grid')}
+                  onClick={() => handleSetViewMode('grid')}
                   className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                     viewMode === 'grid'
-                      ? 'bg-white text-[#2563EB] shadow-2xs font-semibold'
-                      : 'text-[#64748B] hover:text-[#0F172A]'
+                      ? 'bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs font-semibold'
+                      : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
                   }`}
                   title="Grid View"
                 >
@@ -294,31 +305,31 @@ export const StudentListPage: React.FC = () => {
           {/* Compact Horizontally Scrollable Filter Pill Bar */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
             {/* Status Filter */}
-            <div className="shrink-0 flex items-center gap-1 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-2.5 h-9 text-xs">
-              <span className="text-[#64748B] font-medium hidden sm:inline">Status:</span>
+            <div className="shrink-0 flex items-center gap-1 bg-white dark:bg-[#111827] border border-[#CBD5E1] dark:border-[#334155] hover:bg-[#F8FAFC] dark:hover:bg-[#172033] dark:hover:border-[#475569] rounded-xl px-2.5 h-9 text-xs transition-all shadow-xs">
+              <span className="text-[#64748B] dark:text-[#94A3B8] font-normal hidden sm:inline">Status:</span>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-transparent font-semibold text-[#0F172A] text-xs focus:outline-none cursor-pointer"
+                className="bg-transparent font-medium text-[#0F172A] dark:text-[#F8FAFC] text-xs focus:outline-none cursor-pointer"
               >
-                <option value="All">All Statuses</option>
-                <option value="Active">Active</option>
-                <option value="Completed">Completed</option>
-                <option value="Suspended">Suspended</option>
+                <option value="All" className="dark:bg-[#111827] dark:text-[#F8FAFC]">All Statuses</option>
+                <option value="Active" className="dark:bg-[#111827] dark:text-[#F8FAFC]">Active</option>
+                <option value="Completed" className="dark:bg-[#111827] dark:text-[#F8FAFC]">Completed</option>
+                <option value="Suspended" className="dark:bg-[#111827] dark:text-[#F8FAFC]">Suspended</option>
               </select>
             </div>
 
             {/* Course Filter */}
-            <div className="shrink-0 flex items-center gap-1 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-2.5 h-9 text-xs max-w-[200px] sm:max-w-xs">
-              <span className="text-[#64748B] font-medium hidden sm:inline">Course:</span>
+            <div className="shrink-0 flex items-center gap-1 bg-white dark:bg-[#111827] border border-[#CBD5E1] dark:border-[#334155] hover:bg-[#F8FAFC] dark:hover:bg-[#172033] dark:hover:border-[#475569] rounded-xl px-2.5 h-9 text-xs max-w-[200px] sm:max-w-xs transition-all shadow-xs">
+              <span className="text-[#64748B] dark:text-[#94A3B8] font-normal hidden sm:inline">Course:</span>
               <select
                 value={courseFilter}
                 onChange={(e) => setCourseFilter(e.target.value)}
-                className="bg-transparent font-semibold text-[#0F172A] text-xs focus:outline-none cursor-pointer truncate"
+                className="bg-transparent font-medium text-[#0F172A] dark:text-[#F8FAFC] text-xs focus:outline-none cursor-pointer truncate"
               >
-                <option value="all">All Courses</option>
+                <option value="all" className="dark:bg-[#111827] dark:text-[#F8FAFC]">All Courses</option>
                 {coursesList.map((c) => (
-                  <option key={c.uuid} value={c.uuid}>
+                  <option key={c.uuid} value={c.uuid} className="dark:bg-[#111827] dark:text-[#F8FAFC]">
                     {c.title}
                   </option>
                 ))}
@@ -326,33 +337,33 @@ export const StudentListPage: React.FC = () => {
             </div>
 
             {/* Progress Filter */}
-            <div className="shrink-0 flex items-center gap-1 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-2.5 h-9 text-xs">
-              <span className="text-[#64748B] font-medium hidden sm:inline">Progress:</span>
+            <div className="shrink-0 flex items-center gap-1 bg-white dark:bg-[#111827] border border-[#CBD5E1] dark:border-[#334155] hover:bg-[#F8FAFC] dark:hover:bg-[#172033] dark:hover:border-[#475569] rounded-xl px-2.5 h-9 text-xs transition-all shadow-xs">
+              <span className="text-[#64748B] dark:text-[#94A3B8] font-normal hidden sm:inline">Progress:</span>
               <select
                 value={progressFilter}
                 onChange={(e) => setProgressFilter(e.target.value)}
-                className="bg-transparent font-semibold text-[#0F172A] text-xs focus:outline-none cursor-pointer"
+                className="bg-transparent font-medium text-[#0F172A] dark:text-[#F8FAFC] text-xs focus:outline-none cursor-pointer"
               >
-                <option value="all">All Progress</option>
-                <option value="not_started">Not Started (0%)</option>
-                <option value="in_progress">In Progress (1-99%)</option>
-                <option value="completed">Completed (100%)</option>
+                <option value="all" className="dark:bg-[#111827] dark:text-[#F8FAFC]">All Progress</option>
+                <option value="not_started" className="dark:bg-[#111827] dark:text-[#F8FAFC]">Not Started (0%)</option>
+                <option value="in_progress" className="dark:bg-[#111827] dark:text-[#F8FAFC]">In Progress (1-99%)</option>
+                <option value="completed" className="dark:bg-[#111827] dark:text-[#F8FAFC]">Completed (100%)</option>
               </select>
             </div>
 
             {/* Sort Filter */}
-            <div className="shrink-0 flex items-center gap-1 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-2.5 h-9 text-xs">
-              <span className="text-[#64748B] font-medium hidden sm:inline">Sort:</span>
+            <div className="shrink-0 flex items-center gap-1 bg-white dark:bg-[#111827] border border-[#CBD5E1] dark:border-[#334155] hover:bg-[#F8FAFC] dark:hover:bg-[#172033] dark:hover:border-[#475569] rounded-xl px-2.5 h-9 text-xs transition-all shadow-xs">
+              <span className="text-[#64748B] dark:text-[#94A3B8] font-normal hidden sm:inline">Sort:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-transparent font-semibold text-[#0F172A] text-xs focus:outline-none cursor-pointer"
+                className="bg-transparent font-medium text-[#0F172A] dark:text-[#F8FAFC] text-xs focus:outline-none cursor-pointer"
               >
-                <option value="recent">Recently Added</option>
-                <option value="name_asc">Name (A–Z)</option>
-                <option value="name_desc">Name (Z–A)</option>
-                <option value="progress_high">Highest Progress</option>
-                <option value="progress_low">Lowest Progress</option>
+                <option value="recent" className="dark:bg-[#111827] dark:text-[#F8FAFC]">Recently Added</option>
+                <option value="name_asc" className="dark:bg-[#111827] dark:text-[#F8FAFC]">Name (A–Z)</option>
+                <option value="name_desc" className="dark:bg-[#111827] dark:text-[#F8FAFC]">Name (Z–A)</option>
+                <option value="progress_high" className="dark:bg-[#111827] dark:text-[#F8FAFC]">Highest Progress</option>
+                <option value="progress_low" className="dark:bg-[#111827] dark:text-[#F8FAFC]">Lowest Progress</option>
               </select>
             </div>
 
@@ -373,47 +384,25 @@ export const StudentListPage: React.FC = () => {
 
       {/* VIEW CONTENT */}
       {filteredStudents.length === 0 ? (
-        <Card padding="lg" className="bg-white border border-[#E2E8F0] rounded-[16px] text-center p-8 sm:p-12 space-y-4">
-          <div className="w-12 h-12 rounded-full bg-blue-50 text-[#2563EB] mx-auto flex items-center justify-center">
-            <GraduationCap className="w-6 h-6" />
-          </div>
-          {students.length === 0 ? (
-            <div className="space-y-2 max-w-sm mx-auto">
-              <h3 className="text-base font-semibold text-[#0F172A]">No students yet</h3>
-              <p className="text-xs text-[#64748B]">
-                Add your first student to begin managing course enrollments and tracking learning progress.
-              </p>
-              {canCreate && (
-                <div className="pt-2">
-                  <Button
-                    onClick={() => navigate('/students/create')}
-                    leftIcon={<Plus className="w-4 h-4" />}
-                    className="bg-[#2563EB] text-white text-xs font-semibold"
-                  >
-                    Add First Student
-                  </Button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2 max-w-sm mx-auto">
-              <h3 className="text-base font-semibold text-[#0F172A]">No students match your criteria</h3>
-              <p className="text-xs text-[#64748B]">
-                Try adjusting your search term or active filters to view results.
-              </p>
-              <div className="pt-2">
-                <Button
-                  variant="outline"
-                  onClick={clearAllFilters}
-                  leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
-                  className="border-[#E2E8F0] text-xs font-semibold"
-                >
-                  Clear All Filters
-                </Button>
-              </div>
-            </div>
-          )}
-        </Card>
+        students.length === 0 ? (
+          <EmptyState
+            icon={GraduationCap}
+            title="No Students Found"
+            description="Add your first student to begin managing course enrollments and tracking learning progress."
+            actionLabel={canCreate ? "Add First Student" : undefined}
+            onAction={canCreate ? () => navigate('/students/create') : undefined}
+            actionIcon={<Plus className="w-4 h-4" />}
+          />
+        ) : (
+          <EmptyState
+            icon={GraduationCap}
+            title="No Students Match Criteria"
+            description="Try adjusting your search term or active filters to view results."
+            actionLabel="Clear All Filters"
+            onAction={clearAllFilters}
+            actionIcon={<RotateCcw className="w-4 h-4" />}
+          />
+        )
       ) : (
         <>
           {/* MOBILE VIEW (CARD GRID - ALWAYS FOR MOBILE SCREENS < md) */}

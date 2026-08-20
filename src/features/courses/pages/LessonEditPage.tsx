@@ -1,8 +1,7 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FormPageLayout } from '../../../components/ui/FormPageLayout';
-import { VideoLessonSettings } from '../components/curriculum/VideoLessonSettings';
-import { GenericLessonSettings } from '../components/curriculum/GenericLessonSettings';
+import { SingleLessonEditor } from '../components/curriculum/SingleLessonEditor';
 import { curriculumService } from '../services/curriculum.service';
 import { useCurriculumStore } from '../store/curriculum.store';
 import { getLessonTypeMeta } from '../config/lessonTypes.config';
@@ -26,6 +25,9 @@ export const LessonEditPage: React.FC = () => {
   const handleSaveLesson = (data: Partial<CourseLesson>) => {
     if (!lessonUuid) return;
     try {
+      if (data.moduleUuid && existingLesson && data.moduleUuid !== existingLesson.moduleUuid) {
+        curriculumService.moveLesson(lessonUuid, data.moduleUuid);
+      }
       curriculumService.updateLesson(lessonUuid, data);
       navigate(`/courses/${courseUuid}/curriculum`);
     } catch (err) {
@@ -70,22 +72,15 @@ export const LessonEditPage: React.FC = () => {
         { label: pageTitle },
       ]}
     >
-      {existingLesson.type === 'video' ? (
-        <VideoLessonSettings
-          lesson={existingLesson}
-          moduleTitle={moduleTitle}
-          onSaveLesson={handleSaveLesson}
-          isCreateMode={false}
-        />
-      ) : (
-        <GenericLessonSettings
-          type={existingLesson.type}
-          moduleTitle={moduleTitle}
-          lesson={existingLesson}
-          onSaveLesson={handleSaveLesson}
-          isCreateMode={false}
-        />
-      )}
+      <SingleLessonEditor
+        type={existingLesson.type}
+        moduleTitle={moduleTitle}
+        moduleUuid={existingLesson.moduleUuid}
+        lesson={existingLesson}
+        onSaveLesson={handleSaveLesson}
+        onCancel={() => navigate(`/courses/${courseUuid}/curriculum`)}
+        isCreateMode={false}
+      />
     </FormPageLayout>
   );
 };

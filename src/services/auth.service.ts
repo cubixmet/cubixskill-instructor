@@ -5,10 +5,11 @@ import type {
   LoginPayload,
   LoginResponseData,
   ForgotPasswordPayload,
-  ResetPayload,
+  ResetPasswordPayload,
   ChangePasswordPayload,
   SetupPasswordPayload,
   AuthUser,
+  AuthBootstrapData,
 } from "../features/auth/types/auth.types";
 
 export const authService = {
@@ -30,10 +31,61 @@ export const authService = {
     return { message: response.data?.message || "Successfully logged out." };
   },
 
-  async getCurrentUser(): Promise<AuthUser> {
-    const response = await apiClient.get<BackendApiResponse<AuthUser>>(API_ENDPOINTS.AUTH.ME);
-    return response.data?.data || (response.data as unknown as AuthUser);
+  async getCurrentUser(): Promise<AuthBootstrapData> {
+    const response = await apiClient.get<BackendApiResponse<AuthBootstrapData>>(API_ENDPOINTS.AUTH.ME);
+    const data = response.data?.data || (response.data as unknown as AuthBootstrapData);
+
+    if ((data as any)?.id && !(data as any)?.user) {
+      return {
+        user: data as unknown as AuthUser,
+        academy: null,
+        permissions: [],
+        features: {},
+        demo_status: null,
+      };
+    }
+    return data;
   },
+
+  async getAcademyProfile(): Promise<AcademyContext | null> {
+    try {
+      const response = await apiClient.get<BackendApiResponse<any>>(API_ENDPOINTS.ACADEMY.PROFILE);
+      const rawData = response.data?.data || response.data;
+      if (!rawData || typeof rawData !== "object" || !rawData.name) return null;
+
+      const extractUrl = (mediaObj: any): string | null => {
+        if (!mediaObj) return null;
+        if (typeof mediaObj === "string") return mediaObj;
+        if (mediaObj.url) return mediaObj.url;
+        if (mediaObj.file) {
+          if (typeof mediaObj.file === "string") return mediaObj.file;
+          if (mediaObj.file.url) return mediaObj.file.url;
+        }
+        return null;
+      };
+
+      const logoUrl = rawData.logo_url || extractUrl(rawData.logo);
+      const faviconUrl = rawData.favicon_url || extractUrl(rawData.favicon);
+
+      return {
+        id: rawData.id,
+        name: rawData.name,
+        slug: rawData.slug,
+        email: rawData.email,
+        phone: rawData.phone || "",
+        theme: rawData.theme || "default",
+        theme_color: rawData.theme_color || "#3B82F6",
+        status: rawData.status || "ACTIVE",
+        is_active: rawData.is_active ?? true,
+        logo_url: logoUrl,
+        favicon_url: faviconUrl,
+      };
+    } catch (_) {
+      return null;
+    }
+  },
+
+
 
   async forgotPassword(payload: ForgotPasswordPayload): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post<BackendApiResponse<null>>(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, {
@@ -45,17 +97,15 @@ export const authService = {
     };
   },
 
-  async resetPassword(payload: ResetPayload): Promise<{ success: boolean; message: string }> {
-    const response = await apiClient.post<BackendApiResponse<null>>(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
+  async resetPassword(payload: ResetPasswordPayload): Promise<LoginResponseData> {
+    const response = await apiClient.post<BackendApiResponse<LoginResponseData>>(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
       token: payload.token,
       new_password: payload.new_password,
       confirm_password: payload.confirm_password,
     });
-    return {
-      success: response.data?.success ?? true,
-      message: response.data?.message || "Password reset successfully. You can now login with your new password.",
-    };
+    return response.data?.data || (response.data as unknown as LoginResponseData);
   },
+
 
   async changePassword(payload: ChangePasswordPayload): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post<BackendApiResponse<null>>(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, {

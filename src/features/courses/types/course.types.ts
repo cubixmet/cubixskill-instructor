@@ -1,36 +1,115 @@
-export interface CourseDetails {
-  uuid: string;
-  slug: string;
-  title: string;
-  shortDescription: string;
-  fullDescription?: string;
-  thumbnailUrl: string;
-  category: string;
-  subcategory: string;
-  level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
-  language: string;
-  durationHours?: number;
-  durationMinutes?: number;
-  courseType: 'Free' | 'Paid' | 'Private' | 'Invite Only';
-  visibility: 'Public' | 'Unlisted' | 'Private';
-  tags: string[];
-  instructorName: string;
-  status: 'draft' | 'published' | 'scheduled' | 'archived';
-  scheduledAt?: string;
+export type CourseStatus = 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'ARCHIVED';
+export type CourseLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ALL_LEVELS';
+export type CourseVisibility = 'PUBLIC' | 'PRIVATE' | 'UNLISTED';
 
-  // SEO Fields
-  seoTitle?: string;
-  metaDescription?: string;
-  seoKeywords?: string;
-  ogImageUrl?: string;
-
-  // Telemetry & Pricing
-  createdAt: string;
-  updatedAt: string;
-  enrolledStudentsCount: number;
-  rating: number;
-  totalRevenue: number;
-  creditsPerStudent: number;
-  isFree: boolean;
-  price: number;
+export interface MediaFile {
+  id: string;
+  file?: string;
+  url?: string;
+  original_filename?: string;
+  mime_type?: string;
+  size_bytes?: number;
+  created_at?: string;
 }
+
+export interface CategoryAlias {
+  id: string;
+  name: string;
+  slug: string;
+  canonical_category?: string;
+  created_at?: string;
+}
+
+export interface CourseCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  order_index?: number;
+  is_active?: boolean;
+  aliases?: CategoryAlias[];
+}
+
+
+export interface CourseModule {
+  id: string;
+  course: string;
+  title: string;
+  description?: string;
+  order_index?: number;
+  is_active?: boolean;
+}
+
+export interface CourseListItem {
+  id: string;
+  title: string;
+  slug: string;
+  subtitle: string;
+  thumbnail: MediaFile | null;
+  thumbnail_url?: string;
+  level: CourseLevel;
+  language: string;
+  price: string | number;
+  currency: string;
+  is_free: boolean;
+  status: CourseStatus;
+  visibility: CourseVisibility;
+  category_name: string | null;
+  created_at: string;
+}
+
+export interface CourseDetail {
+  id: string;
+  academy?: string;
+  category: CourseCategory | null;
+  title: string;
+  slug: string;
+  subtitle: string;
+  short_description: string;
+  description: string;
+  thumbnail: MediaFile | null;
+  thumbnail_url?: string;
+  promo_video: MediaFile | null;
+  promo_video_url?: string;
+  level: CourseLevel;
+  language: string;
+  duration_minutes: number;
+  price: string | number;
+  currency: string;
+  is_free: boolean;
+  visibility: CourseVisibility;
+  status: CourseStatus;
+  is_published: boolean;
+  published_at: string | null;
+  demo_enabled: boolean;
+  demo_duration_days: number;
+  certificate_enabled: boolean;
+  modules: CourseModule[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCoursePayload {
+  category?: string | null;
+  title: string;
+  subtitle?: string;
+  short_description?: string;
+  description?: string;
+  thumbnail?: string | null;
+  thumbnail_url?: string;
+  promo_video?: string | null;
+  promo_video_url?: string;
+  level?: CourseLevel;
+  language?: string;
+  duration_minutes?: number;
+  price?: string | number;
+  currency?: string;
+  is_free?: boolean;
+  visibility?: CourseVisibility;
+  demo_enabled?: boolean;
+  demo_duration_days?: number;
+  certificate_enabled?: boolean;
+}
+
+
+export type UpdateCoursePayload = Partial<CreateCoursePayload>;

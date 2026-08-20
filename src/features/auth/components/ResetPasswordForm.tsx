@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useSearchParams } from "react-router-dom";
-import { CheckCircle2, ArrowLeft } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { resetPasswordSchema, type ResetPasswordSchemaType } from "../schemas/auth.schema";
 import { useResetPassword } from "../hooks/useResetPassword";
 import { PasswordField } from "./PasswordField";
@@ -10,12 +10,13 @@ import { PasswordStrength } from "./PasswordStrength";
 import { Button } from "../../../components/ui/Button";
 import { ApiErrorAlert } from "../../../components/ui/ApiErrorAlert";
 import { useFormScrollAndErrorMap } from "../../../hooks/useFormScrollAndErrorMap";
+import { authStore } from "../../../store/auth.store";
 
 export const ResetPasswordForm: React.FC = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") || "";
 
-  const [isSuccess, setIsSuccess] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
 
   const resetPasswordMutation = useResetPassword();
@@ -26,6 +27,7 @@ export const ResetPasswordForm: React.FC = () => {
     handleSubmit,
     watch,
     setError,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<ResetPasswordSchemaType>({
     resolver: zodResolver(resetPasswordSchema),
@@ -47,8 +49,14 @@ export const ResetPasswordForm: React.FC = () => {
         confirm_password: data.confirm_password,
       },
       {
-        onSuccess: () => {
-          setIsSuccess(true);
+        onSuccess: (resData) => {
+          if (resData?.access && resData?.refresh && resData?.user) {
+            reset();
+            authStore.setSession(resData.user, resData.access, resData.refresh);
+            navigate("/dashboard", { replace: true });
+          } else {
+            setGlobalError("Failed to initialize session. Please log in.");
+          }
         },
         onError: (err) => {
           const parsed = mapApiErrorsToForm(err, setError);
@@ -67,29 +75,6 @@ export const ResetPasswordForm: React.FC = () => {
         <Link to="/forgot-password" className="block">
           <Button variant="outline" className="w-full" leftIcon={<ArrowLeft className="w-4 h-4" />}>
             Request New Link
-          </Button>
-        </Link>
-      </div>
-    );
-  }
-
-  if (isSuccess) {
-    return (
-      <div className="space-y-6 text-center">
-        <div className="w-14 h-14 bg-[#F0FDF4] rounded-full flex items-center justify-center mx-auto text-[#16A34A] border border-[#86EFAC]">
-          <CheckCircle2 className="w-7 h-7" />
-        </div>
-
-        <div className="space-y-2">
-          <h2 className="text-xl font-bold text-[#0F172A]">Password Reset Complete</h2>
-          <p className="text-sm text-[#64748B] leading-relaxed">
-            Your password has been reset successfully. You can now log in with your new password.
-          </p>
-        </div>
-
-        <Link to="/login" className="block pt-2">
-          <Button size="lg" className="w-full">
-            Proceed to Sign In
           </Button>
         </Link>
       </div>
@@ -137,7 +122,7 @@ export const ResetPasswordForm: React.FC = () => {
       <div className="text-center pt-2">
         <Link
           to="/login"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#64748B] hover:text-[#0F172A] transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Login

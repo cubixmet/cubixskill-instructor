@@ -8,6 +8,7 @@ import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { StudentPortalBrandingTab } from '../../website-builder/components/StudentPortalBrandingTab';
+import { AppearanceSettings } from '../../../components/settings/AppearanceSettings';
 import type { GlobalSettingsConfig, PaymentGatewayItem } from '../store/globalSettings.store';
 
 export interface GlobalSettingsSectionsProps {
@@ -120,7 +121,12 @@ export const GlobalSettingsSections: React.FC<GlobalSettingsSectionsProps> = ({
     );
   }
 
-  // 3. Student Portal Branding
+  // 3. Theme & Appearance
+  if (sectionId === 'appearance') {
+    return <AppearanceSettings />;
+  }
+
+  // 4. Student Portal Branding
   if (sectionId === 'student-branding') {
     return <StudentPortalBrandingTab />;
   }

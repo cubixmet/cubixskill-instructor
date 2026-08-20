@@ -4,6 +4,7 @@ import { MessageSquare, Plus } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Skeleton } from '../../../components/ui/Skeleton';
+import { EmptyState } from '../../../components/ui/EmptyState';
 
 // Store & Components
 import { useDiscussionStore, type DiscussionItem } from '../../discussions/store/discussion.store';
@@ -333,27 +334,17 @@ export const CourseDiscussionsPage: React.FC = () => {
                       ))}
                     </div>
                   ) : (
-                    <Card padding="lg" className="bg-white border border-slate-200 text-center py-12 space-y-4">
-                      <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
-                        <MessageSquare className="w-8 h-8" />
-                      </div>
-                      <div className="space-y-1 max-w-md mx-auto">
-                        <h3 className="text-base font-extrabold text-slate-900">No Discussions Found</h3>
-                        <p className="text-xs text-slate-500 font-medium">
-                          Create your first course discussion topic to start communicating, answering questions, and collaborating with your students.
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => {
-                          setEditingDiscussion(null);
-                          setIsCreateModalOpen(true);
-                        }}
-                        className="bg-[#2563EB] text-white font-bold text-xs px-6"
-                        leftIcon={<Plus className="w-4 h-4" />}
-                      >
-                        Create Discussion
-                      </Button>
-                    </Card>
+                    <EmptyState
+                      icon={MessageSquare}
+                      title="No Discussions Found"
+                      description="Create your first course discussion topic to start communicating, answering questions, and collaborating with your students."
+                      actionLabel="Create Discussion"
+                      onAction={() => {
+                        setEditingDiscussion(null);
+                        setIsCreateModalOpen(true);
+                      }}
+                      actionIcon={<Plus className="w-4 h-4" />}
+                    />
                   )}
                 </>
               )}

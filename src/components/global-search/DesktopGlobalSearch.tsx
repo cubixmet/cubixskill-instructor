@@ -90,7 +90,7 @@ export const DesktopGlobalSearch: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 right-0 mt-2 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 overflow-hidden text-left"
+            className="absolute left-0 right-0 mt-2 bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] shadow-2xl z-50 overflow-hidden text-left"
           >
             <GlobalSearchResults
               query={debouncedQuery}

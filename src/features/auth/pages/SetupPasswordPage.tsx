@@ -15,12 +15,12 @@ export const SetupPasswordPage: React.FC = () => {
   if (!token) {
     return (
       <div className="text-center space-y-5">
-        <div className="w-14 h-14 bg-[#FEF2F2] rounded-full flex items-center justify-center mx-auto text-[#DC2626] border border-[#FCA5A5]">
+        <div className="w-14 h-14 bg-[#FEF2F2] dark:bg-[rgba(239,68,68,0.08)] rounded-full flex items-center justify-center mx-auto text-[#EF4444] dark:text-[#F87171] border border-[#FECACA] dark:border-[rgba(248,113,113,0.25)]">
           <ShieldAlert className="w-7 h-7" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-xl font-bold text-[#0F172A]">Missing Security Token</h2>
-          <p className="text-sm text-[#64748B] max-w-sm mx-auto">
+          <h2 className="text-xl font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Missing Security Token</h2>
+          <p className="text-sm text-[#64748B] dark:text-[#94A3B8] max-w-sm mx-auto">
             The password setup link is missing required authorization parameters. Please request a new setup link.
           </p>
         </div>
@@ -36,8 +36,8 @@ export const SetupPasswordPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="text-center py-12 space-y-4">
-        <Spinner size="lg" className="mx-auto" />
-        <p className="text-sm font-medium text-[#64748B]">
+        <Spinner size="lg" className="mx-auto text-[#2563EB] dark:text-[#60A5FA]" />
+        <p className="text-sm font-medium text-[#64748B] dark:text-[#94A3B8]">
           Validating security token...
         </p>
       </div>
@@ -47,12 +47,12 @@ export const SetupPasswordPage: React.FC = () => {
   if (isError || (data && !data.valid)) {
     return (
       <div className="text-center space-y-5">
-        <div className="w-14 h-14 bg-[#FEF2F2] rounded-full flex items-center justify-center mx-auto text-[#DC2626] border border-[#FCA5A5]">
+        <div className="w-14 h-14 bg-[#FEF2F2] dark:bg-[rgba(239,68,68,0.08)] rounded-full flex items-center justify-center mx-auto text-[#EF4444] dark:text-[#F87171] border border-[#FECACA] dark:border-[rgba(248,113,113,0.25)]">
           <ShieldAlert className="w-7 h-7" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-xl font-bold text-[#0F172A]">Expired or Invalid Link</h2>
-          <p className="text-sm text-[#64748B] max-w-sm mx-auto">
+          <h2 className="text-xl font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Expired or Invalid Link</h2>
+          <p className="text-sm text-[#64748B] dark:text-[#94A3B8] max-w-sm mx-auto leading-relaxed">
             This password setup token is either invalid or has expired. Password links are valid for a limited time for security.
           </p>
         </div>
@@ -75,13 +75,13 @@ export const SetupPasswordPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="text-center space-y-1.5">
-        <div className="w-12 h-12 bg-[#EFF6FF] text-[#2563EB] rounded-2xl flex items-center justify-center mx-auto mb-2 border border-[#BFDBFE]">
+        <div className="w-12 h-12 bg-[#EFF6FF] dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] rounded-2xl flex items-center justify-center mx-auto mb-2 border border-[#BFDBFE] dark:border-[#334155]">
           <KeyRound className="w-6 h-6" />
         </div>
-        <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">
+        <h1 className="text-2xl font-semibold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
           Setup Your Password
         </h1>
-        <p className="text-sm text-[#64748B]">
+        <p className="text-sm text-[#64748B] dark:text-[#94A3B8]">
           Create a secure password for your CubixSkill instructor account
         </p>
       </div>

@@ -31,8 +31,19 @@ export function parseApiError(error: any): NormalizedApiError {
   if (typeof responseData === "string") {
     message = responseData;
   } else if (responseData.error && typeof responseData.error === "object") {
-    message = responseData.error.message || message;
     code = responseData.error.code || code;
+    if (typeof responseData.error.message === "string") {
+      message = responseData.error.message;
+    } else if (typeof responseData.error.message === "object" && responseData.error.message !== null) {
+      Object.entries(responseData.error.message).forEach(([fieldKey, val]) => {
+        if (Array.isArray(val)) {
+          fieldErrors[fieldKey] = val.map((item) => (typeof item === "string" ? item : JSON.stringify(item)));
+        } else if (typeof val === "string") {
+          fieldErrors[fieldKey] = [val];
+        }
+      });
+      message = "Please correct the highlighted fields.";
+    }
   } else if (responseData.message) {
     message = responseData.message;
   } else if (responseData.detail) {
@@ -44,7 +55,7 @@ export function parseApiError(error: any): NormalizedApiError {
     const rawErrors = responseData.errors || responseData;
     if (typeof rawErrors === "object" && rawErrors !== null) {
       Object.keys(rawErrors).forEach((key) => {
-        if (["detail", "message", "code", "success"].includes(key)) return;
+        if (["detail", "message", "code", "success", "error"].includes(key)) return;
 
         const val = rawErrors[key];
         if (Array.isArray(val)) {
@@ -65,7 +76,19 @@ export function parseApiError(error: any): NormalizedApiError {
     message = "Your account setup is not complete. Please check your activation email.";
   } else if (code === "USER_EXISTS") {
     message = "An account with this email address already exists.";
+  } else if (code === "EMAIL_NOT_FOUND") {
+    const emailMsg =
+      typeof responseData.error?.message?.email === "string"
+        ? responseData.error.message.email
+        : Array.isArray(responseData.error?.message?.email)
+        ? responseData.error.message.email[0]
+        : typeof responseData.error?.message === "string"
+        ? responseData.error.message
+        : "This email is not registered.";
+    fieldErrors["email"] = [emailMsg];
+    message = emailMsg;
   }
+
 
   // Status code specific user-friendly message overrides
   switch (status) {

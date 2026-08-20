@@ -18,9 +18,9 @@ export const PasswordStrength: React.FC<PasswordStrengthProps> = ({ password = "
   const passedCount = requirements.filter((r) => r.valid).length;
 
   const getStrengthColor = () => {
-    if (passedCount <= 2) return "bg-[#DC2626]";
+    if (passedCount <= 2) return "bg-[#EF4444] dark:bg-[#F87171]";
     if (passedCount <= 4) return "bg-amber-500";
-    return "bg-[#16A34A]";
+    return "bg-[#10B981]";
   };
 
   const getStrengthLabel = () => {
@@ -30,17 +30,17 @@ export const PasswordStrength: React.FC<PasswordStrengthProps> = ({ password = "
   };
 
   return (
-    <div className="space-y-3 p-3.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-left">
+    <div className="space-y-3 p-3.5 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#263244] rounded-xl text-left transition-colors duration-200">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-[#64748B]">Password Strength</span>
+        <span className="text-xs font-semibold text-[#64748B] dark:text-[#94A3B8]">Password Strength</span>
         {password.length > 0 && (
           <span
-            className={`text-xs font-bold ${
+            className={`text-xs font-semibold ${
               passedCount <= 2
-                ? "text-[#DC2626]"
+                ? "text-[#EF4444] dark:text-[#F87171]"
                 : passedCount <= 4
-                ? "text-amber-600"
-                : "text-[#16A34A]"
+                ? "text-amber-500 dark:text-amber-400"
+                : "text-[#10B981] dark:text-[#6EE7B7]"
             }`}
           >
             {getStrengthLabel()}
@@ -53,21 +53,21 @@ export const PasswordStrength: React.FC<PasswordStrengthProps> = ({ password = "
           <div
             key={step}
             className={`h-1.5 rounded-full transition-all duration-300 ${
-              step <= passedCount ? getStrengthColor() : "bg-[#E2E8F0]"
+              step <= passedCount ? getStrengthColor() : "bg-[#E2E8F0] dark:bg-[#334155]"
             }`}
           />
         ))}
       </div>
 
-      <div className="space-y-1 pt-1">
+      <div className="space-y-1.5 pt-1">
         {requirements.map((req, idx) => (
           <div key={idx} className="flex items-center space-x-2 text-xs">
             {req.valid ? (
-              <Check className="w-3.5 h-3.5 text-[#16A34A] shrink-0" />
+              <Check className="w-3.5 h-3.5 text-[#10B981] dark:text-[#6EE7B7] shrink-0" />
             ) : (
-              <X className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
+              <X className="w-3.5 h-3.5 text-[#94A3B8] dark:text-[#64748B] shrink-0" />
             )}
-            <span className={req.valid ? "text-[#0F172A] font-medium" : "text-[#64748B]"}>
+            <span className={req.valid ? "text-[#0F172A] dark:text-[#F8FAFC] font-medium" : "text-[#64748B] dark:text-[#94A3B8]"}>
               {req.label}
             </span>
           </div>

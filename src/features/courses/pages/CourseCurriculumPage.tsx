@@ -24,18 +24,14 @@ import {
   Check,
   X,
   Video,
-  FileText,
-  Radio,
   Layers,
   CircleHelp,
   Headphones,
   Files,
   AlignLeft,
   Image as ImageIcon,
-  Download,
-  ExternalLink,
-  Code2,
   ClipboardCheck,
+  Award,
 } from 'lucide-react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import type {
@@ -50,9 +46,9 @@ import { ModuleFormModal } from '../components/curriculum/ModuleFormModal';
 import { AttachAssignmentModal } from '../components/curriculum/AttachAssignmentModal';
 import { AttachQuizModal } from '../components/curriculum/AttachQuizModal';
 import { AddLessonFlowModal } from '../components/curriculum/AddLessonFlowModal';
-import { CurriculumOverviewWidget } from '../components/curriculum/CurriculumOverviewWidget';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { Card } from '../../../components/ui/Card';
 import { useCurriculumStore } from '../store/curriculum.store';
@@ -61,8 +57,38 @@ import { curriculumService } from '../services/curriculum.service';
 export const CourseCurriculumPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { courseUuid } = useParams<{ courseUuid?: string }>();
   const autoAttachedUuid = searchParams.get('attachedUuid');
-  const { courseUuid = '550e8400-e29b-41d4-a716-446655440000' } = useParams<{ courseUuid?: string }>();
+  const [isLoading, setIsLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<{ code?: number; message: string } | null>(null);
+  const fetchedCourseUuidRef = React.useRef<string | null>(null);
+
+  const loadCurriculum = React.useCallback(async (id: string) => {
+    if (!id) return;
+    setIsLoading(true);
+    setFetchError(null);
+    try {
+      await curriculumService.fetchModules(id);
+    } catch (err: any) {
+      const status = err?.response?.status || err?.status;
+      const msg =
+        status === 403
+          ? 'Access Denied: You do not have permission to view curriculum for this course.'
+          : status === 404
+          ? 'Course or Modules not found.'
+          : 'Failed to load course curriculum from backend. Please try again.';
+      setFetchError({ code: status, message: msg });
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (courseUuid && fetchedCourseUuidRef.current !== courseUuid) {
+      fetchedCourseUuidRef.current = courseUuid;
+      loadCurriculum(courseUuid);
+    }
+  }, [courseUuid, loadCurriculum]);
 
   // Stable Direct Store Subscriptions
   const allModules = useCurriculumStore((state) => state.modules);
@@ -173,12 +199,18 @@ export const CourseCurriculumPage: React.FC = () => {
     navigate(`/courses/${courseUuid}/curriculum/modules/${mod.uuid}/edit`);
   };
 
-  const handleSaveModule = (data: Partial<CourseModule>) => {
+  const handleSaveModule = async (data: Partial<CourseModule>) => {
     if (editingModule) {
-      curriculumService.updateModule(editingModule.uuid, data);
+      await curriculumService.updateModule(editingModule.uuid, courseUuid, data);
       showToast('Module updated successfully.');
     } else {
-      const created = curriculumService.createModule(courseUuid, data);
+      const created = await curriculumService.createModule(courseUuid, {
+        title: data.title || 'Untitled Module',
+        description: data.description || '',
+        status: data.status || 'published',
+        durationMinutes: 0,
+        isCollapsed: false,
+      });
       showToast('Module created successfully.');
       setTimeout(() => {
         const el = document.getElementById(`module-${created.uuid}`);
@@ -198,10 +230,10 @@ export const CourseCurriculumPage: React.FC = () => {
     }
   };
 
-  const handleConfirmDelete = () => {
-    if (!deleteModalTarget) return;
+  const handleConfirmDelete = async () => {
+    if (!deleteModalTarget || !courseUuid) return;
     if (deleteModalTarget.type === 'module') {
-      curriculumService.deleteModule(deleteModalTarget.moduleUuid);
+      await curriculumService.deleteModule(deleteModalTarget.moduleUuid, courseUuid);
       showToast('Module and its lessons deleted.');
     } else if (deleteModalTarget.lessonUuid) {
       curriculumService.deleteLesson(deleteModalTarget.lessonUuid);
@@ -228,9 +260,13 @@ export const CourseCurriculumPage: React.FC = () => {
   };
 
   const handleOpenAddResourcePage = (moduleUuid: string, lessonUuid?: string) => {
+    if (!courseUuid || courseUuid === 'undefined' || !moduleUuid) {
+      showToast('Cannot add resource: missing valid course or module identifier.');
+      return;
+    }
     navigate(
-      `/courses/${courseUuid}/curriculum/resources/add?moduleUuid=${moduleUuid}${
-        lessonUuid ? `&lessonUuid=${lessonUuid}` : ''
+      `/courses/${courseUuid}/curriculum/resources/add?moduleUuid=${encodeURIComponent(moduleUuid)}${
+        lessonUuid ? `&lessonUuid=${encodeURIComponent(lessonUuid)}` : ''
       }`
     );
   };
@@ -255,7 +291,7 @@ export const CourseCurriculumPage: React.FC = () => {
       return;
     }
 
-    if (type === 'live_class') {
+    if ((type as string) === 'live_class') {
       setIsLessonTypeSelectorOpen(false);
       showToast('Live session scheduling window opened.');
       return;
@@ -265,8 +301,9 @@ export const CourseCurriculumPage: React.FC = () => {
     navigate(`/courses/${courseUuid}/curriculum/lessons/new?type=${type}&moduleUuid=${moduleUuid}`);
   };
 
-  const _handleOpenEditLesson = (lesson: CourseLesson) => {
-    navigate(`/courses/${courseUuid}/curriculum/lessons/${lesson.uuid}/edit`);
+  const handleSelectLessonType = (type: LessonType) => {
+    const targetModuleUuid = modules[0]?.uuid || '';
+    handleSelectTypeAndModule(type, targetModuleUuid);
   };
 
   const handleDuplicateLesson = (_moduleUuid: string, lessonUuid: string) => {
@@ -323,20 +360,16 @@ export const CourseCurriculumPage: React.FC = () => {
 
   const moduleUuids = filteredModules.map((m) => m.uuid);
 
-  // 12 Distinct & Unique Lesson Type Options with specific Lucide Icons
+  // 8 Supported Backend Lesson Type Options
   const lessonTypeOptions: { type: LessonType; label: string; description: string; icon: React.ElementType }[] = [
-    { type: 'video', label: 'Video Lesson', description: 'Direct upload, HLS streaming, YouTube, Vimeo', icon: Video },
-    { type: 'audio', label: 'Audio Podcast', description: 'MP3/WAV audio stream with transcript', icon: Headphones },
-    { type: 'pdf', label: 'PDF Reader', description: 'Embedded PDF viewer with download options', icon: FileText },
-    { type: 'document', label: 'Rich Document', description: 'DOCX, PPTX, XLSX, HTML articles', icon: Files },
-    { type: 'text', label: 'Text Article', description: 'Short text notes and reading materials', icon: AlignLeft },
-    { type: 'image', label: 'Image Gallery', description: 'High resolution infographics & slides', icon: ImageIcon },
-    { type: 'download', label: 'Downloadable Asset', description: 'ZIP, source code, worksheets, templates', icon: Download },
-    { type: 'external_url', label: 'External Resource', description: 'External URL or GitHub repository', icon: ExternalLink },
-    { type: 'embed', label: 'Embedded Widget', description: 'iFrame, Figma prototype, CodeSandbox', icon: Code2 },
+    { type: 'video', label: 'Video Lesson', description: 'Embed URL, YouTube, Vimeo, MP4 stream', icon: Video },
+    { type: 'audio', label: 'Audio Podcast', description: 'Audio stream URL (MP3/WAV)', icon: Headphones },
+    { type: 'document', label: 'Document / PDF', description: 'PDF iframe, DOCX, ZIP files', icon: Files },
+    { type: 'image', label: 'Image Content', description: 'High resolution diagram, infographics & slides', icon: ImageIcon },
+    { type: 'text', label: 'Text Article', description: 'Rich text lesson notes and reading materials', icon: AlignLeft },
     { type: 'quiz', label: 'Quiz Assessment', description: 'Interactive quiz with auto-grading rules', icon: CircleHelp },
-    { type: 'assignment', label: 'Assignment Project', description: 'Student file upload & rubric evaluation', icon: ClipboardCheck },
-    { type: 'live_class', label: 'Live Stream Class', description: 'Zoom, Google Meet, or live webinar link', icon: Radio },
+    { type: 'assignment', label: 'Assignment', description: 'Student file upload & rubric evaluation', icon: ClipboardCheck },
+    { type: 'project', label: 'Project Task', description: 'Hands-on practical capstone project', icon: Award },
   ];
 
   return (
@@ -350,46 +383,46 @@ export const CourseCurriculumPage: React.FC = () => {
       )}
 
       {/* 1. STICKY MOBILE HEADER (<768px) */}
-      <div className="md:hidden sticky top-0 z-30 bg-white border-b border-[#E2E8F0] p-3 shadow-2xs -mx-3 sm:-mx-6 -mt-3 sm:-mt-6">
+      <div className="md:hidden sticky top-0 z-30 bg-white dark:bg-[#111827] border-b border-slate-200 dark:border-[#263244] p-3 shadow-2xs -mx-3 sm:-mx-6 -mt-3 sm:-mt-6">
         <div className="flex items-center justify-between">
           <button
             type="button"
             onClick={() => navigate('/courses')}
-            className="flex items-center gap-1.5 text-[#0F172A] text-sm font-semibold p-1"
+            className="flex items-center gap-1.5 text-slate-900 dark:text-[#F8FAFC] text-sm font-semibold p-1"
           >
-            <ArrowLeft className="w-5 h-5 text-[#0F172A]" />
+            <ArrowLeft className="w-5 h-5 text-slate-700 dark:text-[#94A3B8]" />
             <span>Curriculum</span>
           </button>
 
           <Badge variant="success" size="sm" dot>Published</Badge>
         </div>
 
-        <div className="flex items-center justify-between text-[11px] text-[#64748B] pt-2 border-t border-[#E2E8F0] mt-2 font-medium">
+        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-[#94A3B8] pt-2 border-t border-slate-200 dark:border-[#263244] mt-2 font-medium">
           <span>{modules.length} Modules • {totalLessonCount} Lessons</span>
           <span>{Math.floor(totalCourseDuration / 60)}h {totalCourseDuration % 60}m Total</span>
         </div>
       </div>
 
       {/* 2. DESKTOP HEADER CARD (>=768px) */}
-      <div className="hidden md:block bg-white p-5 sm:p-6 rounded-[16px] border border-[#E2E8F0] shadow-2xs space-y-4">
+      <div className="hidden md:block bg-white dark:bg-[#111827] p-5 sm:p-6 rounded-[16px] border border-slate-200 dark:border-[#263244] shadow-2xs space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl sm:text-2xl font-semibold text-[#0F172A] tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
               Course Curriculum
             </h2>
-            <p className="text-xs text-[#64748B] font-medium mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal mt-0.5">
               Structure modules, drag lessons to reorder, and configure unlock prerequisites.
             </p>
-            <div className="flex items-center gap-3 text-xs text-[#64748B] font-medium mt-2 flex-wrap">
-              <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-[#0F172A] border border-[#E2E8F0]">
+            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-[#94A3B8] font-medium mt-2 flex-wrap">
+              <span className="px-2.5 py-1 bg-slate-100 dark:bg-[#172033] rounded-lg text-slate-800 dark:text-[#CBD5E1] border border-slate-200 dark:border-[#263244]">
                 {modules.length} Modules
               </span>
               <span>•</span>
-              <span className="px-2.5 py-1 bg-blue-50 text-[#2563EB] rounded-lg border border-blue-100 font-semibold">
+              <span className="px-2.5 py-1 bg-blue-50 dark:bg-[rgba(37,99,235,0.10)] text-[#2563EB] dark:text-[#60A5FA] rounded-lg border border-blue-100 dark:border-[#263244] font-semibold">
                 {totalLessonCount} Lessons
               </span>
               <span>•</span>
-              <span className="px-2.5 py-1 bg-slate-100 text-[#0F172A] rounded-lg border border-[#E2E8F0]">
+              <span className="px-2.5 py-1 bg-slate-100 dark:bg-[#172033] text-slate-800 dark:text-[#CBD5E1] rounded-lg border border-slate-200 dark:border-[#263244]">
                 {Math.floor(totalCourseDuration / 60)}h {totalCourseDuration % 60}m Total
               </span>
             </div>
@@ -409,7 +442,7 @@ export const CourseCurriculumPage: React.FC = () => {
               variant="outline"
               leftIcon={<Plus className="w-4 h-4 stroke-[3]" />}
               onClick={handleOpenGeneralAddLesson}
-              className="border-[#2563EB] text-[#2563EB] hover:bg-blue-50/60 font-bold px-4 h-10"
+              className="bg-white dark:bg-[#172033] border-[#2563EB] dark:border-[#334155] text-[#2563EB] dark:text-[#F8FAFC] hover:bg-blue-50 dark:hover:bg-[#1E293B] font-bold px-4 h-10"
             >
               Add Lesson
             </Button>
@@ -418,24 +451,24 @@ export const CourseCurriculumPage: React.FC = () => {
       </div>
 
       {/* 3. MOBILE SUMMARY CARD (<768px 2-COLUMN GRID) */}
-      <Card padding="md" className="md:hidden bg-white border border-[#E2E8F0] p-4 rounded-[16px] shadow-2xs space-y-3">
-        <strong className="text-[13px] font-semibold text-[#0F172A] block">Curriculum Summary</strong>
+      <Card padding="md" className="md:hidden bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] p-4 rounded-[16px] shadow-2xs space-y-3">
+        <strong className="text-[13px] font-semibold text-slate-900 dark:text-[#F8FAFC] block">Curriculum Summary</strong>
         <div className="grid grid-cols-2 gap-2 text-center text-xs font-medium">
-          <div className="p-2.5 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0]">
-            <span className="text-[#64748B] block text-[10px]">Modules</span>
-            <strong className="text-[16px] font-bold text-[#0F172A]">{modules.length}</strong>
+          <div className="p-2.5 bg-slate-50 dark:bg-[#0F172A] rounded-xl border border-slate-200 dark:border-[#263244]">
+            <span className="text-slate-500 dark:text-[#94A3B8] block text-[10px]">Modules</span>
+            <strong className="text-[16px] font-bold text-slate-900 dark:text-[#F8FAFC]">{modules.length}</strong>
           </div>
-          <div className="p-2.5 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0]">
-            <span className="text-[#64748B] block text-[10px]">Total Lessons</span>
-            <strong className="text-[16px] font-bold text-[#2563EB]">{totalLessonCount}</strong>
+          <div className="p-2.5 bg-slate-50 dark:bg-[#0F172A] rounded-xl border border-slate-200 dark:border-[#263244]">
+            <span className="text-slate-500 dark:text-[#94A3B8] block text-[10px]">Total Lessons</span>
+            <strong className="text-[16px] font-bold text-[#2563EB] dark:text-[#60A5FA]">{totalLessonCount}</strong>
           </div>
-          <div className="p-2.5 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0]">
-            <span className="text-[#64748B] block text-[10px]">Published</span>
-            <strong className="text-[16px] font-bold text-emerald-600">{publishedLessonCount}</strong>
+          <div className="p-2.5 bg-slate-50 dark:bg-[#0F172A] rounded-xl border border-slate-200 dark:border-[#263244]">
+            <span className="text-slate-500 dark:text-[#94A3B8] block text-[10px]">Published</span>
+            <strong className="text-[16px] font-bold text-emerald-600 dark:text-emerald-400">{publishedLessonCount}</strong>
           </div>
-          <div className="p-2.5 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0]">
-            <span className="text-[#64748B] block text-[10px]">Drafts</span>
-            <strong className="text-[16px] font-bold text-[#64748B]">{draftLessonCount}</strong>
+          <div className="p-2.5 bg-slate-50 dark:bg-[#0F172A] rounded-xl border border-slate-200 dark:border-[#263244]">
+            <span className="text-slate-500 dark:text-[#94A3B8] block text-[10px]">Drafts</span>
+            <strong className="text-[16px] font-bold text-slate-500 dark:text-[#94A3B8]">{draftLessonCount}</strong>
           </div>
         </div>
       </Card>
@@ -443,26 +476,26 @@ export const CourseCurriculumPage: React.FC = () => {
       {/* 4. SEARCH BAR & QUICK ACTIONS */}
       <div className="space-y-3">
         <div className="relative w-full">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B]" />
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#64748B]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search modules, lessons, or subsections..."
-            className="w-full h-[46px] pl-10 pr-10 bg-white border border-[#E2E8F0] rounded-[14px] text-xs font-medium text-[#0F172A] focus:outline-none focus:border-[#2563EB] shadow-2xs"
+            className="w-full h-[46px] pl-10 pr-10 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-[14px] text-xs font-normal text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B] focus:outline-none focus:border-[#2563EB] shadow-2xs"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#64748B] hover:text-[#0F172A] rounded-lg cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Mobile / Page Action Buttons Grid (2 Equal Columns, No Truncation) */}
+        {/* Mobile / Page Action Buttons Grid */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full max-w-full">
           <button
             type="button"
@@ -475,9 +508,9 @@ export const CourseCurriculumPage: React.FC = () => {
           <button
             type="button"
             onClick={handleOpenGeneralAddLesson}
-            className="h-11 sm:h-12 px-3 bg-white border-2 border-[#2563EB] text-[#2563EB] hover:bg-blue-50/60 active:scale-[0.98] rounded-xl flex items-center justify-center gap-1.5 text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap min-w-0 w-full"
+            className="h-11 sm:h-12 px-3 bg-white dark:bg-[#172033] border border-slate-300 dark:border-[#334155] text-[#2563EB] dark:text-[#F8FAFC] hover:bg-blue-50/60 dark:hover:bg-[#1E293B] dark:hover:border-[#3B82F6] active:scale-[0.98] rounded-xl flex items-center justify-center gap-1.5 text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap min-w-0 w-full"
           >
-            <Plus className="w-4 h-4 stroke-[3] shrink-0" />
+            <Plus className="w-4 h-4 stroke-[3] text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
             <span className="whitespace-nowrap">Add Lesson</span>
           </button>
         </div>
@@ -489,15 +522,36 @@ export const CourseCurriculumPage: React.FC = () => {
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={moduleUuids} strategy={verticalListSortingStrategy}>
               <div className="space-y-4">
-                {filteredModules.length === 0 ? (
-                  <Card padding="md" className="p-8 text-center bg-white rounded-[16px] border border-[#E2E8F0] space-y-3">
-                    <Layers className="w-10 h-10 mx-auto text-[#64748B]" />
-                    <p className="font-semibold text-[#0F172A] text-sm">No Modules Found</p>
-                    <p className="text-xs text-[#64748B]">Click "Add Module" to start creating your course curriculum.</p>
-                    <Button size="sm" onClick={handleOpenAddModuleModal} className="bg-[#2563EB] text-white font-semibold mx-auto">
-                      <Plus className="w-4 h-4 stroke-[3]" /> Add Module
+                {isLoading ? (
+                  <div className="p-8 text-center bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] space-y-3">
+                    <div className="w-8 h-8 border-3 border-[#2563EB] border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-xs font-semibold text-slate-500 dark:text-[#94A3B8]">Loading course curriculum...</p>
+                  </div>
+                ) : fetchError ? (
+                  <Card padding="md" className="p-8 text-center bg-white dark:bg-[#111827] rounded-[16px] border border-rose-200 dark:border-rose-800 space-y-3">
+                    <div className="w-10 h-10 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto font-bold text-base">
+                      !
+                    </div>
+                    <p className="font-semibold text-rose-900 dark:text-rose-300 text-sm">{fetchError.message}</p>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (courseUuid) loadCurriculum(courseUuid);
+                      }}
+                      className="bg-[#2563EB] text-white font-semibold mx-auto"
+                    >
+                      Retry Loading
                     </Button>
                   </Card>
+                ) : filteredModules.length === 0 ? (
+                  <EmptyState
+                    icon={Layers}
+                    title="No Modules Found"
+                    description="Click &quot;Add Module&quot; to start creating your course curriculum."
+                    actionLabel="Add Module"
+                    onAction={handleOpenAddModuleModal}
+                    actionIcon={<Plus className="w-4 h-4" />}
+                  />
                 ) : (
                   filteredModules.map((module, idx) => {
                     const moduleLessons = (lessonsByModule[module.uuid] || []).map((l, lIdx) => ({
@@ -546,23 +600,6 @@ export const CourseCurriculumPage: React.FC = () => {
               </div>
             </SortableContext>
           </DndContext>
-        </div>
-
-        {/* Desktop Sidebar Overview */}
-        <div className="hidden xl:block xl:col-span-4 2xl:col-span-3 sticky top-4">
-          <CurriculumOverviewWidget
-            moduleCount={modules.length}
-            totalLessonCount={Object.values(lessonsByModule).flat().length}
-            totalDurationMinutes={120}
-            publishedCount={modules.filter((m) => m.status === 'published').length}
-            draftCount={modules.filter((m) => m.status === 'draft').length}
-            onAddModule={handleOpenAddModuleModal}
-            onAddLesson={() => handleOpenLessonTypeSelector(modules[0]?.uuid || 'temp')}
-            onSaveDraft={() => showToast('Draft saved.')}
-            onPreviewCourse={() => showToast('Previewing course.')}
-            onExpandAll={() => showToast('Expanded all.')}
-            onCollapseAll={() => showToast('Collapsed all.')}
-          />
         </div>
       </div>
 

@@ -15,7 +15,7 @@ export const DashboardLayout: React.FC = () => {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-left overflow-x-hidden relative">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-left overflow-x-hidden relative transition-colors duration-200">
       {/* Fixed Sidebar for Desktop and Tablet */}
       <div className="hidden md:block">
         <Sidebar

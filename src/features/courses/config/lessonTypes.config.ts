@@ -78,7 +78,7 @@ export const LESSON_TYPES_CONFIG: LessonTypeMeta[] = [
   {
     id: 'project',
     label: 'Project',
-    description: 'Create project-based work',
+    description: 'Create a hands-on project for learners',
     icon: Award,
     category: 'Assessments',
     requiredFeature: 'assignments',

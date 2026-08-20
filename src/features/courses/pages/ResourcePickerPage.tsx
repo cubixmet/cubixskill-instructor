@@ -1,68 +1,52 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  Search,
-  Globe,
-  UploadCloud,
-  FileVideo,
-  FileAudio,
-  FileText,
-  Image as ImageIcon,
-  FileCode,
-  Check,
-  AlertTriangle,
+  Link2,
+  AlertCircle,
   Loader2,
-  ExternalLink,
-  Sparkles,
+  Globe,
+  Plus,
+  Upload,
   CheckCircle2,
-  Coins,
-  File,
-  X,
 } from 'lucide-react';
 import { FormPageLayout } from '../../../components/ui/FormPageLayout';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
-import { Badge } from '../../../components/ui/Badge';
-import { Modal } from '../../../components/ui/Modal';
-import {
-  usePlatformStore,
-  detectMediaType,
-} from '../../../store/usePlatformStore';
 import { useCurriculumStore } from '../store/curriculum.store';
-import {
-  validateResourceUrl,
-  UrlValidationResult,
-} from '../../../utils/urlValidation.util';
-import type { LessonResourceAttachment } from '../../../types/curriculum.types';
+import { curriculumService } from '../services/curriculum.service';
+import { resourceService } from '../services/resource.service';
+import { coursesService } from '../../../services/courses.service';
 
 export const ResourcePickerPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { courseUuid = '550e8400-e29b-41d4-a716-446655440000' } = useParams<{
-    courseUuid?: string;
-  }>();
+  const { courseUuid } = useParams<{ courseUuid?: string }>();
 
   const moduleUuid = searchParams.get('moduleUuid') || '';
   const lessonUuid = searchParams.get('lessonUuid') || '';
 
-  const mediaAssets = usePlatformStore((state) => state.mediaAssets || []);
-  const totalCredits = usePlatformStore((state) => state.totalCredits);
-  const touchMediaAssetLastUsed = usePlatformStore(
-    (state) => state.touchMediaAssetLastUsed
-  );
-  const uploadMediaAsset = usePlatformStore((state) => state.uploadMediaAsset);
+  // Route guard: Prevent rendering if parameters are missing or invalid
+  React.useEffect(() => {
+    if (!courseUuid || courseUuid === 'undefined') {
+      navigate('/courses', { replace: true });
+      return;
+    }
+    if (!moduleUuid) {
+      navigate(`/courses/${courseUuid}/curriculum`, { replace: true });
+      return;
+    }
+  }, [courseUuid, moduleUuid, navigate]);
 
   const allModules = useCurriculumStore((state) => state.modules);
   const allLessons = useCurriculumStore((state) => state.lessons);
-  const attachResourceToLesson = useCurriculumStore(
-    (state) => state.attachResourceToLesson
-  );
 
   const selectedModule =
     allModules.find((m) => m.uuid === moduleUuid) ||
     allModules.find((m) => m.courseUuid === courseUuid) ||
     allModules[0];
-  const selectedLesson = allLessons.find((l) => l.uuid === lessonUuid);
+
+  // Resolve actual backend lesson object strictly from curriculum store
+  const selectedLesson = allLessons.find((l) => l.id === lessonUuid || l.uuid === lessonUuid);
 
   const contextTitle = selectedLesson
     ? `${selectedLesson.title}`
@@ -70,85 +54,113 @@ export const ResourcePickerPage: React.FC = () => {
     ? `${selectedModule.title}`
     : 'Curriculum';
 
-  // Navigation Tabs State (3 Primary Options)
-  const [activeTab, setActiveTab] = useState<'search' | 'upload' | 'url'>('search');
+  // Resource Source State
+  const [resourceSource, setResourceSource] = useState<'UPLOAD' | 'URL'>('URL');
 
-  // Option 1: Search Existing State
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
-
-  // Option 2: Upload File State
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [stagedFile, setStagedFile] = useState<File | null>(null);
+  // File Upload State
+  const [uploadedMediaId, setUploadedMediaId] = useState<string | null>(null);
+  const [uploadedFileObj, setUploadedFileObj] = useState<{ name: string; sizeMb: string; url: string } | null>(null);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [fileUploadError, setFileUploadError] = useState<string | null>(null);
 
-  // Option 3: Add by URL State
-  const [urlInput, setUrlInput] = useState('');
-  const [urlState, setUrlState] = useState<
-    'idle' | 'validating' | 'valid' | 'invalid'
-  >('idle');
-  const [validationResult, setValidationResult] =
-    useState<UrlValidationResult | null>(null);
+  // Form State
+  const [title, setTitle] = useState('');
+  const [url, setUrl] = useState('');
+  const [description, setDescription] = useState('');
+  const [resourceType, setResourceType] = useState<'link' | 'document' | 'code' | 'video' | 'audio' | 'pdf' | 'other'>('link');
+  const [allowDownload, setAllowDownload] = useState(false);
 
+  // Field Error States
+  const [titleError, setTitleError] = useState('');
+  const [urlError, setUrlError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitNotice, setSubmitNotice] = useState<string | null>(null);
+  const [generalError, setGeneralError] = useState('');
 
-  // Unsaved confirmation modal state
-  const [showDiscardModal, setShowDiscardModal] = useState(false);
-
-  const getFormatIcon = (format: string, name: string) => {
-    const mType = detectMediaType(format, name);
-    if (mType === 'video') return <FileVideo className="w-5 h-5 text-blue-600" />;
-    if (mType === 'audio') return <FileAudio className="w-5 h-5 text-indigo-600" />;
-    if (mType === 'image') return <ImageIcon className="w-5 h-5 text-emerald-600" />;
-    if (mType === 'document') return <FileText className="w-5 h-5 text-amber-600" />;
-    return <FileCode className="w-5 h-5 text-slate-600" />;
+  const isValidHttpUrl = (str: string): boolean => {
+    if (!str || !str.trim()) return false;
+    const clean = str.trim().toLowerCase();
+    return clean.startsWith('http://') || clean.startsWith('https://');
   };
 
-  const filteredAssets = mediaAssets.filter((asset) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase().trim();
-    return (
-      asset.name.toLowerCase().includes(q) ||
-      asset.format.toLowerCase().includes(q) ||
-      asset.folder.toLowerCase().includes(q)
-    );
-  });
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const selectedAsset = mediaAssets.find((a) => a.id === selectedAssetId);
+    setUrlError('');
+    setIsUploadingFile(true);
+    setUploadProgress(20);
 
-  // Calculate storage credits required for staged file
-  const fileCreditsRequired = stagedFile
-    ? Math.max(1, Math.ceil(stagedFile.size / (1024 * 1024 * 50)))
-    : 0;
-
-  // Check duplicate URL in media library
-  const matchingExistingAsset = validationResult?.isValid
-    ? mediaAssets.find(
-        (a) =>
-          a.url.toLowerCase() === validationResult.normalizedUrl.toLowerCase()
-      )
-    : null;
-
-  const handleValidateUrl = async (rawUrl: string) => {
-    if (!rawUrl.trim()) {
-      setUrlState('idle');
-      setValidationResult(null);
-      return;
+    try {
+      setUploadProgress(50);
+      const media = await coursesService.uploadMedia(file);
+      setUploadProgress(100);
+      setUploadedMediaId(media.id);
+      setUploadedFileObj({
+        name: media.original_filename || file.name,
+        sizeMb: (file.size / (1024 * 1024)).toFixed(1),
+        url: media.url,
+      });
+      if (!title.trim()) {
+        setTitle(media.original_filename || file.name);
+        setTitleError('');
+      }
+    } catch (err: any) {
+      setUrlError(err?.message || 'File upload failed. Please try again.');
+    } finally {
+      setIsUploadingFile(false);
     }
+  };
 
-    setUrlState('validating');
-    setSubmitNotice(null);
+  const handleRemoveUploadedFile = () => {
+    setUploadedMediaId(null);
+    setUploadedFileObj(null);
+    setUrlError('');
+  };
 
-    const result = await validateResourceUrl(rawUrl);
-    setValidationResult(result);
-    if (result.isValid) {
-      setUrlState('valid');
+  const validateForm = (): boolean => {
+    let isValid = true;
+
+    // 1. Title validation
+    if (!title.trim()) {
+      setTitleError('Resource title is required.');
+      isValid = false;
     } else {
-      setUrlState('invalid');
+      setTitleError('');
     }
+
+    // 2. Source validation
+    if (resourceSource === 'UPLOAD') {
+      if (!uploadedMediaId && !uploadedFileObj) {
+        setUrlError('Please upload a file before saving this resource.');
+        isValid = false;
+      } else {
+        setUrlError('');
+      }
+    } else {
+      if (!url.trim()) {
+        setUrlError('Resource URL is required.');
+        isValid = false;
+      } else if (!isValidHttpUrl(url)) {
+        setUrlError('Resource URL must start with http:// or https://');
+        isValid = false;
+      } else {
+        setUrlError('');
+      }
+    }
+
+    if (!isValid) {
+      setTimeout(() => {
+        const firstErrorEl =
+          document.getElementById('resource-title-input') ||
+          document.getElementById('resource-url-input');
+        if (firstErrorEl) {
+          firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstErrorEl.focus();
+        }
+      }, 50);
+    }
+
+    return isValid;
   };
 
   const handleReturnToParent = () => {
@@ -159,629 +171,276 @@ export const ResourcePickerPage: React.FC = () => {
     }
   };
 
-  const handleBackClick = () => {
-    if (
-      (activeTab === 'url' && urlInput.trim() && urlState === 'valid') ||
-      (activeTab === 'search' && selectedAssetId) ||
-      (activeTab === 'upload' && stagedFile)
-    ) {
-      setShowDiscardModal(true);
-      return;
-    }
-    handleReturnToParent();
-  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
 
-  // Action 1: Add Selected Search Asset
-  const handleAddSelectedAsset = () => {
-    if (!selectedAsset) return;
-    setIsSubmitting(true);
-    setSubmitNotice(null);
+    const canonicalLessonId = selectedLesson?.id || selectedLesson?.uuid || lessonUuid;
 
-    touchMediaAssetLastUsed(selectedAsset.id);
-    const mType = detectMediaType(selectedAsset.format, selectedAsset.name);
-
-    const attachment: LessonResourceAttachment = {
-      id: `att-${Date.now()}`,
-      name: selectedAsset.name,
-      type: mType === 'video' ? 'video' : mType === 'audio' ? 'audio' : mType === 'image' ? 'image' : 'document',
-      url: selectedAsset.url,
-      sizeMb: selectedAsset.sizeMb,
-      provider: 'Media Library',
-      attachedAt: new Date().toISOString(),
-      mediaAssetId: selectedAsset.id,
-    };
-
-    if (lessonUuid) {
-      const isNew = attachResourceToLesson(lessonUuid, attachment);
-      if (!isNew) {
-        setIsSubmitting(false);
-        setSubmitNotice('This resource is already attached to the lesson.');
-        return;
-      }
-    }
-
-    setTimeout(() => {
-      handleReturnToParent();
-    }, 300);
-  };
-
-  // Action 2: Upload File & Add
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setStagedFile(file);
-    setFileUploadError(null);
-    setUploadProgress(0);
-  };
-
-  const handleAddUploadedFile = () => {
-    if (!stagedFile) return;
-    if (fileCreditsRequired > totalCredits) {
-      setFileUploadError(
-        `Insufficient storage credits. Required: ${fileCreditsRequired}, Available: ${totalCredits}.`
-      );
+    if (!canonicalLessonId || !selectedLesson) {
+      setGeneralError('A valid saved lesson is required before adding resources.');
       return;
     }
 
-    setIsUploadingFile(true);
     setIsSubmitting(true);
-    setFileUploadError(null);
+    setGeneralError('');
 
-    // Simulate progress
-    let p = 0;
-    const interval = setInterval(() => {
-      p += 25;
-      setUploadProgress(Math.min(p, 100));
-      if (p >= 100) {
-        clearInterval(interval);
-        const formatExt = stagedFile.name.split('.').pop()?.toLowerCase() || 'file';
-        const sizeMb = Number((stagedFile.size / (1024 * 1024)).toFixed(1)) || 0.1;
-        const uploadedAsset = uploadMediaAsset({
-          name: stagedFile.name,
-          sizeMb,
-          format: formatExt,
-          folder: 'Lesson Resources',
-        });
-
-        const mType = detectMediaType(formatExt, stagedFile.name);
-        const attachment: LessonResourceAttachment = {
-          id: `att-${Date.now()}`,
-          name: uploadedAsset.name,
-          type: mType === 'video' ? 'video' : mType === 'audio' ? 'audio' : mType === 'image' ? 'image' : 'document',
-          url: uploadedAsset.url,
-          sizeMb: uploadedAsset.sizeMb,
-          provider: 'Uploaded File',
-          attachedAt: new Date().toISOString(),
-          mediaAssetId: uploadedAsset.id,
-        };
-
-        if (lessonUuid) {
-          attachResourceToLesson(lessonUuid, attachment);
-        }
-
-        setTimeout(() => {
-          setIsUploadingFile(false);
-          handleReturnToParent();
-        }, 300);
-      }
-    }, 200);
-  };
-
-  // Action 3: Add URL Resource
-  const handleAddUrlResource = () => {
-    if (!validationResult || !validationResult.isValid) return;
-    setIsSubmitting(true);
-    setSubmitNotice(null);
-
-    let assetId: string | undefined;
-    if (matchingExistingAsset) {
-      touchMediaAssetLastUsed(matchingExistingAsset.id);
-      assetId = matchingExistingAsset.id;
-    } else {
-      const createdAsset = uploadMediaAsset({
-        name: validationResult.title || 'External Resource',
-        sizeMb: 0.1,
-        format: validationResult.resourceType,
-        folder: 'External Links',
+    try {
+      await resourceService.create(canonicalLessonId, {
+        title: title.trim(),
+        url: resourceSource === 'URL' ? url.trim() : (uploadedFileObj?.url || ''),
+        media_file_id: resourceSource === 'UPLOAD' ? (uploadedMediaId || undefined) : undefined,
+        description: description.trim(),
+        resource_type: resourceType,
+        allow_download: allowDownload,
       });
-      assetId = createdAsset.id;
-    }
 
-    const attachment: LessonResourceAttachment = {
-      id: `att-${Date.now()}`,
-      name: validationResult.title || 'External Resource',
-      type: validationResult.resourceType,
-      url: validationResult.normalizedUrl,
-      provider: validationResult.provider,
-      attachedAt: new Date().toISOString(),
-      mediaAssetId: assetId,
-    };
-
-    if (lessonUuid) {
-      const isNew = attachResourceToLesson(lessonUuid, attachment);
-      if (!isNew) {
-        setIsSubmitting(false);
-        setSubmitNotice('This URL resource is already attached to the lesson.');
-        return;
-      }
-    }
-
-    setTimeout(() => {
       handleReturnToParent();
-    }, 300);
+    } catch (err: any) {
+      console.error('Failed to create lesson resource:', {
+        lessonId: canonicalLessonId,
+        uploadedMediaId,
+        error: err,
+      });
+      const apiMsg = err?.response?.data?.error?.message || err?.message;
+      setGeneralError(apiMsg && typeof apiMsg === 'string' ? apiMsg : 'Unable to save resource to backend. Please check connection and try again.');
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <FormPageLayout
-      title="Add Resource"
-      subtitle={`Adding to: ${contextTitle}`}
+      title="Add Resource Link"
+      subtitle={`Adding resource to: ${contextTitle}`}
       backUrl={`/courses/${courseUuid}/curriculum`}
-      onBackClick={handleBackClick}
       breadcrumbs={[
         { label: 'Curriculum', url: `/courses/${courseUuid}/curriculum` },
         { label: contextTitle, url: `/courses/${courseUuid}/curriculum` },
         { label: 'Add Resource' },
       ]}
     >
-      <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 font-sans text-left space-y-5">
-        {/* Method Segmented Control / Responsive Tabs */}
-        <div className="grid grid-cols-3 gap-1 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
-          <button
-            type="button"
-            onClick={() => setActiveTab('search')}
-            className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 truncate ${
-              activeTab === 'search'
-                ? 'bg-white text-[#2563EB] shadow-2xs font-extrabold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Search className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Search Existing</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('upload')}
-            className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 truncate ${
-              activeTab === 'upload'
-                ? 'bg-white text-[#2563EB] shadow-2xs font-extrabold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <UploadCloud className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Upload File</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('url')}
-            className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 truncate ${
-              activeTab === 'url'
-                ? 'bg-white text-[#2563EB] shadow-2xs font-extrabold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Globe className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Add by URL</span>
-          </button>
-        </div>
-
-        {submitNotice && (
-          <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-semibold flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>{submitNotice}</span>
-          </div>
-        )}
-
-        {/* OPTION 1: SEARCH EXISTING */}
-        {activeTab === 'search' && (
-          <div className="space-y-4 bg-white border border-slate-200 p-5 rounded-2xl shadow-2xs">
-            <div>
-              <label className="block text-xs font-bold text-slate-900 mb-1.5">
-                Search Media Library &amp; Platform Resources
-              </label>
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search resources..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
-                />
+      <div className="w-full max-w-2xl mx-auto px-3 sm:px-6 py-6 font-sans text-left space-y-5">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] p-5 sm:p-6 rounded-2xl shadow-2xs dark:shadow-[0_4px_14px_rgba(37,99,235,0.05)] space-y-5">
+          <div className="border-b border-slate-200 dark:border-[#263244] pb-3.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-[rgba(37,99,235,0.10)] border border-blue-100 dark:border-[rgba(59,130,246,0.18)] text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center shrink-0">
+                <Link2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-[#F8FAFC] truncate">
+                  Resource Details
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal truncate">
+                  Add downloadable materials or external references for learners.
+                </p>
               </div>
             </div>
 
-            {/* Results Grid / List */}
-            <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1 no-scrollbar">
-              {filteredAssets.length > 0 ? (
-                filteredAssets.map((asset) => {
-                  const isSelected = selectedAssetId === asset.id;
-                  const mType = detectMediaType(asset.format, asset.name);
-
-                  return (
-                    <div
-                      key={asset.id}
-                      onClick={() => setSelectedAssetId(asset.id)}
-                      className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-blue-50/90 border-blue-600 ring-1 ring-blue-600/30'
-                          : 'bg-white border-slate-200 hover:border-blue-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        {asset.thumbnailUrl ? (
-                          <img
-                            src={asset.thumbnailUrl}
-                            alt={asset.name}
-                            className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-                            {getFormatIcon(asset.format, asset.name)}
-                          </div>
-                        )}
-
-                        <div className="min-w-0">
-                          <h4 className="text-xs font-bold text-slate-900 truncate">
-                            {asset.name}
-                          </h4>
-                          <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5 flex-wrap">
-                            <Badge
-                              variant="outline"
-                              size="sm"
-                              className="capitalize text-[10px] py-0"
-                            >
-                              {mType}
-                            </Badge>
-                            <span>{asset.sizeMb} MB</span>
-                            <span>• {asset.folder}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="shrink-0">
-                        {isSelected ? (
-                          <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center">
-                            <Check className="w-4 h-4" />
-                          </div>
-                        ) : (
-                          <span className="text-xs font-semibold text-slate-400 hover:text-blue-600">
-                            Select
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                  <p className="text-xs font-bold text-slate-700">
-                    No matching resources found
-                  </p>
-                  <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
-                    Could not find resources matching "{searchQuery}". You can upload a new file or add an external URL.
-                  </p>
-                  <div className="flex items-center justify-center gap-2">
-                    <Button
-                      type="button"
-                      size="xs"
-                      onClick={() => setActiveTab('upload')}
-                      className="bg-blue-600 text-white font-bold"
-                    >
-                      Upload File
-                    </Button>
-                    <Button
-                      type="button"
-                      size="xs"
-                      variant="outline"
-                      onClick={() => setActiveTab('url')}
-                    >
-                      Add by URL
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Bottom Actions */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
-              <Button
+            {/* Resource Source Mode Switcher */}
+            <div className="inline-flex items-center p-1 bg-slate-100 dark:bg-[#0F172A] rounded-xl border border-slate-200 dark:border-[#334155] shrink-0">
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleReturnToParent}
+                onClick={() => {
+                  setResourceSource('UPLOAD');
+                  setUrlError('');
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  resourceSource === 'UPLOAD'
+                    ? 'bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs'
+                    : 'text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white'
+                }`}
               >
-                Cancel
-              </Button>
-              <Button
+                <Upload className="w-3.5 h-3.5" />
+                <span>Upload File</span>
+              </button>
+              <button
                 type="button"
-                size="sm"
-                disabled={!selectedAssetId || isSubmitting}
-                onClick={handleAddSelectedAsset}
-                className="bg-[#2563EB] hover:bg-blue-700 text-white font-semibold px-5"
+                onClick={() => {
+                  setResourceSource('URL');
+                  setUrlError('');
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  resourceSource === 'URL'
+                    ? 'bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs'
+                    : 'text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white'
+                }`}
               >
-                {isSubmitting ? (
-                  <span className="flex items-center gap-1.5">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Adding...
-                  </span>
-                ) : (
-                  'Add Selected'
-                )}
-              </Button>
+                <Link2 className="w-3.5 h-3.5" />
+                <span>Use URL</span>
+              </button>
             </div>
           </div>
-        )}
 
-        {/* OPTION 2: UPLOAD FILE */}
-        {activeTab === 'upload' && (
-          <div className="space-y-4 bg-white border border-slate-200 p-5 rounded-2xl shadow-2xs">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.mp4,.mp3,.png,.jpg,.jpeg,.webp"
-              className="hidden"
+          {generalError && (
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-300 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+              <span>{generalError}</span>
+            </div>
+          )}
+
+          {/* Field: Resource Title */}
+          <div>
+            <label className="block text-xs font-medium text-slate-700 dark:text-[#CBD5E1] mb-1">
+              Resource Title <span className="text-rose-500 dark:text-[#F87171]">*</span>
+            </label>
+            <Input
+              id="resource-title-input"
+              value={title}
+              autoFocus
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (e.target.value.trim()) setTitleError('');
+              }}
+              placeholder="e.g. Official Documentation / Exercise Starter Repository"
+              className="h-11 text-xs sm:text-sm font-medium rounded-xl bg-white dark:bg-[#0F172A] border-slate-300 dark:border-[#334155] text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B] focus:border-[#3B82F6]"
+              error={titleError}
             />
+          </div>
 
-            {!stagedFile ? (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="p-8 border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl text-center bg-slate-50 hover:bg-blue-50/40 transition-all cursor-pointer space-y-3"
-              >
-                <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto">
-                  <UploadCloud className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm font-bold text-slate-900">
-                    Click to choose a file or drag &amp; drop
-                  </p>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Supports PDF, DOCX, PPTX, XLSX, ZIP, Images, Audio, Video (Up to 500 MB)
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                      <File className="w-5 h-5" />
+          {/* Field: UPLOAD FILE MODE */}
+          {resourceSource === 'UPLOAD' && (
+            <div className="space-y-3">
+              <label className="block text-xs font-medium text-slate-700 dark:text-[#CBD5E1]">
+                Upload Resource File <span className="text-rose-500 dark:text-[#F87171]">*</span>
+              </label>
+              {!uploadedFileObj ? (
+                <div className="relative border-2 border-dashed border-slate-300 dark:border-[#475569] hover:border-[#3B82F6] dark:hover:border-[#3B82F6] bg-slate-50 dark:bg-[#0F172A] hover:bg-slate-100/50 dark:hover:bg-[#172033] rounded-2xl p-6 text-center transition-all">
+                  <input
+                    type="file"
+                    onChange={handleFileUpload}
+                    disabled={isUploadingFile}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  <div className="flex flex-col items-center justify-center space-y-2">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center">
+                      {isUploadingFile ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
                     </div>
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-bold text-slate-900 truncate">
-                        {stagedFile.name}
-                      </h4>
-                      <p className="text-[11px] text-slate-500">
-                        {(stagedFile.size / (1024 * 1024)).toFixed(1)} MB • {stagedFile.type || 'Document'}
+                    <div>
+                      <p className="text-xs font-semibold text-slate-900 dark:text-[#F8FAFC]">
+                        {isUploadingFile ? 'Uploading file to storage...' : 'Click or drag file to upload'}
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] mt-0.5">
+                        Supports PDF, DOCX, ZIP, MP4, MP3, PNG, JPG (Max 50MB)
                       </p>
                     </div>
+                    {isUploadingFile && (
+                      <div className="w-full max-w-xs bg-slate-200 dark:bg-[#1E293B] h-1.5 rounded-full overflow-hidden mt-2">
+                        <div className="bg-[#2563EB] dark:bg-[#3B82F6] h-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                      </div>
+                    )}
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStagedFile(null);
-                      setFileUploadError(null);
-                    }}
-                    className="p-1 text-slate-400 hover:text-rose-600 rounded-lg cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
-
-                {/* Storage Credit Info */}
-                <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-900 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Coins className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span>
-                      Storage Credits Required: <strong>{fileCreditsRequired} Credit{fileCreditsRequired > 1 ? 's' : ''}</strong>
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-slate-600">
-                    Available: <strong>{totalCredits}</strong>
-                  </span>
-                </div>
-
-                {/* Upload Progress */}
-                {isUploadingFile && (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs text-slate-600 font-semibold">
-                      <span>Uploading resource...</span>
-                      <span>{uploadProgress}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-600 transition-all duration-200"
-                        style={{ width: `${uploadProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {fileUploadError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>{fileUploadError}</span>
-              </div>
-            )}
-
-            {/* Bottom Actions */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleReturnToParent}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                disabled={!stagedFile || isSubmitting}
-                onClick={handleAddUploadedFile}
-                className="bg-[#2563EB] hover:bg-blue-700 text-white font-semibold px-5"
-              >
-                {isUploadingFile ? (
-                  <span className="flex items-center gap-1.5">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Uploading...
-                  </span>
-                ) : (
-                  'Add Resource'
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* OPTION 3: ADD BY URL */}
-        {activeTab === 'url' && (
-          <div className="space-y-4 bg-white border border-slate-200 p-5 rounded-2xl shadow-2xs">
-            <div>
-              <label className="block text-xs font-bold text-slate-900 mb-1">
-                Resource URL <span className="text-rose-500">*</span>
-              </label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="text"
-                  value={urlInput}
-                  onChange={(e) => {
-                    setUrlInput(e.target.value);
-                    if (urlState !== 'idle') handleValidateUrl(e.target.value);
-                  }}
-                  placeholder="https://www.youtube.com/watch?v=... or https://example.com/document.pdf"
-                  className="h-10 text-xs sm:text-sm flex-1"
-                  error={
-                    urlState === 'invalid' && validationResult?.error
-                      ? validationResult.error
-                      : undefined
-                  }
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => handleValidateUrl(urlInput)}
-                  className="h-10 bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 shrink-0"
-                >
-                  {urlState === 'validating' ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    'Check URL'
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            {/* Validation State Feedbacks */}
-            {urlState === 'validating' && (
-              <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 font-semibold flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-blue-600 shrink-0" />
-                <span>Checking URL format and resource availability...</span>
-              </div>
-            )}
-
-            {urlState === 'invalid' && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>{validationResult?.error || 'Please enter a valid supported URL.'}</span>
-              </div>
-            )}
-
-            {/* Validated Preview Card */}
-            {urlState === 'valid' && validationResult && (
-              <div className="space-y-3">
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-2">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <strong className="text-xs font-bold text-slate-900">
-                        URL Validated
+              ) : (
+                <div className="p-4 bg-slate-50 dark:bg-[#172033] border border-slate-200 dark:border-[#334155] rounded-xl flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <div className="min-w-0">
+                      <strong className="text-xs text-slate-900 dark:text-[#F8FAFC] block truncate font-semibold">
+                        {uploadedFileObj.name}
                       </strong>
+                      <span className="text-[10px] text-slate-500 dark:text-[#94A3B8]">
+                        {uploadedFileObj.sizeMb} MB • Uploaded & Linked to Storage
+                      </span>
                     </div>
-                    <Badge variant="neutral" size="sm" className="capitalize">
-                      {validationResult.resourceType}
-                    </Badge>
                   </div>
-
-                  <div className="space-y-1">
-                    <h4 className="text-xs font-bold text-slate-900">
-                      {validationResult.title}
-                    </h4>
-                    <p className="text-[11px] text-slate-500 font-mono truncate flex items-center gap-1">
-                      <ExternalLink className="w-3 h-3 text-slate-400 shrink-0" />
-                      <span>{validationResult.normalizedUrl}</span>
-                    </p>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    onClick={handleRemoveUploadedFile}
+                    className="text-rose-600 dark:text-[#F87171] hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold"
+                  >
+                    Remove
+                  </Button>
                 </div>
-
-                {matchingExistingAsset && (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-medium flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>
-                      Matching asset found in Media Library (<strong>{matchingExistingAsset.name}</strong>). Existing asset will be reused.
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Bottom Actions */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleReturnToParent}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                disabled={urlState !== 'valid' || isSubmitting}
-                onClick={handleAddUrlResource}
-                className="bg-[#2563EB] hover:bg-blue-700 text-white font-semibold px-5"
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center gap-1.5">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Adding...
-                  </span>
-                ) : (
-                  'Add Resource'
-                )}
-              </Button>
+              )}
+              {urlError && resourceSource === 'UPLOAD' && (
+                <p className="text-xs font-semibold text-rose-600 dark:text-[#F87171]">
+                  {urlError}
+                </p>
+              )}
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Discard Confirmation Modal */}
-      <Modal
-        isOpen={showDiscardModal}
-        onClose={() => setShowDiscardModal(false)}
-        title="Discard Unsaved Resource?"
-      >
-        <div className="space-y-4 text-xs text-left font-sans">
-          <p className="text-slate-600">
-            You have selected, uploaded, or validated a resource that has not been added yet. Leaving now will discard your changes.
-          </p>
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+          {/* Field: Resource URL */}
+          {resourceSource === 'URL' && (
+            <div>
+              <label className="block text-xs font-medium text-slate-700 dark:text-[#CBD5E1] mb-1 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
+                <span>Resource URL</span> <span className="text-rose-500 dark:text-[#F87171]">*</span>
+              </label>
+              <Input
+                id="resource-url-input"
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  if (isValidHttpUrl(e.target.value)) setUrlError('');
+                }}
+                placeholder="https://github.com/... or https://docs.example.com/guide.pdf"
+                className="h-11 text-xs sm:text-sm font-medium rounded-xl bg-white dark:bg-[#0F172A] border-slate-300 dark:border-[#334155] text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B] focus:border-[#3B82F6]"
+                error={urlError}
+              />
+            </div>
+          )}
+
+          {/* Field: Allow Download Toggle */}
+          <div className="p-3.5 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl flex items-center justify-between">
+            <div>
+              <span className="text-xs font-medium text-slate-900 dark:text-[#F8FAFC] block">Allow Download</span>
+              <span className="text-[10px] text-slate-500 dark:text-[#94A3B8]">Permit learners to save this resource file</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={allowDownload}
+              onChange={(e) => setAllowDownload(e.target.checked)}
+              className="w-4 h-4 text-[#2563EB] rounded cursor-pointer accent-[#2563EB]"
+            />
+          </div>
+
+          {/* Field: Description (Optional) */}
+          <div>
+            <label className="block text-xs font-medium text-slate-700 dark:text-[#CBD5E1] mb-1">
+              Description <span className="text-slate-500 dark:text-[#94A3B8] font-normal">(Optional)</span>
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Provide context or instructions for using this resource..."
+              rows={3}
+              className="w-full p-3 bg-white dark:bg-[#0F172A] border border-slate-300 dark:border-[#334155] rounded-xl text-xs sm:text-sm text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B] focus:outline-none focus:border-blue-600 dark:focus:border-[#3B82F6] font-normal resize-y"
+            />
+          </div>
+
+          {/* Bottom Action Buttons */}
+          <div className="flex w-full min-w-0 flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pt-4 border-t border-slate-200 dark:border-[#263244]">
             <Button
+              type="button"
               variant="outline"
-              onClick={() => setShowDiscardModal(false)}
+              size="sm"
+              onClick={handleReturnToParent}
+              className="w-full sm:w-auto min-h-[42px] px-5 text-xs font-medium bg-white dark:bg-[#111827] border-slate-300 dark:border-[#334155] text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC] dark:hover:border-[#475569]"
             >
-              Keep Editing
+              Cancel
             </Button>
             <Button
-              onClick={handleReturnToParent}
-              className="bg-rose-600 hover:bg-rose-700 text-white font-semibold"
+              type="submit"
+              size="sm"
+              disabled={isSubmitting || isUploadingFile}
+              className="w-full sm:w-auto min-h-[42px] px-5 text-xs font-medium bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl cursor-pointer shadow-2xs dark:shadow-[0_4px_12px_rgba(37,99,235,0.12)]"
             >
-              Discard &amp; Exit
+              {isSubmitting ? (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Saving Resource...
+                </span>
+              ) : (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Plus className="w-4 h-4 stroke-[2.5]" /> Add Resource
+                </span>
+              )}
             </Button>
           </div>
-        </div>
-      </Modal>
+        </form>
+      </div>
     </FormPageLayout>
   );
 };

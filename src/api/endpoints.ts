@@ -13,22 +13,30 @@ export const API_ENDPOINTS = {
   },
   ACADEMY: {
     DETAIL: "/api/v1/academy/",
+    PROFILE: "/api/v1/academy/profile/",
     SETTINGS: "/api/v1/academy/settings/",
   },
+
   COURSES: {
     LIST: "/api/v1/courses/",
     DETAIL: (id: string) => `/api/v1/courses/${id}/`,
-    MODULES: (courseId: string) => `/api/v1/courses/${courseId}/modules/`,
-    LESSONS: (courseId: string, moduleId: string) => `/api/v1/courses/${courseId}/modules/${moduleId}/lessons/`,
+    MODULES: (courseId: string) => `/api/v1/modules/courses/${courseId}/modules/`,
   },
+
   STUDENTS: {
-    LIST: "/api/v1/students/",
-    DETAIL: (id: string) => `/api/v1/students/${id}/`,
-    ENROLL: "/api/v1/students/enroll/",
+    LIST: "/api/v1/students/students/",
+    DETAIL: (id: string) => `/api/v1/students/students/${id}/`,
+    ENROLL: "/api/v1/students/students/enroll/",
   },
   DASHBOARD: {
     STATS: "/api/v1/dashboard/stats/",
   },
+  ANALYTICS: {
+    DASHBOARD: "/api/v1/analytics/analytics/dashboard/",
+    COURSES: "/api/v1/analytics/analytics/courses/",
+    REVENUE: "/api/v1/analytics/analytics/revenue/",
+  },
+
   ASSIGNMENTS: {
     LIST: "/api/v1/assignments/",
     DETAIL: (id: string) => `/api/v1/assignments/${id}/`,

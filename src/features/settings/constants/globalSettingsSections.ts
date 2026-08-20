@@ -21,10 +21,10 @@ export interface GlobalSettingsSectionItem {
 }
 
 export const GLOBAL_SETTINGS_SECTIONS: GlobalSettingsSectionItem[] = [
-  { id: 'profile', label: '1. Instructor Profile', icon: User },
+  { id: 'profile', label: '1. Account & Profile', icon: User },
   { id: 'academy-info', label: '2. Academy Information', icon: Building2 },
-  { id: 'student-branding', label: '3. Student Portal Branding', icon: Palette },
-  { id: 'website-settings', label: '4. Website Settings', icon: Layout },
+  { id: 'appearance', label: '3. Theme & Appearance', icon: Palette },
+  { id: 'student-branding', label: '4. Student Portal Branding', icon: Layout },
   { id: 'payment-gateway', label: '5. Payment Gateways', icon: CreditCard },
   { id: 'notifications', label: '6. Notifications', icon: Bell },
   { id: 'credits-billing', label: '7. Credits & Billing Wallet', icon: Sparkles },

@@ -133,7 +133,7 @@ export const FeatureCreditSummaryBar: React.FC<FeatureCreditSummaryBarProps> = (
 
             <Button
               onClick={() => setShowBreakdown(false)}
-              className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs"
+              className="w-full h-9 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs"
             >
               Close Breakdown
             </Button>

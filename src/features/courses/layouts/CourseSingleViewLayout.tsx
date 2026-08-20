@@ -1,152 +1,116 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   ArrowLeft,
   Edit3,
   Check,
-  Eye,
-  Zap,
-} from 'lucide-react';
-import { useParams, Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Card } from '../../../components/ui/Card';
-import { Button } from '../../../components/ui/Button';
-import { Badge } from '../../../components/ui/Badge';
-import { Modal } from '../../../components/ui/Modal';
-import { useCourseStore } from '../store/course.store';
-import { useCurriculumStore } from '../store/curriculum.store';
-import { useCourseFeaturesStore } from '../store/courseFeatures.store';
-import {
-  COURSE_NAV_SECTIONS,
-} from '../config/courseNavigation.config';
-
+  BookOpen,
+  AlertTriangle,
+  RefreshCw,
+  Folder,
+  BarChart2,
+  Clock,
+} from "lucide-react";
+import { useParams, Link, NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Card } from "../../../components/ui/Card";
+import { Button } from "../../../components/ui/Button";
+import { Badge } from "../../../components/ui/Badge";
+import { Modal } from "../../../components/ui/Modal";
+import { Skeleton } from "../../../components/ui/Skeleton";
+import { coursesService } from "../../../services/courses.service";
+import { useAuthStore } from "../../../store/auth.store";
+import { COURSE_NAV_SECTIONS } from "../config/courseNavigation.config";
+import type { CourseDetail } from "../types/course.types";
+import { SharedCourseHeader } from "../components/SharedCourseHeader";
 
 export const CourseSingleViewLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { courseUuid = '550e8400-e29b-41d4-a716-446655440000' } = useParams<{ courseUuid?: string }>();
+  const { courseUuid } = useParams<{ courseUuid: string }>();
+  const { can } = useAuthStore();
 
-  // State
+  const [course, setCourse] = useState<CourseDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isActionBusy, setIsActionBusy] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // Refs for Mobile Tab Auto-Scroll
   const mobileTabNavRef = useRef<HTMLDivElement>(null);
   const activeMobileTabRef = useRef<HTMLAnchorElement>(null);
 
-  // Store Subscriptions
-  const coursesByUuid = useCourseStore((state) => state.coursesByUuid);
-  const deleteCourse = useCourseStore((state) => state.deleteCourse);
-  const allModules = useCurriculumStore((state) => state.modules);
-  const allLessons = useCurriculumStore((state) => state.lessons);
+  const fetchCourseDetail = useCallback(async () => {
+    if (!courseUuid) return;
+    setIsLoading(true);
+    setIsError(false);
+    setErrorMessage(null);
 
-  // Course Details
-  const course = useMemo(() => {
-    return (
-      coursesByUuid[courseUuid] || {
-        uuid: courseUuid,
-        title: 'React – The Complete Guide 2024',
-        shortDescription:
-          'Master React from scratch and build production-ready web applications. Learn components, hooks, state management, routing, and more.',
-        category: 'Web Development',
-        subcategory: 'React',
-        level: 'Advanced',
-        language: 'English',
-        status: 'published',
-        thumbnailUrl:
-          'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=500&auto=format&fit=crop&q=60',
-        updatedAt: '2026-08-03T10:00:00Z',
-        createdAt: '2024-01-10T10:00:00Z',
-        enrolledStudentsCount: 420,
-        rating: 4.8,
-        reviewCount: 128,
-        creditsPerStudent: 17,
-      }
-    );
-  }, [coursesByUuid, courseUuid]);
+    try {
+      const data = await coursesService.getCourse(courseUuid);
+      setCourse(data);
+    } catch (err: any) {
+      setIsError(true);
+      setErrorMessage(err?.message || "Failed to load course details from server.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [courseUuid]);
 
-  // Derived Curriculum
-  const modules = useMemo(
-    () => allModules.filter((m) => m.courseUuid === courseUuid).sort((a, b) => a.sortOrder - b.sortOrder),
-    [allModules, courseUuid]
-  );
-
-  const moduleUuids = useMemo(() => modules.map((m) => m.uuid), [modules]);
-
-  const courseLessons = useMemo(
-    () => allLessons.filter((l) => moduleUuids.includes(l.moduleUuid)),
-    [allLessons, moduleUuids]
-  );
-
-  const totalLessons = courseLessons.length || 36;
-  const totalDurationMinutes = useMemo(
-    () => courseLessons.reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0),
-    [courseLessons]
-  );
-
-  const hours = Math.floor(totalDurationMinutes / 60) || 8;
-  const mins = totalDurationMinutes % 60 || 45;
-  const durationFormatted = `${hours}h ${mins}m`;
-
-  // Detect current active tab from pathname
-  const pathParts = location.pathname.split('/');
-  const currentRoute = pathParts[pathParts.length - 1] || 'overview';
+  useEffect(() => {
+    fetchCourseDetail();
+  }, [fetchCourseDetail]);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3000);
   };
 
-  const handleConfirmDelete = () => {
-    deleteCourse(course.uuid);
-    setIsDeleteModalOpen(false);
-    showToast('Course deleted successfully.');
-    navigate('/courses');
+  const handleConfirmDelete = async () => {
+    if (!courseUuid) return;
+    setIsActionBusy(true);
+    try {
+      await coursesService.deleteCourse(courseUuid);
+      setIsDeleteModalOpen(false);
+      showToast("Course deleted successfully.");
+      navigate("/courses");
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || "Failed to delete course.");
+    } finally {
+      setIsActionBusy(false);
+    }
   };
 
-  // Feature Switches
-  const features = useCourseFeaturesStore((state) => state.getCourseFeatures(courseUuid));
+  // Detect current active tab from pathname
+  const pathParts = location.pathname.split("/");
+  const currentRoute = pathParts[pathParts.length - 1] || "overview";
 
-  // Dynamically filter sections by enabled feature switches
-  const availableSections = useMemo(() => {
-    return COURSE_NAV_SECTIONS.filter((sec) => {
-      if (!sec.requiredFeature) return true;
-      switch (sec.requiredFeature) {
-        case 'assignments':
-          return features.assignments;
-        case 'quizzes':
-          return features.quizzes;
-        case 'live_classes':
-          return features.liveClasses;
-        case 'community_chat':
-          return features.communityChat || features.oneOnOneChat;
-        case 'certificates':
-          return features.certificates;
-        case 'fee_collection':
-          return features.feeCollection;
-        case 'progress_controls':
-          return features.progressControls;
-        default:
-          return true;
-      }
-    });
-  }, [features]);
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-4 max-w-7xl mx-auto text-left">
+        <Skeleton className="h-10 w-48 rounded-xl" />
+        <Skeleton className="h-32 w-full rounded-2xl" />
+        <Skeleton className="h-12 w-full rounded-xl" />
+        <Skeleton className="h-96 w-full rounded-2xl" />
+      </div>
+    );
+  }
 
-  // Auto-scroll active tab into view on route change
-  useEffect(() => {
-    if (activeMobileTabRef.current && mobileTabNavRef.current) {
-      const container = mobileTabNavRef.current;
-      const activeElement = activeMobileTabRef.current;
-
-      const containerRect = container.getBoundingClientRect();
-      const activeRect = activeElement.getBoundingClientRect();
-
-      // Scroll inside container only if out of bounds
-      if (activeRect.left < containerRect.left || activeRect.right > containerRect.right) {
-        activeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      }
-    }
-  }, [currentRoute]);
-
+  if (isError || !course) {
+    return (
+      <div className="p-8 text-center bg-white rounded-2xl border border-rose-200 space-y-4 max-w-lg mx-auto mt-12">
+        <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
+        <div>
+          <h3 className="text-base font-bold text-slate-900">Course Not Found</h3>
+          <p className="text-xs text-slate-500">{errorMessage || "The requested course could not be loaded."}</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={fetchCourseDetail} leftIcon={<RefreshCw className="w-4 h-4" />}>
+          Retry API
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -163,124 +127,28 @@ export const CourseSingleViewLayout: React.FC = () => {
         </div>
       )}
 
-      {/* 1. COMPACT HEADER BAR */}
-      <div className="space-y-3">
-        {/* Desktop Breadcrumb & Actions */}
-        <div className="hidden sm:flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-[12px] font-medium text-[#64748B]">
-            <Link to="/courses" className="hover:text-[#0F172A] transition-colors">
-              Courses
-            </Link>
-            <span>›</span>
-            <span className="text-[#0F172A] font-semibold truncate max-w-sm">{course.title}</span>
-          </div>
+      {/* 1. REUSABLE SHARED COURSE HEADER */}
+      <SharedCourseHeader course={course} />
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<Eye className="w-3.5 h-3.5 text-[#64748B]" />}
-              onClick={() => showToast('Course preview opened.')}
-              className="h-9 px-3 text-xs font-semibold"
-            >
-              Preview
-            </Button>
-            <Link to={`/courses/${courseUuid}/edit`}>
-              <Button size="sm" leftIcon={<Edit3 className="w-3.5 h-3.5" />} className="h-9 px-3 text-xs font-semibold bg-[#2563EB]">
-                Edit Course
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Mobile Header Bar */}
-        <div className="sm:hidden flex items-start justify-between gap-2 border-b border-[#E2E8F0] pb-2.5">
-          <button
-            type="button"
-            onClick={() => navigate('/courses')}
-            className="p-1 -ml-1 text-[#0F172A] hover:bg-slate-100 rounded-lg flex items-center gap-1.5 cursor-pointer min-w-0 flex-1 text-left"
-          >
-            <ArrowLeft className="w-5 h-5 shrink-0 text-[#0F172A]" />
-            <span className="text-sm font-medium text-[#0F172A] leading-tight line-clamp-2 break-words">{course.title}</span>
-          </button>
-
-          <Badge variant={course.status === 'published' ? 'success' : 'secondary'} size="sm" dot className="shrink-0 mt-0.5 font-medium">
-            {course.status === 'published' ? 'Published' : 'Draft'}
-          </Badge>
-        </div>
-
-        {/* Compact Hero Card (Reduced Height) */}
-        <Card padding="sm" className="bg-white border border-[#E2E8F0] p-3 sm:p-4 rounded-2xl shadow-2xs">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-start gap-3 min-w-0 flex-1 w-full">
-              <img
-                src={course.thumbnailUrl}
-                alt={course.title}
-                className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-cover border border-slate-200 shrink-0"
-              />
-              <div className="min-w-0 flex-1 space-y-1">
-                <h1 className="text-xs sm:text-sm md:text-base font-medium text-[#0F172A] leading-snug line-clamp-2 break-words">
-                  {course.title}
-                </h1>
-                <div className="flex items-center gap-1.5 text-[11px] text-[#64748B] font-normal flex-wrap leading-none">
-                  <span className="inline-flex items-center gap-1">📁 {course.category}</span>
-                  <span className="text-slate-300">•</span>
-                  <span className="inline-flex items-center gap-1">📊 {course.level}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Stats Row */}
-            <div className="w-full sm:w-auto grid grid-cols-4 sm:flex items-center gap-2 sm:gap-4 text-center sm:text-right pt-2.5 sm:pt-0 border-t sm:border-t-0 border-[#E2E8F0] shrink-0">
-              <div>
-                <span className="text-xs sm:text-sm font-medium text-[#0F172A] block">
-                  {course.enrolledStudentsCount || 420}
-                </span>
-                <span className="text-[10px] text-[#64748B] font-normal">Students</span>
-              </div>
-              <div>
-                <span className="text-xs sm:text-sm font-medium text-[#0F172A] block">
-                  {totalLessons}
-                </span>
-                <span className="text-[10px] text-[#64748B] font-normal">Lessons</span>
-              </div>
-              <div>
-                <span className="text-xs sm:text-sm font-medium text-[#0F172A] block">
-                  {durationFormatted}
-                </span>
-                <span className="text-[10px] text-[#64748B] font-normal">Duration</span>
-              </div>
-              <div>
-                <span className="text-xs sm:text-sm font-medium text-[#2563EB] block flex items-center justify-center sm:justify-end gap-0.5">
-                  <Zap className="w-3.5 h-3.5 text-[#2563EB] fill-[#2563EB]/20 shrink-0" />
-                  <span>{course.creditsPerStudent || 17}</span>
-                </span>
-                <span className="text-[10px] text-[#64748B] font-normal">Credits/Stud</span>
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* 2. DESKTOP TABS NAVIGATION */}
+      {/* 2. TABS NAVIGATION */}
       <div className="hidden md:block sticky top-0 z-20">
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-1.5 h-13 flex items-center justify-between shadow-2xs">
+        <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl p-1.5 h-13 flex items-center justify-between shadow-2xs">
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full">
-            {availableSections.map((sec) => {
+            {COURSE_NAV_SECTIONS.map((sec) => {
               const Icon = sec.icon;
               const isActive = currentRoute === sec.route;
 
               return (
                 <NavLink
                   key={sec.id}
-                  to={`/courses/${courseUuid}/${sec.route}`}
+                  to={`/courses/${course.id}/${sec.route}`}
                   className={`h-10 px-4 rounded-xl flex items-center gap-2 text-xs font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     isActive
-                      ? 'bg-[#2563EB] text-white shadow-xs'
-                      : 'text-[#64748B] hover:text-[#2563EB] hover:bg-blue-50/50'
+                      ? "bg-[#2563EB] text-white shadow-xs font-semibold"
+                      : "text-slate-500 dark:text-[#94A3B8] hover:text-[#2563EB] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033]"
                   }`}
                 >
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-[#64748B]'}`} />
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-white" : "text-slate-500 dark:text-[#94A3B8]"}`} />
                   <span>{sec.label}</span>
                 </NavLink>
               );
@@ -289,14 +157,13 @@ export const CourseSingleViewLayout: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. MOBILE HORIZONTAL SCROLLING TABS STRIP (<768px) */}
+      {/* 3. MOBILE TABS */}
       <div
         ref={mobileTabNavRef}
-        className="md:hidden sticky top-0 z-30 bg-white border border-[#E2E8F0] rounded-2xl p-1.5 shadow-2xs overflow-x-auto no-scrollbar touch-pan-x w-full max-w-full min-w-0"
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        className="md:hidden sticky top-0 z-30 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl p-1.5 shadow-2xs overflow-x-auto no-scrollbar touch-pan-x w-full max-w-full min-w-0"
       >
         <div className="flex items-center gap-1.5 flex-nowrap w-max px-1">
-          {availableSections.map((sec) => {
+          {COURSE_NAV_SECTIONS.map((sec) => {
             const Icon = sec.icon;
             const isActive = currentRoute === sec.route;
 
@@ -304,14 +171,14 @@ export const CourseSingleViewLayout: React.FC = () => {
               <NavLink
                 key={sec.id}
                 ref={isActive ? activeMobileTabRef : undefined}
-                to={`/courses/${courseUuid}/${sec.route}`}
+                to={`/courses/${course.id}/${sec.route}`}
                 className={`h-10 px-3.5 rounded-xl flex items-center gap-1.5 text-xs font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 flex-none ${
                   isActive
-                    ? 'bg-[#2563EB] text-white shadow-xs'
-                    : 'text-[#64748B] hover:text-[#2563EB] hover:bg-blue-50/50'
+                    ? "bg-[#2563EB] text-white shadow-xs font-semibold"
+                    : "text-slate-500 dark:text-[#94A3B8] hover:text-[#2563EB] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033]"
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-[#64748B]'}`} />
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-white" : "text-slate-500 dark:text-[#94A3B8]"}`} />
                 <span>{sec.label}</span>
               </NavLink>
             );
@@ -321,7 +188,7 @@ export const CourseSingleViewLayout: React.FC = () => {
 
       {/* 4. ACTIVE SUB-ROUTE OUTLET */}
       <div className="min-h-[500px]">
-        <Outlet />
+        <Outlet context={{ course, fetchCourseDetail }} />
       </div>
 
       {/* DELETE CONFIRMATION MODAL */}
@@ -335,7 +202,7 @@ export const CourseSingleViewLayout: React.FC = () => {
             <Button variant="outline" size="sm" onClick={() => setIsDeleteModalOpen(false)}>
               Cancel
             </Button>
-            <Button size="sm" onClick={handleConfirmDelete} className="bg-rose-600 hover:bg-rose-700 text-white font-semibold">
+            <Button size="sm" disabled={isActionBusy} onClick={handleConfirmDelete} className="bg-rose-600 hover:bg-rose-700 text-white font-semibold">
               Confirm Delete
             </Button>
           </div>
@@ -344,3 +211,4 @@ export const CourseSingleViewLayout: React.FC = () => {
     </motion.div>
   );
 };
+

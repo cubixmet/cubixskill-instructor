@@ -12,12 +12,12 @@ export const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldPro
       <Input
         ref={ref}
         type={showPassword ? "text" : "password"}
-        leftIcon={<Lock className="w-4 h-4" />}
+        leftIcon={<Lock className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />}
         rightIcon={
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
-            className="p-1 hover:text-[#0F172A] transition-colors focus:outline-none"
+            className="p-1 text-[#64748B] dark:text-[#94A3B8] hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors focus:outline-none cursor-pointer"
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? (

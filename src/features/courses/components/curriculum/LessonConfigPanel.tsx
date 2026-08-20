@@ -126,7 +126,6 @@ export const LessonConfigPanel: React.FC<LessonConfigPanelProps> = ({
                   <option value="text">Text Lesson</option>
                   <option value="quiz">Quiz</option>
                   <option value="assignment">Assignment</option>
-                  <option value="project">Project</option>
                 </select>
               </div>
 

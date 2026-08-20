@@ -95,13 +95,13 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ onOpenBuyCredits }) 
   ];
 
   return (
-    <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-2xs text-left">
+    <div className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl p-5 shadow-2xs text-left">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-base font-extrabold text-[#0F172A] tracking-tight">
+          <h3 className="text-base font-extrabold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
             Quick Actions
           </h3>
-          <p className="text-xs font-medium text-[#64748B]">
+          <p className="text-xs font-medium text-[#64748B] dark:text-[#94A3B8]">
             Instant shortcuts for high-frequency academy management tasks
           </p>
         </div>
@@ -114,19 +114,19 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ onOpenBuyCredits }) 
             <motion.div
               whileHover={{ scale: 1.01, y: -2 }}
               whileTap={{ scale: 0.98 }}
-              className="p-3.5 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#E2E8F0] hover:border-[#CBD5E1] rounded-xl transition-all cursor-pointer flex items-center gap-3 group h-full"
+              className="p-3.5 bg-[#FFFFFF] dark:bg-[#111827] hover:bg-[#F8FAFC] dark:hover:bg-[#172033] border border-[#E2E8F0] dark:border-[#263244] hover:border-[#CBD5E1] dark:hover:border-[rgba(59,130,246,0.35)] shadow-xs dark:shadow-[0_4px_16px_rgba(37,99,235,0.08)] rounded-xl transition-all cursor-pointer flex items-center gap-3 group h-full"
             >
-              <div className={`p-2.5 rounded-lg ${action.bgColor} ${action.color} border ${action.borderColor} shrink-0 transition-transform group-hover:scale-110`}>
+              <div className={`p-2.5 rounded-lg ${action.bgColor} dark:bg-[#172033] ${action.color} border ${action.borderColor} dark:border-[#263244] shrink-0 transition-transform group-hover:scale-110`}>
                 <IconComponent className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-1">
-                  <h4 className="text-xs font-bold text-[#0F172A] group-hover:text-[#2563EB] transition-colors truncate">
+                  <h4 className="text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-[#2563EB] dark:group-hover:text-[#60A5FA] transition-colors truncate">
                     {action.title}
                   </h4>
-                  <ArrowRight className="w-3.5 h-3.5 text-[#94A3B8] group-hover:text-[#2563EB] transition-colors shrink-0" />
+                  <ArrowRight className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8] group-hover:text-[#2563EB] dark:group-hover:text-[#60A5FA] transition-colors shrink-0" />
                 </div>
-                <p className="text-[11px] text-[#64748B] truncate mt-0.5">
+                <p className="text-[11px] font-normal text-[#64748B] dark:text-[#94A3B8] truncate mt-0.5">
                   {action.desc}
                 </p>
               </div>

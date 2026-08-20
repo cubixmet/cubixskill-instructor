@@ -52,11 +52,11 @@ export const ModuleEditPage: React.FC = () => {
     },
   });
 
-  const onSubmit = (data: ModuleFormValues) => {
-    if (isSubmitting || !moduleUuid) return;
+  const onSubmit = async (data: ModuleFormValues) => {
+    if (isSubmitting || !moduleUuid || !courseUuid) return;
     try {
       setIsSubmitting(true);
-      curriculumService.updateModule(moduleUuid, {
+      await curriculumService.updateModule(moduleUuid, courseUuid, {
         title: data.title,
         description: data.description || '',
         status: data.status,

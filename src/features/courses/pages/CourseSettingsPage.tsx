@@ -18,6 +18,8 @@ import { useCourseFeaturesStore, DEFAULT_COURSE_FEATURES } from '../store/course
 import { CourseSettingsNav, SETTINGS_SECTIONS } from '../components/settings/CourseSettingsNav';
 import { CourseSettingsSections } from '../components/settings/CourseSettingsSections';
 import { DeleteCourseModal } from '../components/settings/DeleteCourseModal';
+import { coursesService } from '../../../services/courses.service';
+
 
 export const CourseSettingsPage: React.FC = () => {
   const params = useParams<{ courseUuid?: string }>();
@@ -65,23 +67,43 @@ export const CourseSettingsPage: React.FC = () => {
     setLocalSettings((prev) => ({ ...prev, ...updates }));
   };
 
-  const handleSaveChanges = () => {
-    updateCourseSettings(courseUuid, localSettings);
-    setToastMessage('Course configuration settings saved successfully!');
-    setTimeout(() => setToastMessage(null), 3000);
+  const handleSaveChanges = async () => {
+    try {
+      await coursesService.patchCourse(courseUuid, {
+        title: localSettings.title,
+        subtitle: localSettings.subtitle || "",
+        short_description: localSettings.shortDescription || "",
+        description: localSettings.fullDescription || "",
+        level: (localSettings.level?.toUpperCase() as any) || "BEGINNER",
+        language: localSettings.language || "English",
+        visibility: (localSettings.visibility?.toUpperCase() as any) || "PUBLIC",
+        is_free: localSettings.isFree || false,
+        price: localSettings.isFree ? 0 : localSettings.price || 0,
+      });
+      setToastMessage('Course configuration settings saved successfully!');
+      setTimeout(() => setToastMessage(null), 3000);
+    } catch (err: any) {
+      setToastMessage(err?.response?.data?.message || 'Failed to update course settings.');
+      setTimeout(() => setToastMessage(null), 3000);
+    }
   };
 
   const handleResetSettings = () => {
     resetCourseSettings(courseUuid);
     setLocalSettings({ ...DEFAULT_COURSE_SETTINGS });
-    setToastMessage('Reset course settings to platform defaults.');
+    setToastMessage('Reset course settings to defaults.');
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleDeleteCourse = () => {
-    alert(`Course "${localSettings.title}" has been deleted.`);
-    navigate('/courses');
+  const handleDeleteCourse = async () => {
+    try {
+      await coursesService.deleteCourse(courseUuid);
+      navigate('/courses');
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Failed to delete course.');
+    }
   };
+
 
   return (
     <div className="space-y-6 text-left font-sans pb-24">

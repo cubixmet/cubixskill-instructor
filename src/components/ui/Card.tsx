@@ -30,10 +30,10 @@ export const Card: React.FC<CardProps> = ({
       whileHover={hoverable ? { y: -2, boxShadow: "0 10px 30px -10px rgba(0,0,0,0.08)" } : undefined}
       transition={{ duration: 0.2, ease: "easeOut" }}
       className={cn(
-        "bg-white rounded-2xl transition-all duration-200 text-left",
-        bordered && "border border-slate-200/80 shadow-xs",
+        "bg-white dark:bg-[#111827] rounded-2xl transition-all duration-200 text-left",
+        bordered && "border border-slate-200 dark:border-[#263244] shadow-[0_1px_2px_rgba(15,23,42,0.03),0_4px_12px_rgba(15,23,42,0.04)] dark:shadow-[0_4px_14px_rgba(37,99,235,0.06)]",
         paddingClasses[padding],
-        hoverable && "cursor-pointer hover:border-slate-300",
+        hoverable && "cursor-pointer hover:border-slate-300 dark:hover:border-blue-500/40",
         className
       )}
       {...props}

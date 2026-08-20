@@ -9,13 +9,20 @@ import { ForgotPasswordPage } from '../features/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '../features/auth/pages/ResetPasswordPage';
 import { ChangePasswordPage } from '../features/auth/pages/ChangePasswordPage';
 import { SetupPasswordPage } from '../features/auth/pages/SetupPasswordPage';
+import { VerifyOtpPage } from '../features/auth/pages/VerifyOtpPage';
+import { VerifyEmailPage } from '../features/auth/pages/VerifyEmailPage';
+import { AcceptInvitePage } from '../features/auth/pages/AcceptInvitePage';
+import { AccountActivationPage } from '../features/auth/pages/AccountActivationPage';
+import { PasswordUpdatedSuccessPage } from '../features/auth/pages/PasswordUpdatedSuccessPage';
 
 
 import { DashboardPage } from '../features/dashboard/pages/DashboardPage';
 import { CreditsPage } from '../features/credits/pages/CreditsPage';
 import { MediaPage } from '../features/media/pages/MediaPage';
 import { CourseListPage } from '../features/courses/pages/CourseListPage';
+import { CourseCategoryManagerPage } from '../features/courses/pages/CourseCategoryManagerPage';
 import { CourseCreateWizardPage } from '../features/courses/pages/CourseCreateWizardPage';
+
 import { CourseFeaturesPage } from '../features/courses/pages/CourseFeaturesPage';
 
 // Course Single View Layout & Tabs
@@ -74,6 +81,11 @@ export const AppRoutes: React.FC = () => {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/setup-password" element={<SetupPasswordPage />} />
+          <Route path="/verify-otp" element={<VerifyOtpPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/accept-invite" element={<AcceptInvitePage />} />
+          <Route path="/account-activated" element={<AccountActivationPage />} />
+          <Route path="/password-updated" element={<PasswordUpdatedSuccessPage />} />
         </Route>
       </Route>
 
@@ -94,7 +106,9 @@ export const AppRoutes: React.FC = () => {
 
           {/* 2. Courses */}
           <Route path="/courses" element={<CourseListPage />} />
+          <Route path="/courses/categories" element={<CourseCategoryManagerPage />} />
           <Route path="/courses/create" element={<CourseCreateWizardPage />} />
+
 
           {/* Nested Course Single View & Tabs */}
           <Route path="/courses/:courseUuid" element={<CourseSingleViewLayout />}>

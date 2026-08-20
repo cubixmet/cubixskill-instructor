@@ -26,6 +26,7 @@ interface CurriculumState {
 
   // Module Actions
   addModule: (courseUuid: string, data: CreateModuleInput) => CourseModule;
+  addModuleObject: (moduleObj: CourseModule) => void;
   updateModule: (moduleUuid: string, data: UpdateModuleInput) => void;
   deleteModule: (moduleUuid: string) => void;
   duplicateModule: (moduleUuid: string) => CourseModule | null;
@@ -50,128 +51,14 @@ interface CurriculumState {
   duplicateSubsection: (lessonUuid: string, subsectionUuid: string) => CourseLessonSubsection | null;
   reorderSubsections: (lessonUuid: string, orderedSubsectionUuids: string[]) => void;
 
+  // Bulk setters for backend sync
+  setModules: (modules: CourseModule[]) => void;
+  setLessons: (lessons: CourseLesson[]) => void;
+
   // Helper calculations
   getCalculatedModuleDuration: (moduleUuid: string) => number;
   getCalculatedCourseDuration: (courseUuid: string) => number;
 }
-
-// Initial Seed Data
-const SEED_MODULES: CourseModule[] = [
-  {
-    uuid: '550e8400-e29b-41d4-a716-446655441001',
-    courseUuid: '550e8400-e29b-41d4-a716-446655440000',
-    title: 'Module 1: React 19 Architecture & Server Components',
-    description: 'Foundational concepts covering React 19 RSC, Server Actions, and Server Functions.',
-    status: 'published',
-    sortOrder: 1,
-    durationMinutes: 55,
-    isCollapsed: false,
-    unlockRule: 'immediate',
-    createdAt: '2026-08-01T10:00:00Z',
-    updatedAt: '2026-08-04T12:00:00Z',
-  },
-  {
-    uuid: '550e8400-e29b-41d4-a716-446655441002',
-    courseUuid: '550e8400-e29b-41d4-a716-446655440000',
-    title: 'Module 2: Advanced State Management with Zustand',
-    description: 'Global state store initialization, persistent middleware, and slice patterns.',
-    status: 'published',
-    sortOrder: 2,
-    durationMinutes: 45,
-    isCollapsed: false,
-    unlockRule: 'previous_module',
-    createdAt: '2026-08-02T10:00:00Z',
-    updatedAt: '2026-08-05T08:00:00Z',
-  },
-];
-
-const SEED_LESSONS: CourseLesson[] = [
-  {
-    uuid: '550e8400-e29b-41d4-a716-446655442001',
-    courseUuid: '550e8400-e29b-41d4-a716-446655440000',
-    moduleUuid: '550e8400-e29b-41d4-a716-446655441001',
-    title: '01. React 19 Architecture Overview',
-    description: 'Understand RSC boundaries and zero-bundle server components.',
-    type: 'video',
-    status: 'published',
-    sortOrder: 1,
-    durationMinutes: 25,
-    isDemo: true,
-    unlockRule: 'immediate',
-    content: {
-      videoSource: 'upload',
-      videoUrl: 'https://assets.cubixskill.com/videos/react19_rsc.mp4',
-      videoDeliveryMode: 'adaptive',
-      allowDownload: true,
-      preventSkipping: true,
-    },
-    subsections: [],
-    createdAt: '2026-08-01T10:30:00Z',
-    updatedAt: '2026-08-04T12:00:00Z',
-  },
-  {
-    uuid: '550e8400-e29b-41d4-a716-446655442002',
-    courseUuid: '550e8400-e29b-41d4-a716-446655440000',
-    moduleUuid: '550e8400-e29b-41d4-a716-446655441001',
-    title: '02. Server Actions & Mutations',
-    description: 'Handling form submissions and optimistic UI updates.',
-    type: 'video',
-    status: 'published',
-    sortOrder: 2,
-    durationMinutes: 30,
-    isDemo: false,
-    unlockRule: 'immediate',
-    content: {
-      videoSource: 'embed',
-      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      videoDeliveryMode: 'standard',
-      allowDownload: false,
-      preventSkipping: false,
-    },
-    subsections: [],
-    createdAt: '2026-08-01T11:00:00Z',
-    updatedAt: '2026-08-04T12:00:00Z',
-  },
-  {
-    uuid: '550e8400-e29b-41d4-a716-446655442003',
-    courseUuid: '550e8400-e29b-41d4-a716-446655440000',
-    moduleUuid: '550e8400-e29b-41d4-a716-446655441002',
-    title: '01. Store Setup & State Slices',
-    description: 'Configuring Zustand stores with TypeScript.',
-    type: 'video',
-    status: 'published',
-    sortOrder: 1,
-    durationMinutes: 25,
-    isDemo: false,
-    unlockRule: 'immediate',
-    content: {
-      videoSource: 'upload',
-      videoUrl: 'https://assets.cubixskill.com/videos/zustand_setup.mp4',
-    },
-    subsections: [],
-    createdAt: '2026-08-02T10:30:00Z',
-    updatedAt: '2026-08-05T08:00:00Z',
-  },
-  {
-    uuid: '550e8400-e29b-41d4-a716-446655442004',
-    courseUuid: '550e8400-e29b-41d4-a716-446655440000',
-    moduleUuid: '550e8400-e29b-41d4-a716-446655441002',
-    title: '02. Persistence Middleware Guide',
-    description: 'Reading and writing state to localStorage.',
-    type: 'document',
-    status: 'published',
-    sortOrder: 2,
-    durationMinutes: 20,
-    isDemo: false,
-    unlockRule: 'immediate',
-    content: {
-      textContent: '# Zustand Persistence Middleware\n\nLearn how to configure localStorage persistence.',
-    },
-    subsections: [],
-    createdAt: '2026-08-02T11:00:00Z',
-    updatedAt: '2026-08-05T08:00:00Z',
-  },
-];
 
 const updateModuleDurations = (modules: CourseModule[], lessons: CourseLesson[]): CourseModule[] => {
   return modules.map((mod) => {
@@ -184,8 +71,11 @@ const updateModuleDurations = (modules: CourseModule[], lessons: CourseLesson[])
 export const useCurriculumStore = create<CurriculumState>()(
   persist(
     (set, get) => ({
-      modules: SEED_MODULES,
-      lessons: SEED_LESSONS,
+      modules: [],
+      lessons: [],
+
+      setModules: (modules) => set({ modules }),
+      setLessons: (lessons) => set({ lessons }),
 
       // MODULE ACTIONS
       getModulesByCourse: (courseUuid) => {
@@ -220,6 +110,12 @@ export const useCurriculumStore = create<CurriculumState>()(
         }));
 
         return newModule;
+      },
+
+      addModuleObject: (moduleObj) => {
+        set((state) => ({
+          modules: [...state.modules.filter((m) => m.uuid !== moduleObj.uuid), moduleObj],
+        }));
       },
 
       updateModule: (moduleUuid, data) => {

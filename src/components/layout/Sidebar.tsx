@@ -1,29 +1,14 @@
 import React from "react";
 import {
-  LayoutDashboard,
-  BookOpen,
-  Users,
-  Award,
-  CreditCard,
-  Layers,
-  MessageSquare,
-  Video,
-  Settings,
-  HelpCircle as SupportIcon,
-  Globe,
-  UserCheck,
-  ShieldAlert,
-  LogOut,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
-  Ticket,
-  IndianRupee,
+  LogOut,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useLogout } from "../../features/auth/hooks/useLogout";
-import { useAuth } from "../../features/auth/hooks/useAuth";
+import { useAuthStore } from "../../store/auth.store";
+import { getFilteredNavigation } from "../../config/navigation.config";
+import { getUserInitials, getAcademyInitials, getRoleLabel } from "../../utils/branding.utils";
 import { cn } from "../../lib/cn";
 
 export interface SidebarProps {
@@ -80,60 +65,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onToggleCollapse,
   isMobileDrawer = false,
 }) => {
-  const { logout } = useLogout();
-  const { user } = useAuth();
+  const { user, academy, logout, isInitializing, isLoadingAcademyProfile } = useAuthStore();
   const location = useLocation();
 
   const collapsed = isMobileDrawer ? false : isCollapsed;
+  const navSections = getFilteredNavigation();
 
-  const navSections = [
-    {
-      group: "Overview",
-      items: [
-        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-        { label: "Courses", href: "/courses", icon: BookOpen },
-        { label: "Students", href: "/students", icon: Users },
-        { label: "Demo Leads", href: "/demo-leads", icon: Sparkles },
-      ],
-    },
-    {
-      group: "Teaching & Content",
-      items: [
-        { label: "Certificates", href: "/certificates", icon: Award },
-        { label: "Discussions", href: "/discussions", icon: MessageSquare },
-        { label: "Live Classroom", href: "/live-classroom", icon: Video },
-        { label: "Media Library", href: "/media", icon: Layers },
-      ],
-    },
-    {
-      group: "Credits & Finance",
-      items: [
-        { label: "Fees Collection", href: "/fees", icon: IndianRupee },
-        { label: "Coupons", href: "/coupons", icon: Ticket },
-        { label: "Credits & Wallet", href: "/credits", icon: CreditCard },
-      ],
-    },
-    {
-      group: "Academy & Team",
-      items: [
-        { label: "Website Builder", href: "/website-builder", icon: Globe },
-        { label: "Staff Directory", href: "/staff", icon: UserCheck },
-        { label: "Roles & Access", href: "/roles", icon: ShieldAlert },
-      ],
-    },
-    {
-      group: "System & Help",
-      items: [
-        { label: "Support Desk", href: "/support", icon: SupportIcon },
-        { label: "Settings", href: "/settings", icon: Settings },
-      ],
-    },
-  ];
+  const isLoadingBranding = (isInitializing || isLoadingAcademyProfile) && !academy;
 
   return (
     <aside
       className={cn(
-        "bg-white border-r border-slate-200/80 flex flex-col shrink-0 select-none text-left transition-all duration-300 ease-in-out z-40",
+        "bg-white dark:bg-[#0B1120] border-r border-slate-200/80 dark:border-[#1E293B] flex flex-col shrink-0 select-none text-left transition-all duration-300 ease-in-out z-40",
         isMobileDrawer
           ? "w-full h-full"
           : "fixed top-0 left-0 bottom-0 h-screen",
@@ -141,19 +84,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
     >
       {/* Brand Header */}
-      <div className="h-16 px-4 flex items-center justify-between border-b border-slate-100 shrink-0">
+      <div className="h-16 px-4 flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] shrink-0">
         <div className={cn("flex items-center gap-3 min-w-0", collapsed && "justify-center w-full")}>
-          <div className="w-9 h-9 bg-gradient-to-tr from-blue-700 via-blue-600 to-sky-400 rounded-xl flex items-center justify-center text-white font-extrabold text-lg shadow-md shadow-blue-600/20 shrink-0">
-            C
-          </div>
+          {academy?.logo_url ? (
+            <img
+              src={academy.logo_url}
+              alt={academy.name || "Academy Logo"}
+              className="w-9 h-9 rounded-xl object-cover shrink-0 border border-slate-200/80 dark:border-[#263244] shadow-xs"
+            />
+          ) : (
+            <div className="w-9 h-9 bg-gradient-to-tr from-blue-700 via-blue-600 to-sky-400 rounded-xl flex items-center justify-center text-white font-extrabold text-xs shadow-md shadow-blue-600/20 shrink-0">
+              {getAcademyInitials(academy?.name)}
+            </div>
+          )}
+
           {!collapsed && (
             <div className="min-w-0 transition-opacity duration-200">
-              <span className="text-lg font-bold text-slate-900 tracking-tight block leading-tight truncate">
-                Cubix<span className="text-blue-600">Skill</span>
-              </span>
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block truncate">
-                Academy Platform
-              </span>
+              {isLoadingBranding ? (
+                <div className="space-y-1 py-1">
+                  <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700 animate-pulse rounded" />
+                  <div className="h-2.5 w-16 bg-slate-100 dark:bg-slate-800 animate-pulse rounded" />
+                </div>
+              ) : (
+                <>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 tracking-tight block leading-tight truncate">
+                    {academy?.name || "CubixSkill Academy"}
+                  </h3>
+                  <p className="text-[10px] font-medium text-blue-600 dark:text-blue-300 uppercase tracking-wider block truncate">
+                    Academy Workspace
+                  </p>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -163,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             type="button"
             onClick={onToggleCollapse}
             className={cn(
-              "hidden md:flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0",
+              "hidden md:flex items-center justify-center p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 transition-colors cursor-pointer shrink-0",
               collapsed && "absolute right-2 top-4"
             )}
             title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
@@ -178,11 +139,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {navSections.map((section, idx) => (
           <div key={idx} className="space-y-1">
             {!collapsed ? (
-              <h4 className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+              <h4 className="px-3 text-[11px] font-semibold text-slate-400 dark:text-[#7CA9DB] uppercase tracking-wider mb-2">
                 {section.group}
               </h4>
             ) : (
-              <div className="h-px bg-slate-100 my-3" />
+              <div className="h-px bg-slate-100 dark:bg-[#1E293B] my-3" />
             )}
             {section.items.map((item) => {
               const active = isNavItemActive(item.href, location.pathname);
@@ -195,11 +156,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   title={collapsed ? item.label : undefined}
                   className={() =>
                     cn(
-                      "relative flex items-center rounded-xl text-xs font-semibold transition-all duration-200 group min-h-[40px]",
+                      "relative flex items-center rounded-xl text-xs font-medium transition-all duration-200 group min-h-[40px]",
                       collapsed ? "justify-center px-2 py-2.5" : "justify-between px-3.5 py-2.5",
                       active
-                        ? "bg-[#2563EB] text-white shadow-sm shadow-blue-600/25 font-bold"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                        ? "bg-blue-50 border border-blue-200 text-blue-600 dark:bg-blue-600/15 dark:border-blue-500/30 dark:text-blue-400 font-semibold"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
                     )
                   }
                 >
@@ -207,7 +168,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <item.icon
                       className={cn(
                         "w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110",
-                        active ? "text-white" : "text-slate-400 group-hover:text-[#2563EB]"
+                        active
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-slate-400 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-white"
                       )}
                     />
                     {!collapsed && <span className="truncate">{item.label}</span>}
@@ -219,25 +182,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </nav>
 
-      {/* Instructor Profile & Logout Section */}
-      <div className="p-3 border-t border-slate-100 bg-slate-50/50 space-y-2 shrink-0 mt-auto">
+      {/* User Profile & Logout Footer */}
+      <div className="p-3 border-t border-slate-100 dark:border-[#1E293B] bg-transparent space-y-2 shrink-0 mt-auto">
         <div
           className={cn(
-            "flex items-center rounded-2xl bg-white border border-slate-200/80 shadow-xs",
+            "flex items-center rounded-2xl bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#334155] shadow-xs",
             collapsed ? "justify-center p-2" : "gap-3 p-2.5"
           )}
-          title={collapsed ? user?.full_name || "Dr. Vikramaditya Rao" : undefined}
+          title={collapsed ? user?.full_name || "Maggie Mclaughlin" : undefined}
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
-            {user?.full_name?.charAt(0).toUpperCase() || "V"}
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+            {getUserInitials(user?.full_name)}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-slate-900 truncate">
-                {user?.full_name || "Dr. Vikramaditya Rao"}
+              <p className="text-xs font-medium text-slate-900 dark:text-slate-50 truncate">
+                {user?.full_name || "Maggie Mclaughlin"}
               </p>
-              <p className="text-[10px] font-medium text-slate-500 truncate">
-                Senior Instructor
+              <p className="text-[10px] font-normal text-slate-500 dark:text-slate-400 truncate">
+                {getRoleLabel(user?.role, user?.assigned_role_name)}
               </p>
             </div>
           )}
@@ -249,7 +212,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           whileTap={{ scale: 0.98 }}
           title={collapsed ? "Sign Out" : undefined}
           className={cn(
-            "w-full flex items-center rounded-xl text-xs font-bold text-rose-600 bg-rose-50/80 hover:bg-rose-100/80 transition-colors cursor-pointer",
+            "w-full flex items-center rounded-xl text-xs font-bold bg-[#FFF7F7] border border-[#FECACA] text-[#DC2626] dark:bg-[rgba(239,68,68,0.08)] dark:border-[rgba(239,68,68,0.20)] dark:text-[#F87171] hover:bg-rose-100 dark:hover:bg-[rgba(239,68,68,0.14)] transition-colors cursor-pointer",
             collapsed ? "justify-center p-2.5" : "justify-center gap-2 px-3 py-2"
           )}
         >
@@ -260,3 +223,4 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </aside>
   );
 };
+

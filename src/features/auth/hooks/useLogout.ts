@@ -7,7 +7,7 @@ export function useLogout() {
 
   const logout = useCallback(async () => {
     try {
-      authStore.clearSession();
+      await authStore.logout();
     } finally {
       navigate("/login", { replace: true });
     }

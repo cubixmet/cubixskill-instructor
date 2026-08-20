@@ -38,7 +38,7 @@ export const GlobalSearchInput: React.FC<GlobalSearchInputProps> = ({
         autoFocus={autoFocus}
         placeholder={placeholder}
         aria-label="Global Search"
-        className="w-full h-9 pl-9 pr-16 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-xs"
+        className="w-full h-9 pl-9 pr-16 bg-white text-slate-900 border border-slate-300 dark:bg-[#111827] dark:text-white dark:border-slate-700 rounded-2xl text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 dark:focus:border-[#3B82F6] transition-all shadow-xs"
       />
 
       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-auto">
@@ -56,11 +56,7 @@ export const GlobalSearchInput: React.FC<GlobalSearchInputProps> = ({
           >
             <X className="w-3.5 h-3.5" />
           </button>
-        ) : (
-          <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 bg-slate-200/50 border border-slate-300/60 rounded-md">
-            <span>⌘</span>K
-          </kbd>
-        )}
+        ) : null}
       </div>
     </div>
   );

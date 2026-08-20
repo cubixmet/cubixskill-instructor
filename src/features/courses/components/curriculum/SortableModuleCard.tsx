@@ -92,14 +92,14 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
       ref={setNodeRef}
       style={style}
       id={`module-${module.uuid}`}
-      className={`bg-white rounded-[18px] border text-left overflow-hidden transition-all duration-200 shadow-xs font-sans ${
+      className={`bg-white dark:bg-[#111827] rounded-[18px] border text-left overflow-hidden transition-all duration-200 shadow-xs font-sans ${
         isDragging
           ? 'opacity-50 border-[#2563EB] shadow-xl scale-[1.01]'
-          : 'border-[#E2E8F0] hover:border-slate-300'
+          : 'border-slate-200 dark:border-[#263244] hover:border-slate-300 dark:hover:border-slate-700'
       }`}
     >
       {/* Module Header Bar: Single Standard Content Card */}
-      <div className="p-3.5 sm:p-4 bg-[#F8FAFC] border-b border-[#E2E8F0] space-y-2.5 w-full min-w-0">
+      <div className="p-3.5 sm:p-4 bg-slate-50 dark:bg-[#172033] border-b border-slate-200 dark:border-[#263244] space-y-2.5 w-full min-w-0">
         {/* 1. TOP UTILITY ROW: Drag Handle, Module Index | Expand Icon, Three-dot Menu */}
         <div className="flex items-center justify-between gap-2 w-full min-w-0">
           <div className="flex items-center gap-2">
@@ -107,7 +107,7 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
               type="button"
               {...attributes}
               {...listeners}
-              className="p-1 text-[#64748B] hover:text-[#0F172A] hover:bg-slate-200/60 rounded-lg cursor-grab active:cursor-grabbing touch-none shrink-0"
+              className="p-1 text-slate-400 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#60A5FA] hover:bg-slate-200/60 dark:hover:bg-[#1E293B] rounded-lg cursor-grab active:cursor-grabbing touch-none shrink-0"
               title="Drag to reorder module"
             >
               <GripVertical className="w-4 h-4" />
@@ -123,16 +123,16 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
             <button
               type="button"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1.5 text-[#64748B] hover:text-[#0F172A] hover:bg-slate-200/60 rounded-lg transition-transform cursor-pointer"
+              className="p-1.5 text-slate-400 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-[#1E293B] rounded-lg transition-transform cursor-pointer"
               title={isExpanded ? 'Collapse Module' : 'Expand Module'}
             >
-              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-[#2563EB]' : ''}`} />
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-[#2563EB] dark:text-[#60A5FA]' : ''}`} />
             </button>
 
             <button
               type="button"
               onClick={() => setIsMoreMenuOpen(true)}
-              className="p-1.5 text-[#64748B] hover:text-[#0F172A] hover:bg-slate-200/60 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-slate-400 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-[#1E293B] rounded-lg transition-colors cursor-pointer"
               title="More Module Actions"
             >
               <MoreVertical className="w-4 h-4" />
@@ -142,23 +142,23 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
 
         {/* 2. DEDICATED FULL-WIDTH MODULE TITLE & DESCRIPTION */}
         <div className="w-full space-y-0.5">
-          <h3 className="text-sm sm:text-base font-bold text-[#0F172A] tracking-tight leading-snug break-words whitespace-normal font-sans w-full">
+          <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-[#F8FAFC] tracking-tight leading-snug break-words whitespace-normal font-sans w-full">
             {module.title}
           </h3>
           {module.description && (
-            <p className="text-xs text-[#64748B] break-words whitespace-normal font-normal">
+            <p className="text-xs text-slate-500 dark:text-[#94A3B8] break-words whitespace-normal font-normal">
               {module.description}
             </p>
           )}
         </div>
 
         {/* 3. METADATA & PUBLISHED STATUS ROW */}
-        <div className="flex items-center justify-between gap-2 text-xs font-medium text-[#64748B] flex-wrap pt-0.5">
+        <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500 dark:text-[#94A3B8] flex-wrap pt-0.5">
           <div className="flex items-center gap-2 flex-wrap">
             <span>{lessons.length} {lessons.length === 1 ? 'Lesson' : 'Lessons'}</span>
             <span>•</span>
             <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-[#64748B]" /> {durationFormatted}
+              <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-[#94A3B8]" /> {durationFormatted}
             </span>
           </div>
 
@@ -170,11 +170,11 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
 
       {/* Module Expanded Lessons Container */}
       {isExpanded && (
-        <div className="p-3 sm:p-4 bg-white space-y-3">
+        <div className="p-3 sm:p-4 bg-white dark:bg-[#111827] space-y-3">
           {lessons.length === 0 ? (
-            <div className="p-5 text-center bg-[#F8FAFC] rounded-[14px] border border-dashed border-[#E2E8F0] space-y-2">
-              <p className="text-xs font-semibold text-[#0F172A]">No lessons in this module yet.</p>
-              <p className="text-[11px] text-[#64748B]">Add a video, document, quiz, assignment, or other lesson type.</p>
+            <div className="p-5 text-center bg-slate-50 dark:bg-[#0F172A] rounded-[14px] border border-dashed border-slate-200 dark:border-[#263244] space-y-2">
+              <p className="text-xs font-semibold text-slate-900 dark:text-[#F8FAFC]">No lessons in this module yet.</p>
+              <p className="text-[11px] text-slate-500 dark:text-[#94A3B8]">Add a video, document, quiz, assignment, or other lesson type.</p>
               <button
                 type="button"
                 onClick={() => onAddLesson(module.uuid)}
@@ -203,9 +203,9 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
               <button
                 type="button"
                 onClick={() => onAddLesson(module.uuid)}
-                className="w-full h-[44px] bg-white border border-[#E2E8F0] hover:border-[#2563EB] hover:bg-blue-50/40 text-[#2563EB] font-semibold text-xs rounded-[12px] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs mt-2"
+                className="w-full min-h-[42px] h-[44px] bg-white dark:bg-[#172033] border border-[#E2E8F0] dark:border-[#334155] hover:border-[#2563EB] dark:hover:border-[#3B82F6] hover:bg-blue-50/40 dark:hover:bg-[#1E293B] text-[#2563EB] dark:text-[#F8FAFC] font-semibold text-xs rounded-[12px] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs dark:shadow-[0_3px_10px_rgba(37,99,235,0.06)] mt-2"
               >
-                <Plus className="w-4 h-4 stroke-[3]" />
+                <Plus className="w-4 h-4 stroke-[3] text-[#2563EB] dark:text-[#60A5FA]" />
                 <span>Add Lesson</span>
               </button>
             </>

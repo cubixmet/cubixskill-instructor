@@ -66,7 +66,6 @@ export const PasswordSetupForm: React.FC<PasswordSetupFormProps> = ({ token }) =
         },
         onError: (err) => {
           const parsed = mapApiErrorsToForm(err, (field, options) => {
-            // Map backend new_password error to form password field
             const targetField = field === "new_password" ? "password" : field;
             setError(targetField as any, options);
           });
@@ -85,7 +84,7 @@ export const PasswordSetupForm: React.FC<PasswordSetupFormProps> = ({ token }) =
       {successMessage && (
         <Alert type="success" title="Success">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#16A34A]" />
+            <CheckCircle2 className="w-4 h-4 text-[#10B981] dark:text-[#6EE7B7]" />
             <span>{successMessage}</span>
           </div>
         </Alert>
@@ -127,4 +126,3 @@ export const PasswordSetupForm: React.FC<PasswordSetupFormProps> = ({ token }) =
     </form>
   );
 };
-

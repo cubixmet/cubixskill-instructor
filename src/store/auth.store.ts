@@ -1,28 +1,47 @@
 import { useState, useEffect, useCallback } from "react";
-import type { AuthUser } from "../features/auth/types/auth.types";
+import type {
+  AuthUser,
+  AcademyContext,
+  DemoStatus,
+  UserRole,
+  AuthBootstrapData,
+} from "../features/auth/types/auth.types";
 import { tokenStorage } from "../features/auth/utils/token-storage";
 import { authApi } from "../api/auth.api";
 import { queryClient } from "../lib/query-client";
 import { AUTH_MESSAGES } from "../features/auth/constants/auth.constants";
+import { updateBrowserFavicon, applyThemeColor } from "../utils/branding.utils";
 
-interface AuthState {
+export interface AuthState {
   user: AuthUser | null;
+  academy: AcademyContext | null;
+  role: UserRole | string | null;
+  permissions: string[];
+  features: Record<string, boolean>;
+  demoStatus: DemoStatus | null;
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
   isInitializing: boolean;
+  isLoadingAcademyProfile: boolean;
   error: string | null;
 }
 
-const STORAGE_USER_KEY = "cubixskill_auth_user";
+const STORAGE_BOOTSTRAP_KEY = "cubixskill_auth_bootstrap";
 
 class AuthStore {
   private state: AuthState = {
     user: null,
+    academy: null,
+    role: null,
+    permissions: [],
+    features: {},
+    demoStatus: null,
     accessToken: null,
     refreshToken: null,
     isAuthenticated: false,
     isInitializing: true,
+    isLoadingAcademyProfile: false,
     error: null,
   };
 
@@ -50,43 +69,78 @@ class AuthStore {
     this.notify();
   }
 
+  private applyBranding(academy?: AcademyContext | null) {
+    if (!academy) return;
+    if (academy.favicon_url) {
+      updateBrowserFavicon(academy.favicon_url);
+    }
+    if (academy.theme_color) {
+      applyThemeColor(academy.theme_color);
+    }
+  }
+
   public async init() {
     const accessToken = tokenStorage.getAccessToken();
     const refreshToken = tokenStorage.getRefreshToken();
-    const storedUserJson = localStorage.getItem(STORAGE_USER_KEY);
+    const storedCacheJson = localStorage.getItem(STORAGE_BOOTSTRAP_KEY);
 
-    let storedUser: AuthUser | null = null;
-    if (storedUserJson) {
+    let cachedData: AuthBootstrapData | null = null;
+    if (storedCacheJson) {
       try {
-        storedUser = JSON.parse(storedUserJson);
+        cachedData = JSON.parse(storedCacheJson);
+        if (cachedData?.academy) {
+          this.applyBranding(cachedData.academy);
+        }
       } catch (_) {
-        localStorage.removeItem(STORAGE_USER_KEY);
+        localStorage.removeItem(STORAGE_BOOTSTRAP_KEY);
       }
     }
 
     if (accessToken && refreshToken) {
       try {
-        let user = storedUser;
-        // Attempt to validate/fetch current user from backend
+        let bootstrap = cachedData;
         try {
-          user = await authApi.getCurrentUser();
-          localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
+          bootstrap = await authApi.getCurrentUser();
         } catch (err) {
-          // If network error, fall back to cached user if valid
-          if (!user) {
+          if (!bootstrap) {
             throw err;
           }
         }
 
-        const isAllowedRole = (r?: string) => r === "ACADEMY_ADMIN" || r === "ACADEMY_STAFF";
+        const user = bootstrap.user;
+        const isAllowedRole = (r?: string) =>
+          r === "ACADEMY_ADMIN" || r === "ACADEMY_STAFF" || r === "SUPER_ADMIN" || r === "SUPER_ADMIN_STAFF";
 
         if (user && isAllowedRole(user.role) && (user.is_active ?? true)) {
+          let academy = bootstrap.academy;
+
+          // Fetch fresh Academy Profile (/api/v1/academy/profile/)
+          this.setState({ isLoadingAcademyProfile: true });
+          const academyProfile = await authApi.getAcademyProfile();
+          if (academyProfile) {
+            academy = { ...academy, ...academyProfile };
+          }
+          this.applyBranding(academy);
+
+          const updatedBootstrap: AuthBootstrapData = {
+            ...bootstrap,
+            academy,
+          };
+
+          localStorage.setItem(STORAGE_BOOTSTRAP_KEY, JSON.stringify(updatedBootstrap));
+
           this.setState({
             user,
+            academy,
+            role: user.role,
+            permissions: bootstrap.permissions || [],
+            features: bootstrap.features || {},
+            demoStatus: bootstrap.demo_status,
             accessToken,
             refreshToken,
             isAuthenticated: true,
             isInitializing: false,
+            isLoadingAcademyProfile: false,
             error: null,
           });
           return;
@@ -105,15 +159,22 @@ class AuthStore {
 
     this.setState({
       user: null,
+      academy: null,
+      role: null,
+      permissions: [],
+      features: {},
+      demoStatus: null,
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
       isInitializing: false,
+      isLoadingAcademyProfile: false,
     });
   }
 
-  public setSession(user: AuthUser, accessToken: string, refreshToken: string) {
-    const isAllowedRole = user.role === "ACADEMY_ADMIN" || user.role === "ACADEMY_STAFF";
+  public async setSession(user: AuthUser, accessToken: string, refreshToken: string) {
+    const isAllowedRole =
+      user.role === "ACADEMY_ADMIN" || user.role === "ACADEMY_STAFF" || user.role === "SUPER_ADMIN" || user.role === "SUPER_ADMIN_STAFF";
     if (!isAllowedRole) {
       this.clearSession(AUTH_MESSAGES.UNAUTHORIZED_ROLE);
       throw new Error(AUTH_MESSAGES.UNAUTHORIZED_ROLE);
@@ -124,44 +185,140 @@ class AuthStore {
       throw new Error(AUTH_MESSAGES.INACTIVE_USER);
     }
 
-
     tokenStorage.setAccessToken(accessToken);
     tokenStorage.setRefreshToken(refreshToken);
-    localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
 
     this.setState({
       user,
+      role: user.role,
       accessToken,
       refreshToken,
       isAuthenticated: true,
       isInitializing: false,
+      isLoadingAcademyProfile: true,
       error: null,
     });
+
+    // 1. Fetch Auth Me (/api/v1/auth/me/)
+    try {
+      const bootstrap = await authApi.getCurrentUser();
+
+      // 2. Fetch Academy Profile (/api/v1/academy/profile/)
+      let academy = bootstrap.academy;
+      const academyProfile = await authApi.getAcademyProfile();
+      if (academyProfile) {
+        academy = { ...academy, ...academyProfile };
+      }
+      this.applyBranding(academy);
+
+      const updatedBootstrap: AuthBootstrapData = {
+        ...bootstrap,
+        academy,
+      };
+
+      localStorage.setItem(STORAGE_BOOTSTRAP_KEY, JSON.stringify(updatedBootstrap));
+
+      this.setState({
+        user: bootstrap.user,
+        academy,
+        role: bootstrap.user.role,
+        permissions: bootstrap.permissions || [],
+        features: bootstrap.features || {},
+        demoStatus: bootstrap.demo_status,
+        isLoadingAcademyProfile: false,
+      });
+    } catch (_) {
+      this.setState({ isLoadingAcademyProfile: false });
+    }
   }
 
-  public clearSession(errorMessage: string | null = null) {
+  public async logout(errorMessage: string | null = null) {
     const refreshToken = this.state.refreshToken || tokenStorage.getRefreshToken();
     if (refreshToken) {
-      authApi.logout(refreshToken).catch(() => { });
+      try {
+        await authApi.logout(refreshToken);
+      } catch (_) {
+        // Silently catch errors if token was already invalid or blacklisted
+      }
     }
 
     tokenStorage.clearTokens();
-    localStorage.removeItem(STORAGE_USER_KEY);
+    localStorage.removeItem(STORAGE_BOOTSTRAP_KEY);
     queryClient.clear();
 
     this.setState({
       user: null,
+      academy: null,
+      role: null,
+      permissions: [],
+      features: {},
+      demoStatus: null,
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
       isInitializing: false,
+      isLoadingAcademyProfile: false,
       error: errorMessage,
     });
   }
 
+  public clearSession(errorMessage: string | null = null) {
+    tokenStorage.clearTokens();
+    localStorage.removeItem(STORAGE_BOOTSTRAP_KEY);
+    queryClient.clear();
+
+    this.setState({
+      user: null,
+      academy: null,
+      role: null,
+      permissions: [],
+      features: {},
+      demoStatus: null,
+      accessToken: null,
+      refreshToken: null,
+      isAuthenticated: false,
+      isInitializing: false,
+      isLoadingAcademyProfile: false,
+      error: errorMessage,
+    });
+  }
+
+
   public setError(error: string | null) {
     this.setState({ error });
   }
+
+  // Central Access Control Helpers
+  public can(permission: string): boolean {
+    const { user, permissions } = this.state;
+    if (!user || !this.state.isAuthenticated) return false;
+    if (user.role === "ACADEMY_ADMIN" || user.role === "SUPER_ADMIN") return true;
+    return permissions.includes(permission);
+  }
+
+  public canAny(permissionsList: string[]): boolean {
+    return permissionsList.some((p) => this.can(p));
+  }
+
+  public canAll(permissionsList: string[]): boolean {
+    return permissionsList.every((p) => this.can(p));
+  }
+
+  public hasRole(requiredRole: UserRole | string | (UserRole | string)[]): boolean {
+    const { user } = this.state;
+    if (!user || !this.state.isAuthenticated) return false;
+    if (Array.isArray(requiredRole)) {
+      return requiredRole.includes(user.role);
+    }
+    return user.role === requiredRole;
+  }
+
+  public hasFeature(featureKey: string): boolean {
+    const { features } = this.state;
+    if (!features || Object.keys(features).length === 0) return true;
+    return features[featureKey] !== false;
+  }
+
 }
 
 export const authStore = new AuthStore();
@@ -176,15 +333,27 @@ export function useAuthStore() {
     return unsubscribe;
   }, []);
 
-  const logout = useCallback(() => {
-    authStore.clearSession();
+  const logout = useCallback(async () => {
+    await authStore.logout();
   }, []);
+
+  const can = useCallback((permission: string) => authStore.can(permission), []);
+  const canAny = useCallback((permissions: string[]) => authStore.canAny(permissions), []);
+  const canAll = useCallback((permissions: string[]) => authStore.canAll(permissions), []);
+  const hasRole = useCallback((role: UserRole | string | (UserRole | string)[]) => authStore.hasRole(role), []);
+  const hasFeature = useCallback((feature: string) => authStore.hasFeature(feature), []);
 
   return {
     ...state,
     logout,
+    can,
+    canAny,
+    canAll,
+    hasRole,
+    hasFeature,
     setSession: authStore.setSession.bind(authStore),
     clearSession: authStore.clearSession.bind(authStore),
     setError: authStore.setError.bind(authStore),
   };
 }
+

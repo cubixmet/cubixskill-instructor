@@ -62,14 +62,14 @@ export const ForgotPasswordForm: React.FC = () => {
   if (submittedEmail) {
     return (
       <div className="space-y-6 text-center">
-        <div className="w-14 h-14 bg-[#F0FDF4] rounded-full flex items-center justify-center mx-auto text-[#16A34A] border border-[#86EFAC]">
+        <div className="w-14 h-14 bg-[#ECFDF5] dark:bg-[rgba(16,185,129,0.08)] rounded-full flex items-center justify-center mx-auto text-[#10B981] dark:text-[#6EE7B7] border border-[#A7F3D0] dark:border-[rgba(52,211,153,0.24)]">
           <CheckCircle2 className="w-7 h-7" />
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-xl font-bold text-[#0F172A]">Check Your Email</h2>
-          <p className="text-sm text-[#64748B] leading-relaxed">
-            If an account exists for <span className="font-semibold text-[#0F172A]">{submittedEmail}</span>, password reset instructions have been sent.
+          <h2 className="text-xl font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Check Your Email</h2>
+          <p className="text-sm text-[#64748B] dark:text-[#94A3B8] leading-relaxed">
+            If an account exists for <span className="font-medium text-[#0F172A] dark:text-[#F8FAFC]">{submittedEmail}</span>, password reset instructions have been sent.
           </p>
         </div>
 
@@ -132,7 +132,7 @@ export const ForgotPasswordForm: React.FC = () => {
       <div className="text-center pt-2">
         <Link
           to="/login"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#64748B] hover:text-[#0F172A] transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Login

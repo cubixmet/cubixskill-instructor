@@ -10,8 +10,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Drawer } from "../ui/Drawer";
-import { useAuth } from "../../features/auth/hooks/useAuth";
-import { useLogout } from "../../features/auth/hooks/useLogout";
+import { useAuthStore } from "../../store/auth.store";
+import { getUserInitials, getRoleLabel } from "../../utils/branding.utils";
 
 export interface MobileProfileDrawerProps {
   isOpen: boolean;
@@ -22,8 +22,7 @@ export const MobileProfileDrawer: React.FC<MobileProfileDrawerProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { user } = useAuth();
-  const { logout } = useLogout();
+  const { user, logout } = useAuthStore();
 
   const menuLinks = [
     {
@@ -68,12 +67,12 @@ export const MobileProfileDrawer: React.FC<MobileProfileDrawerProps> = ({
         {/* Profile Card Header */}
         <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-md space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white font-bold text-lg flex items-center justify-center shadow-md">
-              {user?.full_name?.charAt(0).toUpperCase() || "A"}
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white font-bold text-lg flex items-center justify-center shadow-md shrink-0">
+              {getUserInitials(user?.full_name)}
             </div>
             <div className="min-w-0 flex-1">
               <h4 className="text-sm font-bold truncate">
-                {user?.full_name || "Academy Admin"}
+                {user?.full_name || "Academy User"}
               </h4>
               <p className="text-xs text-slate-300 truncate">
                 {user?.email || ""}
@@ -81,7 +80,7 @@ export const MobileProfileDrawer: React.FC<MobileProfileDrawerProps> = ({
 
               <div className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/60">
                 <ShieldCheck className="w-3 h-3" />
-                <span>Verified Account</span>
+                <span>{getRoleLabel(user?.role, user?.assigned_role_name)}</span>
               </div>
             </div>
           </div>
@@ -139,3 +138,4 @@ export const MobileProfileDrawer: React.FC<MobileProfileDrawerProps> = ({
     </Drawer>
   );
 };
+

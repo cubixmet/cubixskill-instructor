@@ -59,7 +59,7 @@ export const ChangePasswordForm: React.FC = () => {
       {successMessage && (
         <Alert type="success" onClose={() => setSuccessMessage(null)}>
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#16A34A] shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-[#10B981] dark:text-[#6EE7B7] shrink-0" />
             <span>{successMessage}</span>
           </div>
         </Alert>

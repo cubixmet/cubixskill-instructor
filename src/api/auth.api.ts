@@ -11,12 +11,17 @@ import type {
   SetupPasswordPayload,
   TokenValidationResponse,
   AuthUser,
+  AuthBootstrapData,
+  AcademyContext,
 } from "../features/auth/types/auth.types";
 
 export const authApi = {
   login: (payload: LoginPayload): Promise<LoginResponseData> => authService.login(payload),
   logout: (refreshToken: string): Promise<{ message: string }> => authService.logout(refreshToken),
-  getCurrentUser: (): Promise<AuthUser> => authService.getCurrentUser(),
+  getCurrentUser: (): Promise<AuthBootstrapData> => authService.getCurrentUser(),
+  getAcademyProfile: (): Promise<AcademyContext | null> => authService.getAcademyProfile(),
+
+
   forgotPassword: (payload: ForgotPasswordPayload): Promise<ForgotPasswordResponse> => authService.forgotPassword(payload),
   resetPassword: (payload: ResetPasswordPayload): Promise<ResetPasswordResponse> => authService.resetPassword(payload),
   changePassword: (payload: ChangePasswordPayload): Promise<ChangePasswordResponse> => authService.changePassword(payload),

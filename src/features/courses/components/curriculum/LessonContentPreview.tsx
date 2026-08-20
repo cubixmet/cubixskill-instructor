@@ -12,6 +12,7 @@ import type { CourseLesson } from '../../../../types/curriculum.types';
 import { Badge } from '../../../../components/ui/Badge';
 import { parseEmbedVideoUrl } from './VideoLessonSettings';
 import { sanitizeHtml, isHtmlContentEmpty } from '../../utils/sanitizeHtml.util';
+import { AudioPlayer } from '../../../../components/ui/AudioPlayer';
 
 interface LessonContentPreviewProps {
   lesson: CourseLesson;
@@ -65,15 +66,8 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
               preload="metadata"
               onError={() => setMediaError(true)}
               className="w-full h-full object-contain"
-              poster="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800"
             >
-              <source
-                src={
-                  rawUrl ||
-                  'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4'
-                }
-                type="video/mp4"
-              />
+              <source src={rawUrl} type="video/mp4" />
               Your browser does not support HTML5 video preview.
             </video>
           )}
@@ -121,29 +115,7 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
   if (type === 'audio') {
     const audioUrl = content?.mediaUrl || content?.fileUrl || '';
 
-    if (!audioUrl.trim()) {
-      return (
-        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-400 text-xs font-medium">
-          Audio content not configured
-        </div>
-      );
-    }
-
-    return (
-      <div className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-        <audio
-          controls
-          autoPlay={false}
-          className="w-full h-9"
-          src={
-            audioUrl ||
-            'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
-          }
-        >
-          Your browser does not support inline audio preview.
-        </audio>
-      </div>
-    );
+    return <AudioPlayer src={audioUrl} />;
   }
 
   // 4. DOCUMENT LESSON
@@ -250,15 +222,15 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
           </div>
         </div>
 
-        <Badge variant="outline" size="sm" className="border-purple-200 text-purple-700">
+        <Badge variant="secondary" size="sm" className="border-purple-200 text-purple-700">
           Assessment
         </Badge>
       </div>
     );
   }
 
-  // 7. ASSIGNMENT & 8. PROJECT
-  if (type === 'assignment' || type === 'project') {
+  // 7. ASSIGNMENT
+  if (type === 'assignment') {
     const instructions = content?.instructions || '';
     const maxScore = content?.maxScore ?? 100;
     const subType = content?.submissionType || 'file';

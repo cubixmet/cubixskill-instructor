@@ -45,7 +45,6 @@ export const LoginForm: React.FC = () => {
       onError: (err) => {
         const parsed = mapApiErrorsToForm(err, setError);
         if (parsed.code === "INVALID_CREDENTIALS") {
-          // Highlight both Email and Password inputs as invalid
           setError("email", { type: "server", message: "" });
           setError("password", { type: "server", message: "Email or password is incorrect. Please try again." });
           scrollToFirstError("email");
@@ -91,15 +90,15 @@ export const LoginForm: React.FC = () => {
         />
       </div>
 
-      <div className="flex items-center justify-between pt-1">
+      <div className="flex flex-col gap-3 min-[360px]:flex-row min-[360px]:items-center min-[360px]:justify-between pt-1">
         <Checkbox
-          label={<span className="text-xs sm:text-sm text-[#0F172A]">Remember Me</span>}
+          label={<span className="text-xs sm:text-sm text-[#0F172A] dark:text-[#CBD5E1]">Remember Me</span>}
           {...register("remember_me")}
         />
 
         <Link
           to="/forgot-password"
-          className="text-xs sm:text-sm font-semibold text-[#2563EB] hover:text-[#1D4ED8] transition-colors"
+          className="text-xs sm:text-sm font-medium text-[#2563EB] dark:text-[#60A5FA] hover:underline transition-colors"
         >
           Forgot Password?
         </Link>
@@ -108,7 +107,7 @@ export const LoginForm: React.FC = () => {
       <Button
         type="submit"
         size="lg"
-        className="w-full mt-2 font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#3B82F6] active:scale-[0.98] transition-all duration-200 shadow-md shadow-[#2563EB]/25 disabled:bg-blue-300 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+        className="w-full mt-2"
         isLoading={loginMutation.isPending || isSubmitting}
         disabled={loginMutation.isPending || isSubmitting}
         loadingText="Signing In..."

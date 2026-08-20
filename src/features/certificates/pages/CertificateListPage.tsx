@@ -96,17 +96,17 @@ export const CertificateListPage: React.FC = () => {
       )}
 
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-[#263244] shadow-2xs">
         <div>
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+            <div className="p-2 bg-blue-50 dark:bg-[#172033] text-blue-600 dark:text-[#60A5FA] rounded-xl border border-blue-100 dark:border-[#263244]">
               <Award className="w-5 h-5" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
               {activeCourse ? `${activeCourse.title} — Certificates` : 'Certificate Templates'}
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-[#94A3B8] mt-1">
             Design dynamic certificates, configure auto-issuance, and manage student completion downloads.
           </p>
         </div>
@@ -122,13 +122,13 @@ export const CertificateListPage: React.FC = () => {
       </div>
 
       {/* Search Controls */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
+      <div className="bg-white dark:bg-[#111827] p-4 rounded-2xl border border-slate-200 dark:border-[#263244] shadow-2xs">
         <div className="max-w-md">
           <Input
             placeholder="Search certificate or course..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            leftIcon={<Search className="w-4 h-4 text-slate-400" />}
+            leftIcon={<Search className="w-4 h-4 text-slate-400 dark:text-[#64748B]" />}
             size="sm"
           />
         </div>
@@ -137,7 +137,8 @@ export const CertificateListPage: React.FC = () => {
       {/* Main List Grid */}
       {filteredTemplates.length === 0 ? (
         <EmptyState
-          title="No certificate templates found"
+          icon={Award}
+          title="No Certificates Found"
           description={
             searchQuery
               ? 'No certificate templates matched your search query.'
@@ -145,7 +146,7 @@ export const CertificateListPage: React.FC = () => {
           }
           actionLabel="Create Certificate"
           onAction={() => navigate(createUrl)}
-          icon={<Award className="w-8 h-8 text-blue-600" />}
+          actionIcon={<Plus className="w-4 h-4" />}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -164,11 +165,11 @@ export const CertificateListPage: React.FC = () => {
               <div
                 key={template.id}
                 onClick={() => navigate(detailUrl)}
-                className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between space-y-4 font-sans group"
+                className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] text-[#0F172A] dark:text-[#F8FAFC] p-5 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between space-y-4 font-sans group"
               >
                 <div>
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                    <span className="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-[#263244] pb-3">
+                    <span className="font-semibold text-sm text-[#0F172A] dark:text-[#60A5FA] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
                       {template.title}
                     </span>
                     <Badge variant={template.status === 'Active' ? 'success' : 'neutral'} size="sm">
@@ -177,10 +178,10 @@ export const CertificateListPage: React.FC = () => {
                   </div>
 
                   <div className="mt-3 space-y-1.5">
-                    <div className="text-xs font-semibold text-slate-700 line-clamp-1">
+                    <div className="text-xs font-normal text-[#475569] dark:text-[#CBD5E1] line-clamp-1">
                       {courseTitle}
                     </div>
-                    <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500">
+                    <div className="flex items-center gap-2 text-[11px] font-normal text-[#64748B] dark:text-[#94A3B8]">
                       <span>Updated {formatDate(template.updatedAt)}</span>
                       <span>•</span>
                       <span>{template.elements?.length || 0} Elements</span>
@@ -188,17 +189,17 @@ export const CertificateListPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-600">Auto-Issue on Completion</span>
+                <div className="bg-slate-50 dark:bg-[#172033] p-2.5 rounded-xl border border-slate-100 dark:border-[#263244] flex items-center justify-between text-xs font-semibold">
+                  <span className="text-[#475569] dark:text-[#CBD5E1]">Auto-Issue on Completion</span>
                   <Badge variant={template.autoIssueOnCompletion !== false ? 'success' : 'neutral'} size="sm">
                     {template.autoIssueOnCompletion !== false ? 'ON' : 'OFF'}
                   </Badge>
                 </div>
 
-                <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-[#263244]" onClick={(e) => e.stopPropagation()}>
                   <Link
                     to={detailUrl}
-                    className="flex-1 inline-flex items-center justify-center min-h-[40px] px-3 text-xs font-semibold text-blue-600 bg-blue-50/80 hover:bg-blue-100/80 rounded-xl transition-colors cursor-pointer"
+                    className="flex-1 inline-flex items-center justify-center min-h-[40px] px-3 text-xs font-semibold text-blue-600 bg-blue-50/80 hover:bg-blue-100/80 dark:bg-[rgba(37,99,235,0.10)] dark:text-[#60A5FA] dark:border dark:border-[rgba(59,130,246,0.20)] dark:hover:bg-[rgba(37,99,235,0.16)] rounded-xl transition-colors cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5 mr-1.5" />
                     View
@@ -206,7 +207,7 @@ export const CertificateListPage: React.FC = () => {
 
                   <Link
                     to={editUrl}
-                    className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                    className="p-2 text-slate-500 dark:text-[#94A3B8] hover:text-blue-600 dark:hover:text-[#60A5FA] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl transition-colors cursor-pointer"
                     title="Edit Certificate"
                   >
                     <Edit3 className="w-4 h-4" />
@@ -215,7 +216,7 @@ export const CertificateListPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={(e) => handleDuplicate(template.id, e)}
-                    className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                    className="p-2 text-slate-500 dark:text-[#94A3B8] hover:text-blue-600 dark:hover:text-[#60A5FA] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl transition-colors cursor-pointer"
                     title="Duplicate Template"
                   >
                     <Copy className="w-4 h-4" />
@@ -224,7 +225,7 @@ export const CertificateListPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setDeleteTargetId(template.id)}
-                    className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                    className="p-2 text-slate-500 dark:text-[#F87171] hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-colors cursor-pointer"
                     title="Delete Template"
                   >
                     <Trash2 className="w-4 h-4" />

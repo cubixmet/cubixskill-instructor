@@ -14,6 +14,7 @@ import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { Input } from '../../../components/ui/Input';
 import { Skeleton } from '../../../components/ui/Skeleton';
+import { EmptyState } from '../../../components/ui/EmptyState';
 
 // Store & Components
 import { useLiveSessionStore, type LiveSessionItem } from '../../live-sessions/store/liveSession.store';
@@ -354,24 +355,14 @@ export const CourseLiveSessionsPage: React.FC = () => {
               ))}
             </div>
           ) : (
-            <Card padding="lg" className="bg-white border border-slate-200 text-center py-12 space-y-4 font-sans rounded-2xl">
-              <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
-                <Video className="w-7 h-7" />
-              </div>
-              <div className="space-y-1 max-w-md mx-auto">
-                <h3 className="text-sm sm:text-base font-bold text-slate-900">No Live Sessions Found</h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  Schedule your first live Zoom, Google Meet, or Microsoft Teams session to interact directly with your students.
-                </p>
-              </div>
-              <Button
-                onClick={() => navigate(`/courses/${courseUuid}/live-sessions/new`)}
-                className="bg-[#2563EB] text-white font-bold text-xs px-5 h-10"
-                leftIcon={<Plus className="w-4 h-4 stroke-[3]" />}
-              >
-                Schedule Session
-              </Button>
-            </Card>
+            <EmptyState
+              icon={Video}
+              title="No Live Sessions Found"
+              description="Schedule your first live Zoom, Google Meet, or Microsoft Teams session to interact directly with your students."
+              actionLabel="Schedule Session"
+              onAction={() => navigate(`/courses/${courseUuid}/live-sessions/new`)}
+              actionIcon={<Plus className="w-4 h-4" />}
+            />
           )}
         </>
       )}

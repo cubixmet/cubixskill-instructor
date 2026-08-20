@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { FormPageLayout } from '../../../components/ui/FormPageLayout';
-import { VideoLessonSettings } from '../components/curriculum/VideoLessonSettings';
-import { GenericLessonSettings } from '../components/curriculum/GenericLessonSettings';
+import { SingleLessonEditor } from '../components/curriculum/SingleLessonEditor';
 import { curriculumService } from '../services/curriculum.service';
 import { useCurriculumStore } from '../store/curriculum.store';
 import { getLessonTypeMeta, normalizeLessonType } from '../config/lessonTypes.config';
@@ -35,7 +34,6 @@ export const LessonCreatePage: React.FC = () => {
     sortOrder: 999,
     durationMinutes: 15,
     isDemo: false,
-    unlockRule: 'immediate',
     content: { videoSource: 'upload', allowDownload: true },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -48,19 +46,19 @@ export const LessonCreatePage: React.FC = () => {
     return `Create ${typeMeta.label}`;
   };
 
-  const handleSaveLesson = (data: Partial<CourseLesson>) => {
+  const handleSaveLesson = async (data: Partial<CourseLesson>) => {
     try {
-      const created = curriculumService.createLesson(
+      const finalModuleUuid = data.moduleUuid || targetModuleUuid || selectedModule?.uuid || '';
+      const created = await curriculumService.createLesson(
         courseUuid,
-        selectedModule?.uuid || targetModuleUuid,
+        finalModuleUuid,
         {
           title: data.title || `Untitled ${typeMeta.label}`,
           description: data.description || '',
           type: lessonType,
           status: 'published',
           durationMinutes: data.durationMinutes || 15,
-          isDemo: false,
-          unlockRule: 'immediate',
+          isDemo: data.isDemo || false,
           content: data.content,
         }
       );
@@ -92,20 +90,15 @@ export const LessonCreatePage: React.FC = () => {
         { label: pageTitle },
       ]}
     >
-      {lessonType === 'video' ? (
-        <VideoLessonSettings
-          lesson={draftLesson}
-          moduleTitle={moduleTitle}
-          onSaveLesson={handleSaveLesson}
-          isCreateMode={true}
-        />
-      ) : (
-        <GenericLessonSettings
-          type={lessonType}
-          moduleTitle={moduleTitle}
-          onSaveLesson={handleSaveLesson}
-        />
-      )}
+      <SingleLessonEditor
+        type={lessonType}
+        moduleTitle={moduleTitle}
+        moduleUuid={selectedModule?.uuid || targetModuleUuid}
+        lesson={draftLesson}
+        onSaveLesson={handleSaveLesson}
+        onCancel={() => navigate(`/courses/${courseUuid}/curriculum`)}
+        isCreateMode={true}
+      />
     </FormPageLayout>
   );
 };
