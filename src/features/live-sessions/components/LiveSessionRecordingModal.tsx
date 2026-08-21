@@ -43,52 +43,53 @@ export const LiveSessionRecordingModal: React.FC<LiveSessionRecordingModalProps>
     >
       <form onSubmit={handleSubmit} className="space-y-4 font-sans text-xs text-left">
         <div>
-          <label className="block font-bold text-slate-900 mb-1">Recording Provider</label>
+          <label className="block font-semibold text-[#0F172A] dark:text-[#CBD5E1] mb-1">Recording Provider</label>
           <select
             value={provider}
             onChange={(e) => setProvider(e.target.value as typeof provider)}
-            className="w-full h-9 rounded-lg border border-slate-200 px-3 bg-white font-bold text-slate-900"
+            className="w-full h-9 rounded-lg border border-[#CBD5E1] dark:border-[#334155] px-3 bg-white dark:bg-[#0F172A] font-bold text-[#0F172A] dark:text-[#F8FAFC]"
           >
-            <option value="Direct">CubixSkill CDN Direct MP4</option>
-            <option value="YouTube">YouTube Unlisted Link</option>
-            <option value="Vimeo">Vimeo Video Link</option>
-            <option value="Google Drive">Google Drive Shared Link</option>
+            <option value="Direct" className="bg-white dark:bg-[#111827]">CubixSkill CDN Direct MP4</option>
+            <option value="YouTube" className="bg-white dark:bg-[#111827]">YouTube Unlisted Link</option>
+            <option value="Vimeo" className="bg-white dark:bg-[#111827]">Vimeo Video Link</option>
+            <option value="Google Drive" className="bg-white dark:bg-[#111827]">Google Drive Shared Link</option>
           </select>
         </div>
 
         <div>
-          <label className="block font-bold text-slate-900 mb-1">Recording URL *</label>
+          <label className="block font-semibold text-[#0F172A] dark:text-[#CBD5E1] mb-1">Recording URL *</label>
           <Input
             placeholder="https://cdn.cubixskill.com/recordings/session.mp4 or YouTube URL"
             value={recordingUrl}
             onChange={(e) => setRecordingUrl(e.target.value)}
             required
-            leftIcon={<LinkIcon className="w-4 h-4 text-slate-400" />}
+            leftIcon={<LinkIcon className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />}
+            className="bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] placeholder-[#64748B]"
           />
         </div>
 
         {session.recordingUrl && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2 text-emerald-950">
+          <div className="p-3 bg-emerald-50 dark:bg-[rgba(16,185,129,0.08)] border border-emerald-200 dark:border-[rgba(52,211,153,0.22)] rounded-xl space-y-2 text-emerald-950 dark:text-[#6EE7B7]">
             <div className="flex items-center gap-2 font-bold text-xs">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-[#34D399] shrink-0" />
               <span>Active Recording Attached</span>
             </div>
             <a
               href={session.recordingUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-bold hover:bg-emerald-800"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 dark:bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-800 transition-colors"
             >
               <Play className="w-3.5 h-3.5 fill-current" /> Preview Recording
             </a>
           </div>
         )}
 
-        <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-          <Button variant="outline" type="button" onClick={onClose}>
+        <div className="flex justify-end gap-2 pt-3 border-t border-[#E2E8F0] dark:border-[#263244]">
+          <Button variant="outline" type="button" onClick={onClose} className="bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1]">
             Cancel
           </Button>
-          <Button type="submit" className="bg-[#2563EB] text-white font-extrabold px-6">
+          <Button type="submit" className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold px-6 shadow-[0_4px_12px_rgba(37,99,235,0.12)]">
             Save Recording URL
           </Button>
         </div>

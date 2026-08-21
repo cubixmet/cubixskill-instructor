@@ -5,104 +5,108 @@ import { API_ENDPOINTS } from "./endpoints";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-let isRefreshing = false;
-let failedQueue: Array<{
-  resolve: (token: string) => void;
-  reject: (error: any) => void;
-}> = [];
-
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach((promise) => {
-    if (error) {
-      promise.reject(error);
-    } else if (token) {
-      promise.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
+let refreshPromise: Promise<string> | null = null;
 
 export const setupInterceptors = (client: AxiosInstance) => {
-  // Request Interceptor
+  // Request Interceptor: Attach current access token to every request
   client.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-      const token = tokenStorage.getAccessToken();
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+      const accessToken = tokenStorage.getAccessToken();
+      if (accessToken && config.headers) {
+        if (typeof config.headers.set === "function") {
+          config.headers.set("Authorization", `Bearer ${accessToken}`);
+        } else {
+          config.headers["Authorization"] = `Bearer ${accessToken}`;
+        }
       }
       return config;
     },
     (error) => Promise.reject(parseApiError(error))
   );
 
-  // Response Interceptor
+  // Response Interceptor: Handle 401 errors with token refresh & request retry
   client.interceptors.response.use(
     (response) => response,
     async (error) => {
       const originalRequest = error.config;
 
-      // Check if authentication route to bypass refresh attempt loop
+      // Do not attempt refresh on auth endpoints (login, logout, refresh, password reset)
+      const requestUrl = originalRequest?.url || "";
       const isAuthBypassRoute =
-        originalRequest?.url?.includes(API_ENDPOINTS.AUTH.LOGIN) ||
-        originalRequest?.url?.includes(API_ENDPOINTS.AUTH.LOGOUT) ||
-        originalRequest?.url?.includes(API_ENDPOINTS.AUTH.REFRESH) ||
-        originalRequest?.url?.includes(API_ENDPOINTS.AUTH.FORGOT_PASSWORD) ||
-        originalRequest?.url?.includes(API_ENDPOINTS.AUTH.RESET_PASSWORD);
+        requestUrl.includes(API_ENDPOINTS.AUTH.LOGIN) ||
+        requestUrl.includes(API_ENDPOINTS.AUTH.LOGOUT) ||
+        requestUrl.includes(API_ENDPOINTS.AUTH.REFRESH) ||
+        requestUrl.includes(API_ENDPOINTS.AUTH.FORGOT_PASSWORD) ||
+        requestUrl.includes(API_ENDPOINTS.AUTH.RESET_PASSWORD);
 
-      if (error.response?.status === 401 && !originalRequest._retry && !isAuthBypassRoute) {
-        if (isRefreshing) {
-          return new Promise<string>((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          })
-            .then((token) => {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-              return client(originalRequest);
-            })
-            .catch((err) => Promise.reject(parseApiError(err)));
-        }
-
+      if (
+        error.response?.status === 401 &&
+        originalRequest &&
+        !originalRequest._retry &&
+        !isAuthBypassRoute
+      ) {
         originalRequest._retry = true;
-        isRefreshing = true;
 
-        const refreshToken = tokenStorage.getRefreshToken();
+        if (!refreshPromise) {
+          refreshPromise = (async () => {
+            const refreshToken = tokenStorage.getRefreshToken();
 
-        if (!refreshToken) {
-          isRefreshing = false;
-          tokenStorage.clearTokens();
-          window.location.href = "/login";
-          return Promise.reject(parseApiError(error));
+            if (!refreshToken) {
+              tokenStorage.clearTokens();
+              window.location.href = "/login";
+              throw new Error("No refresh token available");
+            }
+
+            try {
+              console.debug("API 401:", requestUrl);
+              console.debug("Refreshing access token...");
+
+              const refreshUrl = `${API_BASE_URL}${API_ENDPOINTS.AUTH.REFRESH}`;
+              const response = await axios.post(refreshUrl, { refresh: refreshToken });
+
+              console.debug("Refresh succeeded");
+
+              const payload = response.data?.data ?? response.data;
+              const newAccessToken = payload?.access ?? payload?.access_token;
+              const newRefreshToken = payload?.refresh ?? payload?.refresh_token;
+
+              if (!newAccessToken) {
+                throw new Error("No access token returned from refresh endpoint.");
+              }
+
+              tokenStorage.setAccessToken(newAccessToken);
+              if (newRefreshToken) {
+                tokenStorage.setRefreshToken(newRefreshToken);
+              }
+
+              client.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
+
+              return newAccessToken;
+            } catch (refreshErr) {
+              tokenStorage.clearTokens();
+              window.location.href = "/login";
+              throw refreshErr;
+            } finally {
+              refreshPromise = null;
+            }
+          })();
         }
 
         try {
-          const response = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.AUTH.REFRESH}`, {
-            refresh: refreshToken,
-          });
+          const newAccessToken = await refreshPromise;
+          console.debug("Retrying:", requestUrl);
 
-          const data = response.data?.data || response.data;
-          const newAccessToken = data.access || data.access_token;
-          const newRefreshToken = data.refresh || data.refresh_token;
-
-          if (!newAccessToken) {
-            throw new Error("No access token returned from refresh endpoint.");
+          if (originalRequest.headers) {
+            if (typeof originalRequest.headers.set === "function") {
+              originalRequest.headers.set("Authorization", `Bearer ${newAccessToken}`);
+            } else {
+              originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+            }
           }
 
-          tokenStorage.setAccessToken(newAccessToken);
-          if (newRefreshToken) {
-            tokenStorage.setRefreshToken(newRefreshToken);
-          }
-
-          client.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-
-          processQueue(null, newAccessToken);
           return client(originalRequest);
-        } catch (refreshError) {
-          processQueue(refreshError, null);
-          tokenStorage.clearTokens();
-          window.location.href = "/login";
-          return Promise.reject(parseApiError(refreshError));
-        } finally {
-          isRefreshing = false;
+        } catch (retryErr) {
+          return Promise.reject(parseApiError(retryErr));
         }
       }
 

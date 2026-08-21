@@ -10,7 +10,7 @@ export function parseApiError(error: any): NormalizedApiError {
   if (!error.response) {
     if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
       return {
-        message: "Request timed out. Please check your network connection and try again.",
+        message: "The server took too long to respond. Please try again.",
         isTimeout: true,
       };
     }

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Video,
@@ -8,6 +8,7 @@ import {
   Download,
   BarChart3,
   List,
+  AlertCircle,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -16,8 +17,10 @@ import { Input } from '../../../components/ui/Input';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 
-// Store & Components
+// Store & Services
 import { useLiveSessionStore, type LiveSessionItem } from '../../live-sessions/store/liveSession.store';
+import { liveSessionsService } from '../../../services/liveSessions.service';
+import { coursesService, type CourseDetail } from '../../../services/courses.service';
 import { useCourseFeaturesStore, DEFAULT_COURSE_FEATURES } from '../store/courseFeatures.store';
 import { FeatureDisabledBanner } from '../../discussions/components/FeatureDisabledBanner';
 
@@ -33,7 +36,7 @@ export const CourseLiveSessionsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const courseUuid = params.courseUuid || '550e8400-e29b-41d4-a716-446655440000';
+  const courseUuid = params.courseUuid;
 
   // Subpath parsing
   const subPath = (params['*'] || '').replace(/^\/+/, '');
@@ -43,17 +46,25 @@ export const CourseLiveSessionsPage: React.FC = () => {
   const isAttendanceRoute = location.pathname.endsWith('/attendance');
   const isRecordingRoute = location.pathname.endsWith('/recording');
 
+  // Course & Session Loading State
+  const [course, setCourse] = useState<CourseDetail | null>(null);
+  const [courseError, setCourseError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Live Sessions Store State & Actions
+  const sessions = useLiveSessionStore((state) => state.sessions);
+  const fetchCourseLiveSessions = useLiveSessionStore((state) => state.fetchCourseLiveSessions);
+  const startLiveSessionApi = useLiveSessionStore((state) => state.startLiveSessionApi);
+  const endLiveSessionApi = useLiveSessionStore((state) => state.endLiveSessionApi);
+  const cancelLiveSessionApi = useLiveSessionStore((state) => state.cancelLiveSessionApi);
+  const deleteLiveSessionApi = useLiveSessionStore((state) => state.deleteLiveSessionApi);
+  const uploadRecording = useLiveSessionStore((state) => state.uploadRecording);
+
   // Feature Flags Check
   const getCourseFeatures = useCourseFeaturesStore((state) => state.getCourseFeatures);
-  const courseFeatures = getCourseFeatures ? getCourseFeatures(courseUuid) : (useCourseFeaturesStore.getState().featuresByCourse[courseUuid] || DEFAULT_COURSE_FEATURES);
-
-  // Live Sessions Store State
-  const sessions = useLiveSessionStore((state) => state.sessions);
-  const cancelLiveSession = useLiveSessionStore((state) => state.cancelLiveSession);
-  const startLiveSession = useLiveSessionStore((state) => state.startLiveSession);
-  const endLiveSession = useLiveSessionStore((state) => state.endLiveSession);
-  const uploadRecording = useLiveSessionStore((state) => state.uploadRecording);
-  const deleteLiveSession = useLiveSessionStore((state) => state.deleteLiveSession);
+  const courseFeatures = courseUuid
+    ? getCourseFeatures ? getCourseFeatures(courseUuid) : (useCourseFeaturesStore.getState().featuresByCourse[courseUuid] || DEFAULT_COURSE_FEATURES)
+    : DEFAULT_COURSE_FEATURES;
 
   // Filter States
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
@@ -65,28 +76,98 @@ export const CourseLiveSessionsPage: React.FC = () => {
   const [activeRecordingSession, setActiveRecordingSession] = useState<LiveSessionItem | null>(null);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
 
-  // Loading state
-  const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 200);
-    return () => clearTimeout(timer);
-  }, []);
+  // Load Real Course & Live Sessions Data
+  const loadData = useCallback(async () => {
+    if (!courseUuid) {
+      setCourseError('No Course ID provided.');
+      setIsLoading(false);
+      return;
+    }
 
-  // Handle route subpaths — setState deferred to avoid synchronous cascade
+    setIsLoading(true);
+    setCourseError(null);
+
+    try {
+      // 1. Fetch real course details
+      const courseData = await coursesService.getCourse(courseUuid);
+      setCourse(courseData);
+
+      // 2. Fetch real course live sessions
+      await fetchCourseLiveSessions(courseUuid);
+    } catch (err: any) {
+      console.error('Failed to load live sessions or course detail:', err);
+      const msg = err?.response?.data?.error?.message || err?.message || 'Failed to load course live sessions.';
+      setCourseError(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [courseUuid, fetchCourseLiveSessions]);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (targetSessionUuid) {
-        const found = sessions.find((s) => s.id === targetSessionUuid);
-        if (found) {
-          if (isAttendanceRoute) setActiveAttendanceSession(found);
-          else if (isRecordingRoute) setActiveRecordingSession(found);
-        }
+    loadData();
+  }, [loadData]);
+
+  // Handle route subpaths
+  useEffect(() => {
+    if (targetSessionUuid) {
+      const found = sessions.find((s) => s.id === targetSessionUuid);
+      if (found) {
+        if (isAttendanceRoute) setActiveAttendanceSession(found);
+        else if (isRecordingRoute) setActiveRecordingSession(found);
       }
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [location.pathname, targetSessionUuid, isAttendanceRoute, isRecordingRoute, sessions]);
+    }
+  }, [targetSessionUuid, isAttendanceRoute, isRecordingRoute, sessions]);
+
+  // Handlers for session actions
+  const handleStart = async (id: string) => {
+    try {
+      await startLiveSessionApi(id);
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || err?.message || 'Failed to start session.');
+    }
+  };
+
+  const handleEnd = async (id: string) => {
+    try {
+      await endLiveSessionApi(id);
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || err?.message || 'Failed to end session.');
+    }
+  };
+
+  const handleCancel = async (id: string) => {
+    try {
+      await cancelLiveSessionApi(id);
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || err?.message || 'Failed to cancel session.');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteLiveSessionApi(id);
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || err?.message || 'Failed to delete session.');
+    }
+  };
+
+  const handleJoin = async (session: LiveSessionItem) => {
+    try {
+      const joinInfo = await liveSessionsService.join(session.id);
+      const targetUrl = joinInfo.meeting_url || session.meetingUrl;
+      if (targetUrl && (targetUrl.startsWith('http://') || targetUrl.startsWith('https://'))) {
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        alert('No valid meeting URL provided by server for this session.');
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.message || 'Unable to join session.';
+      alert(msg);
+    }
+  };
 
   const courseSessions = useMemo(() => {
+    if (!courseUuid) return [];
     return sessions.filter((s) => s.courseUuid === courseUuid);
   }, [sessions, courseUuid]);
 
@@ -141,25 +222,39 @@ export const CourseLiveSessionsPage: React.FC = () => {
       : 0;
 
   const handleExportAllAttendance = () => {
-    alert(`Exported master attendance report for course "${courseUuid}" (CSV format).`);
+    alert(`Exported master attendance report for course "${course?.title || courseUuid}" (CSV format).`);
   };
 
+  if (courseError) {
+    return (
+      <div className="w-full space-y-4 font-sans text-left p-6">
+        <Card className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 p-6 rounded-2xl flex items-center gap-4">
+          <AlertCircle className="w-8 h-8 text-rose-600 dark:text-rose-400 shrink-0" />
+          <div>
+            <h3 className="text-base font-bold text-rose-900 dark:text-rose-200">Unable to Load Course Live Sessions</h3>
+            <p className="text-xs text-rose-700 dark:text-rose-300 font-medium mt-1">{courseError}</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4 sm:space-y-6 text-left font-sans pb-36 md:pb-12">
+    <div className="w-full min-w-0 max-w-full space-y-4 sm:space-y-6 text-left font-sans pb-36 md:pb-12">
       {/* 1. COMPACT PAGE HEADER */}
-      <Card padding="sm" className="bg-white border border-slate-200/90 p-4 shadow-2xs">
+      <Card padding="sm" className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] p-3.5 sm:p-4 shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="min-w-0 space-y-0.5">
             <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight">
+              <h1 className="text-base sm:text-xl font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
                 Live Sessions
               </h1>
-              <Badge variant="info" size="sm" className="font-bold shrink-0">
+              <Badge variant="info" size="sm" className="font-bold shrink-0 dark:bg-[rgba(59,130,246,0.12)] dark:text-[#60A5FA] dark:border-[rgba(59,130,246,0.25)]">
                 {total} Total
               </Badge>
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-500 font-medium truncate">
-              Manage scheduled live classes for this course.
+            <p className="text-[11px] sm:text-xs text-[#64748B] dark:text-[#94A3B8] font-normal truncate">
+              {course ? `Manage scheduled live classes for ${course.title}` : 'Manage scheduled live classes for this course.'}
             </p>
           </div>
 
@@ -168,8 +263,8 @@ export const CourseLiveSessionsPage: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={handleExportAllAttendance}
-              className="h-9 text-xs font-semibold text-slate-700"
-              leftIcon={<Download className="w-4 h-4 text-blue-600" />}
+              className="h-9 text-xs font-semibold bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC]"
+              leftIcon={<Download className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />}
             >
               Export
             </Button>
@@ -178,8 +273,8 @@ export const CourseLiveSessionsPage: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={() => setIsAnalyticsOpen(true)}
-              className="h-9 text-xs font-semibold text-slate-700"
-              leftIcon={<BarChart3 className="w-4 h-4 text-indigo-600" />}
+              className="h-9 text-xs font-semibold bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC]"
+              leftIcon={<BarChart3 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />}
             >
               Analytics
             </Button>
@@ -187,7 +282,7 @@ export const CourseLiveSessionsPage: React.FC = () => {
             <Button
               size="sm"
               onClick={() => navigate(`/courses/${courseUuid}/live-sessions/new`)}
-              className="h-9 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs px-4"
+              className="h-9 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs px-4 shadow-[0_4px_12px_rgba(37,99,235,0.12)]"
               leftIcon={<Plus className="w-4 h-4 stroke-[3]" />}
             >
               Schedule Session
@@ -201,7 +296,7 @@ export const CourseLiveSessionsPage: React.FC = () => {
         <FeatureDisabledBanner
           featureTitle="Live Sessions"
           description="Live Interactive Sessions are currently disabled for this course in Course Features settings."
-          courseUuid={courseUuid}
+          courseUuid={courseUuid || ''}
         />
       ) : (
         <>
@@ -219,8 +314,8 @@ export const CourseLiveSessionsPage: React.FC = () => {
           {/* PROMINENT LIVE NOW SECTION */}
           {liveNowSessions.length > 0 && (
             <div className="space-y-2">
-              <h2 className="text-xs font-bold text-rose-600 uppercase tracking-wider flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+              <h2 className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-rose-600 dark:bg-rose-500 animate-pulse" />
                 Live Now ({liveNowSessions.length})
               </h2>
 
@@ -230,10 +325,11 @@ export const CourseLiveSessionsPage: React.FC = () => {
                     key={session.id}
                     session={session}
                     onEdit={(s) => navigate(`/courses/${courseUuid}/live-sessions/${s.id}/edit`)}
-                    onStart={startLiveSession}
-                    onEnd={endLiveSession}
-                    onCancel={cancelLiveSession}
-                    onDelete={deleteLiveSession}
+                    onStart={handleStart}
+                    onEnd={handleEnd}
+                    onCancel={handleCancel}
+                    onDelete={handleDelete}
+                    onJoin={handleJoin}
                     onOpenAttendance={(s) => {
                       setActiveAttendanceSession(s);
                       navigate(`/courses/${courseUuid}/live-sessions/${s.id}/attendance`);
@@ -249,27 +345,27 @@ export const CourseLiveSessionsPage: React.FC = () => {
           )}
 
           {/* 4. SEARCH, STATUS FILTER CHIPS & VIEW MODE SWITCH */}
-          <div className="space-y-3 bg-white border border-slate-200/90 p-3.5 rounded-2xl shadow-2xs font-sans text-xs">
+          <div className="space-y-3 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] p-3.5 rounded-2xl shadow-2xs font-sans text-xs">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <div className="flex-1">
                 <Input
                   placeholder="Search live sessions by title, platform, agenda..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  leftIcon={<Search className="w-4 h-4 text-slate-400" />}
-                  className="h-9 text-xs font-medium"
+                  leftIcon={<Search className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />}
+                  className="h-9 text-xs font-medium bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] placeholder-[#64748B]"
                 />
               </div>
 
               {/* View Mode Switcher */}
-              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0 self-end sm:self-auto">
+              <div className="flex items-center bg-slate-100 dark:bg-[#0F172A] p-1 rounded-xl border border-slate-200 dark:border-[#334155] shrink-0 self-end sm:self-auto">
                 <button
                   type="button"
                   onClick={() => setViewMode('list')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                     viewMode === 'list'
-                      ? 'bg-white text-blue-600 shadow-2xs font-extrabold'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white dark:bg-[#111827] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs font-extrabold'
+                      : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
                   }`}
                 >
                   <List className="w-3.5 h-3.5" />
@@ -281,8 +377,8 @@ export const CourseLiveSessionsPage: React.FC = () => {
                   onClick={() => setViewMode('calendar')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                     viewMode === 'calendar'
-                      ? 'bg-white text-blue-600 shadow-2xs font-extrabold'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white dark:bg-[#111827] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs font-extrabold'
+                      : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
                   }`}
                 >
                   <CalendarIcon className="w-3.5 h-3.5" />
@@ -292,7 +388,7 @@ export const CourseLiveSessionsPage: React.FC = () => {
             </div>
 
             {/* STATUS FILTER CHIPS */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 border-t border-slate-100">
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pt-1 border-t border-slate-100 dark:border-[#263244]">
               {[
                 { id: 'all', label: `All (${total})` },
                 { id: 'upcoming', label: `Upcoming (${upcoming})` },
@@ -304,10 +400,10 @@ export const CourseLiveSessionsPage: React.FC = () => {
                   key={chip.id}
                   type="button"
                   onClick={() => setStatusFilter(chip.id)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                     statusFilter === chip.id
                       ? 'bg-[#2563EB] text-white shadow-2xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      : 'bg-slate-100 dark:bg-[#0F172A] text-[#64748B] dark:text-[#94A3B8] hover:bg-slate-200 dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC]'
                   }`}
                 >
                   {chip.label}
@@ -326,7 +422,7 @@ export const CourseLiveSessionsPage: React.FC = () => {
           ) : isLoading ? (
             <div className="space-y-3">
               {[1, 2].map((i) => (
-                <Card key={i} padding="md" className="space-y-3 bg-white border border-slate-200">
+                <Card key={i} padding="md" className="space-y-3 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244]">
                   <Skeleton className="h-5 w-2/3" />
                   <Skeleton className="h-4 w-full" />
                 </Card>
@@ -339,10 +435,11 @@ export const CourseLiveSessionsPage: React.FC = () => {
                   key={session.id}
                   session={session}
                   onEdit={(s) => navigate(`/courses/${courseUuid}/live-sessions/${s.id}/edit`)}
-                  onStart={startLiveSession}
-                  onEnd={endLiveSession}
-                  onCancel={cancelLiveSession}
-                  onDelete={deleteLiveSession}
+                  onStart={handleStart}
+                  onEnd={handleEnd}
+                  onCancel={handleCancel}
+                  onDelete={handleDelete}
+                  onJoin={handleJoin}
                   onOpenAttendance={(s) => {
                     setActiveAttendanceSession(s);
                     navigate(`/courses/${courseUuid}/live-sessions/${s.id}/attendance`);

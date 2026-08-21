@@ -4,11 +4,47 @@ import type { BackendApiResponse, PaginatedResponse } from "../api/types";
 
 export interface StudentData {
   id: string;
+  user_id?: string;
+  userId?: string;
+  student_code?: string;
+  studentCode?: string;
+  display_name?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  user?: {
+    id: string;
+    email: string;
+    full_name: string;
+    phone?: string;
+  };
+  status?: string;
+  joined_at?: string;
+  enrolledCoursesCount?: number;
+}
+
+export interface BulkUploadRowResult {
+  row: number;
   name: string;
   email: string;
-  phone?: string;
-  enrolledCoursesCount?: number;
-  joinedAt?: string;
+  student_code?: string;
+  student_user_id?: string;
+  student_profile_id?: string;
+  student_created: boolean;
+  enrollment_created: boolean;
+  activation_email_sent: boolean;
+  status: 'valid' | 'invalid' | 'duplicate';
+  message?: string;
+  errorMessage?: string;
+}
+
+export interface BulkUploadResponse {
+  total_rows: number;
+  valid_count: number;
+  invalid_count: number;
+  duplicate_count: number;
+  enrolled_count: number;
+  results: BulkUploadRowResult[];
 }
 
 export const studentsService = {
@@ -44,6 +80,13 @@ export const studentsService = {
     return response.data?.data || response.data;
   },
 
+  async resendActivationEmail(studentId: string): Promise<any> {
+    const response = await apiClient.post<BackendApiResponse<any>>(
+      `/api/v1/students/students/${studentId}/resend-activation/`
+    );
+    return response.data?.data || response.data;
+  },
+
   async createEnrollment(payload: {
     student_id: string;
     course_id: string;
@@ -67,6 +110,17 @@ export const studentsService = {
     return response.data?.data || (response.data as unknown as StudentData);
   },
 
+  async bulkUploadStudents(payload: {
+    course_id: string;
+    rows: Array<{ name?: string; full_name?: string; email: string; phone?: string }>;
+  }): Promise<BulkUploadResponse> {
+    const response = await apiClient.post<BackendApiResponse<BulkUploadResponse>>(
+      '/api/v1/students/students/bulk-upload/',
+      payload
+    );
+    return response.data?.data || (response.data as unknown as BulkUploadResponse);
+  },
+
   async bulkEnroll(payload: {
     student_ids: string[];
     course_id: string;
@@ -81,3 +135,4 @@ export const studentsService = {
     return response.data?.data || response.data;
   },
 };
+

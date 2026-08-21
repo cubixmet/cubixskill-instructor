@@ -44,12 +44,12 @@ export const LiveSessionCalendarView: React.FC<LiveSessionCalendarViewProps> = (
   };
 
   return (
-    <Card padding="md" className="bg-white border border-slate-200/90 shadow-2xs space-y-4 font-sans text-left">
+    <Card padding="md" className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-4 font-sans text-left">
       {/* Calendar Month Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <CalendarIcon className="w-5 h-5 text-blue-600" />
-          <h3 className="text-base font-extrabold text-slate-900">
+          <CalendarIcon className="w-5 h-5 text-[#2563EB] dark:text-[#60A5FA]" />
+          <h3 className="text-base font-extrabold text-[#0F172A] dark:text-[#F8FAFC]">
             {monthNames[currentMonth]} {currentYear}
           </h3>
         </div>
@@ -58,14 +58,14 @@ export const LiveSessionCalendarView: React.FC<LiveSessionCalendarViewProps> = (
           <button
             type="button"
             onClick={handlePrevMonth}
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+            className="p-1.5 rounded-lg text-[#64748B] dark:text-[#94A3B8] hover:bg-slate-100 dark:hover:bg-[#172033] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] cursor-pointer transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             type="button"
             onClick={handleNextMonth}
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+            className="p-1.5 rounded-lg text-[#64748B] dark:text-[#94A3B8] hover:bg-slate-100 dark:hover:bg-[#172033] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] cursor-pointer transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -73,7 +73,7 @@ export const LiveSessionCalendarView: React.FC<LiveSessionCalendarViewProps> = (
       </div>
 
       {/* Weekday Headers */}
-      <div className="grid grid-cols-7 gap-1 text-center font-extrabold text-slate-400 text-[11px] uppercase">
+      <div className="grid grid-cols-7 gap-1 text-center font-extrabold text-[#64748B] dark:text-[#94A3B8] text-[11px] uppercase">
         <div>Sun</div>
         <div>Mon</div>
         <div>Tue</div>
@@ -87,7 +87,7 @@ export const LiveSessionCalendarView: React.FC<LiveSessionCalendarViewProps> = (
       <div className="grid grid-cols-7 gap-1.5 text-xs font-sans">
         {/* Blank offset days */}
         {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-          <div key={`offset-${i}`} className="min-h-[80px] bg-slate-50/50 rounded-xl p-1 border border-transparent" />
+          <div key={`offset-${i}`} className="min-h-[80px] bg-slate-50/50 dark:bg-[#0B1120] rounded-xl p-1 border border-transparent" />
         ))}
 
         {/* Days of month */}
@@ -100,11 +100,11 @@ export const LiveSessionCalendarView: React.FC<LiveSessionCalendarViewProps> = (
             <div
               key={formattedDate}
               onClick={() => onCreateNewDate(formattedDate)}
-              className="min-h-[85px] p-2 rounded-xl border border-slate-200/80 bg-white hover:border-blue-300 transition-all flex flex-col justify-between cursor-pointer group"
+              className="min-h-[85px] p-2 rounded-xl border border-[#E2E8F0] dark:border-[#263244] bg-white dark:bg-[#0F172A] hover:border-blue-300 dark:hover:border-[#3B82F6] transition-all flex flex-col justify-between cursor-pointer group"
             >
               <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-700 text-xs">{dayNum}</span>
-                <Plus className="w-3 h-3 text-slate-300 group-hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <span className="font-bold text-[#0F172A] dark:text-[#F8FAFC] text-xs">{dayNum}</span>
+                <Plus className="w-3 h-3 text-slate-300 dark:text-[#64748B] group-hover:text-blue-600 dark:group-hover:text-[#60A5FA] opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
 
               {/* Day Sessions */}
@@ -120,8 +120,8 @@ export const LiveSessionCalendarView: React.FC<LiveSessionCalendarViewProps> = (
                       s.status === 'live'
                         ? 'bg-rose-500 text-white'
                         : s.status === 'completed'
-                        ? 'bg-emerald-100 text-emerald-900'
-                        : 'bg-blue-100 text-blue-900'
+                        ? 'bg-emerald-100 dark:bg-[rgba(16,185,129,0.15)] text-emerald-900 dark:text-[#6EE7B7]'
+                        : 'bg-blue-100 dark:bg-[rgba(59,130,246,0.15)] text-blue-900 dark:text-[#60A5FA]'
                     }`}
                   >
                     <Video className="w-3 h-3 shrink-0" />

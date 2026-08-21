@@ -330,8 +330,11 @@ export const CourseCreateWizardPage: React.FC = () => {
         navigate(`/courses/${courseUuid}/overview`);
       } else {
         const created = await coursesService.createCourse(payload);
-        showToast("Course created successfully!");
-        navigate(`/courses/${created.id}/overview`);
+        if (!created?.id) {
+          throw new Error("Course created but backend Course ID was not returned.");
+        }
+        showToast("Course created successfully! Set up course features.");
+        navigate(`/courses/${created.id}/features`, { replace: true, state: { isInitialSetup: true } });
       }
     } catch (err: any) {
       const responseData = err?.response?.data;

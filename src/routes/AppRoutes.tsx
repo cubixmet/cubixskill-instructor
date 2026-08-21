@@ -18,6 +18,7 @@ import { PasswordUpdatedSuccessPage } from '../features/auth/pages/PasswordUpdat
 
 import { DashboardPage } from '../features/dashboard/pages/DashboardPage';
 import { CreditsPage } from '../features/credits/pages/CreditsPage';
+import { BuyCreditsPage } from '../features/credits/pages/BuyCreditsPage';
 import { MediaPage } from '../features/media/pages/MediaPage';
 import { CourseListPage } from '../features/courses/pages/CourseListPage';
 import { CourseCategoryManagerPage } from '../features/courses/pages/CourseCategoryManagerPage';
@@ -222,7 +223,7 @@ export const AppRoutes: React.FC = () => {
 
           {/* 10. Credits & Fees */}
           <Route path="/credits" element={<CreditsPage />} />
-          <Route path="/credits/buy" element={<CreditsPage />} />
+          <Route path="/credits/buy" element={<BuyCreditsPage />} />
           <Route path="/credits/history" element={<CreditsPage />} />
           <Route path="/credits/usage" element={<CreditsPage />} />
           <Route path="/fees" element={<GlobalFeesPage />} />

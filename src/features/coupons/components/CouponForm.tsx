@@ -1,468 +1,361 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Ticket, Percent, Calendar, AlertCircle } from 'lucide-react';
-import { CouponFormData, CouponFormErrors } from '../types/coupon.types';
-import { Input } from '../../../components/ui/Input';
+import React, { useState, useEffect } from 'react';
+import { Sparkles } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
-import { useCourseStore } from '../../courses/store/course.store';
-import { useCouponStore } from '../store/coupon.store';
-import { AppUnsavedChangesDialog } from '../../../components/ui/app-dialogs/AppUnsavedChangesDialog';
+import { courseCouponsService, CreateCouponPayload } from '../../../services/courseCoupons.service';
 
 interface CouponFormProps {
-  initialValues?: Partial<CouponFormData>;
-  editingCouponId?: string;
-  courseIdContext?: string;
-  onSubmit: (formData: CouponFormData) => Promise<void> | void;
-  onCancel?: () => void;
-  isSubmitting?: boolean;
-  submitButtonText?: string;
-  submittingText?: string;
-  apiError?: string | null;
+  courseUuid: string;
+  initialData?: Partial<CreateCouponPayload>;
+  isEditing?: boolean;
+  onSubmit: (payload: CreateCouponPayload) => Promise<void>;
+  onCancel: () => void;
 }
 
 export const CouponForm: React.FC<CouponFormProps> = ({
-  initialValues,
-  editingCouponId,
-  courseIdContext,
+  courseUuid,
+  initialData,
+  isEditing = false,
   onSubmit,
   onCancel,
-  isSubmitting = false,
-  submitButtonText = 'Create Coupon',
-  submittingText = 'Creating Coupon...',
-  apiError = null,
 }) => {
-  const navigate = useNavigate();
-  const coursesByUuid = useCourseStore((state) => state.coursesByUuid);
-  const isCodeTaken = useCouponStore((state) => state.isCodeTaken);
+  const [code, setCode] = useState<string>('');
+  const [name, setName] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
+  const [discountType, setDiscountType] = useState<'PERCENTAGE' | 'FIXED_AMOUNT'>('PERCENTAGE');
+  const [discountValue, setDiscountValue] = useState<string>('20');
+  const [maxDiscountAmount, setMaxDiscountAmount] = useState<string>('');
+  const [minimumOrderAmount, setMinimumOrderAmount] = useState<string>('0');
+  const [validFrom, setValidFrom] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [validUntil, setValidUntil] = useState<string>('');
+  const [totalUsageLimit, setTotalUsageLimit] = useState<string>('100');
+  const [perUserUsageLimit, setPerUserUsageLimit] = useState<string>('1');
+  const [firstPurchaseOnly, setFirstPurchaseOnly] = useState<boolean>(false);
+  const [isActive, setIsActive] = useState<boolean>(true);
 
-  const coursesList = Object.values(coursesByUuid);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // Form Initial State
-  const defaultState: CouponFormData = {
-    code: initialValues?.code || '',
-    discountType: initialValues?.discountType || 'percentage',
-    discountValue: initialValues?.discountValue ?? '',
-    currency: initialValues?.currency || 'INR',
-    courseScope: courseIdContext || initialValues?.courseScope || 'all',
-    validFrom: initialValues?.validFrom || '',
-    expiryDate: initialValues?.expiryDate || '',
-    usageLimit: initialValues?.usageLimit ?? '',
-    perStudentLimit: initialValues?.perStudentLimit ?? 1,
-    status: initialValues?.status || 'active',
-  };
-
-  const [formData, setFormData] = useState<CouponFormData>(defaultState);
-  const [errors, setErrors] = useState<CouponFormErrors>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [isDirty, setIsDirty] = useState(false);
-  const [showDiscardModal, setShowDiscardModal] = useState(false);
-
-  // References for focusing invalid fields
-  const codeRef = useRef<HTMLInputElement>(null);
-  const discountValRef = useRef<HTMLInputElement>(null);
-  const expiryDateRef = useRef<HTMLInputElement>(null);
-  const usageLimitRef = useRef<HTMLInputElement>(null);
-  const perStudentLimitRef = useRef<HTMLInputElement>(null);
-
-  // Track Form Dirtiness
-  const updateField = <K extends keyof CouponFormData>(field: K, value: CouponFormData[K]) => {
-    setIsDirty(true);
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  // Validation Engine
-  const validateForm = (data: CouponFormData): { isValid: boolean; newErrors: CouponFormErrors } => {
-    const newErrors: CouponFormErrors = {};
-
-    // 1. Coupon Code Validation
-    const cleanCode = data.code.trim().toUpperCase();
-    if (!cleanCode) {
-      newErrors.code = 'Coupon code is required.';
-    } else if (cleanCode.length < 3) {
-      newErrors.code = 'Coupon code must be at least 3 characters.';
-    } else if (isCodeTaken(cleanCode, editingCouponId)) {
-      newErrors.code = `Coupon code "${cleanCode}" already exists. Please enter a unique code.`;
-    }
-
-    // 2. Discount Value Validation
-    const dVal = Number(data.discountValue);
-    if (data.discountValue === '' || isNaN(dVal)) {
-      newErrors.discountValue = 'Discount value is required.';
-    } else if (dVal <= 0) {
-      newErrors.discountValue = 'Discount value must be greater than 0.';
-    } else if (data.discountType === 'percentage' && dVal > 100) {
-      newErrors.discountValue = 'Percentage discount cannot exceed 100%.';
-    }
-
-    // 3. Expiry Date Validation
-    if (data.validFrom && data.expiryDate) {
-      const start = new Date(data.validFrom).getTime();
-      const end = new Date(data.expiryDate).getTime();
-      if (end < start) {
-        newErrors.expiryDate = 'Expiry date cannot be before Valid From start date.';
+  useEffect(() => {
+    if (initialData) {
+      if (initialData.code) setCode(initialData.code);
+      if (initialData.name) setName(initialData.name);
+      if (initialData.description) setDescription(initialData.description);
+      if (initialData.discount_type) setDiscountType(initialData.discount_type);
+      if (initialData.discount_value !== undefined) setDiscountValue(String(initialData.discount_value));
+      if (initialData.max_discount_amount !== undefined && initialData.max_discount_amount !== null) {
+        setMaxDiscountAmount(String(initialData.max_discount_amount));
       }
+      if (initialData.minimum_order_amount !== undefined) setMinimumOrderAmount(String(initialData.minimum_order_amount));
+      if (initialData.valid_from) setValidFrom(initialData.valid_from.split('T')[0]);
+      if (initialData.valid_until) setValidUntil(initialData.valid_until.split('T')[0]);
+      if (initialData.total_usage_limit !== undefined) setTotalUsageLimit(String(initialData.total_usage_limit));
+      if (initialData.per_user_usage_limit !== undefined) setPerUserUsageLimit(String(initialData.per_user_usage_limit));
+      if (initialData.first_purchase_only !== undefined) setFirstPurchaseOnly(initialData.first_purchase_only);
+      if (initialData.is_active !== undefined) setIsActive(initialData.is_active);
     }
+  }, [initialData]);
 
-    // 4. Usage Limit Validation
-    if (data.usageLimit !== '' && data.usageLimit !== null && data.usageLimit !== undefined) {
-      const uLim = Number(data.usageLimit);
-      if (isNaN(uLim) || uLim < 0) {
-        newErrors.usageLimit = 'Usage limit cannot be negative.';
-      }
+  const handleGenerateCode = async () => {
+    if (!courseUuid || isGenerating) return;
+    setIsGenerating(true);
+    try {
+      const generated = await courseCouponsService.generateCode(courseUuid);
+      setCode(generated);
+      if (!name) setName(`${generated} Offer`);
+    } catch (err) {
+      console.error('Failed to generate code:', err);
+    } finally {
+      setIsGenerating(false);
     }
-
-    // 5. Per-Student Limit Validation
-    if (data.perStudentLimit !== '' && data.perStudentLimit !== null && data.perStudentLimit !== undefined) {
-      const pLim = Number(data.perStudentLimit);
-      if (isNaN(pLim) || pLim < 1) {
-        newErrors.perStudentLimit = 'Per-student usage limit must be at least 1.';
-      }
-    }
-
-    return {
-      isValid: Object.keys(newErrors).length === 0,
-      newErrors,
-    };
   };
 
-  const handleBlur = (field: keyof CouponFormData) => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-    const { newErrors } = validateForm(formData);
-    setErrors(newErrors);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
 
-    // Mark all fields as touched
-    setTouched({
-      code: true,
-      discountType: true,
-      discountValue: true,
-      courseScope: true,
-      validFrom: true,
-      expiryDate: true,
-      usageLimit: true,
-      perStudentLimit: true,
-      status: true,
-    });
-
-    const { isValid, newErrors } = validateForm(formData);
-    setErrors(newErrors);
-
-    if (!isValid) {
-      // Focus & Scroll to the first field with an error
-      const firstErrorKey = Object.keys(newErrors)[0] as keyof CouponFormErrors;
-      if (firstErrorKey === 'code' && codeRef.current) {
-        codeRef.current.focus();
-        codeRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else if (firstErrorKey === 'discountValue' && discountValRef.current) {
-        discountValRef.current.focus();
-        discountValRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else if (firstErrorKey === 'expiryDate' && expiryDateRef.current) {
-        expiryDateRef.current.focus();
-        expiryDateRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else if (firstErrorKey === 'usageLimit' && usageLimitRef.current) {
-        usageLimitRef.current.focus();
-        usageLimitRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else if (firstErrorKey === 'perStudentLimit' && perStudentLimitRef.current) {
-        perStudentLimitRef.current.focus();
-        perStudentLimitRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+    setFieldErrors({});
+    const trimmedCode = code.trim().toUpperCase();
+    if (!trimmedCode) {
+      setFieldErrors({ code: 'Coupon promo code is required.' });
       return;
     }
 
-    await onSubmit(formData);
-  };
-
-  const handleCancelClick = () => {
-    if (isDirty) {
-      setShowDiscardModal(true);
-    } else {
-      executeCancel();
+    const valNum = parseFloat(discountValue);
+    if (isNaN(valNum) || valNum <= 0) {
+      setFieldErrors({ discountValue: 'Discount value must be greater than 0.' });
+      return;
     }
-  };
 
-  const executeCancel = () => {
-    if (onCancel) {
-      onCancel();
-    } else if (courseIdContext) {
-      navigate(`/courses/${courseIdContext}/coupons`);
-    } else {
-      navigate('/coupons');
+    if (discountType === 'PERCENTAGE' && valNum > 100) {
+      setFieldErrors({ discountValue: 'Percentage discount cannot exceed 100%.' });
+      return;
+    }
+
+    if (validUntil && validFrom && new Date(validUntil) <= new Date(validFrom)) {
+      setFieldErrors({ validUntil: 'End date must be after start date.' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        code: trimmedCode,
+        name: name.trim() || trimmedCode,
+        description: description.trim(),
+        discount_type: discountType,
+        discount_value: valNum,
+        max_discount_amount: maxDiscountAmount ? parseFloat(maxDiscountAmount) : null,
+        minimum_order_amount: minimumOrderAmount ? parseFloat(minimumOrderAmount) : 0,
+        valid_from: validFrom,
+        valid_until: validUntil || null,
+        total_usage_limit: totalUsageLimit ? parseInt(totalUsageLimit) : 0,
+        per_user_usage_limit: perUserUsageLimit ? parseInt(perUserUsageLimit) : 1,
+        first_purchase_only: firstPurchaseOnly,
+        is_active: isActive,
+      });
+    } catch (err: any) {
+      console.error('Coupon form error:', err);
+      const resData = err?.response?.data;
+      if (resData && typeof resData === 'object') {
+        const mapped: Record<string, string> = {};
+        if (resData.code) mapped.code = Array.isArray(resData.code) ? resData.code[0] : String(resData.code);
+        if (resData.discount_value) mapped.discountValue = Array.isArray(resData.discount_value) ? resData.discount_value[0] : String(resData.discount_value);
+        if (resData.valid_until) mapped.validUntil = Array.isArray(resData.valid_until) ? resData.valid_until[0] : String(resData.valid_until);
+        setFieldErrors(mapped);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="font-sans text-left space-y-4 sm:space-y-5 pb-28 sm:pb-6">
-      {/* API Submission Error Banner */}
-      {apiError && (
-        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-          <span>{apiError}</span>
-        </div>
-      )}
-
-      {/* 1. Coupon Code */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-2xs space-y-4">
-        <div>
-          <Input
-            ref={codeRef}
-            id="couponCodeInput"
-            label="Coupon Code *"
-            placeholder="SUMMER25"
-            value={formData.code}
-            onChange={(e) =>
-              updateField('code', e.target.value.toUpperCase().replace(/\s+/g, ''))
-            }
-            onBlur={() => handleBlur('code')}
-            error={touched.code ? errors.code : undefined}
-            leftIcon={<Ticket className="w-4 h-4 text-slate-400" />}
-            helperText="Code is uppercase only (e.g. SUMMER25)."
-            className="font-mono uppercase tracking-wider font-bold text-slate-900"
-          />
-        </div>
-
-        {/* 2. Discount Type Selector */}
-        <div>
-          <label className="block text-[13px] font-semibold text-[#0F172A] mb-1.5">
-            Discount Type *
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={() => updateField('discountType', 'percentage')}
-              className={`p-3.5 rounded-xl border flex items-center gap-3 transition-all cursor-pointer text-left w-full ${
-                formData.discountType === 'percentage'
-                  ? 'border-blue-600 bg-blue-50/70 ring-2 ring-blue-600/20'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
-            >
-              <div
-                className={`p-2 rounded-lg shrink-0 flex items-center justify-center w-8 h-8 ${
-                  formData.discountType === 'percentage'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                <Percent className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="font-bold text-xs sm:text-sm text-slate-900">Percentage</div>
-                <div className="text-[11px] text-slate-500">Discount by % (e.g. 25%)</div>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => updateField('discountType', 'fixed')}
-              className={`p-3.5 rounded-xl border flex items-center gap-3 transition-all cursor-pointer text-left w-full ${
-                formData.discountType === 'fixed'
-                  ? 'border-blue-600 bg-blue-50/70 ring-2 ring-blue-600/20'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
-            >
-              <div
-                className={`p-2 rounded-lg shrink-0 flex items-center justify-center w-8 h-8 font-bold text-sm ${
-                  formData.discountType === 'fixed'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                ₹
-              </div>
-              <div className="min-w-0">
-                <div className="font-bold text-xs sm:text-sm text-slate-900">Fixed Amount</div>
-                <div className="text-[11px] text-slate-500">Flat price deduction in INR (e.g. ₹500)</div>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* 3. Discount Value Input */}
-        <div>
-          <Input
-            ref={discountValRef}
-            id="discountValueInput"
-            label={`Discount Value (${formData.discountType === 'percentage' ? '%' : '₹'}) *`}
-            type="number"
-            placeholder={formData.discountType === 'percentage' ? '25' : '500'}
-            value={formData.discountValue}
-            onChange={(e) =>
-              updateField('discountValue', e.target.value === '' ? '' : Number(e.target.value))
-            }
-            onBlur={() => handleBlur('discountValue')}
-            error={touched.discountValue ? errors.discountValue : undefined}
-            leftIcon={
-              formData.discountType === 'percentage' ? (
-                <Percent className="w-4 h-4 text-slate-400" />
-              ) : (
-                <span className="font-bold text-sm text-slate-600 select-none">₹</span>
-              )
-            }
-          />
-        </div>
+    <form onSubmit={handleSubmitForm} className="space-y-4 font-sans text-xs text-slate-900 dark:text-white text-left font-normal max-w-lg mx-auto bg-white dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-[#263244] shadow-2xs">
+      <div className="border-b border-slate-100 dark:border-[#263244] pb-3">
+        <h2 className="font-semibold text-sm text-slate-900 dark:text-white">
+          {isEditing ? 'Edit Promotional Coupon' : 'Create Course Coupon'}
+        </h2>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">
+          Define discount rules, validity dates, and usage limits for checkouts.
+        </p>
       </div>
 
-      {/* 4. Applicable Course / Scope */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-2xs space-y-4">
-        <div>
-          <label htmlFor="courseScopeSelect" className="block text-[13px] font-semibold text-[#0F172A] mb-1.5">
-            Applicable Course / Scope *
-          </label>
-          <select
-            id="courseScopeSelect"
-            value={formData.courseScope}
-            onChange={(e) => updateField('courseScope', e.target.value)}
-            disabled={Boolean(courseIdContext)}
-            className="w-full h-[48px] px-3.5 text-[14px] bg-white border border-slate-200 rounded-[12px] focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 font-medium text-slate-900 cursor-pointer disabled:bg-slate-100 disabled:cursor-not-allowed"
-          >
-            <option value="all">All Courses (Global Platform Scope)</option>
-            {coursesList.map((course) => (
-              <option key={course.uuid} value={course.uuid}>
-                {course.title}
-              </option>
-            ))}
-          </select>
-          {courseIdContext && (
-            <p className="text-[11px] text-slate-500 mt-1">
-              Course scope is preset to this specific course.
-            </p>
-          )}
-        </div>
-
-        {/* 5 & 6. Date Fields: Valid From & Expiry Date (Stacked 1-column on mobile, side-by-side on desktop) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-          <div>
-            <Input
-              label="Valid From"
-              type="date"
-              value={formData.validFrom}
-              onChange={(e) => updateField('validFrom', e.target.value)}
-              onBlur={() => handleBlur('validFrom')}
-              error={touched.validFrom ? errors.validFrom : undefined}
-              leftIcon={<Calendar className="w-4 h-4 text-slate-400" />}
-              helperText="Optional start date"
-            />
-          </div>
-
-          <div>
-            <Input
-              ref={expiryDateRef}
-              label="Expiry Date"
-              type="date"
-              value={formData.expiryDate}
-              onChange={(e) => updateField('expiryDate', e.target.value)}
-              onBlur={() => handleBlur('expiryDate')}
-              error={touched.expiryDate ? errors.expiryDate : undefined}
-              leftIcon={<Calendar className="w-4 h-4 text-slate-400" />}
-              helperText="Optional expiration date"
-            />
-          </div>
-        </div>
-
-        {/* 7 & 8. Usage Limits (Stacked 1-column on mobile, 2-column on desktop) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-          <div>
-            <Input
-              ref={usageLimitRef}
-              label="Usage Limit"
-              type="number"
-              placeholder="e.g. 100 (Optional)"
-              value={formData.usageLimit ?? ''}
-              onChange={(e) =>
-                updateField('usageLimit', e.target.value === '' ? '' : Number(e.target.value))
-              }
-              onBlur={() => handleBlur('usageLimit')}
-              error={touched.usageLimit ? errors.usageLimit : undefined}
-              helperText="Leave blank for unlimited usage."
-            />
-          </div>
-
-          <div>
-            <Input
-              ref={perStudentLimitRef}
-              label="Per-Student Usage Limit"
-              type="number"
-              placeholder="e.g. 1 (Optional)"
-              value={formData.perStudentLimit ?? 1}
-              onChange={(e) =>
-                updateField('perStudentLimit', e.target.value === '' ? '' : Number(e.target.value))
-              }
-              onBlur={() => handleBlur('perStudentLimit')}
-              error={touched.perStudentLimit ? errors.perStudentLimit : undefined}
-              helperText="Redemptions allowed per student (default 1)."
-            />
-          </div>
-        </div>
-
-        {/* 9. Status Selector */}
-        <div>
-          <label className="block text-[13px] font-semibold text-[#0F172A] mb-1.5">
-            Status *
-          </label>
-          <div className="flex items-center gap-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
-            <label className="inline-flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="couponStatusRadio"
-                checked={formData.status === 'active'}
-                onChange={() => updateField('status', 'active')}
-                className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
-              />
-              <span className="text-xs sm:text-sm font-bold text-slate-800">Active</span>
-            </label>
-
-            <label className="inline-flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="couponStatusRadio"
-                checked={formData.status === 'inactive'}
-                onChange={() => updateField('status', 'inactive')}
-                className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
-              />
-              <span className="text-xs sm:text-sm font-bold text-slate-800">Inactive</span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* 10. Sticky Mobile & Desktop Action Bar (Sits ABOVE mobile bottom navigation) */}
-      <div className="fixed sm:static bottom-16 sm:bottom-0 left-0 right-0 z-30 bg-white border-t sm:border-t-0 border-slate-200 p-3 sm:p-0 shadow-lg sm:shadow-none flex items-center justify-end gap-2.5 pb-safe">
-        <div className="w-full sm:w-auto flex items-center justify-end gap-2">
+      {/* Coupon Code & Auto-Generate */}
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+          Coupon Promo Code <span className="text-rose-500">*</span>
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="e.g. WELCOME20"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            className={`flex-1 h-9 px-3 rounded-xl border font-mono font-medium uppercase text-xs text-slate-900 dark:text-white bg-white dark:bg-[#0F172A] focus:outline-none ${
+              fieldErrors.code ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-[#334155] focus:border-blue-500'
+            }`}
+          />
           <Button
             type="button"
             variant="outline"
-            size="md"
-            onClick={handleCancelClick}
-            disabled={isSubmitting}
-            className="flex-1 sm:flex-initial"
+            size="sm"
+            onClick={handleGenerateCode}
+            disabled={isGenerating}
+            className="h-9 px-3 font-normal border-slate-200 dark:border-[#334155]"
+            leftIcon={<Sparkles className="w-3.5 h-3.5 text-blue-600" />}
           >
-            Cancel
+            {isGenerating ? 'Generating...' : 'Auto-Generate'}
           </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            isLoading={isSubmitting}
-            loadingText={submittingText}
-            className="flex-1 sm:flex-initial min-w-[140px]"
+        </div>
+        {fieldErrors.code && <p className="text-[11px] text-rose-500 font-normal">{fieldErrors.code}</p>}
+      </div>
+
+      {/* Display Name & Description */}
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+          Coupon Name / Campaign Label
+        </label>
+        <input
+          type="text"
+          placeholder="e.g. Early Bird 20% Off"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+          Description / Internal Note
+        </label>
+        <input
+          type="text"
+          placeholder="e.g. Applicable for Fall 2026 course batch checkouts"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white"
+        />
+      </div>
+
+      {/* Discount Type & Value */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+            Discount Type
+          </label>
+          <select
+            value={discountType}
+            onChange={(e) => setDiscountType(e.target.value as any)}
+            className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
           >
-            {submitButtonText}
-          </Button>
+            <option value="PERCENTAGE">Percentage Discount (%)</option>
+            <option value="FIXED_AMOUNT">Fixed Flat Amount (INR)</option>
+          </select>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+            Discount Value <span className="text-rose-500">*</span>
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0.01"
+            placeholder={discountType === 'PERCENTAGE' ? '20' : '500'}
+            value={discountValue}
+            onChange={(e) => setDiscountValue(e.target.value)}
+            className={`w-full h-9 px-3 rounded-xl border text-xs font-normal text-slate-900 dark:text-white bg-white dark:bg-[#0F172A] focus:outline-none ${
+              fieldErrors.discountValue ? 'border-rose-500' : 'border-slate-200 dark:border-[#334155] focus:border-blue-500'
+            }`}
+          />
+          {fieldErrors.discountValue && <p className="text-[11px] text-rose-500 font-normal">{fieldErrors.discountValue}</p>}
         </div>
       </div>
 
-      {/* Discard Unsaved Changes Dialog */}
-      <AppUnsavedChangesDialog
-        isOpen={showDiscardModal}
-        onClose={() => setShowDiscardModal(false)}
-        onConfirmDiscard={() => {
-          setShowDiscardModal(false);
-          executeCancel();
-        }}
-      />
+      {/* Max Discount & Min Order */}
+      <div className="grid grid-cols-2 gap-3">
+        {discountType === 'PERCENTAGE' && (
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+              Max Discount Cap (₹)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="e.g. 1000"
+              value={maxDiscountAmount}
+              onChange={(e) => setMaxDiscountAmount(e.target.value)}
+              className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white"
+            />
+          </div>
+        )}
+
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+            Min Subtotal Amount (₹)
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            placeholder="0"
+            value={minimumOrderAmount}
+            onChange={(e) => setMinimumOrderAmount(e.target.value)}
+            className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white"
+          />
+        </div>
+      </div>
+
+      {/* Validity Window */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+            Start Date (Valid From)
+          </label>
+          <input
+            type="date"
+            value={validFrom}
+            onChange={(e) => setValidFrom(e.target.value)}
+            className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+            End Date (Valid Until)
+          </label>
+          <input
+            type="date"
+            value={validUntil}
+            onChange={(e) => setValidUntil(e.target.value)}
+            className={`w-full h-9 px-3 rounded-xl border text-xs font-normal text-slate-900 dark:text-white bg-white dark:bg-[#0F172A] ${
+              fieldErrors.validUntil ? 'border-rose-500' : 'border-slate-200 dark:border-[#334155]'
+            }`}
+          />
+          {fieldErrors.validUntil && <p className="text-[11px] text-rose-500 font-normal">{fieldErrors.validUntil}</p>}
+        </div>
+      </div>
+
+      {/* Usage Limits */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+            Total Usage Limit (0 = Unlimited)
+          </label>
+          <input
+            type="number"
+            min="0"
+            value={totalUsageLimit}
+            onChange={(e) => setTotalUsageLimit(e.target.value)}
+            className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+            Per-Student Limit
+          </label>
+          <input
+            type="number"
+            min="1"
+            value={perUserUsageLimit}
+            onChange={(e) => setPerUserUsageLimit(e.target.value)}
+            className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white"
+          />
+        </div>
+      </div>
+
+      {/* Toggles */}
+      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-[#0F172A] rounded-xl border border-slate-200 dark:border-[#334155]">
+        <span className="text-xs font-normal text-slate-700 dark:text-slate-300">Coupon Status</span>
+        <label className="flex items-center gap-2 cursor-pointer text-xs font-normal">
+          <input
+            type="checkbox"
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
+            className="w-4 h-4 text-blue-600 rounded"
+          />
+          <span>Active & Redeemable</span>
+        </label>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-[#263244]">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          className="flex-1 h-9 font-normal rounded-xl justify-center"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="flex-1 h-9 bg-blue-600 hover:bg-blue-700 text-white font-normal rounded-xl justify-center"
+        >
+          {isSubmitting ? 'Saving...' : isEditing ? 'Update Coupon' : 'Save Coupon'}
+        </Button>
+      </div>
     </form>
   );
 };

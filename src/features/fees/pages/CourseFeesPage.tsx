@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Search,
@@ -7,380 +7,610 @@ import {
   Clock,
   AlertCircle,
   History,
+  Send,
+  Plus,
+  RefreshCw,
+  FileText,
+  UserCheck,
+  Calendar,
+  Layers,
+  Filter,
+  Settings2,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
-import { useFeesStore, StudentFeeRecord } from '../store/fees.store';
+import { Card } from '../../../components/ui/Card';
+import { Badge } from '../../../components/ui/Badge';
+import {
+  courseFeesCollectionService,
+  CourseFeeSummary,
+  CourseFeeConfigurationData,
+  StudentFeeRecordItem,
+  FeePaymentItem,
+} from '../../../services/courseFeesCollection.service';
+import { ConfigureFeePlanModal } from '../components/ConfigureFeePlanModal';
 import { CollectPaymentModal } from '../components/CollectPaymentModal';
+import { StudentFeeAccountDrawer } from '../components/StudentFeeAccountDrawer';
+import { StudentAvatar } from '../components/StudentAvatar';
+import { parseApiError } from '../../../api/errors';
 
 export const CourseFeesPage: React.FC = () => {
-  const { courseUuid = '550e8400-e29b-41d4-a716-446655440000' } = useParams<{ courseUuid?: string }>();
-  const allRecords = useFeesStore((s) => s.records);
+  const { courseUuid } = useParams<{ courseUuid: string }>();
 
-  const records = useMemo(
-    () => allRecords.filter((r) => r.courseUuid === courseUuid),
-    [allRecords, courseUuid]
-  );
+  const [summary, setSummary] = useState<CourseFeeSummary | null>(null);
+  const [courseConfig, setCourseConfig] = useState<CourseFeeConfigurationData | null>(null);
+  const [records, setRecords] = useState<StudentFeeRecordItem[]>([]);
+  const [paymentsLedger, setPaymentsLedger] = useState<Array<FeePaymentItem & { student_id: string; student_name: string; student_email: string; student_code: string }>>([]);
 
-  const summary = useMemo(() => {
-    const courseFee = records[0]?.courseFeeINR || 0;
-    const studentsCount = records.length;
-    const expected = records.reduce((acc, r) => acc + r.payableINR, 0);
-    const collected = records.reduce((acc, r) => acc + r.paidINR, 0);
-    const pending = records.reduce((acc, r) => acc + (r.status !== 'Overdue' ? r.pendingINR : 0), 0);
-    const overdue = records.reduce((acc, r) => acc + (r.status === 'Overdue' ? r.pendingINR : 0), 0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-    return { courseFee, studentsCount, expected, collected, pending, overdue };
-  }, [records]);
+  // Filters & Tabs
+  const [search, setSearch] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<'students' | 'ledger' | 'overdue'>('students');
 
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  // Modals & Drawers
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
+  const [selectedForPayment, setSelectedForPayment] = useState<StudentFeeRecordItem | null>(null);
+  const [drawerAccountId, setDrawerAccountId] = useState<string | null>(null);
 
-  // Modal State
-  const [selectedRecordForPayment, setSelectedRecordForPayment] = useState<StudentFeeRecord | null>(null);
-  const [selectedRecordForHistory, setSelectedRecordForHistory] = useState<StudentFeeRecord | null>(null);
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
-  // Filter student records
-  const filteredRecords = useMemo(() => {
-    const q = search.toLowerCase();
-    return records.filter((r) => {
-      const matchSearch =
-        !q ||
-        r.studentName.toLowerCase().includes(q) ||
-        r.studentEmail.toLowerCase().includes(q) ||
-        (r.studentPhone && r.studentPhone.includes(q));
+  const loadAllData = useCallback(async () => {
+    if (!courseUuid) {
+      setError('Course UUID is missing from route.');
+      setIsLoading(false);
+      return;
+    }
 
-      const matchStatus = statusFilter === 'all' || r.status === statusFilter;
-      return matchSearch && matchStatus;
-    });
-  }, [records, search, statusFilter]);
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [sumData, configData, recData, ledgerData] = await Promise.all([
+        courseFeesCollectionService.getSummary(courseUuid),
+        courseFeesCollectionService.getCourseFeeConfiguration(courseUuid),
+        courseFeesCollectionService.getStudentAccounts(courseUuid, { search, status: statusFilter }),
+        courseFeesCollectionService.getPaymentsLedger(courseUuid),
+      ]);
 
-  const getStatusBadge = (status: StudentFeeRecord['status']) => {
-    switch (status) {
-      case 'Paid':
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60 flex items-center gap-1 w-fit">
-            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Paid
-          </span>
-        );
-      case 'Partially Paid':
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200/60 flex items-center gap-1 w-fit">
-            <Clock className="w-3 h-3 text-blue-600" /> Partially Paid
-          </span>
-        );
-      case 'Pending':
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200/60 flex items-center gap-1 w-fit">
-            <Clock className="w-3 h-3 text-amber-600" /> Pending
-          </span>
-        );
-      case 'Overdue':
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-rose-50 text-rose-700 border border-rose-200/60 flex items-center gap-1 w-fit">
-            <AlertCircle className="w-3 h-3 text-rose-600" /> Overdue
-          </span>
-        );
-      default:
-        return null;
+      setSummary(sumData);
+      setCourseConfig(configData);
+      setRecords(recData);
+      setPaymentsLedger(ledgerData);
+    } catch (err: any) {
+      console.error('Failed to load course fee collection data:', err);
+      const parsed = parseApiError(err);
+      setError(parsed.message || 'Failed to load fee collection data.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [courseUuid]);
+
+  useEffect(() => {
+    loadAllData();
+  }, [loadAllData]);
+
+  // Refetch student accounts on search / status filter change
+  useEffect(() => {
+    if (!courseUuid) return;
+    let isCancelled = false;
+
+    const timer = setTimeout(async () => {
+      try {
+        const recData = await courseFeesCollectionService.getStudentAccounts(courseUuid, { search, status: statusFilter });
+        if (!isCancelled) {
+          setRecords(recData);
+        }
+      } catch (err) {
+        console.error('Failed to filter student accounts:', err);
+      }
+    }, 300);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [courseUuid, search, statusFilter]);
+
+  const handleSendReminder = async (r: StudentFeeRecordItem) => {
+    if (!courseUuid || !r.fee_account_id) return;
+    try {
+      await courseFeesCollectionService.sendReminder(courseUuid, r.fee_account_id, { send_email: true });
+      showToast(`Fee reminder dispatched to ${r.student_name}.`);
+    } catch (err: any) {
+      console.error('Failed to send reminder:', err);
+      showToast('Failed to send reminder.');
     }
   };
 
-  return (
-    <div className="space-y-5 font-sans text-xs text-slate-900 text-left pb-24 sm:pb-12 min-w-0 w-full max-w-full overflow-x-hidden">
-      {/* 1. COURSE SUMMARY STATS */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 min-w-0">
-        <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1 min-w-0">
-          <span className="text-[10px] text-slate-500 font-normal block truncate">Course Fee / Student</span>
-          <p className="text-xs sm:text-base font-medium text-slate-900 truncate">
-            ₹{summary.courseFee.toLocaleString('en-IN')}
-          </p>
-        </div>
+  const getStatusBadge = (st: string) => {
+    switch (st.toUpperCase()) {
+      case 'PAID':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 flex items-center gap-1 w-fit">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Paid
+          </span>
+        );
+      case 'PARTIAL':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-200/80 flex items-center gap-1 w-fit">
+            <Clock className="w-3 h-3 text-blue-600" /> Partial
+          </span>
+        );
+      case 'OVERDUE':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200/80 flex items-center gap-1 w-fit">
+            <AlertCircle className="w-3 h-3 text-rose-600" /> Overdue
+          </span>
+        );
+      case 'NOT_CONFIGURED':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 flex items-center gap-1 w-fit">
+            Not Configured
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200/80 flex items-center gap-1 w-fit">
+            <Clock className="w-3 h-3 text-amber-600" /> Pending
+          </span>
+        );
+    }
+  };
 
-        <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1 min-w-0">
-          <span className="text-[10px] text-slate-500 font-normal block truncate">Expected Collection</span>
-          <p className="text-xs sm:text-base font-medium text-slate-900 truncate">
-            ₹{summary.expected.toLocaleString('en-IN')}
-          </p>
-        </div>
+  const overdueRecords = useMemo(() => {
+    return records.filter((r) => r.status.toUpperCase() === 'OVERDUE' || r.overdue_amount > 0);
+  }, [records]);
 
-        <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1 min-w-0">
-          <span className="text-[10px] text-slate-500 font-normal block truncate">Collected</span>
-          <p className="text-xs sm:text-base font-medium text-emerald-700 truncate">
-            ₹{summary.collected.toLocaleString('en-IN')}
-          </p>
+  if (isLoading && !summary) {
+    return (
+      <div className="space-y-4 p-4 font-sans text-xs text-slate-900 text-left">
+        <div className="h-8 bg-slate-200 dark:bg-[#1E293B] rounded-xl w-48 animate-pulse" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 bg-slate-100 dark:bg-[#111827] rounded-2xl animate-pulse" />
+          ))}
         </div>
-
-        <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1 min-w-0">
-          <span className="text-[10px] text-slate-500 font-normal block truncate">Pending</span>
-          <p className="text-xs sm:text-base font-medium text-amber-700 truncate">
-            ₹{summary.pending.toLocaleString('en-IN')}
-          </p>
-        </div>
-
-        <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1 min-w-0 col-span-2 lg:col-span-1">
-          <span className="text-[10px] text-slate-500 font-normal block truncate">Overdue</span>
-          <p className="text-xs sm:text-base font-medium text-rose-700 truncate">
-            ₹{summary.overdue.toLocaleString('en-IN')}
-          </p>
-        </div>
+        <div className="h-64 bg-slate-100 dark:bg-[#111827] rounded-2xl animate-pulse" />
       </div>
+    );
+  }
 
-      {/* 2. SEARCH & FILTER TOOLBAR */}
-      <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between min-w-0">
-        <div className="relative flex-1 min-w-0">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search student name, email or phone..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-9 pl-9 pr-3 rounded-xl border border-slate-200 text-xs font-normal focus:outline-none focus:border-blue-500 bg-white"
-          />
+  if (error && !summary) {
+    return (
+      <div className="p-6 bg-white dark:bg-[#111827] rounded-2xl border border-rose-200 dark:border-rose-900 text-center space-y-3">
+        <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Unable to Load Fee Collection Dashboard</h3>
+        <p className="text-xs text-slate-600 dark:text-slate-400">{error}</p>
+        <Button size="sm" onClick={loadAllData} leftIcon={<RefreshCw className="w-3.5 h-3.5" />}>
+          Retry Loading
+        </Button>
+      </div>
+    );
+  }
+
+  const currSymbol = summary?.currency === 'USD' ? '$' : '₹';
+
+  return (
+    <div className="space-y-5 font-sans text-xs text-slate-900 dark:text-slate-100 text-left pb-24 sm:pb-12 min-w-0 w-full max-w-full overflow-x-hidden font-normal">
+      {/* Toast Banner */}
+      {toastMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-emerald-600 text-white font-medium text-xs px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-bounce">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* HEADER BAR WITH COURSE-LEVEL FEE CONFIGURATION ACTION */}
+      <div className="bg-white dark:bg-[#111827] p-4 rounded-2xl border border-slate-200 dark:border-[#263244] shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <span className="text-[11px] font-normal uppercase tracking-wider text-blue-600 dark:text-blue-400 block">
+            Student Fee Collection & Ledger
+          </span>
+          <h1 className="text-base font-semibold text-slate-900 dark:text-white truncate">
+            {summary?.course_title || 'Course Fee Management'}
+          </h1>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[11px] text-slate-500 font-normal">Fee Configuration:</span>
+            {courseConfig?.is_configured ? (
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                Configured ({courseConfig.plan_type} · {courseConfig.currency || 'INR'} {courseConfig.total_fee?.toLocaleString('en-IN')} · {courseConfig.number_of_installments} Installments)
+              </span>
+            ) : (
+              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-normal bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded-md border border-amber-200/60">
+                Not Configured
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-normal text-slate-700 focus:outline-none focus:border-blue-500 w-full sm:w-auto"
+          <Button
+            size="sm"
+            onClick={() => setIsConfigModalOpen(true)}
+            className="h-9 font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
+            leftIcon={<Settings2 className="w-3.5 h-3.5" />}
           >
-            <option value="all">All Statuses</option>
-            <option value="Paid">Paid</option>
-            <option value="Partially Paid">Partially Paid</option>
-            <option value="Pending">Pending</option>
-            <option value="Overdue">Overdue</option>
-          </select>
+            {courseConfig?.is_configured ? 'Edit Course Fee Configuration' : 'Configure Course Fee'}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={loadAllData}
+            className="h-9 font-normal bg-white dark:bg-[#172033] border-slate-200 dark:border-[#334155]"
+            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+          >
+            Refresh
+          </Button>
         </div>
       </div>
 
-      {/* 3. DESKTOP STUDENT FEES TABLE (hidden on mobile) */}
-      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden min-w-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[800px]">
-            <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-              <tr>
-                <th className="p-3.5">Student</th>
-                <th className="p-3.5">Fee Breakdown</th>
-                <th className="p-3.5">Payable</th>
-                <th className="p-3.5">Paid</th>
-                <th className="p-3.5">Pending</th>
-                <th className="p-3.5">Status</th>
-                <th className="p-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredRecords.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400 font-normal">
-                    No student fee records match your query.
-                  </td>
-                </tr>
-              ) : (
-                filteredRecords.map((r) => (
-                  <tr key={r.studentId} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="p-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={r.avatarUrl}
-                          alt={r.studentName}
-                          className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
-                        />
-                        <div className="min-w-0">
-                          <span className="font-medium text-slate-900 block truncate">{r.studentName}</span>
-                          <span className="text-[11px] text-slate-500 font-normal truncate block">{r.studentEmail}</span>
-                        </div>
+      {/* 1. DASHBOARD STATS SUMMARY */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 min-w-0">
+        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-slate-200 dark:border-[#263244] shadow-2xs space-y-1">
+          <span className="text-[11px] text-slate-500 font-normal block truncate">Total Students</span>
+          <p className="text-base font-semibold text-slate-900 dark:text-white">
+            {summary?.total_students || 0}
+          </p>
+        </Card>
+
+        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-slate-200 dark:border-[#263244] shadow-2xs space-y-1">
+          <span className="text-[11px] text-slate-500 font-normal block truncate">Total Fee Expected</span>
+          <p className="text-base font-semibold text-slate-900 dark:text-white">
+            {currSymbol}{(summary?.total_expected || 0).toLocaleString('en-IN')}
+          </p>
+        </Card>
+
+        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-slate-200 dark:border-[#263244] shadow-2xs space-y-1">
+          <span className="text-[11px] text-emerald-600 font-normal block truncate">Collected</span>
+          <p className="text-base font-semibold text-emerald-600 dark:text-emerald-400">
+            {currSymbol}{(summary?.total_collected || 0).toLocaleString('en-IN')}
+          </p>
+        </Card>
+
+        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-slate-200 dark:border-[#263244] shadow-2xs space-y-1">
+          <span className="text-[11px] text-amber-600 font-normal block truncate">Outstanding Balance</span>
+          <p className="text-base font-semibold text-amber-600 dark:text-amber-400">
+            {currSymbol}{(summary?.outstanding_balance || 0).toLocaleString('en-IN')}
+          </p>
+        </Card>
+
+        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-slate-200 dark:border-[#263244] shadow-2xs space-y-1 col-span-2 lg:col-span-1">
+          <span className="text-[11px] text-rose-600 font-normal block truncate">Overdue Amount</span>
+          <p className="text-base font-semibold text-rose-600 dark:text-rose-400">
+            {currSymbol}{(summary?.overdue_amount || 0).toLocaleString('en-IN')}
+          </p>
+        </Card>
+      </div>
+
+      {/* 2. TAB WORKSPACE NAVIGATION */}
+      <div className="flex border-b border-slate-200 dark:border-[#263244]">
+        <button
+          type="button"
+          onClick={() => setActiveTab('students')}
+          className={`py-2.5 px-4 font-medium text-xs border-b-2 cursor-pointer transition-colors ${
+            activeTab === 'students'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          Enrolled Student Fees ({records.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('ledger')}
+          className={`py-2.5 px-4 font-medium text-xs border-b-2 cursor-pointer transition-colors ${
+            activeTab === 'ledger'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          Course Payment Ledger & Receipts ({paymentsLedger.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('overdue')}
+          className={`py-2.5 px-4 font-medium text-xs border-b-2 cursor-pointer transition-colors ${
+            activeTab === 'overdue'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          Overdue Workspace ({overdueRecords.length})
+        </button>
+      </div>
+
+      {/* TAB 1: ENROLLED STUDENTS WORKSPACE */}
+      {activeTab === 'students' && (
+        <div className="space-y-4">
+          {/* SEARCH & STATUS FILTER TOOLBAR */}
+          <div className="bg-white dark:bg-[#111827] p-3.5 rounded-2xl border border-slate-200 dark:border-[#263244] shadow-2xs flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+            <div className="relative flex-1 min-w-0">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search student name, code, email..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full h-9 pl-9 pr-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 font-normal"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-500"
+              >
+                <option value="all">All Fee Statuses</option>
+                <option value="PAID">Paid</option>
+                <option value="PARTIAL">Partial</option>
+                <option value="PENDING">Pending</option>
+                <option value="OVERDUE">Overdue</option>
+                <option value="NOT_CONFIGURED">Not Configured</option>
+              </select>
+            </div>
+          </div>
+
+          {/* DESKTOP STUDENT TABLE (hidden on mobile) */}
+          <div className="hidden md:block bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs min-w-[850px]">
+                <thead className="bg-slate-50 dark:bg-[#0F172A] border-b border-slate-200 dark:border-[#263244] text-[11px] font-normal text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <tr>
+                    <th className="p-3.5">Student</th>
+                    <th className="p-3.5">Fee Plan</th>
+                    <th className="p-3.5">Total Fee</th>
+                    <th className="p-3.5">Paid</th>
+                    <th className="p-3.5">Balance</th>
+                    <th className="p-3.5">Next Due</th>
+                    <th className="p-3.5">Status</th>
+                    <th className="p-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-[#263244] font-normal">
+                  {records.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="p-8 text-center text-slate-400 font-normal">
+                        No enrolled student fee records match your query.
+                      </td>
+                    </tr>
+                  ) : (
+                    records.map((r) => (
+                      <tr key={r.student_id} className="hover:bg-slate-50/70 dark:hover:bg-[#172033] transition-colors">
+                        <td className="p-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <StudentAvatar src={r.avatar_url} name={r.student_name} />
+                            <div className="min-w-0">
+                              <span className="font-normal text-slate-900 dark:text-white block truncate">{r.student_name}</span>
+                              <span className="text-[11px] text-slate-400 font-mono truncate block">{r.student_code}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3.5 text-slate-600 dark:text-slate-300">
+                          {r.plan_type !== 'NONE' ? r.plan_type : '—'}
+                        </td>
+                        <td className="p-3.5 text-slate-900 dark:text-white">
+                          {r.fee_account_id ? `${r.currency} ${r.total_fee.toLocaleString('en-IN')}` : '—'}
+                        </td>
+                        <td className="p-3.5 text-emerald-600 dark:text-emerald-400">
+                          {r.fee_account_id ? `${r.currency} ${r.paid_amount.toLocaleString('en-IN')}` : '₹0'}
+                        </td>
+                        <td className="p-3.5 text-amber-600 dark:text-amber-400">
+                          {r.fee_account_id ? `${r.currency} ${r.balance.toLocaleString('en-IN')}` : '—'}
+                        </td>
+                        <td className="p-3.5 text-slate-600 dark:text-slate-300">
+                          {r.next_due_date || '—'}
+                        </td>
+                        <td className="p-3.5">{getStatusBadge(r.status)}</td>
+                        <td className="p-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {r.fee_account_id ? (
+                              <>
+                                {r.balance > 0 && (
+                                  <Button
+                                    size="xs"
+                                    onClick={() => setSelectedForPayment(r)}
+                                    className="font-normal bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] h-8 px-2.5"
+                                  >
+                                    Collect
+                                  </Button>
+                                )}
+                                <Button
+                                  size="xs"
+                                  variant="outline"
+                                  onClick={() => setDrawerAccountId(r.fee_account_id)}
+                                  className="font-normal border-slate-200 dark:border-[#334155] text-slate-700 dark:text-slate-200 h-8 px-2"
+                                  title="View Student Ledger & Override"
+                                >
+                                  Ledger
+                                </Button>
+                              </>
+                            ) : (
+                              <span className="text-[11px] text-slate-400 font-normal italic">Pending Setup</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* MOBILE CARDS (COMPACT ~400px PRESENTATION) */}
+          <div className="md:hidden space-y-3 max-w-md mx-auto">
+            {records.length === 0 ? (
+              <div className="p-8 text-center bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] text-slate-400 font-normal">
+                No student fee records found.
+              </div>
+            ) : (
+              records.map((r) => (
+                <div key={r.student_id} className="bg-white dark:bg-[#111827] p-3.5 rounded-2xl border border-slate-200 dark:border-[#263244] shadow-2xs space-y-3 font-normal">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <StudentAvatar src={r.avatar_url} name={r.student_name} />
+                      <div>
+                        <h3 className="font-normal text-xs text-slate-900 dark:text-white truncate">{r.student_name}</h3>
+                        <p className="text-[11px] text-slate-400 font-mono">{r.student_code}</p>
                       </div>
-                    </td>
-                    <td className="p-3.5">
-                      <div className="space-y-0.5 text-[11px] font-normal">
-                        <span className="text-slate-500 block">Fee: ₹{r.courseFeeINR.toLocaleString('en-IN')}</span>
-                        {r.discountINR > 0 && (
-                          <span className="text-emerald-600 block">Discount: -₹{r.discountINR.toLocaleString('en-IN')}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3.5 font-medium text-slate-900">
-                      ₹{r.payableINR.toLocaleString('en-IN')}
-                    </td>
-                    <td className="p-3.5 font-medium text-emerald-600">
-                      ₹{r.paidINR.toLocaleString('en-IN')}
-                    </td>
-                    <td className="p-3.5 font-medium text-amber-600">
-                      ₹{r.pendingINR.toLocaleString('en-IN')}
-                    </td>
-                    <td className="p-3.5">{getStatusBadge(r.status)}</td>
-                    <td className="p-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {r.pendingINR > 0 && (
-                          <Button
-                            size="xs"
-                            onClick={() => setSelectedRecordForPayment(r)}
-                            className="font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] h-8 px-2.5"
-                          >
+                    </div>
+                    {getStatusBadge(r.status)}
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-[#0F172A] p-2.5 rounded-xl border border-slate-100 dark:border-[#334155] space-y-1 text-[11px]">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                      <span>Total Fee</span>
+                      <span className="font-normal text-slate-900 dark:text-white">{r.fee_account_id ? `${r.currency} ${r.total_fee.toLocaleString('en-IN')}` : '—'}</span>
+                    </div>
+                    <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                      <span>Paid</span>
+                      <span className="font-normal">{r.fee_account_id ? `${r.currency} ${r.paid_amount.toLocaleString('en-IN')}` : '₹0'}</span>
+                    </div>
+                    <div className="flex justify-between text-amber-600 dark:text-amber-400 font-normal">
+                      <span>Balance</span>
+                      <span>{r.fee_account_id ? `${r.currency} ${r.balance.toLocaleString('en-IN')}` : '—'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {r.fee_account_id ? (
+                      <>
+                        {r.balance > 0 && (
+                          <Button size="sm" onClick={() => setSelectedForPayment(r)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-normal h-9">
                             Collect Payment
                           </Button>
                         )}
-                        <Button
-                          size="xs"
-                          variant="outline"
-                          onClick={() => setSelectedRecordForHistory(r)}
-                          className="font-medium border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-[11px] h-8 px-2"
-                          title="View Payment History"
-                        >
-                          <History className="w-3.5 h-3.5" />
+                        <Button size="sm" variant="outline" onClick={() => setDrawerAccountId(r.fee_account_id)} className="font-normal h-9 border-slate-200 dark:border-[#334155]">
+                          Ledger
                         </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* 4. MOBILE STUDENT FEE CARDS (visible < md) */}
-      <div className="md:hidden space-y-3 min-w-0">
-        {filteredRecords.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 font-normal">
-            No student fee records found.
-          </div>
-        ) : (
-          filteredRecords.map((r) => (
-            <div
-              key={r.studentId}
-              className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-3 min-w-0"
-            >
-              {/* Header: Student Name + Avatar + Status */}
-              <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5 min-w-0">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <img
-                    src={r.avatarUrl}
-                    alt={r.studentName}
-                    className="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <h3 className="font-medium text-xs text-slate-900 truncate leading-snug">
-                      {r.studentName}
-                    </h3>
-                    <p className="text-[11px] text-slate-500 font-normal truncate">
-                      {r.studentEmail}
-                    </p>
+                      </>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 font-normal italic w-full text-center py-1">Pending Course Fee Setup</span>
+                    )}
                   </div>
                 </div>
-                <div className="shrink-0">{getStatusBadge(r.status)}</div>
-              </div>
-
-              {/* Fee Breakdown Stack */}
-              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1 text-[11px] font-normal">
-                <div className="flex justify-between text-slate-600">
-                  <span>Course Fee</span>
-                  <span className="font-medium text-slate-900">₹{r.courseFeeINR.toLocaleString('en-IN')}</span>
-                </div>
-                {r.discountINR > 0 && (
-                  <div className="flex justify-between text-emerald-600">
-                    <span>Discount</span>
-                    <span className="font-medium">-₹{r.discountINR.toLocaleString('en-IN')}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-slate-900 pt-1 border-t border-slate-200/60 font-medium">
-                  <span>Payable</span>
-                  <span>₹{r.payableINR.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between text-emerald-600">
-                  <span>Paid</span>
-                  <span className="font-medium">₹{r.paidINR.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between text-amber-600">
-                  <span>Pending</span>
-                  <span className="font-medium">₹{r.pendingINR.toLocaleString('en-IN')}</span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 pt-1">
-                {r.pendingINR > 0 && (
-                  <Button
-                    size="sm"
-                    onClick={() => setSelectedRecordForPayment(r)}
-                    className="flex-1 font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs h-9 justify-center"
-                    leftIcon={<Wallet className="w-3.5 h-3.5" />}
-                  >
-                    Collect Payment
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSelectedRecordForHistory(r)}
-                  className="font-medium border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs h-9 px-3"
-                  leftIcon={<History className="w-3.5 h-3.5" />}
-                >
-                  History ({r.paymentHistory.length})
-                </Button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* 5. COLLECT PAYMENT MODAL */}
-      <CollectPaymentModal
-        isOpen={!!selectedRecordForPayment}
-        onClose={() => setSelectedRecordForPayment(null)}
-        record={selectedRecordForPayment}
-      />
-
-      {/* 6. PAYMENT HISTORY MODAL */}
-      {selectedRecordForHistory && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-4 space-y-4 font-sans text-xs text-slate-900 text-left">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="font-medium text-sm text-slate-900">Payment History</h3>
-                <p className="text-[11px] text-slate-500 font-normal">{selectedRecordForHistory.studentName}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedRecordForHistory(null)}
-                className="text-slate-400 hover:text-slate-600 font-medium text-base p-1 cursor-pointer"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 hide-scrollbar">
-              {selectedRecordForHistory.paymentHistory.length === 0 ? (
-                <p className="text-center text-slate-400 py-6 font-normal">No payment history recorded yet.</p>
-              ) : (
-                selectedRecordForHistory.paymentHistory.map((p) => (
-                  <div key={p.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1 font-normal">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-emerald-600 text-xs">₹{p.amountINR.toLocaleString('en-IN')}</span>
-                      <span className="text-[10px] text-slate-500">{p.paymentDate}</span>
-                    </div>
-                    <div className="flex justify-between text-[11px] text-slate-600">
-                      <span>Method: <strong className="font-medium text-slate-800">{p.paymentMethod}</strong></span>
-                      {p.referenceId && <span className="font-mono text-[10px]">{p.referenceId}</span>}
-                    </div>
-                    {p.notes && <p className="text-[11px] text-slate-500 italic pt-0.5">"{p.notes}"</p>}
-                    <p className="text-[10px] text-slate-400 pt-0.5">Recorded by: {p.recordedBy || 'Admin'}</p>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setSelectedRecordForHistory(null)}
-              className="w-full font-medium h-9 rounded-xl justify-center"
-            >
-              Close
-            </Button>
+              ))
+            )}
           </div>
         </div>
       )}
+
+      {/* TAB 2: COURSE PAYMENT LEDGER */}
+      {activeTab === 'ledger' && (
+        <Card className="bg-white dark:bg-[#111827] p-4 border-slate-200 dark:border-[#263244] shadow-2xs space-y-3 font-normal">
+          <h2 className="font-semibold text-sm text-slate-900 dark:text-white">
+            Course Payments Ledger & Receipts
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[700px]">
+              <thead className="bg-slate-50 dark:bg-[#0F172A] border-b border-slate-200 dark:border-[#263244] text-[11px] font-normal text-slate-500 uppercase">
+                <tr>
+                  <th className="p-3">Receipt #</th>
+                  <th className="p-3">Student</th>
+                  <th className="p-3">Payment Date</th>
+                  <th className="p-3">Method</th>
+                  <th className="p-3">Reference</th>
+                  <th className="p-3 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-[#263244] font-normal">
+                {paymentsLedger.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-slate-400 font-normal">
+                      No payments collected for this course yet.
+                    </td>
+                  </tr>
+                ) : (
+                  paymentsLedger.map((p) => (
+                    <tr key={p.id} className="hover:bg-slate-50/70 dark:hover:bg-[#172033]">
+                      <td className="p-3 font-mono font-normal text-blue-600 dark:text-blue-400">
+                        {p.receipt_number}
+                      </td>
+                      <td className="p-3">
+                        <span className="font-normal text-slate-900 dark:text-white block">{p.student_name}</span>
+                        <span className="text-[11px] text-slate-400 font-mono block">{p.student_code}</span>
+                      </td>
+                      <td className="p-3 text-slate-600 dark:text-slate-300">{p.payment_date}</td>
+                      <td className="p-3 text-slate-800 dark:text-slate-200">{p.payment_method}</td>
+                      <td className="p-3 font-mono text-[11px] text-slate-400">{p.reference_number || '—'}</td>
+                      <td className="p-3 text-right text-emerald-600 dark:text-emerald-400">
+                        {p.currency} {p.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* TAB 3: OVERDUE WORKSPACE */}
+      {activeTab === 'overdue' && (
+        <Card className="bg-white dark:bg-[#111827] p-4 border-slate-200 dark:border-[#263244] shadow-2xs space-y-3 font-normal">
+          <h2 className="font-semibold text-sm text-slate-900 dark:text-white">
+            Overdue Student Installments
+          </h2>
+          <div className="space-y-2">
+            {overdueRecords.length === 0 ? (
+              <p className="text-center text-slate-400 py-8 font-normal">Great news! No student installments are overdue.</p>
+            ) : (
+              overdueRecords.map((r) => (
+                <div key={r.student_id} className="p-3.5 bg-rose-50/50 dark:bg-rose-950/10 rounded-xl border border-rose-200 dark:border-rose-900/40 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="font-normal text-slate-900 dark:text-white text-xs block">{r.student_name} ({r.student_code})</span>
+                    <span className="text-[11px] text-rose-600 dark:text-rose-400 font-normal block">Overdue: {r.currency} {r.overdue_amount.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="xs" onClick={() => setSelectedForPayment(r)} className="bg-emerald-600 text-white font-normal h-8">
+                      Collect Payment
+                    </Button>
+                    <Button size="xs" variant="outline" onClick={() => handleSendReminder(r)} className="font-normal h-8 border-rose-300">
+                      Send Reminder
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* MODALS & DRAWERS */}
+      <ConfigureFeePlanModal
+        isOpen={isConfigModalOpen}
+        onClose={() => setIsConfigModalOpen(false)}
+        courseUuid={courseUuid || ''}
+        existingConfig={courseConfig}
+        onSuccess={loadAllData}
+      />
+
+      <CollectPaymentModal
+        isOpen={!!selectedForPayment}
+        onClose={() => setSelectedForPayment(null)}
+        courseUuid={courseUuid || ''}
+        studentRecord={selectedForPayment}
+        onSuccess={loadAllData}
+      />
+
+      <StudentFeeAccountDrawer
+        isOpen={!!drawerAccountId}
+        onClose={() => setDrawerAccountId(null)}
+        courseUuid={courseUuid || ''}
+        accountId={drawerAccountId}
+        onCollectPaymentClick={() => {
+          const rec = records.find((r) => r.fee_account_id === drawerAccountId);
+          setDrawerAccountId(null);
+          if (rec) setSelectedForPayment(rec);
+        }}
+        onRefreshParent={loadAllData}
+      />
     </div>
   );
 };

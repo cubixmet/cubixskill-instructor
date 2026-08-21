@@ -26,15 +26,19 @@ import { DesktopGlobalSearch } from "../global-search/DesktopGlobalSearch";
 import { MobileGlobalSearch } from "../global-search/MobileGlobalSearch";
 import { getUserInitials, getAcademyInitials, getRoleLabel } from "../../utils/branding.utils";
 
+import { creditService } from "../../services/credit.service";
+
 export interface HeaderProps {
   onOpenMobileMenu?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   const { user, academy, logout } = useAuthStore();
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const location = useLocation();
 
+  const [creditBalance, setCreditBalance] = useState<string>("0");
+  const [isLowBalance, setIsLowBalance] = useState<boolean>(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [quickActionOpen, setQuickActionOpen] = useState(false);
   const [mobileCreateDrawerOpen, setMobileCreateDrawerOpen] = useState(false);
@@ -42,6 +46,18 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
 
   const profileRef = useRef<HTMLDivElement>(null);
   const quickActionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    creditService.getSummary().then((data) => {
+      if (isMounted && data) {
+        const balNum = Number(data.balance || 0);
+        setCreditBalance(Math.floor(balNum).toLocaleString());
+        setIsLowBalance(Boolean(data.is_low_balance));
+      }
+    }).catch(() => {});
+    return () => { isMounted = false; };
+  }, [location.pathname]);
 
   // Close popups on click outside & Escape key
   useEffect(() => {
@@ -159,11 +175,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
           <div className="flex items-center gap-1.5 shrink-0">
             <Link
               to="/credits"
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-blue-50 dark:bg-[#172033] border border-blue-200/80 dark:border-[#263244] text-[#2563EB] dark:text-[#60A5FA] hover:bg-blue-100/80 dark:hover:bg-[#1E293B] transition-colors text-xs font-semibold shrink-0"
-              title="View Credits Wallet"
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-colors ${
+                isLowBalance
+                  ? "bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400"
+                  : "bg-blue-50 dark:bg-[#172033] border border-blue-200/80 dark:border-[#263244] text-[#2563EB] dark:text-[#60A5FA] hover:bg-blue-100/80 dark:hover:bg-[#1E293B]"
+              }`}
+              title={isLowBalance ? "Low Credit Balance - Buy Credits" : "View Credits Wallet"}
             >
-              <Coins className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
-              <span className="text-xs">1,250</span>
+              <Coins className={`w-3.5 h-3.5 shrink-0 ${isLowBalance ? "text-amber-600 dark:text-amber-400" : "text-[#2563EB] dark:text-[#60A5FA]"}`} />
+              <span className="text-xs">{creditBalance}</span>
             </Link>
 
             <Link
@@ -209,11 +229,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
           {/* Credits Pill */}
           <Link
             to="/credits"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200/80 text-blue-700 hover:bg-blue-100/80 transition-colors text-xs font-bold shrink-0"
-            title="View Credits Wallet"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors text-xs font-semibold shrink-0 ${
+              isLowBalance
+                ? "bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400"
+                : "bg-blue-50 border border-blue-200/80 text-blue-700 hover:bg-blue-100/80"
+            }`}
+            title={isLowBalance ? "Low Credit Balance - Click to Buy" : "View Credits Wallet"}
           >
-            <Coins className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span className="text-xs">1,250</span>
+            <Coins className={`w-3.5 h-3.5 shrink-0 ${isLowBalance ? "text-amber-600 dark:text-amber-400" : "text-blue-600"}`} />
+            <span className="text-xs">{creditBalance}</span>
             <span className="text-[11px]">Credits</span>
           </Link>
 

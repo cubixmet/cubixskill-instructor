@@ -66,7 +66,7 @@ export const COURSE_NAV_SECTIONS: CourseNavSection[] = [
     route: 'live-sessions',
     group: 'LEARNING',
     priority: 1,
-    requiredFeature: 'live_classes',
+    requiredFeature: 'LIVE_SESSIONS',
   },
   // 5. Fees Collection
   {
@@ -76,7 +76,7 @@ export const COURSE_NAV_SECTIONS: CourseNavSection[] = [
     route: 'fees',
     group: 'MANAGEMENT',
     priority: 1,
-    requiredFeature: 'fee_collection',
+    requiredFeature: 'FEES',
   },
   // 6. Coupons
   {
@@ -86,6 +86,7 @@ export const COURSE_NAV_SECTIONS: CourseNavSection[] = [
     route: 'coupons',
     group: 'MANAGEMENT',
     priority: 1,
+    requiredFeature: 'COUPONS',
   },
   // 7. Course Features
   {

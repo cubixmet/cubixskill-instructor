@@ -1,406 +1,379 @@
-import React, { useState, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   SlidersHorizontal,
   Search,
-  RotateCcw,
-  Save,
   CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  Video,
+  HelpCircle,
+  FileText,
+  MessageSquare,
+  Bell,
+  Award,
+  Tag,
+  Wallet,
+  Download,
+  BarChart2,
+  Lock,
+  ArrowRight,
+  Sparkles,
 } from 'lucide-react';
-import { Card } from '../../../components/ui/Card';
+import { courseFeaturesService, CourseFeatureItem } from '../../../services/courseFeatures.service';
 import { Button } from '../../../components/ui/Button';
-import { Badge } from '../../../components/ui/Badge';
-import { Input } from '../../../components/ui/Input';
-
-import {
-  COURSE_FEATURE_CATEGORIES,
-  COURSE_FEATURE_DEFINITIONS,
-  type CourseFeatureDefinition,
-} from '../../course-features/config/course-features';
-import { useCourseFeaturesStore, CourseFeaturesConfig } from '../store/courseFeatures.store';
-
-import { FeatureCreditSummaryBar } from '../../course-features/components/FeatureCreditSummaryBar';
-import { FeatureCard } from '../../course-features/components/FeatureCard';
-import { FeatureConfigDrawer } from '../../course-features/components/FeatureConfigDrawer';
-import { DependencyConfirmModal } from '../../course-features/components/DependencyConfirmModal';
+import { EmptyState } from '../../../components/ui/EmptyState';
+import { parseApiError } from '../../../api/errors';
 
 export const CourseFeaturesPage: React.FC = () => {
-  const params = useParams<{ courseUuid?: string }>();
-  const courseUuid = params.courseUuid || '550e8400-e29b-41d4-a716-446655440000';
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { courseUuid, courseId } = useParams<{ courseUuid?: string; courseId?: string }>();
+  const activeCourseId = courseUuid || courseId;
 
-  const getCourseFeatures = useCourseFeaturesStore((state) => state.getCourseFeatures);
-  const updateCourseFeatures = useCourseFeaturesStore((state) => state.updateCourseFeatures);
+  // Detect if this is the initial post-creation setup step
+  const isInitialSetup = Boolean(location.state?.isInitialSetup || location.search.includes('setup=true'));
 
-  const initialFeatures = getCourseFeatures(courseUuid);
+  const [features, setFeatures] = useState<CourseFeatureItem[]>([]);
+  const [localSelections, setLocalSelections] = useState<Record<string, boolean>>({});
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Local editing state for unsaved changes
-  const [localFeatures, setLocalFeatures] = useState<Record<string, boolean>>(() => {
-    return { ...initialFeatures };
-  });
-
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'enabled' | 'disabled' | 'recommended' | 'premium'>('all');
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // Modals
-  const [configFeature, setConfigFeature] = useState<CourseFeatureDefinition | null>(null);
-  const [depModal, setDepModal] = useState<{
-    isOpen: boolean;
-    title: string;
-    description: string;
-    impactedFeatures: string[];
-    actionType: 'enable_parents' | 'disable_dependents' | 'data_warning';
-    pendingToggleId?: string;
-    pendingState?: boolean;
-  }>({
-    isOpen: false,
-    title: '',
-    description: '',
-    impactedFeatures: [],
-    actionType: 'enable_parents',
-  });
-
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Sync localFeatures when courseUuid changes
-  const [prevCourseUuid, setPrevCourseUuid] = useState(courseUuid);
-  if (prevCourseUuid !== courseUuid) {
-    setPrevCourseUuid(courseUuid);
-    setLocalFeatures({ ...getCourseFeatures(courseUuid) });
-  }
-
-  // Compute Unsaved Count
-  const unsavedCount = useMemo(() => {
-    let count = 0;
-    const currentStore = getCourseFeatures(courseUuid);
-    (Object.keys(localFeatures) as (keyof typeof localFeatures)[]).forEach((key) => {
-      if (localFeatures[key] !== (currentStore as Record<string, boolean>)[key]) {
-        count++;
-      }
-    });
-    return count;
-  }, [localFeatures, courseUuid, getCourseFeatures]);
-
-  // Compute Live Credit Impact
-  const baseCredit = 10;
-  const featureAddonsCost = useMemo(() => {
-    return COURSE_FEATURE_DEFINITIONS.reduce((sum, f) => {
-      if (localFeatures[f.id] && !f.isRequired) {
-        return sum + f.creditCostPerStudent;
-      }
-      return sum;
-    }, 0);
-  }, [localFeatures]);
-
-  const finalCreditsPerStudent = baseCredit + featureAddonsCost;
-
-  const enabledFeaturesCount = useMemo(() => {
-    return Object.values(localFeatures).filter(Boolean).length;
-  }, [localFeatures]);
-
-  // Handle Feature Toggle with Dependency Validation
-  const handleToggle = (featureId: string, newState: boolean) => {
-    const targetDef = COURSE_FEATURE_DEFINITIONS.find((f) => f.id === featureId);
-    if (!targetDef) return;
-
-    // Case 1: Enabling a feature that has parent dependencies
-    if (newState && targetDef.dependencies && targetDef.dependencies.length > 0) {
-      const missingParents = targetDef.dependencies.filter((pId) => !localFeatures[pId]);
-      if (missingParents.length > 0) {
-        setDepModal({
-          isOpen: true,
-          title: `Enable Required Dependencies for ${targetDef.name}?`,
-          description: `${targetDef.name} requires parent feature(s) to function. The following features will also be enabled:`,
-          impactedFeatures: missingParents.map((pId) => COURSE_FEATURE_DEFINITIONS.find((f) => f.id === pId)?.name || pId),
-          actionType: 'enable_parents',
-          pendingToggleId: featureId,
-          pendingState: true,
-        });
-        return;
-      }
-    }
-
-    // Case 2: Disabling a parent feature that has dependent features enabled
-    if (!newState) {
-      const activeDependents = COURSE_FEATURE_DEFINITIONS.filter(
-        (f) => f.dependencies && f.dependencies.includes(featureId) && localFeatures[f.id]
-      );
-      if (activeDependents.length > 0) {
-        setDepModal({
-          isOpen: true,
-          title: `Disable ${targetDef.name} & Dependent Features?`,
-          description: `Disabling ${targetDef.name} will also disable the following active features that depend on it:`,
-          impactedFeatures: activeDependents.map((f) => f.name),
-          actionType: 'disable_dependents',
-          pendingToggleId: featureId,
-          pendingState: false,
-        });
-        return;
-      }
-    }
-
-    // Direct toggle
-    setLocalFeatures((prev) => ({ ...prev, [featureId]: newState }));
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3500);
   };
 
-  const handleConfirmDepAction = () => {
-    const { pendingToggleId, pendingState, actionType } = depModal;
-    if (!pendingToggleId) return;
-
-    if (actionType === 'enable_parents' && pendingState) {
-      const targetDef = COURSE_FEATURE_DEFINITIONS.find((f) => f.id === pendingToggleId);
-      const updates: Record<string, boolean> = { [pendingToggleId]: true };
-      if (targetDef?.dependencies) {
-        targetDef.dependencies.forEach((pId) => {
-          updates[pId] = true;
-        });
-      }
-      setLocalFeatures((prev) => ({ ...prev, ...updates }));
-    } else if (actionType === 'disable_dependents' && !pendingState) {
-      const activeDependents = COURSE_FEATURE_DEFINITIONS.filter(
-        (f) => f.dependencies && f.dependencies.includes(pendingToggleId) && localFeatures[f.id]
-      );
-      const updates: Record<string, boolean> = { [pendingToggleId]: false };
-      activeDependents.forEach((d) => {
-        updates[d.id] = false;
+  const loadFeatures = useCallback(async () => {
+    if (!activeCourseId) {
+      setError('Course ID is missing.');
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await courseFeaturesService.list(activeCourseId);
+      setFeatures(data);
+      const initialMap: Record<string, boolean> = {};
+      data.forEach((f) => {
+        initialMap[f.code] = f.effective_enabled;
       });
-      setLocalFeatures((prev) => ({ ...prev, ...updates }));
+      setLocalSelections(initialMap);
+    } catch (err: any) {
+      console.error('Failed to load course features:', err);
+      const parsed = parseApiError(err);
+      setError(parsed.message || 'Failed to load course feature settings.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeCourseId]);
+
+  useEffect(() => {
+    loadFeatures();
+  }, [loadFeatures]);
+
+  const handleToggleLocal = (feature: CourseFeatureItem) => {
+    if (!feature.can_configure || !feature.academy_enabled) {
+      showToast('This feature is not included in your Academy plan.');
+      return;
+    }
+    setLocalSelections((prev) => ({
+      ...prev,
+      [feature.code]: !prev[feature.code],
+    }));
+  };
+
+  const handleSaveAndContinue = async () => {
+    if (!activeCourseId || isSaving) return;
+    setIsSaving(true);
+    try {
+      await courseFeaturesService.saveBulk(activeCourseId, localSelections);
+      showToast('Course features saved successfully.');
+      navigate(`/courses/${activeCourseId}/overview`);
+    } catch (err: any) {
+      console.error('Failed to bulk save course features:', err);
+      const parsed = parseApiError(err);
+      showToast(parsed.message || 'Failed to save course feature configuration.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // Save Changes to Store
-  const handleSaveChanges = () => {
-    updateCourseFeatures(courseUuid, localFeatures as Partial<CourseFeaturesConfig>);
-    setToastMessage('Course feature configurations saved successfully!');
-    setTimeout(() => setToastMessage(null), 3000);
+  const handleSkip = () => {
+    if (!activeCourseId) return;
+    navigate(`/courses/${activeCourseId}/overview`);
   };
 
-  // Reset to Recommended Defaults
-  const handleResetRecommended = () => {
-    const recommendedState: Record<string, boolean> = {};
-    COURSE_FEATURE_DEFINITIONS.forEach((f) => {
-      recommendedState[f.id] = !!(f.isRequired || f.isRecommended);
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    features.forEach((f) => {
+      if (f.category) set.add(f.category);
     });
-    setLocalFeatures(recommendedState);
-    setToastMessage('Reset features to recommended course defaults.');
-    setTimeout(() => setToastMessage(null), 3000);
-  };
+    return Array.from(set);
+  }, [features]);
 
-  // Filtering
   const filteredFeatures = useMemo(() => {
-    let list = COURSE_FEATURE_DEFINITIONS;
-
+    let list = features;
     if (activeCategory !== 'All') {
       list = list.filter((f) => f.category === activeCategory);
     }
-
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.toLowerCase().trim();
       list = list.filter(
         (f) =>
           f.name.toLowerCase().includes(q) ||
-          f.description.toLowerCase().includes(q) ||
-          f.category.toLowerCase().includes(q)
+          f.code.toLowerCase().includes(q) ||
+          f.description.toLowerCase().includes(q)
       );
     }
-
-    if (statusFilter === 'enabled') {
-      list = list.filter((f) => localFeatures[f.id]);
-    } else if (statusFilter === 'disabled') {
-      list = list.filter((f) => !localFeatures[f.id]);
-    } else if (statusFilter === 'recommended') {
-      list = list.filter((f) => f.isRecommended);
-    } else if (statusFilter === 'premium') {
-      list = list.filter((f) => f.isPremium);
-    }
-
     return list;
-  }, [activeCategory, searchQuery, statusFilter, localFeatures]);
+  }, [features, activeCategory, searchQuery]);
 
-  const enabledFeaturesList = useMemo(() => {
-    return COURSE_FEATURE_DEFINITIONS.filter((f) => localFeatures[f.id] && !f.isRequired).map((f) => ({
-      name: f.name,
-      cost: f.creditCostPerStudent,
-    }));
-  }, [localFeatures]);
+  const getFeatureIcon = (code: string) => {
+    switch (code) {
+      case 'LIVE_SESSIONS': return <Video className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
+      case 'QUIZZES': return <HelpCircle className="w-4 h-4 text-purple-600 dark:text-purple-400" />;
+      case 'ASSIGNMENTS': return <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />;
+      case 'DISCUSSIONS': return <MessageSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />;
+      case 'ANNOUNCEMENTS': return <Bell className="w-4 h-4 text-amber-600 dark:text-amber-400" />;
+      case 'CERTIFICATES': return <Award className="w-4 h-4 text-amber-500" />;
+      case 'COUPONS': return <Tag className="w-4 h-4 text-[#2563EB]" />;
+      case 'FEES': return <Wallet className="w-4 h-4 text-teal-600" />;
+      case 'COURSE_RESOURCES': return <Download className="w-4 h-4 text-slate-600" />;
+      case 'COURSE_REPORTS': return <BarChart2 className="w-4 h-4 text-blue-600" />;
+      default: return <SlidersHorizontal className="w-4 h-4 text-slate-500" />;
+    }
+  };
+
+  if (isLoading && features.length === 0) {
+    return (
+      <div className="space-y-4 p-4 font-sans text-xs text-left max-w-4xl mx-auto">
+        <div className="h-12 bg-slate-100 dark:bg-[#111827] rounded-xl animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="h-32 bg-slate-100 dark:bg-[#111827] rounded-2xl animate-pulse" />
+          <div className="h-32 bg-slate-100 dark:bg-[#111827] rounded-2xl animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error && features.length === 0) {
+    return (
+      <div className="p-6 bg-white dark:bg-[#111827] rounded-2xl border border-rose-200 text-center space-y-3 font-normal max-w-md mx-auto my-8">
+        <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Unable to Load Course Features</h3>
+        <p className="text-xs text-slate-500">{error}</p>
+        <Button size="sm" onClick={loadFeatures} leftIcon={<RefreshCw className="w-3.5 h-3.5" />}>
+          Retry Loading
+        </Button>
+      </div>
+    );
+  }
+
+  const selectedCount = Object.values(localSelections).filter(Boolean).length;
 
   return (
-    <div className="space-y-4 sm:space-y-6 text-left font-sans pb-36 md:pb-12">
+    <div className="space-y-5 font-sans text-xs text-slate-900 dark:text-slate-100 text-left pb-28 max-w-4xl mx-auto font-normal">
       {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-800 animate-bounce">
+      {toastMsg && (
+        <div className="fixed top-4 right-4 z-50 bg-slate-900 text-white text-xs font-normal px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 animate-bounce">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span>{toastMessage}</span>
+          <span>{toastMsg}</span>
         </div>
       )}
 
-      {/* 1. PAGE HEADER */}
-      <Card padding="sm" className="bg-white border border-slate-200/90 p-4 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="min-w-0 space-y-0.5">
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight">Course Features</h1>
-              <Badge variant="info" size="sm" className="font-bold shrink-0">
-                {enabledFeaturesCount} Active
-              </Badge>
+      {/* Post-Create Wizard Banner */}
+      {isInitialSetup && (
+        <div className="p-4 bg-blue-50 dark:bg-blue-950/40 rounded-2xl border border-blue-200 dark:border-blue-800/60 flex items-center justify-between gap-3 font-normal">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-600 text-white rounded-xl">
+              <Sparkles className="w-5 h-5" />
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-500 font-medium truncate">
-              Choose the capabilities available in this course.
-            </p>
+            <div>
+              <h2 className="font-semibold text-sm text-slate-900 dark:text-white">
+                Course Created Successfully!
+              </h2>
+              <p className="text-xs text-slate-600 dark:text-slate-300">
+                Step 1 of 4: Select the optional capabilities you want to enable for this course.
+              </p>
+            </div>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleResetRecommended}
-              className="h-9 text-xs font-semibold text-slate-700 px-3"
-              leftIcon={<RotateCcw className="w-3.5 h-3.5 text-slate-500" />}
-            >
-              Reset
-            </Button>
-
-            <Button
-              size="sm"
-              onClick={handleSaveChanges}
-              disabled={unsavedCount === 0}
-              className={`h-9 font-bold text-xs px-4 shadow-2xs transition-all ${
-                unsavedCount > 0
-                  ? 'bg-[#2563EB] text-white hover:bg-blue-700 cursor-pointer'
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-              }`}
-              leftIcon={<Save className="w-4 h-4" />}
-            >
-              Save {unsavedCount > 0 ? `(${unsavedCount})` : ''}
-            </Button>
-          </div>
+          <span className="hidden sm:inline-block px-3 py-1 bg-white dark:bg-[#111827] rounded-xl text-xs font-medium text-blue-600 border border-blue-200">
+            Step 1 / 4
+          </span>
         </div>
-      </Card>
+      )}
 
-      {/* 2. STICKY LIVE CREDIT SUMMARY BAR */}
-      <FeatureCreditSummaryBar
-        baseCredit={baseCredit}
-        featureAddonsCost={featureAddonsCost}
-        finalCreditsPerStudent={finalCreditsPerStudent}
-        enabledFeaturesCount={enabledFeaturesCount}
-        unsavedCount={unsavedCount}
-        enabledFeaturesList={enabledFeaturesList}
-      />
-
-      {/* 3. SEARCH & CATEGORY CHIPS */}
-      <div className="space-y-3 font-sans text-xs">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
-          <div className="w-full sm:w-80">
-            <Input
-              placeholder="Search course features, modules, capabilities..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              leftIcon={<Search className="w-4 h-4 text-slate-400" />}
-            />
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#111827] p-4 rounded-2xl border border-slate-200 dark:border-[#263244] shadow-2xs">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 rounded-xl">
+              <SlidersHorizontal className="w-4 h-4" />
+            </div>
+            <h1 className="text-base font-semibold text-slate-900 dark:text-white">
+              Course Capability Configuration
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-normal bg-blue-50 text-blue-700 border border-blue-200">
+              {selectedCount} Selected
+            </span>
           </div>
-
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            {[
-              { id: 'all', label: 'All Statuses' },
-              { id: 'enabled', label: 'Enabled' },
-              { id: 'disabled', label: 'Disabled' },
-              { id: 'recommended', label: 'Recommended' },
-              { id: 'premium', label: 'Premium' },
-            ].map((st) => (
-              <button
-                key={st.id}
-                type="button"
-                onClick={() => setStatusFilter(st.id as 'all' | 'enabled' | 'disabled' | 'recommended' | 'premium')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                  statusFilter === st.id
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {st.label}
-              </button>
-            ))}
-          </div>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal mt-0.5">
+            Choose features to enable for this course. You can change these selections at any time later.
+          </p>
         </div>
 
-        {/* Fixed Order Category Tabs */}
-        <div className="bg-white border border-slate-200/90 p-1.5 rounded-2xl shadow-2xs flex items-center gap-1 overflow-x-auto no-scrollbar">
-          <button
-            type="button"
-            onClick={() => setActiveCategory('All')}
-            className={`px-3.5 py-2 rounded-xl font-bold transition-all shrink-0 cursor-pointer ${
-              activeCategory === 'All'
-                ? 'bg-blue-600 text-white shadow-xs font-extrabold'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
+        <div className="shrink-0 flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={loadFeatures}
+            variant="outline"
+            className="h-9 font-normal border-slate-200 dark:border-[#334155]"
+            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
           >
-            All Categories ({COURSE_FEATURE_DEFINITIONS.length})
-          </button>
-
-          {COURSE_FEATURE_CATEGORIES.map((cat) => {
-            const isSelected = activeCategory === cat;
-            const count = COURSE_FEATURE_DEFINITIONS.filter((f) => f.category === cat).length;
-            return (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-2 rounded-xl font-bold transition-all shrink-0 cursor-pointer ${
-                  isSelected
-                    ? 'bg-blue-600 text-white shadow-xs font-extrabold'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-              >
-                {cat} ({count})
-              </button>
-            );
-          })}
+            Refresh
+          </Button>
         </div>
       </div>
 
-      {/* 4. FEATURE CARDS GRID */}
-      {filteredFeatures.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredFeatures.map((feature) => (
-            <FeatureCard
-              key={feature.id}
-              feature={feature}
-              isEnabled={!!localFeatures[feature.id]}
-              onToggle={handleToggle}
-              onConfigure={(f) => setConfigFeature(f)}
-            />
+      {/* Search & Category Filter */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-[#111827] p-3.5 rounded-2xl border border-slate-200 dark:border-[#263244] shadow-2xs">
+        <div className="flex-1 max-w-md relative">
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search course capabilities..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-9 pl-9 pr-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <button
+            type="button"
+            onClick={() => setActiveCategory('All')}
+            className={`px-3 py-1.5 rounded-xl text-[11px] font-normal transition-all cursor-pointer whitespace-nowrap ${
+              activeCategory === 'All'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+            }`}
+          >
+            All Features ({features.length})
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setActiveCategory(cat)}
+              className={`px-3 py-1.5 rounded-xl text-[11px] font-normal transition-all cursor-pointer whitespace-nowrap ${
+                activeCategory === cat
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+              }`}
+            >
+              {cat}
+            </button>
           ))}
         </div>
+      </div>
+
+      {/* Feature Cards Grid */}
+      {filteredFeatures.length === 0 ? (
+        <EmptyState
+          title="No feature settings found"
+          description="No course capabilities match your search query."
+          icon={SlidersHorizontal}
+        />
       ) : (
-        <Card padding="lg" className="bg-white border border-slate-200 text-center py-14 space-y-2">
-          <SlidersHorizontal className="w-8 h-8 text-slate-400 mx-auto" />
-          <h3 className="text-sm font-extrabold text-slate-900">No Features Found</h3>
-          <p className="text-xs text-slate-500">Try adjusting your search query or category filter chips.</p>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          {filteredFeatures.map((feat) => {
+            const isSelected = Boolean(localSelections[feat.code]);
+            const isAcademyDisabled = !feat.academy_enabled;
+
+            return (
+              <div
+                key={feat.code}
+                onClick={() => handleToggleLocal(feat)}
+                className={`p-4 rounded-2xl border transition-all flex items-start justify-between gap-3 font-normal cursor-pointer ${
+                  isSelected
+                    ? 'bg-white dark:bg-[#111827] border-blue-200 dark:border-blue-900/50 shadow-2xs ring-1 ring-blue-500/10'
+                    : 'bg-slate-50/70 dark:bg-[#0F172A]/50 border-slate-200 dark:border-[#263244]'
+                }`}
+              >
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className="p-2 bg-slate-100 dark:bg-[#0F172A] rounded-xl border border-slate-200 dark:border-[#334155] shrink-0 mt-0.5">
+                    {getFeatureIcon(feat.code)}
+                  </div>
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-xs text-slate-900 dark:text-white">
+                        {feat.name}
+                      </h3>
+                      {isAcademyDisabled && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-normal bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                          <Lock className="w-2.5 h-2.5" /> Plan Restricted
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal leading-relaxed">
+                      {feat.description}
+                    </p>
+                    {isAcademyDisabled && (
+                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-normal">
+                        Not available for your Academy subscription plan.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="shrink-0 flex items-center gap-2 pt-0.5" onClick={(e) => e.stopPropagation()}>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      disabled={isAcademyDisabled}
+                      onChange={() => handleToggleLocal(feat)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 peer-disabled:opacity-40" />
+                  </label>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
 
-      {/* CONFIGURATION DRAWER */}
-      <FeatureConfigDrawer
-        isOpen={!!configFeature}
-        onClose={() => setConfigFeature(null)}
-        feature={configFeature}
-        onSaveSettings={(_, __) => {
-          void __;
-          setToastMessage(`Updated configuration settings for feature.`);
-          setTimeout(() => setToastMessage(null), 3000);
-        }}
-      />
+      {/* Sticky Bottom Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#111827]/95 backdrop-blur-md border-t border-slate-200 dark:border-[#263244] p-3 shadow-lg">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSkip}
+            className="h-10 font-normal border-slate-200 dark:border-[#334155] px-4"
+          >
+            Skip for Now
+          </Button>
 
-      {/* DEPENDENCY VALIDATION MODAL */}
-      <DependencyConfirmModal
-        isOpen={depModal.isOpen}
-        onClose={() => setDepModal((prev) => ({ ...prev, isOpen: false }))}
-        title={depModal.title}
-        description={depModal.description}
-        impactedFeatures={depModal.impactedFeatures}
-        actionType={depModal.actionType}
-        onConfirm={handleConfirmDepAction}
-      />
+          <Button
+            size="sm"
+            disabled={isSaving}
+            onClick={handleSaveAndContinue}
+            className="h-10 font-normal bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 flex-1 sm:flex-initial justify-center shadow-xs"
+            rightIcon={<ArrowRight className="w-4 h-4" />}
+          >
+            {isSaving ? 'Saving & Continuing...' : 'Save & Continue'}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };

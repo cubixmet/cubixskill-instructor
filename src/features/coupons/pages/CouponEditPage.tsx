@@ -1,111 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FormPageLayout } from '../../../components/ui/FormPageLayout';
+import { ArrowLeft, AlertCircle, RefreshCw } from 'lucide-react';
+import { courseCouponsService, CouponItem, CreateCouponPayload } from '../../../services/courseCoupons.service';
 import { CouponForm } from '../components/CouponForm';
-import { CouponFormData } from '../types/coupon.types';
-import { useCouponStore } from '../store/coupon.store';
-import { useCourseStore } from '../../courses/store/course.store';
-import { ErrorState } from '../../../components/ui/ErrorState';
+import { Button } from '../../../components/ui/Button';
 
 export const CouponEditPage: React.FC = () => {
   const navigate = useNavigate();
-  const { couponId, courseUuid, courseId } = useParams<{
-    couponId?: string;
-    courseUuid?: string;
-    courseId?: string;
-  }>();
-
+  const { courseUuid, courseId, couponId } = useParams<{ courseUuid?: string; courseId?: string; couponId?: string }>();
   const activeCourseId = courseUuid || courseId;
-  const getCouponById = useCouponStore((state) => state.getCouponById);
-  const updateCoupon = useCouponStore((state) => state.updateCoupon);
-  const coursesByUuid = useCourseStore((state) => state.coursesByUuid);
 
-  const coupon = couponId ? getCouponById(couponId) : undefined;
-  const activeCourse = activeCourseId ? coursesByUuid[activeCourseId] : undefined;
+  const [coupon, setCoupon] = useState<CouponItem | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  useEffect(() => {
+    if (!activeCourseId || !couponId) return;
+    setIsLoading(true);
+    courseCouponsService.get(activeCourseId, couponId)
+      .then((data) => setCoupon(data))
+      .catch((err) => {
+        console.error('Failed to load coupon details:', err);
+        setError('Failed to load coupon details.');
+      })
+      .finally(() => setIsLoading(false));
+  }, [activeCourseId, couponId]);
 
-  const backUrl = activeCourseId
-    ? `/courses/${activeCourseId}/coupons`
-    : '/coupons';
+  const handleUpdate = async (payload: CreateCouponPayload) => {
+    if (!activeCourseId || !couponId) return;
+    await courseCouponsService.update(activeCourseId, couponId, payload);
+    navigate(`/courses/${activeCourseId}/coupons`);
+  };
 
-  const detailUrl = activeCourseId && couponId
-    ? `/courses/${activeCourseId}/coupons/${couponId}`
-    : `/coupons/${couponId}`;
-
-  if (!coupon) {
+  if (isLoading) {
     return (
-      <FormPageLayout
-        title="Coupon Not Found"
-        subtitle="The requested coupon code does not exist or was deleted."
-        backUrl={backUrl}
-      >
-        <div className="max-w-xl mx-auto py-12 px-4">
-          <ErrorState
-            title="Coupon Not Found"
-            message="We couldn't find the coupon code you are looking to edit."
-            actionText="Back to Coupons"
-            onRetry={() => navigate(backUrl)}
-          />
-        </div>
-      </FormPageLayout>
+      <div className="p-6 space-y-4 font-sans text-xs text-left max-w-lg mx-auto">
+        <div className="h-64 bg-slate-100 dark:bg-[#111827] rounded-2xl animate-pulse" />
+      </div>
     );
   }
 
-  const breadcrumbs = activeCourse
-    ? [
-        { label: 'Courses', url: '/courses' },
-        { label: activeCourse.title, url: `/courses/${activeCourseId}/overview` },
-        { label: 'Coupons', url: backUrl },
-        { label: coupon.code, url: detailUrl },
-        { label: 'Edit' },
-      ]
-    : [
-        { label: 'Dashboard', url: '/dashboard' },
-        { label: 'Coupons', url: '/coupons' },
-        { label: coupon.code, url: detailUrl },
-        { label: 'Edit' },
-      ];
-
-  const initialValues: Partial<CouponFormData> = {
-    code: coupon.code,
-    discountType: coupon.discountType,
-    discountValue: coupon.discountValue,
-    courseScope: coupon.courseScope,
-    validFrom: coupon.validFrom || '',
-    expiryDate: coupon.expiryDate || '',
-    usageLimit: coupon.usageLimit ?? '',
-    perStudentLimit: coupon.perStudentLimit ?? 1,
-    status: coupon.status === 'expired' ? 'inactive' : coupon.status,
-  };
-
-  const handleSubmit = (formData: CouponFormData) => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      updateCoupon(coupon.id, formData, (id) => coursesByUuid[id]?.title || 'Selected Course');
-      setIsSubmitting(false);
-      navigate(detailUrl);
-    }, 400);
-  };
+  if (error || !coupon) {
+    return (
+      <div className="p-6 bg-white dark:bg-[#111827] rounded-2xl border border-rose-200 text-center space-y-3 font-normal max-w-lg mx-auto">
+        <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Coupon Not Found</h3>
+        <p className="text-xs text-slate-500">{error || 'Invalid coupon ID.'}</p>
+        <Button size="sm" onClick={() => navigate(activeCourseId ? `/courses/${activeCourseId}/coupons` : '/coupons')}>
+          Back to Coupons List
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <FormPageLayout
-      title={`Edit Coupon — ${coupon.code}`}
-      subtitle="Modify discount parameters, usage limits, or validity dates"
-      backUrl={detailUrl}
-      breadcrumbs={breadcrumbs}
-    >
-      <div className="max-w-3xl mx-auto px-4 py-6">
-        <CouponForm
-          initialValues={initialValues}
-          editingCouponId={coupon.id}
-          courseIdContext={activeCourseId}
-          onSubmit={handleSubmit}
-          onCancel={() => navigate(detailUrl)}
-          isSubmitting={isSubmitting}
-          submitButtonText="Save Changes"
-        />
+    <div className="space-y-4 font-sans text-xs text-left pb-12 w-full max-w-full overflow-x-hidden font-normal">
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => navigate(activeCourseId ? `/courses/${activeCourseId}/coupons` : '/coupons')}
+          className="h-8 font-normal border-slate-200"
+          leftIcon={<ArrowLeft className="w-3.5 h-3.5" />}
+        >
+          Back to Coupons
+        </Button>
       </div>
-    </FormPageLayout>
+
+      <CouponForm
+        courseUuid={activeCourseId || ''}
+        initialData={coupon}
+        isEditing={true}
+        onSubmit={handleUpdate}
+        onCancel={() => navigate(activeCourseId ? `/courses/${activeCourseId}/coupons` : '/coupons')}
+      />
+    </div>
   );
 };

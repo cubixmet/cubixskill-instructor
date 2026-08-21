@@ -1,33 +1,25 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
-  ArrowLeft,
-  Edit3,
   Check,
-  BookOpen,
   AlertTriangle,
   RefreshCw,
-  Folder,
-  BarChart2,
-  Clock,
 } from "lucide-react";
 import { useParams, Link, NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
-import { Badge } from "../../../components/ui/Badge";
 import { Modal } from "../../../components/ui/Modal";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { coursesService } from "../../../services/courses.service";
-import { useAuthStore } from "../../../store/auth.store";
 import { COURSE_NAV_SECTIONS } from "../config/courseNavigation.config";
 import type { CourseDetail } from "../types/course.types";
 import { SharedCourseHeader } from "../components/SharedCourseHeader";
+import { useCourseFeatures } from "../../../hooks/useCourseFeatures";
 
 export const CourseSingleViewLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { courseUuid } = useParams<{ courseUuid: string }>();
-  const { can } = useAuthStore();
+  const { isFeatureEnabled } = useCourseFeatures(courseUuid);
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -134,7 +126,7 @@ export const CourseSingleViewLayout: React.FC = () => {
       <div className="hidden md:block sticky top-0 z-20">
         <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl p-1.5 h-13 flex items-center justify-between shadow-2xs">
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full">
-            {COURSE_NAV_SECTIONS.map((sec) => {
+            {COURSE_NAV_SECTIONS.filter((sec) => !sec.requiredFeature || isFeatureEnabled(sec.requiredFeature)).map((sec) => {
               const Icon = sec.icon;
               const isActive = currentRoute === sec.route;
 
@@ -163,7 +155,7 @@ export const CourseSingleViewLayout: React.FC = () => {
         className="md:hidden sticky top-0 z-30 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl p-1.5 shadow-2xs overflow-x-auto no-scrollbar touch-pan-x w-full max-w-full min-w-0"
       >
         <div className="flex items-center gap-1.5 flex-nowrap w-max px-1">
-          {COURSE_NAV_SECTIONS.map((sec) => {
+          {COURSE_NAV_SECTIONS.filter((sec) => !sec.requiredFeature || isFeatureEnabled(sec.requiredFeature)).map((sec) => {
             const Icon = sec.icon;
             const isActive = currentRoute === sec.route;
 

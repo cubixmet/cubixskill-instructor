@@ -41,6 +41,15 @@ export const API_ENDPOINTS = {
     LIST: "/api/v1/assignments/",
     DETAIL: (id: string) => `/api/v1/assignments/${id}/`,
   },
+  LIVE_SESSIONS: {
+    LIST: "/api/v1/live-classes/live-sessions/",
+    DETAIL: (id: string) => `/api/v1/live-classes/live-sessions/${id}/`,
+    START: (id: string) => `/api/v1/live-classes/live-sessions/${id}/start/`,
+    END: (id: string) => `/api/v1/live-classes/live-sessions/${id}/end/`,
+    CANCEL: (id: string) => `/api/v1/live-classes/live-sessions/${id}/cancel/`,
+    JOIN: (id: string) => `/api/v1/live-classes/live-sessions/${id}/join/`,
+    LEAVE: (id: string) => `/api/v1/live-classes/live-sessions/${id}/leave/`,
+  },
   SETTINGS: {
     PROFILE: "/api/v1/settings/profile/",
   },

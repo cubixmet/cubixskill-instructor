@@ -1,230 +1,164 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, Edit3, MoreVertical, Trash2, Power, Copy, Check, Ticket } from 'lucide-react';
-import { CouponEntity } from '../types/coupon.types';
-import { Badge } from '../../../components/ui/Badge';
-import { Modal } from '../../../components/ui/Modal';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle2, Clock, AlertCircle, Eye, Edit3, Power, Trash2 } from 'lucide-react';
+import { CouponItem } from '../../../services/courseCoupons.service';
 import { Button } from '../../../components/ui/Button';
-import { useCouponStore } from '../store/coupon.store';
-import { formatDiscount } from '../../../utils/currency';
 
 interface CouponTableProps {
-  coupons: CouponEntity[];
+  coupons: CouponItem[];
   courseIdContext?: string;
-  onToast?: (msg: string) => void;
+  onToggleStatus: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
-export const CouponTable: React.FC<CouponTableProps> = ({ coupons, courseIdContext, onToast }) => {
+export const CouponTable: React.FC<CouponTableProps> = ({
+  coupons,
+  courseIdContext,
+  onToggleStatus,
+  onDelete,
+}) => {
   const navigate = useNavigate();
-  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<CouponEntity | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
 
-  const toggleCouponStatus = useCouponStore((state) => state.toggleCouponStatus);
-  const deleteCoupon = useCouponStore((state) => state.deleteCoupon);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setActiveMenuId(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleCopyCode = (code: string, id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(code);
-    setCopiedId(id);
-    if (onToast) onToast(`Copied code "${code}" to clipboard!`);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const handleToggleStatus = (id: string, code: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setActiveMenuId(null);
-    const updated = toggleCouponStatus(id);
-    if (updated && onToast) {
-      onToast(`Coupon "${code}" is now ${updated.status.toUpperCase()}`);
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 flex items-center gap-1 w-fit">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Active
+          </span>
+        );
+      case 'SCHEDULED':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-200/80 flex items-center gap-1 w-fit">
+            <Clock className="w-3 h-3 text-blue-600" /> Scheduled
+          </span>
+        );
+      case 'EXPIRED':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200/80 flex items-center gap-1 w-fit">
+            <AlertCircle className="w-3 h-3 text-rose-600" /> Expired
+          </span>
+        );
+      case 'USAGE_LIMIT_REACHED':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200/80 flex items-center gap-1 w-fit">
+            <AlertCircle className="w-3 h-3 text-amber-600" /> Limit Reached
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 flex items-center gap-1 w-fit">
+            Inactive
+          </span>
+        );
     }
   };
 
-  const handleDeleteConfirm = () => {
-    if (!deleteTarget) return;
-    deleteCoupon(deleteTarget.id);
-    if (onToast) onToast(`Coupon "${deleteTarget.code}" deleted.`);
-    setDeleteTarget(null);
-  };
-
-  const getBadgeVariant = (status: string) => {
-    if (status === 'active') return 'success';
-    if (status === 'inactive') return 'warning';
-    return 'error';
-  };
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+  const formatDateRange = (validFrom: string, validUntil?: string | null) => {
+    try {
+      const fromStr = new Date(validFrom).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+      if (!validUntil) return `From ${fromStr}`;
+      const untilStr = new Date(validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      return `${fromStr} – ${untilStr}`;
+    } catch {
+      return validFrom;
+    }
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden font-sans">
+    <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] shadow-2xs overflow-hidden font-normal">
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs sm:text-sm text-slate-700">
-          <thead className="bg-slate-50/90 text-slate-500 font-semibold border-b border-slate-200/80 uppercase text-[11px] tracking-wider">
+        <table className="w-full text-left text-xs min-w-[750px]">
+          <thead className="bg-slate-50 dark:bg-[#0F172A] border-b border-slate-200 dark:border-[#263244] text-[11px] font-normal text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             <tr>
-              <th scope="col" className="py-3.5 px-4 sm:px-6">Coupon Code</th>
-              <th scope="col" className="py-3.5 px-4">Discount</th>
-              <th scope="col" className="py-3.5 px-4">Applicable Course</th>
-              <th scope="col" className="py-3.5 px-4">Usage / Limit</th>
-              <th scope="col" className="py-3.5 px-4">Valid From</th>
-              <th scope="col" className="py-3.5 px-4">Expiry Date</th>
-              <th scope="col" className="py-3.5 px-4">Status</th>
-              <th scope="col" className="py-3.5 px-4 sm:px-6 text-right">Actions</th>
+              <th className="p-3.5">Coupon Code</th>
+              <th className="p-3.5">Discount</th>
+              <th className="p-3.5">Validity</th>
+              <th className="p-3.5">Usage</th>
+              <th className="p-3.5">Status</th>
+              <th className="p-3.5 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 font-medium">
+          <tbody className="divide-y divide-slate-100 dark:divide-[#263244] font-normal">
             {coupons.map((coupon) => {
               const detailUrl = courseIdContext
                 ? `/courses/${courseIdContext}/coupons/${coupon.id}`
                 : `/coupons/${coupon.id}`;
-
               const editUrl = courseIdContext
                 ? `/courses/${courseIdContext}/coupons/${coupon.id}/edit`
                 : `/coupons/${coupon.id}/edit`;
 
-              const formattedDiscount = formatDiscount(coupon.discountType, coupon.discountValue, coupon.currency);
-
-              const usageDisplay = coupon.usageLimit
-                ? `${coupon.usageCount} / ${coupon.usageLimit}`
-                : `${coupon.usageCount} / ∞`;
-
               return (
-                <tr
-                  key={coupon.id}
-                  className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
-                  onClick={() => navigate(detailUrl)}
-                >
-                  {/* Coupon Code */}
-                  <td className="py-4 px-4 sm:px-6 font-mono font-bold text-slate-900 tracking-wider">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg shrink-0">
-                        <Ticket className="w-4 h-4" />
-                      </div>
-                      <span className="text-sm">{coupon.code}</span>
-                      <button
-                        type="button"
-                        onClick={(e) => handleCopyCode(coupon.code, coupon.id, e)}
-                        className="p-1 text-slate-400 hover:text-blue-600 transition-colors rounded-md hover:bg-blue-50 cursor-pointer"
-                        title="Copy code"
-                      >
-                        {copiedId === coupon.id ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
+                <tr key={coupon.id} className="hover:bg-slate-50/70 dark:hover:bg-[#172033] transition-colors">
+                  <td className="p-3.5">
+                    <div>
+                      <span className="font-mono font-medium text-blue-600 dark:text-blue-400 text-xs block">
+                        {coupon.code}
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate block max-w-[200px]">
+                        {coupon.name}
+                      </span>
                     </div>
                   </td>
-
-                  {/* Discount */}
-                  <td className="py-4 px-4 font-semibold text-blue-600 whitespace-nowrap">
-                    {formattedDiscount}
-                    <span className="block text-[11px] text-slate-400 font-normal capitalize">
-                      {coupon.discountType}
-                    </span>
+                  <td className="p-3.5 font-normal text-slate-900 dark:text-white">
+                    {coupon.discount_type === 'PERCENTAGE'
+                      ? `${coupon.discount_value}%`
+                      : `INR ${coupon.discount_value.toLocaleString('en-IN')}`}
+                    {coupon.max_discount_amount && (
+                      <span className="text-[10px] text-slate-400 block">
+                        (Max ₹{coupon.max_discount_amount})
+                      </span>
+                    )}
                   </td>
-
-                  {/* Applicable Course */}
-                  <td className="py-4 px-4 font-semibold text-slate-900 max-w-[220px] truncate" title={coupon.courseTitle || 'All Courses (Global)'}>
-                    {coupon.courseTitle || (coupon.courseScope === 'all' ? 'All Courses (Global)' : 'Selected Course')}
+                  <td className="p-3.5 text-slate-600 dark:text-slate-300">
+                    {formatDateRange(coupon.valid_from, coupon.valid_until)}
                   </td>
-
-                  {/* Usage */}
-                  <td className="py-4 px-4 whitespace-nowrap font-medium text-slate-700">
-                    {usageDisplay}
+                  <td className="p-3.5 text-slate-700 dark:text-slate-200">
+                    {coupon.current_usage_count} / {coupon.total_usage_limit > 0 ? coupon.total_usage_limit : '∞'}
                   </td>
-
-                  {/* Valid From */}
-                  <td className="py-4 px-4 whitespace-nowrap text-slate-600">
-                    {formatDate(coupon.validFrom)}
-                  </td>
-
-                  {/* Expiry Date */}
-                  <td className="py-4 px-4 whitespace-nowrap text-slate-600">
-                    {formatDate(coupon.expiryDate)}
-                  </td>
-
-                  {/* Status */}
-                  <td className="py-4 px-4 whitespace-nowrap">
-                    <Badge variant={getBadgeVariant(coupon.status)} size="sm" dot>
-                      {coupon.status === 'active' ? 'Active' : coupon.status === 'inactive' ? 'Inactive' : 'Expired'}
-                    </Badge>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="py-4 px-4 sm:px-6 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-1">
-                      <Link
-                        to={detailUrl}
-                        className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
-                        title="View Details"
+                  <td className="p-3.5">{getStatusBadge(coupon.computed_status)}</td>
+                  <td className="p-3.5 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => navigate(detailUrl)}
+                        className="font-normal border-slate-200 dark:border-[#334155] h-8 px-2"
+                        title="View Usage & Details"
                       >
-                        <Eye className="w-4 h-4" />
-                      </Link>
-
-                      <Link
-                        to={editUrl}
-                        className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
+                        <Eye className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => navigate(editUrl)}
+                        className="font-normal border-slate-200 dark:border-[#334155] h-8 px-2"
                         title="Edit Coupon"
                       >
-                        <Edit3 className="w-4 h-4" />
-                      </Link>
-
-                      {/* ⋯ Dropdown */}
-                      <div className="relative" ref={activeMenuId === coupon.id ? menuRef : null}>
-                        <button
-                          type="button"
-                          onClick={() => setActiveMenuId(activeMenuId === coupon.id ? null : coupon.id)}
-                          className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-                          title="More actions"
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-
-                        {activeMenuId === coupon.id && (
-                          <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-40 text-xs font-medium text-left">
-                            <button
-                              type="button"
-                              onClick={(e) => handleToggleStatus(coupon.id, coupon.code, e)}
-                              className="w-full px-3 py-2 text-left text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
-                            >
-                              <Power className="w-3.5 h-3.5 text-amber-500" />
-                              {coupon.status === 'active' ? 'Disable Coupon' : 'Enable Coupon'}
-                            </button>
-
-                            <div className="my-1 border-t border-slate-100" />
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveMenuId(null);
-                                setDeleteTarget(coupon);
-                              }}
-                              className="w-full px-3 py-2 text-left text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                              Delete Coupon
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => onToggleStatus(coupon.id)}
+                        className={`font-normal h-8 px-2 ${
+                          coupon.is_active
+                            ? 'text-amber-600 dark:text-amber-400 border-amber-200'
+                            : 'text-emerald-600 dark:text-emerald-400 border-emerald-200'
+                        }`}
+                        title={coupon.is_active ? 'Deactivate Coupon' : 'Activate Coupon'}
+                      >
+                        <Power className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => onDelete(coupon.id)}
+                        className="font-normal text-rose-600 dark:text-rose-400 border-rose-200 h-8 px-2"
+                        title="Delete Coupon"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -233,23 +167,6 @@ export const CouponTable: React.FC<CouponTableProps> = ({ coupons, courseIdConte
           </tbody>
         </table>
       </div>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
-        title="Delete Coupon Code"
-        description={`Are you sure you want to delete coupon code "${deleteTarget?.code}"? This action cannot be undone.`}
-      >
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-          <Button variant="ghost" size="md" onClick={() => setDeleteTarget(null)}>
-            Cancel
-          </Button>
-          <Button variant="danger" size="md" onClick={handleDeleteConfirm}>
-            Delete Coupon
-          </Button>
-        </div>
-      </Modal>
     </div>
   );
 };
