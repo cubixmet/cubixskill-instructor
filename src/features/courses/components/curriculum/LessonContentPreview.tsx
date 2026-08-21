@@ -13,6 +13,8 @@ import { Badge } from '../../../../components/ui/Badge';
 import { parseEmbedVideoUrl } from './VideoLessonSettings';
 import { sanitizeHtml, isHtmlContentEmpty } from '../../utils/sanitizeHtml.util';
 import { AudioPlayer } from '../../../../components/ui/AudioPlayer';
+import { LessonVideoPlayer } from '../../../../components/media/LessonVideoPlayer';
+import { resolveMediaUrl } from '../../../../utils/media.utils';
 
 interface LessonContentPreviewProps {
   lesson: CourseLesson;
@@ -25,33 +27,35 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
   const [mediaError, setMediaError] = useState(false);
 
   const { type, content } = lesson;
+  const anyLesson = lesson as any;
 
   // 1. VIDEO LESSON
   if (type === 'video') {
-    const rawUrl = content?.mediaUrl || content?.videoUrl || content?.fileUrl || '';
+    const rawUrl =
+      anyLesson?.video_url ||
+      anyLesson?.videoUrl ||
+      content?.mediaUrl ||
+      content?.videoUrl ||
+      content?.fileUrl ||
+      anyLesson?.media_files?.[0]?.media_file?.url ||
+      anyLesson?.primary_media?.url ||
+      '';
+
+    const streamManifest = anyLesson?.primary_media?.stream_manifest_key || anyLesson?.stream_manifest_key || anyLesson?.primary_media?.stream_url || anyLesson?.stream_url;
     const parsedEmbed = parseEmbedVideoUrl(rawUrl);
 
-    if (!rawUrl.trim()) {
+    if (!rawUrl.trim() && !streamManifest) {
       return (
         <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-400 text-xs font-medium">
-          Content not configured
+          No video attached to this lesson.
         </div>
       );
     }
 
-    if (mediaError) {
+    if (parsedEmbed) {
       return (
-        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-          <span>Video unavailable. Please verify video URL or file source.</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="w-full space-y-1.5 overflow-hidden">
-        <div className="aspect-video w-full max-w-full max-h-72 sm:max-h-80 bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center relative">
-          {parsedEmbed ? (
+        <div className="w-full space-y-1.5 overflow-hidden">
+          <div className="aspect-video w-full max-w-full max-h-72 sm:max-h-80 bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center relative">
             <iframe
               src={parsedEmbed.embedUrl}
               title={`Preview ${lesson.title}`}
@@ -59,26 +63,27 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
-          ) : (
-            <video
-              controls
-              autoPlay={false}
-              preload="metadata"
-              onError={() => setMediaError(true)}
-              className="w-full h-full object-contain"
-            >
-              <source src={rawUrl} type="video/mp4" />
-              Your browser does not support HTML5 video preview.
-            </video>
-          )}
+          </div>
         </div>
+      );
+    }
+
+    return (
+      <div className="w-full space-y-1.5 overflow-hidden">
+        <LessonVideoPlayer
+          media={anyLesson?.primary_media}
+          videoUrl={rawUrl}
+          streamUrl={streamManifest}
+          title={lesson.title}
+        />
       </div>
     );
   }
 
   // 2. IMAGE LESSON
   if (type === 'image') {
-    const imgUrl = content?.mediaUrl || content?.fileUrl || '';
+    const imgUrl = anyLesson?.imageUrl || content?.mediaUrl || content?.fileUrl || anyLesson?.primary_media?.url || '';
+    const resolvedImgUrl = resolveMediaUrl(imgUrl);
 
     if (!imgUrl.trim()) {
       return (
@@ -101,7 +106,7 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
       <div className="w-full overflow-hidden">
         <div className="w-full max-h-64 sm:max-h-72 bg-slate-900/5 rounded-xl border border-slate-200 p-1 flex items-center justify-center overflow-hidden">
           <img
-            src={imgUrl}
+            src={resolvedImgUrl}
             alt={lesson.title}
             onError={() => setMediaError(true)}
             className="w-full h-auto max-h-60 sm:max-h-68 object-contain rounded-lg shadow-2xs"
@@ -113,14 +118,16 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
 
   // 3. AUDIO LESSON
   if (type === 'audio') {
-    const audioUrl = content?.mediaUrl || content?.fileUrl || '';
+    const audioUrl = anyLesson?.audioUrl || content?.mediaUrl || content?.fileUrl || anyLesson?.primary_media?.url || '';
+    const resolvedAudioUrl = resolveMediaUrl(audioUrl);
 
-    return <AudioPlayer src={audioUrl} />;
+    return <AudioPlayer src={resolvedAudioUrl} />;
   }
 
   // 4. DOCUMENT LESSON
   if (type === 'document') {
-    const docUrl = content?.mediaUrl || content?.fileUrl || '';
+    const docUrl = anyLesson?.documentUrl || content?.mediaUrl || content?.fileUrl || anyLesson?.primary_media?.url || '';
+    const resolvedDocUrl = resolveMediaUrl(docUrl);
     const rawFileName = content?.fileName || content?.fileUrl || lesson.title || 'Document File';
     const cleanFileName = rawFileName.startsWith('http')
       ? rawFileName.split('/').pop()?.split('?')[0] || lesson.title
@@ -140,9 +147,9 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
           </div>
         </div>
 
-        {docUrl ? (
+        {resolvedDocUrl ? (
           <a
-            href={docUrl}
+            href={resolvedDocUrl}
             target="_blank"
             rel="noreferrer"
             className="px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-100 hover:border-slate-300 active:scale-95 rounded-md sm:rounded-lg text-[11px] font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 shrink-0 w-auto transition-all shadow-2xs whitespace-nowrap"

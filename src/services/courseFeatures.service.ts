@@ -19,12 +19,29 @@ export interface CourseFeatureItem {
   config?: Record<string, any>;
 }
 
+const pendingFeaturesPromises = new Map<string, Promise<CourseFeatureItem[]>>();
+
 export const courseFeaturesService = {
   async list(courseUuid: string): Promise<CourseFeatureItem[]> {
-    const res = await apiClient.get(`/api/v1/courses/${courseUuid}/features/`);
-    const data = res.data;
-    const body = data && typeof data === 'object' && 'features' in data ? data.features : (data && typeof data === 'object' && 'data' in data ? data.data : data);
-    return (Array.isArray(body) ? body : []) as CourseFeatureItem[];
+    if (!courseUuid) return [];
+    if (pendingFeaturesPromises.has(courseUuid)) {
+      return pendingFeaturesPromises.get(courseUuid)!;
+    }
+
+    const promise = apiClient.get(`/api/v1/courses/${courseUuid}/features/`)
+      .then((res) => {
+        const data = res.data;
+        const body = data && typeof data === 'object' && 'features' in data ? data.features : (data && typeof data === 'object' && 'data' in data ? data.data : data);
+        return (Array.isArray(body) ? body : []) as CourseFeatureItem[];
+      })
+      .finally(() => {
+        setTimeout(() => {
+          pendingFeaturesPromises.delete(courseUuid);
+        }, 2000);
+      });
+
+    pendingFeaturesPromises.set(courseUuid, promise);
+    return promise;
   },
 
   async enable(courseUuid: string, featureCode: string): Promise<void> {

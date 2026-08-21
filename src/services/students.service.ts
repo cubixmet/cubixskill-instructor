@@ -9,6 +9,7 @@ export interface StudentData {
   student_code?: string;
   studentCode?: string;
   display_name?: string;
+  full_name?: string;
   name?: string;
   email?: string;
   phone?: string;
@@ -20,7 +21,17 @@ export interface StudentData {
   };
   status?: string;
   joined_at?: string;
+  date_of_birth?: string;
+  bio?: string;
+  enrollments_count?: number;
   enrolledCoursesCount?: number;
+}
+
+export interface StudentSummaryData {
+  total_students: number;
+  active_students: number;
+  inactive_students: number;
+  enrolled_students: number;
 }
 
 export interface BulkUploadRowResult {
@@ -49,16 +60,57 @@ export interface BulkUploadResponse {
 
 export const studentsService = {
   async listStudents(params?: Record<string, any>): Promise<PaginatedResponse<StudentData> | StudentData[]> {
-    const response = await apiClient.get<BackendApiResponse<PaginatedResponse<StudentData>> | StudentData[]>(
+    const response = await apiClient.get<BackendApiResponse<PaginatedResponse<StudentData>> | PaginatedResponse<StudentData> | StudentData[]>(
       API_ENDPOINTS.STUDENTS.LIST,
       { params }
     );
-    return (response.data as any)?.data || response.data;
+    const data = (response.data as any)?.data || response.data;
+    return data;
+  },
+
+  async getSummary(): Promise<StudentSummaryData> {
+    const response = await apiClient.get<BackendApiResponse<StudentSummaryData>>(
+      '/api/v1/students/students/summary/'
+    );
+    return response.data?.data || (response.data as unknown as StudentSummaryData);
   },
 
   async getStudent(id: string): Promise<StudentData> {
     const response = await apiClient.get<BackendApiResponse<StudentData>>(API_ENDPOINTS.STUDENTS.DETAIL(id));
     return response.data?.data || (response.data as unknown as StudentData);
+  },
+
+  async updateStudent(id: string, payload: Partial<StudentData>): Promise<StudentData> {
+    const response = await apiClient.patch<BackendApiResponse<StudentData>>(
+      API_ENDPOINTS.STUDENTS.DETAIL(id),
+      payload
+    );
+    return response.data?.data || (response.data as unknown as StudentData);
+  },
+
+  async activateStudent(id: string): Promise<any> {
+    const response = await apiClient.post<BackendApiResponse<any>>(
+      `/api/v1/students/students/${id}/activate/`
+    );
+    return response.data?.data || response.data;
+  },
+
+  async deactivateStudent(id: string): Promise<any> {
+    const response = await apiClient.post<BackendApiResponse<any>>(
+      `/api/v1/students/students/${id}/deactivate/`
+    );
+    return response.data?.data || response.data;
+  },
+
+  async listStudentEnrollments(studentId: string, params?: Record<string, any>): Promise<any[]> {
+    const response = await apiClient.get<BackendApiResponse<any[]> | any[]>(
+      '/api/v1/enrollments/enrollments/',
+      { params: { student: studentId, ...params } }
+    );
+    const data = (response.data as any)?.data || response.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.results)) return data.results;
+    return [];
   },
 
   async listCourseEnrollments(courseId: string, params?: Record<string, any>): Promise<any[]> {
@@ -102,7 +154,7 @@ export const studentsService = {
     return response.data?.data || response.data;
   },
 
-  async createStudent(payload: { full_name: string; email: string; phone?: string }): Promise<StudentData> {
+  async createStudent(payload: { full_name: string; email: string; phone?: string; date_of_birth?: string; bio?: string; status?: string }): Promise<StudentData> {
     const response = await apiClient.post<BackendApiResponse<StudentData>>(
       API_ENDPOINTS.STUDENTS.LIST,
       payload
@@ -135,4 +187,3 @@ export const studentsService = {
     return response.data?.data || response.data;
   },
 };
-

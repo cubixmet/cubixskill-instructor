@@ -36,23 +36,28 @@ export interface CreditUsageItem {
   credits_used: string;
 }
 
-export interface CreditPackageItem {
+export interface CreditPurchaseRateItem {
   id: string;
+  feature_key: string;
   name: string;
   description: string;
-  credits: string;
+  billing_type: string;
+  unit_size: string;
+  credit_cost: string;
   price: string;
+  credits: string;
   currency: string;
-  bonus_credits: string;
-  popular: boolean;
+  is_purchasable: boolean;
   is_active: boolean;
-  sort_order: number;
+  created_at: string;
 }
 
 export interface CreditPurchaseRecord {
   id: string;
+  rate?: string;
+  rate_name?: string;
   package?: string;
-  package_name: string;
+  package_name?: string;
   coupon?: string;
   coupon_code: string;
   base_credits: string;
@@ -69,10 +74,21 @@ export interface CreditPurchaseRecord {
   created_at: string;
 }
 
+let pendingSummaryPromise: Promise<CreditSummaryData> | null = null;
+
 export const creditService = {
   async getSummary(): Promise<CreditSummaryData> {
-    const res = await apiClient.get('/api/v1/credits/summary/');
-    return res.data;
+    if (pendingSummaryPromise) {
+      return pendingSummaryPromise;
+    }
+    pendingSummaryPromise = apiClient.get('/api/v1/credits/summary/')
+      .then((res) => res.data)
+      .finally(() => {
+        setTimeout(() => {
+          pendingSummaryPromise = null;
+        }, 2000);
+      });
+    return pendingSummaryPromise;
   },
 
   async getTransactions(params?: {
@@ -93,14 +109,20 @@ export const creditService = {
     return res.data;
   },
 
-  async getPackages(): Promise<CreditPackageItem[]> {
-    const res = await apiClient.get('/api/v1/credits/packages/');
-    return Array.isArray(res.data) ? res.data : [];
+  async getPurchaseRates(): Promise<CreditPurchaseRateItem[]> {
+    const res = await apiClient.get('/api/v1/credits/purchase-rates/');
+    const data = res.data;
+    if (Array.isArray(data)) return data;
+    return data.results || [];
   },
 
-  async previewPurchase(packageId: string, couponCode?: string): Promise<{
+  async getPackages(): Promise<CreditPurchaseRateItem[]> {
+    return this.getPurchaseRates();
+  },
+
+  async previewPurchase(rateId: string, couponCode?: string): Promise<{
     valid: boolean;
-    package_id: string;
+    rate_id: string;
     coupon_code: string;
     description: string;
     discount_amount: string;
@@ -112,18 +134,35 @@ export const creditService = {
     currency: string;
   }> {
     const res = await apiClient.post('/api/v1/credits/purchases/purchase-preview/', {
-      package_id: packageId,
+      rate_id: rateId,
       coupon_code: couponCode || '',
     });
     return res.data;
   },
 
-  async createPurchase(packageId: string, couponCode?: string): Promise<CreditPurchaseRecord> {
+  async createPurchase(rateId: string, couponCode?: string): Promise<CreditPurchaseRecord & {
+    razorpay_order_id?: string;
+    key_id?: string;
+    gateway_data?: any;
+    customer?: {
+      name?: string;
+      email?: string;
+      contact?: string;
+    };
+  }> {
     const res = await apiClient.post('/api/v1/credits/purchases/create-order/', {
-      package_id: packageId,
+      rate_id: rateId,
       coupon_code: couponCode || '',
     });
     return res.data;
+  },
+
+  async verifyPurchase(
+    purchaseId: string,
+    payload: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }
+  ): Promise<CreditPurchaseRecord> {
+    const res = await apiClient.post(`/api/v1/credits/purchases/${purchaseId}/verify/`, payload);
+    return res.data?.purchase || res.data;
   },
 
   async fulfillPurchase(purchaseId: string, paymentTransactionId?: string): Promise<CreditPurchaseRecord> {

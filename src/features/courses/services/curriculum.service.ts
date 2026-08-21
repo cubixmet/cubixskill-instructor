@@ -136,6 +136,8 @@ export const curriculumService = {
     moduleUuid: string,
     data: CreateLessonInput
   ): Promise<CourseLesson> {
+    const mediaFileId = (data as any)?.content?.mediaFileId || (data as any)?.content?.mediaFile?.id || (data as any)?.media_file_id || null;
+
     const response = await apiClient.post<{ data: Record<string, unknown> } | Record<string, unknown>>(
       `/api/v1/lessons/modules/${moduleUuid}/lessons/`,
       {
@@ -145,6 +147,7 @@ export const curriculumService = {
         duration_minutes: data.durationMinutes || 0,
         is_demo: data.isDemo || false,
         allow_download: data.allowDownload || false,
+        media_file_id: mediaFileId,
       }
     );
     const backendData = (response.data as { data?: Record<string, unknown> })?.data || (response.data as Record<string, unknown>);
@@ -157,17 +160,24 @@ export const curriculumService = {
     const created = useCurriculumStore.getState().addLesson(courseUuid, moduleUuid, {
       ...data,
       id: realId,
+      video_url: backendData.video_url || (data as any)?.content?.videoUrl,
+      media_files: backendData.media_files || [],
     } as any);
 
     if (created && created.uuid !== realId) {
       created.uuid = realId;
-      useCurriculumStore.getState().updateLesson(created.uuid, { id: realId } as any);
+      useCurriculumStore.getState().updateLesson(created.uuid, {
+        id: realId,
+        video_url: backendData.video_url || (data as any)?.content?.videoUrl,
+      } as any);
     }
     return created;
   },
 
   updateLesson: (lessonUuid: string, data: UpdateLessonInput): void => {
     useCurriculumStore.getState().updateLesson(lessonUuid, data);
+    const mediaFileId = (data as any)?.content?.mediaFileId || (data as any)?.content?.mediaFile?.id || (data as any)?.media_file_id || null;
+
     apiClient
       .patch(`/api/v1/lessons/${lessonUuid}/`, {
         title: data.title,
@@ -175,6 +185,13 @@ export const curriculumService = {
         duration_minutes: data.durationMinutes,
         is_demo: data.isDemo,
         allow_download: data.allowDownload,
+        media_file_id: mediaFileId,
+      })
+      .then((res) => {
+        const updatedBackend = res.data?.data || res.data;
+        if (updatedBackend?.video_url) {
+          useCurriculumStore.getState().updateLesson(lessonUuid, { video_url: updatedBackend.video_url } as any);
+        }
       })
       .catch((err) => console.warn('Failed to sync updated lesson with backend API:', err));
   },

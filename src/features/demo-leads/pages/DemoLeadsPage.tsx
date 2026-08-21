@@ -1,255 +1,338 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
-  TrendingUp,
   Download,
   Plus,
-  MoreVertical,
   Calendar,
   UserCheck,
   Clock,
   Mail,
   Phone,
   Building2,
-  Trash2,
+  Users,
+  RotateCcw,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+  FileText,
+  Activity,
+  UserPlus,
+  ArrowRight,
+  CheckCircle2,
+  Tag,
 } from 'lucide-react';
+import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
-import { Modal } from '../../../components/ui/Modal';
 import { Badge } from '../../../components/ui/Badge';
 import { EmptyState } from '../../../components/ui/EmptyState';
-
-export interface DemoLeadItem {
-  uuid: string;
-  courseTitle: string;
-  fullName: string;
-  email: string;
-  phone?: string;
-  organization?: string;
-  status: 'active' | 'converted' | 'expired' | 'deactivated';
-  interestedStatus: 'hot' | 'warm' | 'cold';
-  demoStartDate: string;
-  demoExpiryDate: string;
-  magicToken: string;
-  lastLoginAt?: string;
-  completionPercent: number;
-  completedLessonUuids: string[];
-  notes?: string;
-  createdAt: string;
-}
-
-const INITIAL_DEMO_LEADS: DemoLeadItem[] = [
-  {
-    uuid: 'lead-101',
-    courseTitle: 'Full-Stack Web Development Bootcamp',
-    fullName: 'Sophia Chen',
-    email: 'sophia.chen@techcorp.io',
-    phone: '+1 (555) 234-5678',
-    organization: 'TechCorp Solutions',
-    status: 'active',
-    interestedStatus: 'hot',
-    demoStartDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    demoExpiryDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-    magicToken: 'demo-tok-sophia-9823',
-    lastLoginAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-    completionPercent: 60,
-    completedLessonUuids: ['les-1', 'les-2'],
-    notes: 'Requested group discount info for engineering team of 15 members.',
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    uuid: 'lead-102',
-    courseTitle: 'UI/UX Design Masterclass 2026',
-    fullName: 'Marcus Vance',
-    email: 'marcus.vance@designstudio.com',
-    phone: '+1 (555) 876-5432',
-    organization: 'Vance Design Lab',
-    status: 'converted',
-    interestedStatus: 'hot',
-    demoStartDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    demoExpiryDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    magicToken: 'demo-tok-marcus-1102',
-    lastLoginAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
-    completionPercent: 100,
-    completedLessonUuids: ['les-1', 'les-2', 'les-3'],
-    notes: 'Converted to full paid student account after completing demo module.',
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    uuid: 'lead-103',
-    courseTitle: 'Full-Stack Web Development Bootcamp',
-    fullName: 'Aarav Patel',
-    email: 'aarav.patel@devhouse.in',
-    phone: '+91 98765 43210',
-    organization: 'DevHouse India',
-    status: 'expired',
-    interestedStatus: 'warm',
-    demoStartDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    demoExpiryDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    magicToken: 'demo-tok-aarav-3341',
-    lastLoginAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    completionPercent: 33,
-    completedLessonUuids: ['les-1'],
-    notes: 'Expired 2 days ago. Candidate for demo extension email.',
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
+import { exportToCsv, type CsvColumn } from '../../../utils/export-csv';
+import { leadsService, type LeadData, type LeadSummaryData, type LeadTimelineEvent } from '../../../services/leads.service';
+import { authStore } from '../../../store/auth.store';
 
 export const DemoLeadsPage: React.FC = () => {
-  const [leads, setLeads] = useState<DemoLeadItem[]>(INITIAL_DEMO_LEADS);
+  const navigate = useNavigate();
+
+  // Auth role check
+  const user = authStore.getState().user;
+  const userRole = (user?.role || 'instructor') as string;
+  const canManageLeads = userRole === 'admin' || userRole === 'instructor' || userRole === 'ta';
+
+  // Filters & Pagination
   const [search, setSearch] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [selectedLead, setSelectedLead] = useState<DemoLeadItem | null>(null);
-  const [activeMenuUuid, setActiveMenuUuid] = useState<string | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 15;
 
-  // Extend Demo Modal
-  const [extendModalOpen, setExtendModalOpen] = useState(false);
-  const [extendLeadUuid, setExtendLeadUuid] = useState<string | null>(null);
-  const [extraDays, setExtraDays] = useState<number>(3);
+  // Data State
+  const [leads, setLeads] = useState<LeadData[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [summary, setSummary] = useState<LeadSummaryData | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isError, setIsError] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
-  // Add Lead Modal State
+  // Modals & Drawers State
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [newFullName, setNewFullName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [newPhone, setNewPhone] = useState('');
-  const [newOrg, setNewOrg] = useState('');
-  const [newCourse, setNewCourse] = useState('Full-Stack Web Development Bootcamp');
+  const [selectedLead, setSelectedLead] = useState<LeadData | null>(null);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [timelineDrawerOpen, setTimelineDrawerOpen] = useState(false);
+  const [timelineEvents, setTimelineEvents] = useState<LeadTimelineEvent[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [convertModalOpen, setConvertModalOpen] = useState(false);
+  const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const filteredLeads = useMemo(() => {
-    return leads.filter((l) => {
-      const matchSearch =
-        l.fullName.toLowerCase().includes(search.toLowerCase()) ||
-        l.email.toLowerCase().includes(search.toLowerCase()) ||
-        (l.phone && l.phone.toLowerCase().includes(search.toLowerCase())) ||
-        (l.organization && l.organization.toLowerCase().includes(search.toLowerCase())) ||
-        l.courseTitle.toLowerCase().includes(search.toLowerCase());
-      const matchStatus = selectedStatus === 'all' || l.status === selectedStatus;
-      return matchSearch && matchStatus;
-    });
-  }, [leads, search, selectedStatus]);
+  // Form states
+  const [addForm, setAddForm] = useState({ full_name: '', email: '', phone: '', source: 'WEBSITE', priority: 'NORMAL' });
+  const [addFormErrors, setAddFormErrors] = useState<{ full_name?: string; email?: string; general?: string }>({});
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
 
-  // Statistics calculation
-  const [now] = useState(() => Date.now());
-  const totalRegistrations = leads.length;
-  const activeDemoUsers = leads.filter(
-    (l) => l.status === 'active' && new Date(l.demoExpiryDate).getTime() > now
-  ).length;
-  const expiredDemos = leads.filter(
-    (l) => l.status === 'expired' || (l.status === 'active' && new Date(l.demoExpiryDate).getTime() <= now)
-  ).length;
-  const convertedCount = leads.filter((l) => l.status === 'converted').length;
-  const conversionRate = totalRegistrations > 0 ? Math.round((convertedCount / totalRegistrations) * 100) : 0;
+  const [newStatus, setNewStatus] = useState<string>('CONTACTED');
+  const [lostReason, setLostReason] = useState<string>('');
+  const [isSubmittingStatus, setIsSubmittingStatus] = useState(false);
 
-  const handleExtendDemo = (leadUuid: string) => {
-    setExtendLeadUuid(leadUuid);
-    setExtendModalOpen(true);
-    setActiveMenuUuid(null);
+  const [followUpForm, setFollowUpForm] = useState({ scheduled_at: '', follow_up_type: 'CALL', notes: '' });
+  const [isSubmittingFollowUp, setIsSubmittingFollowUp] = useState(false);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const submitExtendDemo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!extendLeadUuid) return;
+  // Debounce search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setCurrentPage(1);
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [search]);
 
-    setLeads((prev) =>
-      prev.map((l) => {
-        if (l.uuid !== extendLeadUuid) return l;
-        const currentExpiry = new Date(l.demoExpiryDate).getTime() > Date.now() ? new Date(l.demoExpiryDate) : new Date();
-        const newExpiry = new Date(currentExpiry.getTime() + extraDays * 24 * 60 * 60 * 1000).toISOString();
-        return {
-          ...l,
-          demoExpiryDate: newExpiry,
-          status: 'active',
-          notes: `${l.notes ? l.notes + ' | ' : ''}Extended by ${extraDays} days on ${new Date().toLocaleDateString()}`,
-        };
-      })
-    );
-
-    setExtendModalOpen(false);
-    setExtendLeadUuid(null);
-  };
-
-  const handleConvert = (leadUuid: string) => {
-    setLeads((prev) => prev.map((l) => (l.uuid === leadUuid ? { ...l, status: 'converted' } : l)));
-    setActiveMenuUuid(null);
-  };
-
-  const handleDeleteLead = (leadUuid: string) => {
-    setLeads((prev) => prev.filter((l) => l.uuid !== leadUuid));
-    setActiveMenuUuid(null);
-  };
-
-  const handleAddLeadSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newFullName.trim() || !newEmail.trim()) return;
-
-    const newLeadItem: DemoLeadItem = {
-      uuid: `lead-${Date.now()}`,
-      fullName: newFullName,
-      email: newEmail,
-      phone: newPhone,
-      organization: newOrg || 'Individual',
-      courseTitle: newCourse,
-      status: 'active',
-      interestedStatus: 'hot',
-      demoStartDate: new Date().toISOString(),
-      demoExpiryDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-      magicToken: `demo-tok-${Date.now()}`,
-      completionPercent: 0,
-      completedLessonUuids: [],
-      createdAt: new Date().toISOString(),
-    };
-
-    setLeads((prev) => [newLeadItem, ...prev]);
-    setAddModalOpen(false);
-    setNewFullName('');
-    setNewEmail('');
-    setNewPhone('');
-    setNewOrg('');
-  };
-
-  const exportCSV = () => {
-    const headers = 'Name,Email,Phone,Organization,Course,Status,Demo Start,Demo Expiry,Completion %\n';
-    const rows = leads
-      .map(
-        (l) =>
-          `"${l.fullName}","${l.email}","${l.phone || ''}","${l.organization || ''}","${l.courseTitle}","${l.status}","${new Date(
-            l.demoStartDate
-          ).toLocaleDateString()}","${new Date(l.demoExpiryDate).toLocaleDateString()}","${l.completionPercent}%"`
-      )
-      .join('\n');
-
-    const blob = new Blob([headers + rows], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Demo_Leads_Report_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-  };
-
-  // Initials generator
-  const getInitials = (name: string) => {
-    const parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  // Fetch dashboard metrics summary
+  const fetchSummary = useCallback(async () => {
+    try {
+      const data = await leadsService.getSummary();
+      setSummary(data);
+    } catch (_) {
+      // Non-critical metric failure
     }
-    return name.slice(0, 2).toUpperCase();
+  }, []);
+
+  // Fetch leads list
+  const fetchLeads = useCallback(async () => {
+    setIsLoading(true);
+    setIsError(false);
+    setErrorMessage('');
+    try {
+      const params: Record<string, any> = {
+        page: currentPage,
+        page_size: pageSize,
+      };
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
+      if (priorityFilter && priorityFilter !== 'all') params.priority = priorityFilter;
+      if (sourceFilter && sourceFilter !== 'all') params.source = sourceFilter;
+
+      const response = await leadsService.listLeads(params);
+
+      if (response && 'results' in response && Array.isArray(response.results)) {
+        setLeads(response.results);
+        setTotalCount(response.count ?? response.results.length);
+      } else if (Array.isArray(response)) {
+        setLeads(response);
+        setTotalCount(response.length);
+      } else {
+        setLeads([]);
+        setTotalCount(0);
+      }
+    } catch (err: any) {
+      setIsError(true);
+      setErrorMessage(err.message || 'Unable to load demo leads.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, debouncedSearch, statusFilter, priorityFilter, sourceFilter]);
+
+  useEffect(() => {
+    fetchLeads();
+    fetchSummary();
+  }, [fetchLeads, fetchSummary]);
+
+  const hasActiveFilters = search.trim() !== '' || statusFilter !== 'all' || priorityFilter !== 'all' || sourceFilter !== 'all';
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+    setPriorityFilter('all');
+    setSourceFilter('all');
+    setCurrentPage(1);
+  };
+
+  const handleExportCSV = () => {
+    if (leads.length === 0) {
+      showToast('No leads available to export.');
+      return;
+    }
+
+    const filename = `demo_leads_${new Date().toISOString().slice(0, 10)}.csv`;
+    const columns: CsvColumn<LeadData>[] = [
+      { header: 'Full Name', value: (row) => row.full_name },
+      { header: 'Email Address', value: (row) => row.email || '' },
+      { header: 'Phone Number', value: (row) => row.phone || '' },
+      { header: 'Status', value: (row) => row.status },
+      { header: 'Priority', value: (row) => row.priority || 'NORMAL' },
+      { header: 'Source', value: (row) => row.source || '' },
+      { header: 'Assigned Staff', value: (row) => row.assigned_to_name || '' },
+      { header: 'Created Date', value: (row) => row.created_at },
+    ];
+
+    try {
+      exportToCsv(filename, leads, columns);
+      showToast(`Exported ${leads.length} demo leads to CSV.`);
+    } catch (_) {
+      showToast('CSV export failed. Please try again.');
+    }
+  };
+
+  const handleCreateLead = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddFormErrors({});
+    if (!addForm.full_name.trim()) {
+      setAddFormErrors((prev) => ({ ...prev, full_name: 'Full name is required.' }));
+      return;
+    }
+
+    setIsSubmittingAdd(true);
+    try {
+      await leadsService.createLead({
+        full_name: addForm.full_name.trim(),
+        email: addForm.email.trim(),
+        phone: addForm.phone.trim(),
+        source: addForm.source,
+        priority: addForm.priority,
+      });
+      showToast('Demo lead registered successfully.');
+      setAddModalOpen(false);
+      setAddForm({ full_name: '', email: '', phone: '', source: 'WEBSITE', priority: 'NORMAL' });
+      fetchLeads();
+      fetchSummary();
+    } catch (err: any) {
+      if (err.data && typeof err.data === 'object') {
+        setAddFormErrors({
+          email: Array.isArray(err.data.email) ? err.data.email[0] : err.data.email,
+          full_name: Array.isArray(err.data.full_name) ? err.data.full_name[0] : err.data.full_name,
+          general: err.message || 'Failed to create demo lead.',
+        });
+      } else {
+        setAddFormErrors({ general: err.message || 'Error creating demo lead.' });
+      }
+    } finally {
+      setIsSubmittingAdd(false);
+    }
+  };
+
+  const handleUpdateStatusSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLead) return;
+    setIsSubmittingStatus(true);
+    try {
+      await leadsService.updateStatus(selectedLead.id, newStatus, lostReason);
+      showToast(`Lead status updated to ${newStatus}.`);
+      setStatusModalOpen(false);
+      setSelectedLead(null);
+      fetchLeads();
+      fetchSummary();
+    } catch (err: any) {
+      showToast(err.message || 'Status update failed.');
+    } finally {
+      setIsSubmittingStatus(false);
+    }
+  };
+
+  const handleScheduleFollowUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLead || !followUpForm.scheduled_at) return;
+    setIsSubmittingFollowUp(true);
+    try {
+      await leadsService.scheduleFollowUp(selectedLead.id, followUpForm);
+      showToast('Follow-up activity scheduled.');
+      setFollowUpModalOpen(false);
+      setSelectedLead(null);
+      setFollowUpForm({ scheduled_at: '', follow_up_type: 'CALL', notes: '' });
+      fetchLeads();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to schedule follow-up.');
+    } finally {
+      setIsSubmittingFollowUp(false);
+    }
+  };
+
+  const handleConvertLead = async (lead: LeadData) => {
+    try {
+      const result = await leadsService.convertLead(lead.id);
+      showToast(`${lead.full_name} converted to Student successfully.`);
+      fetchLeads();
+      fetchSummary();
+      if (result.student_id) {
+        navigate(`/students/${result.student_id}`);
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Lead conversion failed.');
+    }
+  };
+
+  const handleViewTimeline = async (lead: LeadData) => {
+    setSelectedLead(lead);
+    setTimelineDrawerOpen(true);
+    setTimelineLoading(true);
+    try {
+      const events = await leadsService.getTimeline(lead.id);
+      setTimelineEvents(events);
+    } catch (_) {
+      setTimelineEvents([]);
+    } finally {
+      setTimelineLoading(false);
+    }
+  };
+
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
+  const startRecord = (currentPage - 1) * pageSize + 1;
+  const endRecord = Math.min(currentPage * pageSize, totalCount);
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'NEW':
+        return 'info';
+      case 'CONTACTED':
+      case 'INTERESTED':
+      case 'QUALIFIED':
+        return 'warning';
+      case 'CONVERTED':
+        return 'success';
+      case 'LOST':
+      case 'DISQUALIFIED':
+        return 'error';
+      default:
+        return 'neutral';
+    }
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 font-sans text-xs text-slate-900 text-left pb-36 sm:pb-12 max-w-[1600px] mx-auto px-1 sm:px-2">
-      {/* 1. HEADER BAR */}
+    <div className="space-y-4 sm:space-y-5 text-left font-sans pb-32 sm:pb-12 max-w-[1600px] mx-auto px-1 sm:px-2">
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div className="fixed top-4 right-4 z-50 px-4 py-3 bg-[#0F172A] text-white text-xs font-semibold rounded-2xl shadow-xl animate-fade-in flex items-center gap-2">
+          <span>{toastMessage}</span>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="p-0.5 hover:bg-slate-700 rounded cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* HEADER BAR */}
       <div className="bg-white dark:bg-[#111827] p-4 sm:p-6 rounded-[16px] border border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
-                Demo Leads &amp; Trial Management
+                Demo Leads CRM
               </h1>
               <span className="px-2.5 py-0.5 bg-blue-50 dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] text-xs font-bold rounded-full border border-blue-100 dark:border-[#263244]">
-                {leads.length} Leads
+                {totalCount}
               </span>
             </div>
             <p className="text-xs text-[#64748B] dark:text-[#94A3B8] font-medium mt-0.5">
-              Track prospective students, magic link demo activity, trial expirations, and conversion rates.
+              Track prospective students, demo inquiries, follow-ups, and student conversions.
             </p>
           </div>
 
@@ -257,443 +340,552 @@ export const DemoLeadsPage: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={exportCSV}
               leftIcon={<Download className="w-4 h-4 text-[#0F172A] dark:text-[#F8FAFC]" />}
+              onClick={handleExportCSV}
               className="border-[#E2E8F0] dark:border-[#334155] text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] bg-white dark:bg-[#172033] hover:bg-slate-50 dark:hover:bg-[#1E293B] h-9 sm:h-10 cursor-pointer"
             >
               Export CSV
             </Button>
 
+            {canManageLeads && (
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Plus className="w-4 h-4 text-white" />}
+                onClick={() => setAddModalOpen(true)}
+                className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold h-9 sm:h-10 cursor-pointer shadow-xs shadow-[#2563EB]/25"
+              >
+                Add Lead
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* METRICS SUMMARY CARDS */}
+        {summary && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            <div className="bg-[#F8FAFC] dark:bg-[#172033] border border-[#E2E8F0] dark:border-[#263244] p-3 rounded-xl flex items-center gap-3">
+              <div className="p-2 bg-blue-100 dark:bg-[#1e293b] text-[#2563EB] rounded-lg">
+                <Users className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs text-[#64748B] dark:text-[#94A3B8] font-medium">Total Leads</div>
+                <div className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC]">{summary.total_leads}</div>
+              </div>
+            </div>
+
+            <div className="bg-[#F8FAFC] dark:bg-[#172033] border border-[#E2E8F0] dark:border-[#263244] p-3 rounded-xl flex items-center gap-3">
+              <div className="p-2 bg-amber-100 dark:bg-[#451a03] text-amber-600 rounded-lg">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs text-[#64748B] dark:text-[#94A3B8] font-medium">New Leads</div>
+                <div className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC]">{summary.new_leads}</div>
+              </div>
+            </div>
+
+            <div className="bg-[#F8FAFC] dark:bg-[#172033] border border-[#E2E8F0] dark:border-[#263244] p-3 rounded-xl flex items-center gap-3">
+              <div className="p-2 bg-[#F59E0B]/10 text-[#F59E0B] rounded-lg">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs text-[#64748B] dark:text-[#94A3B8] font-medium">Follow-Ups Today</div>
+                <div className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC]">{summary.follow_ups_today}</div>
+              </div>
+            </div>
+
+            <div className="bg-[#F8FAFC] dark:bg-[#172033] border border-[#E2E8F0] dark:border-[#263244] p-3 rounded-xl flex items-center gap-3">
+              <div className="p-2 bg-emerald-100 dark:bg-[#064e3b] text-emerald-600 rounded-lg">
+                <UserCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs text-[#64748B] dark:text-[#94A3B8] font-medium">Converted</div>
+                <div className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC]">{summary.converted}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SEARCH AND FILTERS */}
+        <div className="space-y-3 pt-3 border-t border-[#E2E8F0] dark:border-[#263244]">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B] dark:text-[#94A3B8]" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search leads by name, email, phone..."
+                className="w-full h-10 pl-9 pr-8 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] focus:outline-none focus:border-[#2563EB]"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] p-0.5 rounded-full cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+              {/* Status Filter */}
+              <div className="shrink-0 flex items-center gap-1 bg-white dark:bg-[#111827] border border-[#CBD5E1] dark:border-[#334155] rounded-xl px-2.5 h-9 text-xs shadow-xs">
+                <span className="text-[#64748B] dark:text-[#94A3B8] font-normal hidden sm:inline">Status:</span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-transparent font-medium text-[#0F172A] dark:text-[#F8FAFC] text-xs focus:outline-none cursor-pointer"
+                >
+                  <option value="all" className="dark:bg-[#111827]">All Statuses</option>
+                  <option value="NEW" className="dark:bg-[#111827]">New</option>
+                  <option value="CONTACTED" className="dark:bg-[#111827]">Contacted</option>
+                  <option value="INTERESTED" className="dark:bg-[#111827]">Interested</option>
+                  <option value="QUALIFIED" className="dark:bg-[#111827]">Qualified</option>
+                  <option value="FOLLOW_UP" className="dark:bg-[#111827]">Follow Up</option>
+                  <option value="CONVERTED" className="dark:bg-[#111827]">Converted</option>
+                  <option value="LOST" className="dark:bg-[#111827]">Lost</option>
+                </select>
+              </div>
+
+              {/* Priority Filter */}
+              <div className="shrink-0 flex items-center gap-1 bg-white dark:bg-[#111827] border border-[#CBD5E1] dark:border-[#334155] rounded-xl px-2.5 h-9 text-xs shadow-xs">
+                <span className="text-[#64748B] dark:text-[#94A3B8] font-normal hidden sm:inline">Priority:</span>
+                <select
+                  value={priorityFilter}
+                  onChange={(e) => {
+                    setPriorityFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-transparent font-medium text-[#0F172A] dark:text-[#F8FAFC] text-xs focus:outline-none cursor-pointer"
+                >
+                  <option value="all" className="dark:bg-[#111827]">All Priorities</option>
+                  <option value="URGENT" className="dark:bg-[#111827]">Urgent</option>
+                  <option value="HIGH" className="dark:bg-[#111827]">High</option>
+                  <option value="NORMAL" className="dark:bg-[#111827]">Normal</option>
+                  <option value="LOW" className="dark:bg-[#111827]">Low</option>
+                </select>
+              </div>
+
+              {/* Reset */}
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="shrink-0 text-xs font-semibold text-rose-600 hover:text-rose-700 flex items-center gap-1 px-2 py-1 hover:bg-rose-50 rounded-lg cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* TABLE / CONTENT AREA */}
+      {isLoading ? (
+        <div className="bg-white dark:bg-[#111827] p-12 rounded-[16px] border border-[#E2E8F0] dark:border-[#263244] text-center flex flex-col items-center justify-center space-y-3">
+          <Loader2 className="w-8 h-8 text-[#2563EB] animate-spin" />
+          <p className="text-xs font-semibold text-[#64748B] dark:text-[#94A3B8]">Loading demo leads from backend...</p>
+        </div>
+      ) : isError ? (
+        <div className="bg-rose-50 dark:bg-[#3f1d24] p-8 rounded-[16px] border border-rose-200 text-center flex flex-col items-center justify-center space-y-3">
+          <AlertCircle className="w-8 h-8 text-rose-600" />
+          <div>
+            <h3 className="text-sm font-semibold text-rose-900 dark:text-rose-200">Unable to Load Demo Leads</h3>
+            <p className="text-xs text-rose-700 dark:text-rose-300 mt-1">{errorMessage}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={fetchLeads} className="border-rose-300 text-rose-700">
+            Retry
+          </Button>
+        </div>
+      ) : leads.length === 0 ? (
+        hasActiveFilters ? (
+          <EmptyState
+            icon={Users}
+            title="No Demo Leads Match Criteria"
+            description="Try adjusting your search terms or active filters to view leads."
+            actionLabel="Clear Filters"
+            onAction={clearAllFilters}
+            actionIcon={<RotateCcw className="w-4 h-4" />}
+          />
+        ) : (
+          <EmptyState
+            icon={Users}
+            title="No Demo Leads Found"
+            description="Add your first prospective student lead to manage sales pipeline and demo follow-ups."
+            actionLabel={canManageLeads ? "Add First Lead" : undefined}
+            onAction={canManageLeads ? () => setAddModalOpen(true) : undefined}
+            actionIcon={<Plus className="w-4 h-4" />}
+          />
+        )
+      ) : (
+        <Card padding="none" className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] overflow-hidden rounded-[16px] shadow-2xs">
+          <div className="overflow-x-auto no-scrollbar font-sans">
+            <table className="w-full text-left text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] border-collapse">
+              <thead>
+                <tr className="bg-[#F8FAFC] dark:bg-[#172033] border-b border-[#E2E8F0] dark:border-[#263244] text-[#64748B] dark:text-[#94A3B8] text-[10px] uppercase font-bold tracking-wider">
+                  <th className="py-3.5 px-4 min-w-[200px]">Lead</th>
+                  <th className="py-3.5 px-4 min-w-[140px]">Contact</th>
+                  <th className="py-3.5 px-4 min-w-[100px]">Status</th>
+                  <th className="py-3.5 px-4 min-w-[100px]">Priority</th>
+                  <th className="py-3.5 px-4 min-w-[130px]">Assigned Staff</th>
+                  <th className="py-3.5 px-4 min-w-[130px]">Next Follow-up</th>
+                  <th className="py-3.5 px-4 min-w-[110px]">Created</th>
+                  <th className="py-3.5 px-4 text-right min-w-[140px]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E2E8F0] dark:divide-[#263244]">
+                {leads.map((lead) => (
+                  <tr key={lead.id} className="hover:bg-slate-50/80 dark:hover:bg-[#172033] transition-colors">
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold text-xs text-[#0F172A] dark:text-[#F8FAFC]">{lead.full_name}</div>
+                      <div className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-normal">{lead.source || 'WEBSITE'}</div>
+                    </td>
+                    <td className="py-3.5 px-4 text-[#64748B] dark:text-[#94A3B8]">
+                      <div className="flex items-center gap-1.5 text-xs text-[#0F172A] dark:text-[#F8FAFC]">
+                        <Mail className="w-3 h-3 text-[#64748B] shrink-0" />
+                        <span className="truncate max-w-[140px]">{lead.email || '—'}</span>
+                      </div>
+                      {lead.phone && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-[#64748B] mt-0.5">
+                          <Phone className="w-3 h-3 text-[#64748B] shrink-0" />
+                          <span>{lead.phone}</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <Badge variant={getStatusBadgeVariant(lead.status)}>
+                        {lead.status}
+                      </Badge>
+                    </td>
+                    <td className="py-3.5 px-4 font-semibold text-[11px]">
+                      <span className={lead.priority === 'URGENT' ? 'text-rose-600' : lead.priority === 'HIGH' ? 'text-amber-600' : 'text-[#64748B]'}>
+                        {lead.priority || 'NORMAL'}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC]">
+                      {lead.assigned_to_name || 'Unassigned'}
+                    </td>
+                    <td className="py-3.5 px-4 text-xs text-[#64748B] dark:text-[#94A3B8]">
+                      {lead.next_follow_up_at ? new Date(lead.next_follow_up_at).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="py-3.5 px-4 text-xs text-[#64748B] dark:text-[#94A3B8]">
+                      {new Date(lead.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewTimeline(lead)}
+                          title="View Timeline"
+                          className="h-7 w-7 p-0 cursor-pointer text-slate-500 hover:text-slate-900"
+                        >
+                          <Activity className="w-3.5 h-3.5" />
+                        </Button>
+
+                        {canManageLeads && lead.status !== 'CONVERTED' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedLead(lead);
+                                setStatusModalOpen(true);
+                              }}
+                              title="Update Status"
+                              className="h-7 px-2 text-[11px] font-semibold cursor-pointer text-[#2563EB]"
+                            >
+                              Status
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleConvertLead(lead)}
+                              title="Convert to Student"
+                              className="h-7 px-2 text-[11px] font-semibold cursor-pointer text-emerald-600 hover:bg-emerald-50"
+                            >
+                              Convert
+                            </Button>
+                          </>
+                        )}
+                        {lead.status === 'CONVERTED' && lead.converted_student_id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/students/${lead.converted_student_id}`)}
+                            className="h-7 px-2 text-[11px] font-semibold cursor-pointer text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                          >
+                            Student Profile
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* PAGINATION */}
+      {totalCount > pageSize && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-[#111827] p-3 sm:p-4 rounded-xl border border-[#E2E8F0] dark:border-[#263244]">
+          <div className="text-xs text-[#64748B] dark:text-[#94A3B8]">
+            Showing <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{startRecord}</span>–<span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{endRecord}</span> of <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{totalCount}</span> leads
+          </div>
+
+          <div className="flex items-center gap-1.5">
             <Button
+              variant="outline"
               size="sm"
-              onClick={() => setAddModalOpen(true)}
-              leftIcon={<Plus className="w-4 h-4 text-white" />}
-              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold h-9 sm:h-10 cursor-pointer shadow-2xs"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="h-8 px-2.5 text-xs cursor-pointer disabled:opacity-50"
             >
-              Add Lead
+              <ChevronLeft className="w-4 h-4 mr-1" /> Previous
+            </Button>
+            <span className="text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] px-2">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="h-8 px-2.5 text-xs cursor-pointer disabled:opacity-50"
+            >
+              Next <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         </div>
-      </div>
-
-      {/* 2. METRICS SUMMARY GRID */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
-        <div className="bg-white dark:bg-[#111827] p-3 sm:p-4 rounded-xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-1">
-          <span className="text-[10px] sm:text-xs text-[#64748B] dark:text-[#94A3B8] font-medium block">Total Registrations</span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-lg sm:text-2xl font-bold text-[#0F172A] dark:text-[#F8FAFC]">{totalRegistrations}</span>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hidden sm:flex items-center gap-0.5">
-              <TrendingUp className="w-3.5 h-3.5" /> +100%
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-[#111827] p-3 sm:p-4 rounded-xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-1">
-          <span className="text-[10px] sm:text-xs text-[#64748B] dark:text-[#94A3B8] font-medium block">Active Demo Users</span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-lg sm:text-2xl font-bold text-[#2563EB] dark:text-[#60A5FA]">{activeDemoUsers}</span>
-            <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] hidden sm:inline">5-day window</span>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-[#111827] p-3 sm:p-4 rounded-xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-1">
-          <span className="text-[10px] sm:text-xs text-[#64748B] dark:text-[#94A3B8] font-medium block">Expired Demos</span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-lg sm:text-2xl font-bold text-amber-600 dark:text-amber-400">{expiredDemos}</span>
-            <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] hidden sm:inline">Pending</span>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-[#111827] p-3 sm:p-4 rounded-xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-1">
-          <span className="text-[10px] sm:text-xs text-[#64748B] dark:text-[#94A3B8] font-medium block">Conversion Rate</span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-lg sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{conversionRate}%</span>
-            <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] hidden sm:inline">{convertedCount} Converted</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. SEARCH & FILTER BAR */}
-      <div className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 rounded-[16px] border border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-3">
-        <div className="relative">
-          <Search className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search leads by name, email, phone, company..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 pl-10 pr-4 rounded-xl border border-[#E2E8F0] dark:border-[#334155] text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] bg-white dark:bg-[#0F172A] placeholder:text-[#64748B] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6]"
-          />
-        </div>
-
-        {/* STATUS FILTER CHIPS */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          {[
-            { id: 'all', label: 'All Statuses' },
-            { id: 'active', label: 'Active Demo' },
-            { id: 'converted', label: 'Converted' },
-            { id: 'expired', label: 'Expired' },
-            { id: 'deactivated', label: 'Deactivated' },
-          ].map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setSelectedStatus(f.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                selectedStatus === f.id
-                  ? 'bg-[#2563EB] text-white shadow-2xs'
-                  : 'bg-slate-50 dark:bg-[#172033] border border-[#E2E8F0] dark:border-[#263244] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#1E293B]'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-
-          {selectedStatus !== 'all' && (
-            <button
-              type="button"
-              onClick={() => setSelectedStatus('all')}
-              className="px-2 py-1.5 text-xs text-[#2563EB] font-bold hover:underline cursor-pointer shrink-0"
-            >
-              Reset
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* 4. DEMO LEADS LIST (MOBILE CARDS & DESKTOP ROWS) */}
-      {filteredLeads.length === 0 ? (
-        <EmptyState
-          icon={UserCheck}
-          title="No Demo Leads Found"
-          description={search ? "No demo leads match your search criteria." : "No prospective student leads registered for demo sessions."}
-          actionLabel={search ? "Clear Search" : undefined}
-          onAction={search ? () => setSearch('') : undefined}
-        />
-      ) : (
-        <div className="space-y-3">
-          {filteredLeads.map((lead) => {
-            const isExpired = new Date(lead.demoExpiryDate).getTime() <= now;
-
-            return (
-              <div
-                key={lead.uuid}
-                className="bg-white dark:bg-[#111827] p-4 rounded-[16px] border border-[#E2E8F0] dark:border-[#263B5A] hover:border-[rgba(59,130,246,0.35)] shadow-2xs space-y-3 text-xs transition-all"
-              >
-                {/* Header: Avatar, Name, Status Badge & Menu */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3 min-w-0 flex-1">
-                    <div className="w-10 h-10 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                      {getInitials(lead.fullName)}
-                    </div>
-
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <h3 className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] text-sm leading-snug break-words">
-                        {lead.fullName}
-                      </h3>
-                      <div>
-                        <Badge
-                          variant={
-                            lead.status === 'converted'
-                              ? 'success'
-                              : lead.status === 'deactivated'
-                              ? 'secondary'
-                              : isExpired
-                              ? 'warning'
-                              : 'primary'
-                          }
-                          size="sm"
-                        >
-                          {lead.status === 'converted'
-                            ? 'Converted'
-                            : lead.status === 'deactivated'
-                            ? 'Deactivated'
-                            : isExpired
-                            ? 'Expired'
-                            : 'Active Demo'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 3-Dot Action Menu */}
-                  <div className="relative shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setActiveMenuUuid(activeMenuUuid === lead.uuid ? null : lead.uuid)}
-                      className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#E2E8F0] dark:border-[#334155] bg-white dark:bg-[#111827] text-[#64748B] dark:text-[#94A3B8] hover:bg-slate-50 dark:hover:bg-[#172033] dark:hover:text-white cursor-pointer transition-colors"
-                      title="More options"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-
-                    {activeMenuUuid === lead.uuid && (
-                      <div className="absolute right-0 top-10 z-20 w-48 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#334155] rounded-xl shadow-lg py-1 text-xs text-[#0F172A] dark:text-[#F8FAFC] space-y-0.5">
-                        <button
-                          type="button"
-                          onClick={() => handleExtendDemo(lead.uuid)}
-                          className="w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-[#172033] font-medium flex items-center gap-2 cursor-pointer transition-colors"
-                        >
-                          <Calendar className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
-                          <span>Extend Demo (+3 Days)</span>
-                        </button>
-
-                        {lead.status !== 'converted' && (
-                          <button
-                            type="button"
-                            onClick={() => handleConvert(lead.uuid)}
-                            className="w-full px-3 py-2 text-left hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2 cursor-pointer transition-colors"
-                          >
-                            <UserCheck className="w-3.5 h-3.5" />
-                            <span>Convert to Paid Student</span>
-                          </button>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteLead(lead.uuid)}
-                          className="w-full px-3 py-2 text-left hover:bg-rose-50 text-rose-600 font-medium flex items-center gap-2 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Delete Lead</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Contact Information Rows (Full Width) */}
-                <div className="space-y-1.5 pt-1 text-xs text-[#64748B] font-normal">
-                  <div className="flex items-start gap-2 min-w-0">
-                    <Mail className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8] shrink-0 mt-0.5" />
-                    <span className="flex-1 min-w-0 break-all text-[#0F172A] dark:text-[#CBD5E1]">{lead.email}</span>
-                  </div>
-
-                  {lead.phone && (
-                    <div className="flex items-start gap-2 min-w-0">
-                      <Phone className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8] shrink-0 mt-0.5" />
-                      <span className="flex-1 min-w-0 break-words text-[#0F172A] dark:text-[#CBD5E1]">{lead.phone}</span>
-                    </div>
-                  )}
-
-                  {lead.organization && (
-                    <div className="flex items-start gap-2 min-w-0">
-                      <Building2 className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8] shrink-0 mt-0.5" />
-                      <span className="flex-1 min-w-0 break-words text-[#0F172A] dark:text-[#CBD5E1]">{lead.organization}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="border-t border-[#E2E8F0] dark:border-[#334155] pt-3 space-y-3">
-                  {/* Requested Course */}
-                  <div className="space-y-0.5">
-                    <span className="text-[10px] font-medium text-[#64748B] dark:text-[#94A3B8] uppercase tracking-[0.05em] block">
-                      Requested Course
-                    </span>
-                    <h4 className="font-medium text-[#0F172A] dark:text-[#F8FAFC] text-xs leading-snug break-words">
-                      {lead.courseTitle}
-                    </h4>
-                  </div>
-
-                  {/* Demo Progress */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-[#64748B] dark:text-[#CBD5E1]">Demo Completion</span>
-                      <span className="font-semibold text-[#2563EB] dark:text-[#60A5FA]">{lead.completionPercent}%</span>
-                    </div>
-                    <div className="w-full bg-slate-100 dark:bg-[#334155] h-2 rounded-full overflow-hidden border border-slate-200/50 dark:border-transparent">
-                      <div
-                        className="h-full bg-[#2563EB] dark:bg-[#3B82F6] rounded-full transition-all"
-                        style={{ width: `${lead.completionPercent}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Dates Footer */}
-                  <div className="flex items-center justify-between text-[11px] text-[#64748B] dark:text-[#94A3B8] pt-1 flex-wrap gap-2">
-                    <span className="flex items-center gap-1 text-[#64748B] dark:text-[#94A3B8]">
-                      <Clock className="w-3.5 h-3.5 text-[#64748B] dark:text-[#64748B]" /> Start: <span className="text-[#0F172A] dark:text-[#CBD5E1]">{new Date(lead.demoStartDate).toLocaleDateString()}</span>
-                    </span>
-                    <span className={`flex items-center gap-1 ${isExpired ? 'text-rose-600 font-bold' : 'text-[#0F172A] dark:text-[#CBD5E1] font-semibold'}`}>
-                      <Calendar className="w-3.5 h-3.5" /> Expiry: {new Date(lead.demoExpiryDate).toLocaleDateString()}
-                    </span>
-                  </div>
-
-                  {/* View Details Action Button */}
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedLead(lead)}
-                      className="w-full py-2.5 px-4 rounded-xl border border-[#E2E8F0] dark:border-[#334155] bg-slate-50 dark:bg-[#172033] hover:bg-slate-100 dark:hover:bg-[#1E293B] dark:hover:border-[#3B82F6] text-[#0F172A] dark:text-[#F8FAFC] dark:hover:text-white font-medium text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs dark:shadow-[0_3px_10px_rgba(37,99,235,0.06)]"
-                    >
-                      <span>View Details</span>
-                      <span className="text-[#2563EB] dark:text-[#60A5FA]">→</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
       )}
 
-      {/* 5. LEAD DETAILS MODAL */}
-      {selectedLead && (
-        <Modal isOpen={!!selectedLead} onClose={() => setSelectedLead(null)} title={`Demo Lead: ${selectedLead.fullName}`}>
-          <div className="space-y-4 text-xs font-sans text-left">
-            <div className="p-4 rounded-xl bg-slate-50 border border-[#E2E8F0] grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <span className="text-[#64748B] text-[10px] font-semibold uppercase block">Lead Email</span>
-                <span className="font-bold text-[#0F172A] break-all">{selectedLead.email}</span>
-              </div>
-              <div>
-                <span className="text-[#64748B] text-[10px] font-semibold uppercase block">Organization</span>
-                <span className="font-bold text-[#0F172A]">{selectedLead.organization || 'Individual'}</span>
-              </div>
-              <div>
-                <span className="text-[#64748B] text-[10px] font-semibold uppercase block">Requested Course</span>
-                <span className="font-bold text-[#0F172A]">{selectedLead.courseTitle}</span>
-              </div>
-              <div>
-                <span className="text-[#64748B] text-[10px] font-semibold uppercase block">Expiry Date</span>
-                <span className="font-bold text-[#0F172A]">{new Date(selectedLead.demoExpiryDate).toLocaleString()}</span>
-              </div>
+      {/* ADD LEAD MODAL */}
+      {addModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-[16px] shadow-xl w-full max-w-md p-6 space-y-4 text-left">
+            <div className="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#263244] pb-3">
+              <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC]">Register New Lead</h3>
+              <button
+                type="button"
+                onClick={() => setAddModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="space-y-2">
-              <h4 className="font-bold text-[#0F172A]">Demo Progress &amp; Activity Log</h4>
-              <div className="p-3.5 rounded-xl bg-white border border-[#E2E8F0] space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-[#64748B]">Course Completion Rate</span>
-                  <span className="font-bold text-[#2563EB]">{selectedLead.completionPercent}%</span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div className="h-full bg-[#2563EB] rounded-full" style={{ width: `${selectedLead.completionPercent}%` }} />
-                </div>
-                <p className="text-[11px] text-[#64748B]">
-                  Last login: {selectedLead.lastLoginAt ? new Date(selectedLead.lastLoginAt).toLocaleString() : 'Not recorded'}
-                </p>
-              </div>
-            </div>
-
-            {selectedLead.notes && (
-              <div className="space-y-1">
-                <h4 className="font-bold text-[#0F172A]">Notes</h4>
-                <p className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
-                  {selectedLead.notes}
-                </p>
+            {addFormErrors.general && (
+              <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl border border-rose-200 font-medium">
+                {addFormErrors.general}
               </div>
             )}
 
-            <div className="pt-2 flex flex-col sm:flex-row justify-between gap-2 border-t border-[#E2E8F0]">
-              <Button variant="outline" size="sm" onClick={() => setSelectedLead(null)} className="w-full sm:w-auto">
-                Close
-              </Button>
-              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <Button size="sm" variant="outline" onClick={() => handleExtendDemo(selectedLead.uuid)} className="w-full sm:w-auto justify-center">
-                  Extend Demo (+3 Days)
+            <form onSubmit={handleCreateLead} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="block text-[12px] font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Full Name *</label>
+                <input
+                  type="text"
+                  value={addForm.full_name}
+                  onChange={(e) => setAddForm({ ...addForm, full_name: e.target.value })}
+                  placeholder="e.g. Rahul Sharma"
+                  required
+                  className={`w-full h-10 px-3 bg-[#F8FAFC] dark:bg-[#0F172A] border ${
+                    addFormErrors.full_name ? 'border-rose-500' : 'border-[#E2E8F0] dark:border-[#334155]'
+                  } rounded-xl text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#2563EB]`}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[12px] font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Email Address</label>
+                <input
+                  type="email"
+                  value={addForm.email}
+                  onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                  placeholder="rahul@example.com"
+                  className={`w-full h-10 px-3 bg-[#F8FAFC] dark:bg-[#0F172A] border ${
+                    addFormErrors.email ? 'border-rose-500' : 'border-[#E2E8F0] dark:border-[#334155]'
+                  } rounded-xl text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#2563EB]`}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[12px] font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Phone Number</label>
+                <input
+                  type="text"
+                  value={addForm.phone}
+                  onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+                  placeholder="+91 98765 43210"
+                  className="w-full h-10 px-3 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#2563EB]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-[12px] font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Source</label>
+                  <select
+                    value={addForm.source}
+                    onChange={(e) => setAddForm({ ...addForm, source: e.target.value })}
+                    className="w-full h-10 px-3 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC]"
+                  >
+                    <option value="WEBSITE">Website</option>
+                    <option value="COURSE_ENQUIRY">Course Enquiry</option>
+                    <option value="MANUAL">Manual Entry</option>
+                    <option value="WHATSAPP">WhatsApp</option>
+                    <option value="PHONE">Phone</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[12px] font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Priority</label>
+                  <select
+                    value={addForm.priority}
+                    onChange={(e) => setAddForm({ ...addForm, priority: e.target.value })}
+                    className="w-full h-10 px-3 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC]"
+                  >
+                    <option value="NORMAL">Normal</option>
+                    <option value="HIGH">High</option>
+                    <option value="URGENT">Urgent</option>
+                    <option value="LOW">Low</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E2E8F0] dark:border-[#263244]">
+                <Button type="button" variant="outline" onClick={() => setAddModalOpen(false)}>
+                  Cancel
                 </Button>
-                <Button size="sm" className="bg-[#2563EB] text-white w-full sm:w-auto justify-center font-semibold" onClick={() => handleConvert(selectedLead.uuid)}>
-                  Convert to Paid Student
+                <Button type="submit" disabled={isSubmittingAdd} className="bg-[#2563EB] text-white">
+                  {isSubmittingAdd ? 'Saving...' : 'Register Lead'}
                 </Button>
               </div>
-            </div>
+            </form>
           </div>
-        </Modal>
+        </div>
       )}
 
-      {/* 6. EXTEND DEMO MODAL */}
-      <Modal isOpen={extendModalOpen} onClose={() => setExtendModalOpen(false)} title="Extend Demo Access">
-        <form onSubmit={submitExtendDemo} className="space-y-4 font-sans text-xs text-left">
-          <p className="text-[#64748B]">Choose the number of additional days to extend demo access for this lead.</p>
-          <div>
-            <label className="block font-semibold text-[#0F172A] mb-1">Additional Extension Days</label>
-            <select
-              value={extraDays}
-              onChange={(e) => setExtraDays(Number(e.target.value))}
-              className="w-full h-10 rounded-xl border border-[#E2E8F0] px-3 bg-white text-xs font-semibold focus:outline-none"
-            >
-              <option value={3}>+3 Days Extension</option>
-              <option value={5}>+5 Days Extension</option>
-              <option value={7}>+7 Days Extension</option>
-              <option value={14}>+14 Days Extension</option>
-            </select>
-          </div>
-          <Button type="submit" size="sm" className="w-full font-semibold bg-[#2563EB] text-white justify-center h-10">
-            Confirm Extension
-          </Button>
-        </form>
-      </Modal>
+      {/* UPDATE STATUS MODAL */}
+      {statusModalOpen && selectedLead && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-[16px] shadow-xl w-full max-w-md p-6 space-y-4 text-left">
+            <div className="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#263244] pb-3">
+              <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC]">Update Lead Status</h3>
+              <button
+                type="button"
+                onClick={() => setStatusModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-      {/* 7. ADD LEAD MODAL */}
-      <Modal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} title="Add Demo Lead">
-        <form onSubmit={handleAddLeadSubmit} className="space-y-3.5 font-sans text-xs text-left">
-          <div className="space-y-1">
-            <label className="block font-semibold text-[#0F172A]">Full Name *</label>
-            <input
-              type="text"
-              required
-              value={newFullName}
-              onChange={(e) => setNewFullName(e.target.value)}
-              placeholder="e.g. Rahul Sharma"
-              className="w-full h-9 px-3 rounded-xl border border-[#E2E8F0] text-xs font-medium focus:outline-none focus:border-[#2563EB]"
-            />
-          </div>
+            <form onSubmit={handleUpdateStatusSubmit} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="block text-[12px] font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Status</label>
+                <select
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value)}
+                  className="w-full h-10 px-3 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC]"
+                >
+                  <option value="NEW">New</option>
+                  <option value="CONTACTED">Contacted</option>
+                  <option value="INTERESTED">Interested</option>
+                  <option value="QUALIFIED">Qualified</option>
+                  <option value="FOLLOW_UP">Follow Up</option>
+                  <option value="LOST">Lost</option>
+                  <option value="DISQUALIFIED">Disqualified</option>
+                </select>
+              </div>
 
-          <div className="space-y-1">
-            <label className="block font-semibold text-[#0F172A]">Email Address *</label>
-            <input
-              type="email"
-              required
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              placeholder="e.g. rahul@example.com"
-              className="w-full h-9 px-3 rounded-xl border border-[#E2E8F0] text-xs font-medium focus:outline-none focus:border-[#2563EB]"
-            />
-          </div>
+              {(newStatus === 'LOST' || newStatus === 'DISQUALIFIED') && (
+                <div className="space-y-1">
+                  <label className="block text-[12px] font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Reason</label>
+                  <textarea
+                    value={lostReason}
+                    onChange={(e) => setLostReason(e.target.value)}
+                    rows={3}
+                    placeholder="Provide reason for closing/losing this lead..."
+                    className="w-full p-2.5 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl text-xs font-normal focus:outline-none focus:border-[#2563EB]"
+                  />
+                </div>
+              )}
 
-          <div className="space-y-1">
-            <label className="block font-semibold text-[#0F172A]">Phone Number</label>
-            <input
-              type="text"
-              value={newPhone}
-              onChange={(e) => setNewPhone(e.target.value)}
-              placeholder="e.g. +91 98765 43210"
-              className="w-full h-9 px-3 rounded-xl border border-[#E2E8F0] text-xs font-medium focus:outline-none focus:border-[#2563EB]"
-            />
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E2E8F0] dark:border-[#263244]">
+                <Button type="button" variant="outline" onClick={() => setStatusModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmittingStatus} className="bg-[#2563EB] text-white">
+                  {isSubmittingStatus ? 'Updating...' : 'Save Status'}
+                </Button>
+              </div>
+            </form>
           </div>
+        </div>
+      )}
 
-          <div className="space-y-1">
-            <label className="block font-semibold text-[#0F172A]">Organization / Company</label>
-            <input
-              type="text"
-              value={newOrg}
-              onChange={(e) => setNewOrg(e.target.value)}
-              placeholder="e.g. Tech Corp"
-              className="w-full h-9 px-3 rounded-xl border border-[#E2E8F0] text-xs font-medium focus:outline-none focus:border-[#2563EB]"
-            />
-          </div>
+      {/* TIMELINE DRAWER */}
+      {timelineDrawerOpen && selectedLead && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white dark:bg-[#111827] border-l border-[#E2E8F0] dark:border-[#263244] w-full max-w-md h-full p-6 flex flex-col justify-between shadow-2xl text-left">
+            <div className="space-y-4 overflow-y-auto pr-1">
+              <div className="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#263244] pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC]">{selectedLead.full_name}</h3>
+                  <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">Activity & Communication History</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTimelineDrawerOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
-          <div className="space-y-1">
-            <label className="block font-semibold text-[#0F172A]">Interested Course</label>
-            <input
-              type="text"
-              value={newCourse}
-              onChange={(e) => setNewCourse(e.target.value)}
-              className="w-full h-9 px-3 rounded-xl border border-[#E2E8F0] text-xs font-medium focus:outline-none focus:border-[#2563EB]"
-            />
-          </div>
+              {timelineLoading ? (
+                <div className="py-12 text-center flex flex-col items-center justify-center space-y-2">
+                  <Loader2 className="w-6 h-6 text-[#2563EB] animate-spin" />
+                  <span className="text-xs text-[#64748B]">Loading activity timeline...</span>
+                </div>
+              ) : timelineEvents.length === 0 ? (
+                <div className="py-12 text-center text-xs text-[#64748B]">
+                  No recorded timeline events for this lead yet.
+                </div>
+              ) : (
+                <div className="relative border-l border-slate-200 dark:border-slate-800 ml-3 space-y-4 py-2">
+                  {timelineEvents.map((evt, idx) => (
+                    <div key={idx} className="relative pl-5 space-y-1">
+                      <div className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-[#2563EB]" />
+                      <div className="flex items-center justify-between text-[11px] text-[#64748B]">
+                        <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{evt.event}</span>
+                        <span>{new Date(evt.timestamp).toLocaleString()}</span>
+                      </div>
+                      {evt.performed_by && (
+                        <div className="text-[10px] text-slate-500 font-medium">By: {evt.performed_by}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <div className="pt-2 flex justify-end gap-2 border-t border-[#E2E8F0]">
-            <Button type="button" variant="outline" size="sm" onClick={() => setAddModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" size="sm" className="bg-[#2563EB] text-white font-semibold">
-              Create Lead
-            </Button>
+            <div className="pt-4 border-t border-[#E2E8F0] dark:border-[#263244] flex items-center justify-end">
+              <Button variant="outline" size="sm" onClick={() => setTimelineDrawerOpen(false)}>
+                Close
+              </Button>
+            </div>
           </div>
-        </form>
-      </Modal>
+        </div>
+      )}
     </div>
   );
 };

@@ -26,6 +26,7 @@ import type { CourseLesson, LessonType } from '../../../../types/curriculum.type
 import { getLessonTypeMeta } from '../../config/lessonTypes.config';
 import { RichTextEditor } from './RichTextEditor';
 import { isHtmlContentEmpty, sanitizeHtml } from '../../utils/sanitizeHtml.util';
+import { resolveMediaUrl } from '../../../../utils/media.utils';
 import {
   QuizQuestionBuilder,
   BuilderQuestion,
@@ -1025,7 +1026,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                   </div>
                 ) : (
                   <div className="aspect-video w-full max-h-96 bg-black rounded-xl overflow-hidden shadow-2xl border border-slate-800 flex items-center justify-center">
-                    <video controls className="w-full h-full object-contain" src={mediaSource === 'UPLOAD' ? uploadedFileObj?.url : mediaUrl}>
+                    <video controls className="w-full h-full object-contain" src={resolveMediaUrl(mediaSource === 'UPLOAD' ? uploadedFileObj?.url : mediaUrl)}>
                       Your browser does not support the video tag.
                     </video>
                   </div>
@@ -1042,7 +1043,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
           {/* Audio Preview */}
           {type === 'audio' && (
             <AudioPlayer
-              src={mediaSource === 'UPLOAD' ? (uploadedFileObj?.url || '') : mediaUrl}
+              src={resolveMediaUrl(mediaSource === 'UPLOAD' ? (uploadedFileObj?.url || '') : mediaUrl)}
               title={uploadedFileObj?.name || 'Audio Content'}
               subtitle={mediaSource === 'UPLOAD' ? uploadedFileObj?.url : mediaUrl}
             />
@@ -1055,7 +1056,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                 <div className="space-y-2 bg-slate-800 p-3 rounded-xl border border-slate-700">
                   <div className="max-h-80 w-full overflow-hidden rounded-lg flex items-center justify-center bg-black">
                     <img
-                      src={mediaSource === 'UPLOAD' ? uploadedFileObj?.url : mediaUrl}
+                      src={resolveMediaUrl(mediaSource === 'UPLOAD' ? uploadedFileObj?.url : mediaUrl)}
                       alt={caption || title}
                       className="max-h-80 object-contain rounded-lg"
                     />
@@ -1078,7 +1079,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                 isDocPdf ? (
                   <div className="aspect-[4/3] w-full max-h-96 bg-white rounded-xl overflow-hidden border border-slate-700">
                     <iframe
-                      src={mediaUrl}
+                      src={resolveMediaUrl(mediaUrl)}
                       title="PDF Document Preview"
                       className="w-full h-full border-0"
                     />
