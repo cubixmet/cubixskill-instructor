@@ -21,7 +21,8 @@ import { exportToCsv, type CsvColumn } from '../../../utils/export-csv';
 import type { Quiz } from '../../../types/quiz.types';
 
 export const CourseQuizzesPage: React.FC = () => {
-  const { courseUuid = '550e8400-e29b-41d4-a716-446655440000' } = useParams<{ courseUuid?: string }>();
+  const params = useParams<{ courseId?: string; courseUuid?: string }>();
+  const courseUuid = params.courseId || params.courseUuid || '';
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();

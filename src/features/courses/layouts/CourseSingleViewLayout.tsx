@@ -14,12 +14,15 @@ import { COURSE_NAV_SECTIONS } from "../config/courseNavigation.config";
 import type { CourseDetail } from "../types/course.types";
 import { SharedCourseHeader } from "../components/SharedCourseHeader";
 import { useCourseFeatures } from "../../../hooks/useCourseFeatures";
+import { normalizeCourseId } from "../../../utils/courseValidation.utils";
 
 export const CourseSingleViewLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { courseUuid } = useParams<{ courseUuid: string }>();
-  const { isFeatureEnabled } = useCourseFeatures(courseUuid);
+  const params = useParams<{ courseId?: string; courseUuid?: string }>();
+  const rawCourseId = params.courseId || params.courseUuid;
+  const validCourseUuid = normalizeCourseId(rawCourseId);
+  const { isFeatureEnabled } = useCourseFeatures(validCourseUuid);
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,13 +37,16 @@ export const CourseSingleViewLayout: React.FC = () => {
   const activeMobileTabRef = useRef<HTMLAnchorElement>(null);
 
   const fetchCourseDetail = useCallback(async () => {
-    if (!courseUuid) return;
+    if (!validCourseUuid) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setIsError(false);
     setErrorMessage(null);
 
     try {
-      const data = await coursesService.getCourse(courseUuid);
+      const data = await coursesService.getCourse(validCourseUuid);
       setCourse(data);
     } catch (err: any) {
       setIsError(true);
@@ -48,7 +54,7 @@ export const CourseSingleViewLayout: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [courseUuid]);
+  }, [validCourseUuid]);
 
   useEffect(() => {
     fetchCourseDetail();
@@ -60,10 +66,10 @@ export const CourseSingleViewLayout: React.FC = () => {
   };
 
   const handleConfirmDelete = async () => {
-    if (!courseUuid) return;
+    if (!validCourseUuid) return;
     setIsActionBusy(true);
     try {
-      await coursesService.deleteCourse(courseUuid);
+      await coursesService.deleteCourse(validCourseUuid);
       setIsDeleteModalOpen(false);
       showToast("Course deleted successfully.");
       navigate("/courses");
@@ -78,6 +84,23 @@ export const CourseSingleViewLayout: React.FC = () => {
   const pathParts = location.pathname.split("/");
   const currentRoute = pathParts[pathParts.length - 1] || "overview";
 
+  if (!validCourseUuid) {
+    return (
+      <div className="p-8 text-center bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] space-y-4 max-w-lg mx-auto mt-12 shadow-xl">
+        <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
+        <div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">Invalid Course URL</h3>
+          <p className="text-xs text-slate-500 dark:text-[#94A3B8]">The course identifier in this URL is invalid or missing.</p>
+        </div>
+        <Link to="/courses">
+          <Button variant="outline" size="sm">
+            Back to Courses
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="p-6 space-y-4 max-w-7xl mx-auto text-left">
@@ -91,15 +114,22 @@ export const CourseSingleViewLayout: React.FC = () => {
 
   if (isError || !course) {
     return (
-      <div className="p-8 text-center bg-white rounded-2xl border border-rose-200 space-y-4 max-w-lg mx-auto mt-12">
+      <div className="p-8 text-center bg-white dark:bg-[#111827] rounded-2xl border border-rose-200 dark:border-rose-900/50 space-y-4 max-w-lg mx-auto mt-12 shadow-xl">
         <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
         <div>
-          <h3 className="text-base font-bold text-slate-900">Course Not Found</h3>
-          <p className="text-xs text-slate-500">{errorMessage || "The requested course could not be loaded."}</p>
+          <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">Course Not Found</h3>
+          <p className="text-xs text-slate-500 dark:text-[#94A3B8]">{errorMessage || "The requested course could not be loaded."}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchCourseDetail} leftIcon={<RefreshCw className="w-4 h-4" />}>
-          Retry API
-        </Button>
+        <div className="flex items-center justify-center gap-2">
+          <Button variant="outline" size="sm" onClick={fetchCourseDetail} leftIcon={<RefreshCw className="w-4 h-4" />}>
+            Retry API
+          </Button>
+          <Link to="/courses">
+            <Button variant="outline" size="sm">
+              Back to Courses
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }

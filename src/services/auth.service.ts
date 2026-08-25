@@ -10,6 +10,7 @@ import type {
   SetupPasswordPayload,
   AuthUser,
   AuthBootstrapData,
+  AcademyContext,
 } from "../features/auth/types/auth.types";
 
 export const authService = {
@@ -24,10 +25,8 @@ export const authService = {
     return response.data?.data || (response.data as unknown as LoginResponseData);
   },
 
-  async logout(refreshToken: string): Promise<{ message: string }> {
-    const response = await apiClient.post<BackendApiResponse<null>>(API_ENDPOINTS.AUTH.LOGOUT, {
-      refresh: refreshToken,
-    });
+  async logout(): Promise<{ message: string }> {
+    const response = await apiClient.post<BackendApiResponse<null>>(API_ENDPOINTS.AUTH.LOGOUT, {});
     return { message: response.data?.message || "Successfully logged out." };
   },
 
@@ -85,7 +84,15 @@ export const authService = {
     }
   },
 
+  async updateUserProfile(payload: { full_name?: string; phone?: string }): Promise<any> {
+    const response = await apiClient.patch('/api/v1/auth/me/', payload);
+    return response.data;
+  },
 
+  async updateAcademyProfile(payload: { name?: string; email?: string; phone?: string; theme_color?: string }): Promise<any> {
+    const response = await apiClient.patch('/api/v1/academy/profile/', payload);
+    return response.data?.data || response.data;
+  },
 
   async forgotPassword(payload: ForgotPasswordPayload): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post<BackendApiResponse<null>>(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, {
@@ -105,7 +112,6 @@ export const authService = {
     });
     return response.data?.data || (response.data as unknown as LoginResponseData);
   },
-
 
   async changePassword(payload: ChangePasswordPayload): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post<BackendApiResponse<null>>(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, {

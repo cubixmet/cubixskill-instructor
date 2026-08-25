@@ -32,11 +32,11 @@ import { LiveSessionRecordingModal } from '../../live-sessions/components/LiveSe
 import { LiveSessionAnalyticsModal } from '../../live-sessions/components/LiveSessionAnalyticsModal';
 
 export const CourseLiveSessionsPage: React.FC = () => {
-  const params = useParams<{ courseUuid?: string; '*': string }>();
+  const params = useParams<{ courseId?: string; courseUuid?: string; '*': string }>();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const courseUuid = params.courseUuid;
+  const courseUuid = params.courseId || params.courseUuid;
 
   // Subpath parsing
   const subPath = (params['*'] || '').replace(/^\/+/, '');

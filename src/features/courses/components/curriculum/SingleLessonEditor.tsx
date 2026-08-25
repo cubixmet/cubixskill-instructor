@@ -110,7 +110,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
   const Icon = meta.icon || Files;
 
   // Module store context
-  const currentCourseUuid = lesson?.courseUuid || '550e8400-e29b-41d4-a716-446655440000';
+  const currentCourseUuid = lesson?.courseUuid || '';
   const allModules = useCurriculumStore((state) => state.modules);
   const courseModules = allModules.filter((m) => m.courseUuid === currentCourseUuid);
   const activeModules = courseModules.length > 0 ? courseModules : allModules;

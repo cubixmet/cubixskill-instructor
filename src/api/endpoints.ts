@@ -43,12 +43,14 @@ export const API_ENDPOINTS = {
   },
   LIVE_SESSIONS: {
     LIST: "/api/v1/live-classes/live-sessions/",
+    SUMMARY: "/api/v1/live-classes/live-sessions/summary/",
     DETAIL: (id: string) => `/api/v1/live-classes/live-sessions/${id}/`,
     START: (id: string) => `/api/v1/live-classes/live-sessions/${id}/start/`,
     END: (id: string) => `/api/v1/live-classes/live-sessions/${id}/end/`,
     CANCEL: (id: string) => `/api/v1/live-classes/live-sessions/${id}/cancel/`,
     JOIN: (id: string) => `/api/v1/live-classes/live-sessions/${id}/join/`,
     LEAVE: (id: string) => `/api/v1/live-classes/live-sessions/${id}/leave/`,
+    ATTENDANCE: (id: string) => `/api/v1/live-classes/live-sessions/${id}/attendance/`,
   },
   SETTINGS: {
     PROFILE: "/api/v1/settings/profile/",

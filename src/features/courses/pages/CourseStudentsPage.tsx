@@ -53,7 +53,8 @@ interface StudentRecord {
 
 export const CourseStudentsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { courseUuid } = useParams<{ courseUuid?: string }>();
+  const params = useParams<{ courseId?: string; courseUuid?: string }>();
+  const courseUuid = params.courseId || params.courseUuid;
 
   const [studentList, setStudentList] = useState<StudentRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);

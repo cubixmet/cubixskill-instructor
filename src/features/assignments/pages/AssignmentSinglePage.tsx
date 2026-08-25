@@ -35,7 +35,7 @@ export const AssignmentSinglePage: React.FC = () => {
     return (
       <div className="p-12 text-center space-y-4">
         <h2 className="text-xl font-bold text-[#0F172A]">Assignment Not Found</h2>
-        <Button onClick={() => navigate(`/courses/${courseUuid || '550e8400-e29b-41d4-a716-446655440000'}/assignments`)}>
+        <Button onClick={() => navigate(courseUuid ? `/courses/${courseUuid}/assignments` : '/assignments')}>
           Return to Assignments
         </Button>
       </div>

@@ -32,7 +32,7 @@ export interface BackendLiveSession {
 }
 
 export interface CreateLiveSessionPayload {
-  course_id: string;
+  course_id?: string | null;
   title: string;
   description?: string;
   scheduled_start: string;
@@ -60,9 +60,19 @@ export interface UpdateLiveSessionPayload {
   send_email?: boolean;
 }
 
+export interface LiveSessionSummaryResponse {
+  total: number;
+  live_now: number;
+  upcoming: number;
+  completed: number;
+  cancelled: number;
+  recorded: number;
+  avg_attendance_rate: number;
+}
+
 export const liveSessionsService = {
   async list(courseId?: string): Promise<BackendLiveSession[]> {
-    const params = courseId ? { course: courseId } : {};
+    const params = courseId && courseId !== 'all' ? { course: courseId } : {};
     const response = await apiClient.get<BackendApiResponse<PaginatedResponse<BackendLiveSession>> | BackendLiveSession[] | PaginatedResponse<BackendLiveSession>>(
       API_ENDPOINTS.LIVE_SESSIONS.LIST,
       { params }
@@ -80,6 +90,13 @@ export const liveSessionsService = {
       return (rawData as any).results;
     }
     return [];
+  },
+
+  async summary(): Promise<LiveSessionSummaryResponse> {
+    const response = await apiClient.get<LiveSessionSummaryResponse>(
+      API_ENDPOINTS.LIVE_SESSIONS.SUMMARY
+    );
+    return response.data;
   },
 
   async get(id: string): Promise<BackendLiveSession> {
@@ -141,5 +158,12 @@ export const liveSessionsService = {
 
   async leave(id: string): Promise<void> {
     await apiClient.post(API_ENDPOINTS.LIVE_SESSIONS.LEAVE(id));
+  },
+
+  async attendance(id: string): Promise<any[]> {
+    const response = await apiClient.get<any[]>(
+      API_ENDPOINTS.LIVE_SESSIONS.ATTENDANCE(id)
+    );
+    return response.data || [];
   },
 };

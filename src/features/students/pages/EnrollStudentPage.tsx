@@ -18,6 +18,7 @@ import { Skeleton } from '../../../components/ui/Skeleton';
 import { studentsService } from '../../../services/students.service';
 import { coursesService } from '../../../services/courses.service';
 import { enrollmentService } from '../../../services/enrollment.service';
+import { courseRoutes } from '../../../utils/courseRoutes.utils';
 
 export interface StudentListItem {
   id: string;
@@ -80,11 +81,7 @@ export const EnrollStudentPage: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const backLink = courseUuid
-    ? `/courses/${courseUuid}/students`
-    : studentUuid
-      ? `/students/${studentUuid}`
-      : '/students';
+  const backLink = courseRoutes.students(courseUuid);
 
   // Load Real Data from Backend
   const loadData = useCallback(async () => {

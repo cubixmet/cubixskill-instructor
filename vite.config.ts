@@ -10,6 +10,11 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  build: {
+    modulePreload: {
+      polyfill: true,
+    },
+  },
   server: {
     host: true,
     port: 5173,

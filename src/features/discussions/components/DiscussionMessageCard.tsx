@@ -63,10 +63,12 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
   return (
     <div
       id={`reply-${reply.id}`}
-      className={`p-3 sm:p-4 rounded-2xl border transition-all space-y-2.5 font-sans text-xs text-left w-full max-w-full min-w-0 ${
+      className={`p-3 sm:p-4 rounded-2xl border transition-all duration-200 space-y-2.5 font-sans text-xs text-left w-full max-w-full min-w-0 ${
         reply.isOfficialAnswer
-          ? 'bg-blue-50/70 border-blue-400 ring-2 ring-blue-500/20 shadow-xs'
-          : 'bg-white border-slate-200/90 shadow-2xs'
+          ? 'bg-blue-50/70 dark:bg-[#111827] border-blue-400 dark:border-[rgba(59,130,246,0.30)] border-l-4 border-l-[#2563EB] dark:border-l-[#3B82F6] shadow-xs'
+          : reply.author.role === 'instructor' || reply.author.role === 'ta'
+          ? 'bg-white dark:bg-[#0F172A] border-[#E2E8F0] dark:border-[#263244] border-l-4 border-l-[#2563EB] dark:border-l-[#3B82F6] shadow-2xs'
+          : 'bg-white dark:bg-[#0F172A] border-[#E2E8F0] dark:border-[#263244] shadow-2xs'
       }`}
     >
       {/* Top Author Header */}
@@ -76,46 +78,46 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
             <img
               src={reply.author.avatar}
               alt={reply.author.name}
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-slate-200 shrink-0"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-[#E2E8F0] dark:border-[#334155] shrink-0"
             />
           ) : (
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#EFF6FF] dark:bg-[rgba(37,99,235,0.12)] border border-[#DBEAFE] dark:border-[rgba(59,130,246,0.18)] text-[#2563EB] dark:text-[#60A5FA] font-medium text-xs flex items-center justify-center shrink-0">
               {reply.author.name.charAt(0)}
             </div>
           )}
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
-              <strong className="font-extrabold text-slate-900 text-xs break-words">{reply.author.name}</strong>
+              <strong className="font-medium text-[#0F172A] dark:text-[#F8FAFC] text-xs break-words">{reply.author.name}</strong>
               <span
-                className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded uppercase shrink-0 ${
+                className={`text-[9px] font-semibold px-1.5 py-0.2 rounded uppercase shrink-0 ${
                   reply.author.role === 'instructor'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    ? 'bg-[#EFF6FF] dark:bg-[rgba(37,99,235,0.12)] text-[#2563EB] dark:text-[#60A5FA] border border-[#DBEAFE] dark:border-[rgba(59,130,246,0.18)]'
                     : reply.author.role === 'ta'
-                    ? 'bg-indigo-100 text-indigo-700'
-                    : 'bg-slate-100 text-slate-600'
+                    ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/40'
+                    : 'bg-slate-100 dark:bg-[#172033] text-[#475569] dark:text-[#CBD5E1] border border-[#E2E8F0] dark:border-[#334155]'
                 }`}
               >
                 {reply.author.role}
               </span>
 
               {reply.isEdited && (
-                <span className="text-[10px] text-slate-400 font-medium italic shrink-0">(edited)</span>
+                <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal italic shrink-0">(edited)</span>
               )}
             </div>
-            <span className="text-[10px] text-slate-400 font-medium block">{formattedTime}</span>
+            <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal block">{formattedTime}</span>
           </div>
         </div>
 
         {/* Right Official Answer / Pinned Badges */}
         <div className="flex flex-wrap items-center gap-1.5 shrink-0">
           {reply.isOfficialAnswer && (
-            <span className="bg-[#2563EB] text-white text-[9.5px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1">
+            <span className="bg-[#2563EB] text-white text-[9.5px] font-semibold uppercase px-2 py-0.5 rounded-full flex items-center gap-1">
               <Award className="w-3 h-3 shrink-0" /> OFFICIAL ANSWER
             </span>
           )}
           {reply.isPinned && (
-            <span className="bg-indigo-50 text-indigo-700 text-[9.5px] font-extrabold px-2 py-0.5 rounded-md border border-indigo-200 flex items-center gap-1">
+            <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-[9.5px] font-semibold px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800/40 flex items-center gap-1">
               <Pin className="w-3 h-3 shrink-0" /> Pinned
             </span>
           )}
@@ -124,18 +126,18 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
 
       {/* Quoted Message Preview */}
       {reply.quotedReply && (
-        <div className="p-2 bg-slate-50 border-l-3 border-l-blue-600 rounded-r-xl space-y-0.5 text-[11px] text-slate-600 w-full min-w-0">
-          <span className="font-bold text-blue-700 flex items-center gap-1">
+        <div className="p-2 bg-slate-50 dark:bg-[#172033] border-l-2 border-l-[#2563EB] dark:border-l-[#3B82F6] rounded-r-xl space-y-0.5 text-[11px] text-[#475569] dark:text-[#CBD5E1] w-full min-w-0">
+          <span className="font-semibold text-[#2563EB] dark:text-[#60A5FA] flex items-center gap-1">
             <Quote className="w-3 h-3 shrink-0" /> Replying to {reply.quotedReply.authorName}
           </span>
-          <p className="line-clamp-2 italic font-normal text-slate-700 break-words">
+          <p className="line-clamp-2 italic font-normal text-[#475569] dark:text-[#CBD5E1] break-words">
             "{reply.quotedReply.contentSnippet}"
           </p>
         </div>
       )}
 
       {/* Message Content */}
-      <div className="text-slate-800 text-xs leading-relaxed font-normal whitespace-pre-line break-words overflow-wrap-anywhere w-full min-w-0">
+      <div className="text-[#475569] dark:text-[#CBD5E1] text-xs leading-relaxed font-normal whitespace-pre-line break-words overflow-wrap-anywhere w-full min-w-0">
         {reply.content}
       </div>
 
@@ -147,11 +149,11 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
               key={att.id}
               href={att.url}
               onClick={(e) => e.preventDefault()}
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-bold hover:border-blue-500 hover:text-blue-600 transition-colors text-[11px] max-w-full truncate"
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-[#172033] border border-[#E2E8F0] dark:border-[#334155] rounded-lg text-[#0F172A] dark:text-[#CBD5E1] font-medium hover:border-blue-500 hover:text-blue-600 transition-colors text-[11px] max-w-full truncate"
             >
-              <Paperclip className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <Paperclip className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
               <span className="truncate">{att.name}</span>
-              <span className="text-[10px] text-slate-400 font-normal shrink-0">({att.sizeMb} MB)</span>
+              <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal shrink-0">({att.sizeMb} MB)</span>
             </a>
           ))}
         </div>
@@ -165,7 +167,7 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
               key={rx.emoji}
               type="button"
               onClick={() => onReaction(reply.id, rx.emoji)}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 hover:bg-blue-50 border border-slate-200 text-slate-700 font-bold text-[10.5px] cursor-pointer transition-all shrink-0"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#172033] hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-[#E2E8F0] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] font-semibold text-[10.5px] cursor-pointer transition-all shrink-0"
             >
               <span>{rx.emoji}</span>
               <span>{rx.count}</span>
@@ -175,14 +177,14 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
       )}
 
       {/* Bottom Actions Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-slate-500">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#E2E8F0] dark:border-[#263244] text-[#64748B] dark:text-[#94A3B8]">
         <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
           {/* Like */}
           <button
             type="button"
             onClick={() => onLike(reply.id)}
-            className={`flex items-center gap-1 font-bold transition-colors hover:text-blue-600 cursor-pointer ${
-              reply.userLiked ? 'text-blue-600' : ''
+            className={`flex items-center gap-1 font-semibold transition-colors hover:text-[#2563EB] dark:hover:text-[#60A5FA] cursor-pointer ${
+              reply.userLiked ? 'text-[#2563EB] dark:text-[#60A5FA]' : ''
             }`}
           >
             <ThumbsUp className="w-3.5 h-3.5" />
@@ -193,7 +195,7 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
           <button
             type="button"
             onClick={() => onReply(reply.id)}
-            className="flex items-center gap-1 font-semibold hover:text-blue-600 cursor-pointer"
+            className="flex items-center gap-1 font-semibold hover:text-[#2563EB] dark:hover:text-[#60A5FA] cursor-pointer transition-colors"
           >
             <CornerDownRight className="w-3.5 h-3.5" /> Reply
           </button>
@@ -202,7 +204,7 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
           <button
             type="button"
             onClick={() => onQuote(reply)}
-            className="flex items-center gap-1 font-semibold hover:text-blue-600 cursor-pointer"
+            className="flex items-center gap-1 font-semibold hover:text-[#2563EB] dark:hover:text-[#60A5FA] cursor-pointer transition-colors"
           >
             <Quote className="w-3.5 h-3.5" /> Quote
           </button>
@@ -212,14 +214,14 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
             <button
               type="button"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="p-1 hover:text-blue-600 rounded hover:bg-slate-100 cursor-pointer"
+              className="p-1 text-[#94A3B8] hover:text-[#2563EB] dark:hover:text-[#60A5FA] rounded hover:bg-slate-100 dark:hover:bg-[#172033] cursor-pointer transition-colors"
               title="Add Reaction"
             >
               <Smile className="w-3.5 h-3.5" />
             </button>
 
             {showEmojiPicker && (
-              <div className="absolute left-0 bottom-7 bg-white border border-slate-200 rounded-xl shadow-lg z-30 p-1 flex items-center gap-1">
+              <div className="absolute left-0 bottom-7 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#334155] rounded-xl shadow-lg z-30 p-1 flex items-center gap-1">
                 {EMOJI_OPTIONS.map((emoji) => (
                   <button
                     key={emoji}
@@ -228,7 +230,7 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
                       onReaction(reply.id, emoji);
                       setShowEmojiPicker(false);
                     }}
-                    className="p-1.5 hover:bg-blue-50 rounded-lg text-sm cursor-pointer"
+                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#172033] rounded-lg text-sm cursor-pointer"
                   >
                     {emoji}
                   </button>
@@ -244,10 +246,10 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
             <button
               type="button"
               onClick={() => onMarkOfficial(reply.id)}
-              className={`text-[9.5px] font-bold px-2 py-0.5 rounded-md transition-colors cursor-pointer shrink-0 ${
+              className={`text-[9.5px] font-semibold px-2 py-0.5 rounded-md transition-colors cursor-pointer shrink-0 ${
                 reply.isOfficialAnswer
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-600'
+                  ? 'bg-[#2563EB] text-white'
+                  : 'bg-slate-100 dark:bg-[#172033] text-[#475569] dark:text-[#CBD5E1] border border-[#E2E8F0] dark:border-[#334155] hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-[#2563EB]'
               }`}
             >
               {reply.isOfficialAnswer ? 'Official Answer ✓' : 'Mark Official'}
@@ -258,10 +260,10 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
           <button
             type="button"
             onClick={handleCopyLink}
-            className="p-1 text-slate-400 hover:text-slate-600 rounded hover:bg-slate-100 cursor-pointer"
+            className="p-1 text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] rounded hover:bg-slate-100 dark:hover:bg-[#172033] cursor-pointer transition-colors"
             title="Copy Message Link"
           >
-            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
 
           {/* Edit */}
@@ -269,7 +271,7 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
             <button
               type="button"
               onClick={() => onEdit(reply)}
-              className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-slate-100 cursor-pointer"
+              className="p-1 text-[#94A3B8] hover:text-[#2563EB] dark:hover:text-[#60A5FA] rounded hover:bg-slate-100 dark:hover:bg-[#172033] cursor-pointer transition-colors"
               title="Edit Message"
             >
               <Edit2 className="w-3.5 h-3.5" />
@@ -281,7 +283,7 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
             <button
               type="button"
               onClick={() => onDelete(reply.id)}
-              className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-slate-100 cursor-pointer"
+              className="p-1 text-[#94A3B8] hover:text-red-600 dark:hover:text-[#F87171] rounded hover:bg-slate-100 dark:hover:bg-[#172033] cursor-pointer transition-colors"
               title="Delete Message"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -293,7 +295,7 @@ export const DiscussionMessageCard: React.FC<DiscussionMessageCardProps> = ({
             <button
               type="button"
               onClick={() => onReport(reply.id)}
-              className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-slate-100 cursor-pointer"
+              className="p-1 text-[#94A3B8] hover:text-red-600 dark:hover:text-[#F87171] rounded hover:bg-slate-100 dark:hover:bg-[#172033] cursor-pointer transition-colors"
               title="Report Message"
             >
               <Flag className="w-3.5 h-3.5" />

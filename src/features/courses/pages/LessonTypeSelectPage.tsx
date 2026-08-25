@@ -11,7 +11,7 @@ import { Button } from '../../../components/ui/Button';
 export const LessonTypeSelectPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { courseUuid = '550e8400-e29b-41d4-a716-446655440000' } = useParams<{ courseUuid?: string }>();
+  const { courseUuid = '' } = useParams<{ courseUuid?: string }>();
 
   const initialModuleUuid = searchParams.get('moduleUuid') || '';
 

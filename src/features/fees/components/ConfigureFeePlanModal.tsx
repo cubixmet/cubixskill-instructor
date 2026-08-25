@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, DollarSign, Layers, Plus, Trash2, CheckCircle2 } from 'lucide-react';
+import { X, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { courseFeesCollectionService, CourseFeeConfigurationData } from '../../../services/courseFeesCollection.service';
 
@@ -125,21 +125,21 @@ export const ConfigureFeePlanModal: React.FC<ConfigureFeePlanModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] shadow-2xl max-w-md w-full p-5 space-y-4 font-sans text-xs text-slate-900 dark:text-white text-left max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-3">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white dark:bg-[#111827] rounded-2xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xl max-w-md w-full p-4 sm:p-5 space-y-4 font-sans text-xs text-[#0F172A] dark:text-[#F8FAFC] text-left max-h-[90vh] overflow-y-auto font-normal min-w-0">
+        <div className="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#263244] pb-3">
           <div>
-            <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
+            <h3 className="font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC]">
               {existingConfig?.is_configured ? 'Edit Course Fee Configuration' : 'Configure Course Fee'}
             </h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">
+            <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-normal">
               Applies default fee plan to all eligible enrolled students
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
+            className="text-[#64748B] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] p-1 cursor-pointer rounded-lg hover:bg-slate-100 dark:hover:bg-[#172033]"
           >
             <X className="w-4 h-4" />
           </button>
@@ -148,13 +148,13 @@ export const ConfigureFeePlanModal: React.FC<ConfigureFeePlanModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-3.5">
           {/* Plan Type Selector */}
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+            <label className="text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] block">
               Fee Plan Structure
             </label>
             <select
               value={planType}
               onChange={(e) => setPlanType(e.target.value)}
-              className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+              className="w-full h-9.5 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
             >
               <option value="ONE_TIME">One-Time Lump Sum</option>
               <option value="MONTHLY">Monthly Installments</option>
@@ -169,7 +169,7 @@ export const ConfigureFeePlanModal: React.FC<ConfigureFeePlanModalProps> = ({
           {/* Total Fee & Currency */}
           <div className="grid grid-cols-3 gap-2.5">
             <div className="space-y-1 col-span-2">
-              <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+              <label className="text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] block">
                 Total Fee Amount <span className="text-rose-500">*</span>
               </label>
               <input
@@ -178,21 +178,21 @@ export const ConfigureFeePlanModal: React.FC<ConfigureFeePlanModalProps> = ({
                 min="1"
                 value={totalFeeAmount}
                 onChange={(e) => setTotalFeeAmount(e.target.value)}
-                className={`w-full h-9 px-3 rounded-xl border text-xs font-normal text-slate-900 dark:text-white bg-white dark:bg-[#0F172A] focus:outline-none ${
-                  fieldErrors.totalFee ? 'border-rose-500' : 'border-slate-200 dark:border-[#334155] focus:border-blue-500'
+                className={`w-full h-9.5 px-3 rounded-xl border text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] bg-white dark:bg-[#0F172A] focus:outline-none ${
+                  fieldErrors.totalFee ? 'border-rose-500' : 'border-[#CBD5E1] dark:border-[#334155] focus:border-[#3B82F6]'
                 }`}
               />
               {fieldErrors.totalFee && <p className="text-[10px] text-rose-500 font-normal">{fieldErrors.totalFee}</p>}
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+              <label className="text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] block">
                 Currency
               </label>
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="w-full h-9 px-2 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                className="w-full h-9.5 px-2 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
               >
                 <option value="INR">INR (₹)</option>
                 <option value="USD">USD ($)</option>
@@ -204,22 +204,22 @@ export const ConfigureFeePlanModal: React.FC<ConfigureFeePlanModalProps> = ({
           </div>
 
           {/* Start Date & Installment Count */}
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+              <label className="text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] block">
                 First Due Date
               </label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                className="w-full h-9.5 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
               />
             </div>
 
             {planType !== 'ONE_TIME' && planType !== 'CUSTOM' && (
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+                <label className="text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] block">
                   Installments
                 </label>
                 <input
@@ -228,7 +228,7 @@ export const ConfigureFeePlanModal: React.FC<ConfigureFeePlanModalProps> = ({
                   max="60"
                   value={numberOfInstallments}
                   onChange={(e) => setNumberOfInstallments(parseInt(e.target.value) || 1)}
-                  className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                  className="w-full h-9.5 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
                 />
               </div>
             )}
@@ -236,9 +236,9 @@ export const ConfigureFeePlanModal: React.FC<ConfigureFeePlanModalProps> = ({
 
           {/* CUSTOM INSTALLMENTS EDITOR */}
           {planType === 'CUSTOM' && (
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-[#263244]">
+            <div className="space-y-2 pt-2 border-t border-[#E2E8F0] dark:border-[#263244]">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+                <label className="text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] block">
                   Custom Installment Schedule
                 </label>
                 <Button
@@ -247,6 +247,7 @@ export const ConfigureFeePlanModal: React.FC<ConfigureFeePlanModalProps> = ({
                   variant="outline"
                   onClick={handleAddCustomRow}
                   leftIcon={<Plus className="w-3 h-3" />}
+                  className="border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033]"
                 >
                   Add Row
                 </Button>
@@ -259,20 +260,20 @@ export const ConfigureFeePlanModal: React.FC<ConfigureFeePlanModalProps> = ({
                     placeholder="Label"
                     value={row.label}
                     onChange={(e) => handleCustomRowChange(idx, 'label', e.target.value)}
-                    className="flex-1 h-8 px-2 rounded-lg border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal"
+                    className="flex-1 h-8.5 px-2 rounded-lg border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC]"
                   />
                   <input
                     type="date"
                     value={row.due_date}
                     onChange={(e) => handleCustomRowChange(idx, 'due_date', e.target.value)}
-                    className="w-28 h-8 px-2 rounded-lg border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal"
+                    className="w-28 h-8.5 px-2 rounded-lg border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC]"
                   />
                   <input
                     type="number"
                     placeholder="Amount"
                     value={row.amount}
                     onChange={(e) => handleCustomRowChange(idx, 'amount', e.target.value)}
-                    className="w-20 h-8 px-2 rounded-lg border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal"
+                    className="w-20 h-8.5 px-2 rounded-lg border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC]"
                   />
                   {customInstallments.length > 1 && (
                     <button
@@ -291,7 +292,7 @@ export const ConfigureFeePlanModal: React.FC<ConfigureFeePlanModalProps> = ({
 
           {/* Notes */}
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+            <label className="text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] block">
               Configuration Notes
             </label>
             <input
@@ -299,23 +300,23 @@ export const ConfigureFeePlanModal: React.FC<ConfigureFeePlanModalProps> = ({
               placeholder="e.g. Approved fee structure for Fall batch"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full h-8 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white"
+              className="w-full h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B]"
             />
           </div>
 
-          <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-[#263244]">
+          <div className="flex flex-col-reverse sm:flex-row items-center gap-2 pt-3 border-t border-[#E2E8F0] dark:border-[#263244]">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1 h-9 rounded-xl justify-center font-normal"
+              className="w-full sm:w-auto flex-1 h-9.5 rounded-xl justify-center font-medium border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#CBD5E1]"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 h-9 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl justify-center font-normal"
+              className="w-full sm:w-auto flex-1 h-9.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl justify-center font-medium min-h-[42px]"
             >
               {isSubmitting ? 'Applying Plan...' : 'Save & Apply to All Students'}
             </Button>

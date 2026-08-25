@@ -79,17 +79,17 @@ export const ExportDiscussionsModal: React.FC<ExportDiscussionsModalProps> = ({
     >
       {isSuccess ? (
         <div className="py-6 text-center space-y-2">
-          <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+          <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto">
             <Check className="w-6 h-6" />
           </div>
-          <h3 className="text-sm font-bold text-slate-900">Export Complete!</h3>
-          <p className="text-xs text-slate-500">Your discussions report has been generated successfully.</p>
+          <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Export Complete!</h3>
+          <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">Your discussions report has been generated successfully.</p>
         </div>
       ) : (
         <div className="space-y-4 font-sans text-xs text-left">
           {/* Format selection */}
           <div className="space-y-2">
-            <label className="block font-bold text-slate-900">Export Format</label>
+            <label className="block font-medium text-[#475569] dark:text-[#CBD5E1]">Export Format</label>
             <div className="grid grid-cols-3 gap-2">
               {[
                 { id: 'csv', label: 'CSV File', icon: FileSpreadsheet },
@@ -102,10 +102,10 @@ export const ExportDiscussionsModal: React.FC<ExportDiscussionsModalProps> = ({
                     key={item.id}
                     type="button"
                     onClick={() => setFormat(item.id as 'csv' | 'excel' | 'pdf')}
-                    className={`p-3 rounded-xl border text-center font-bold text-xs cursor-pointer flex flex-col items-center gap-1.5 transition-all ${
+                    className={`p-3 rounded-xl border text-center font-medium text-xs cursor-pointer flex flex-col items-center gap-1.5 transition-all ${
                       format === item.id
-                        ? 'bg-blue-50 border-blue-600 text-blue-700'
-                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                        ? 'bg-blue-50 dark:bg-[rgba(37,99,235,0.12)] border-[#2563EB] dark:border-[#3B82F6] text-[#2563EB] dark:text-[#60A5FA]'
+                        : 'bg-white dark:bg-[#0F172A] border-[#E2E8F0] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#172033]'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -117,29 +117,29 @@ export const ExportDiscussionsModal: React.FC<ExportDiscussionsModalProps> = ({
           </div>
 
           {/* Configuration */}
-          <div className="space-y-2 pt-2 border-t border-slate-200">
-            <label className="block font-bold text-slate-900">Include Options</label>
-            <label className="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
+          <div className="space-y-2 pt-2 border-t border-[#E2E8F0] dark:border-[#263244]">
+            <label className="block font-medium text-[#475569] dark:text-[#CBD5E1]">Include Options</label>
+            <label className="flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl cursor-pointer">
               <input
                 type="checkbox"
                 checked={includeReplies}
                 onChange={(e) => setIncludeReplies(e.target.checked)}
-                className="rounded text-blue-600 focus:ring-blue-500"
+                className="rounded text-[#2563EB] focus:ring-[#3B82F6]"
               />
-              <span className="font-semibold text-slate-800">
+              <span className="font-medium text-[#0F172A] dark:text-[#F8FAFC]">
                 Include full reply threads ({replies.length} replies)
               </span>
             </label>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
-            <Button variant="outline" onClick={onClose} className="h-9 text-xs font-semibold">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E2E8F0] dark:border-[#263244]">
+            <Button variant="outline" onClick={onClose} className="h-9 text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] bg-white dark:bg-[#0F172A] border-[#E2E8F0] dark:border-[#334155]">
               Cancel
             </Button>
             <Button
               onClick={handleRunExport}
               disabled={isExporting}
-              className="h-9 bg-[#2563EB] text-white text-xs font-bold px-5"
+              className="h-9 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-medium px-5 shadow-[0_4px_12px_rgba(37,99,235,0.12)]"
               leftIcon={<Download className="w-3.5 h-3.5" />}
             >
               {isExporting ? 'Generating...' : `Export ${format.toUpperCase()}`}

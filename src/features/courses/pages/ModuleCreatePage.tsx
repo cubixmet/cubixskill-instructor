@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CheckCircle2, Layers } from 'lucide-react';
+import { CheckCircle2, Layers, AlertTriangle } from 'lucide-react';
 import { FormPageLayout } from '../../../components/ui/FormPageLayout';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { curriculumService } from '../services/curriculum.service';
+import { normalizeCourseId } from '../../../utils/courseValidation.utils';
 
 const moduleFormSchema = z.object({
   title: z
@@ -27,7 +28,10 @@ type ModuleFormValues = z.infer<typeof moduleFormSchema>;
 
 export const ModuleCreatePage: React.FC = () => {
   const navigate = useNavigate();
-  const { courseUuid = '550e8400-e29b-41d4-a716-446655440000' } = useParams<{ courseUuid?: string }>();
+  const params = useParams<{ courseId?: string; courseUuid?: string }>();
+  const rawCourseId = params.courseId || params.courseUuid;
+  const validCourseUuid = normalizeCourseId(rawCourseId);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -48,21 +52,43 @@ export const ModuleCreatePage: React.FC = () => {
   const titleValue = watch('title') || '';
   const descriptionValue = watch('description') || '';
 
+  if (!validCourseUuid) {
+    return (
+      <div className="p-8 text-center bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] space-y-4 max-w-lg mx-auto mt-12 shadow-xl font-sans">
+        <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
+        <div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">Invalid Course URL</h3>
+          <p className="text-xs text-slate-500 dark:text-[#94A3B8]">The course identifier in this URL is invalid or missing.</p>
+        </div>
+        <Link to="/courses">
+          <Button variant="outline" size="sm" className="cursor-pointer">
+            Back to Courses
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
   const onSubmit = async (data: ModuleFormValues) => {
-    if (isSubmitting) return;
+    if (isSubmitting || !validCourseUuid) return;
     try {
       setIsSubmitting(true);
       setServerError(null);
-      await curriculumService.createModule(courseUuid, {
+      await curriculumService.createModule(validCourseUuid, {
         title: data.title,
         description: data.description || '',
         status: data.status,
       });
       // Return directly to curriculum view
-      navigate(`/courses/${courseUuid}/curriculum`);
-    } catch (err) {
+      navigate(`/courses/${validCourseUuid}/curriculum`);
+    } catch (err: any) {
       console.error('Failed to create module:', err);
-      setServerError('Failed to create module. Please try again.');
+      const parsedMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        err?.message ||
+        'Failed to create module. Please try again.';
+      setServerError(parsedMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -72,22 +98,21 @@ export const ModuleCreatePage: React.FC = () => {
     <FormPageLayout
       title="Create Module"
       subtitle="Add a new section to organize your curriculum"
-      backUrl={`/courses/${courseUuid}/curriculum`}
+      backUrl={`/courses/${validCourseUuid}/curriculum`}
       breadcrumbs={[
-        { label: 'Curriculum', url: `/courses/${courseUuid}/curriculum` },
+        { label: 'Curriculum', url: `/courses/${validCourseUuid}/curriculum` },
         { label: 'Create Module' },
       ]}
     >
       <form
         onSubmit={handleSubmit(onSubmit, (formErrors) => {
-          // Focus first invalid field on error
           const firstErrorField = Object.keys(formErrors)[0];
           if (firstErrorField) {
             const el = document.getElementsByName(firstErrorField)[0];
             if (el) el.focus();
           }
         })}
-        className="space-y-4 max-w-xl mx-auto font-sans pb-36 md:pb-8 w-full min-w-0 px-1 md:px-0"
+        className="space-y-4 max-w-xl mx-auto font-sans pb-36 md:pb-8 w-full min-w-0 px-1 md:px-0 text-left"
       >
         {serverError && (
           <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 rounded-xl text-rose-700 dark:text-[#F87171] text-xs font-semibold">
@@ -169,13 +194,13 @@ export const ModuleCreatePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile Sticky Action Bar / Desktop Action Bar */}
+        {/* Action Bar */}
         <div className="fixed md:relative bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 z-35 p-3 md:p-0 bg-white/95 dark:bg-[#111827]/95 md:bg-transparent dark:md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-t md:border-0 border-[#E2E8F0] dark:border-[#263244] shadow-lg md:shadow-none flex items-center justify-between gap-3 md:pt-2 max-w-xl mx-auto">
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate(`/courses/${courseUuid}/curriculum`)}
-            className="h-11 md:h-10 text-xs font-semibold px-4 md:px-5 shrink-0 bg-white dark:bg-[#111827] border-[#E2E8F0] dark:border-[#334155] text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC]"
+            onClick={() => navigate(`/courses/${validCourseUuid}/curriculum`)}
+            className="h-11 md:h-10 text-xs font-semibold px-4 md:px-5 shrink-0 bg-white dark:bg-[#111827] border-[#E2E8F0] dark:border-[#334155] text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC] cursor-pointer"
           >
             Cancel
           </Button>
@@ -183,7 +208,7 @@ export const ModuleCreatePage: React.FC = () => {
             type="submit"
             disabled={isSubmitting}
             leftIcon={<CheckCircle2 className="w-4 h-4 stroke-[3]" />}
-            className="h-11 md:h-10 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-[0.98] text-white text-xs sm:text-sm font-medium px-5 md:px-6 shadow-[0_4px_12px_rgba(37,99,235,0.12)] flex-1 md:flex-initial"
+            className="h-11 md:h-10 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-[0.98] text-white text-xs sm:text-sm font-medium px-5 md:px-6 shadow-[0_4px_12px_rgba(37,99,235,0.12)] flex-1 md:flex-initial cursor-pointer"
           >
             {isSubmitting ? 'Creating Module...' : 'Create Module'}
           </Button>

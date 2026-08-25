@@ -107,7 +107,7 @@ export interface LiveSessionStoreState {
   error: string | null;
 
   // Async Actions
-  fetchCourseLiveSessions: (courseUuid: string) => Promise<LiveSessionItem[]>;
+  fetchCourseLiveSessions: (courseUuid?: string) => Promise<LiveSessionItem[]>;
   createLiveSession: (payload: CreateLiveSessionPayload) => Promise<LiveSessionItem>;
   updateLiveSessionApi: (id: string, payload: UpdateLiveSessionPayload) => Promise<LiveSessionItem>;
   cancelLiveSessionApi: (id: string, reason?: string) => Promise<void>;
@@ -131,7 +131,7 @@ export const useLiveSessionStore = create<LiveSessionStoreState>((set, get) => (
   isLoading: false,
   error: null,
 
-  fetchCourseLiveSessions: async (courseUuid: string) => {
+  fetchCourseLiveSessions: async (courseUuid?: string) => {
     set({ isLoading: true, error: null });
     try {
       const rawBackendSessions = await liveSessionsService.list(courseUuid);

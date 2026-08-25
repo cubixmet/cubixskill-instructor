@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -19,16 +19,15 @@ import {
   RefreshCw,
   MoreVertical,
   PlusCircle,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
-import { useStudentStore } from '../store/student.store';
-import { useCourseFeaturesStore } from '../../courses/store/courseFeatures.store';
-import { useCourseStore } from '../../courses/store/course.store';
-import { EnrollStudentModal } from '../components/EnrollStudentModal';
+import { studentsService, type StudentData } from '../../../services/students.service';
 
 type StudentTabId =
   | 'overview'
@@ -43,56 +42,100 @@ type StudentTabId =
 
 export const StudentSinglePage: React.FC = () => {
   const navigate = useNavigate();
-  const { studentUuid, courseUuid = '550e8400-e29b-41d4-a716-446655440000' } = useParams<{
-    studentUuid?: string;
-    courseUuid?: string;
-  }>();
+  const { studentId, studentUuid } = useParams<{ studentId?: string; studentUuid?: string }>();
+  const id = studentId || studentUuid || '';
 
-  const coursesByUuid = useCourseStore((state) => state.coursesByUuid);
-  const course = coursesByUuid[courseUuid] || {
-    uuid: courseUuid,
-    title: 'Fullstack React 19 & TypeScript Masterclass',
-  };
-
-  const student = useStudentStore((state) => state.students.find((s) => s.uuid === studentUuid)) || {
-    uuid: studentUuid || '550e8400-e29b-41d4-a716-446655440101',
-    name: 'Aarav Patel',
-    email: 'aarav.patel@gmail.com',
-    phone: '+91 98765 43210',
-    country: 'India',
-    status: 'Active' as const,
-    batch: 'Batch 2026-A',
-    enrollmentDate: '2026-08-01T10:00:00Z',
-    lastActivity: '10 mins ago',
-    creditsConsumed: 17,
-    notes: 'High engagement in React 19 RSC modules. Consistently submits assignments on time.',
-    enrolledCourses: [
-      {
-        courseUuid: courseUuid,
-        courseTitle: course.title,
-        enrolledAt: '2026-08-01T10:00:00Z',
-        progressPercent: 85,
-        lessonsCompleted: 18,
-        totalLessons: 24,
-        quizzesPassed: 4,
-        assignmentsSubmitted: 2,
-        certificatesEarned: 1,
-        creditsConsumed: 17,
-      },
-    ],
-    activityLogs: [
-      { id: '1', timestamp: '2026-08-05T10:30:00Z', action: 'Completed Lesson', details: 'React 19 Architecture Overview' },
-      { id: '2', timestamp: '2026-08-04T15:20:00Z', action: 'Passed Quiz', details: 'Server Components Quiz (Grade: 90%)' },
-      { id: '3', timestamp: '2026-08-03T11:00:00Z', action: 'Submitted Assignment', details: 'Build Custom Store Middleware' },
-    ],
-  };
-
-  const courseFeatures = useCourseFeaturesStore((state) => state.getCourseFeatures(courseUuid));
-  const toggleStudentStatus = useStudentStore((state) => state.toggleStudentStatus);
+  const [studentData, setStudentData] = useState<StudentData | null>(null);
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const [activeTab, setActiveTab] = useState<StudentTabId>('overview');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    let isMounted = true;
+    setIsLoading(true);
+    setIsError(false);
+
+    Promise.all([
+      studentsService.getStudent(id),
+      studentsService.listStudentEnrollments(id).catch(() => []),
+    ])
+      .then(([sData, enrData]) => {
+        if (!isMounted) return;
+        setStudentData(sData);
+        setEnrollments(enrData || []);
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        setIsError(true);
+        setErrorMessage(err.message || 'Student record not found.');
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => { isMounted = false; };
+  }, [id]);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleToggleStatus = async () => {
+    if (!studentData || !id) return;
+    try {
+      if (studentData.status === 'ACTIVE') {
+        await studentsService.deactivateStudent(id);
+        setStudentData((prev) => prev ? { ...prev, status: 'INACTIVE' } : prev);
+        showToast('Student deactivated.');
+      } else {
+        await studentsService.activateStudent(id);
+        setStudentData((prev) => prev ? { ...prev, status: 'ACTIVE' } : prev);
+        showToast('Student activated.');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Status update failed.');
+    }
+  };
+
+  const name = studentData?.display_name || studentData?.full_name || studentData?.user?.full_name || 'Student Profile';
+  const email = studentData?.email || studentData?.user?.email || '';
+  const phone = studentData?.phone || studentData?.user?.phone || '';
+  const status = studentData?.status === 'ACTIVE' ? 'Active' : 'Inactive';
+
+  const student = {
+    uuid: id,
+    name,
+    email,
+    phone,
+    country: 'India',
+    status,
+    batch: 'Batch 2026-A',
+    enrollmentDate: studentData?.joined_at || new Date().toISOString(),
+    lastActivity: 'Active',
+    creditsConsumed: 0,
+    notes: studentData?.bio || '',
+    enrolledCourses: enrollments.map((e) => ({
+      courseUuid: e.course?.id || e.course || '',
+      courseTitle: e.course?.title || 'Enrolled Course',
+      enrolledAt: e.enrolled_at || '',
+      progressPercent: Number(e.progress_percent || 0),
+      lessonsCompleted: 0,
+      totalLessons: 0,
+      quizzesPassed: 0,
+      assignmentsSubmitted: 0,
+      certificatesEarned: 0,
+      creditsConsumed: 0,
+    })),
+    activityLogs: [],
+  };
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Action Modals State
@@ -100,11 +143,6 @@ export const StudentSinglePage: React.FC = () => {
   const [newExpiryDate, setNewExpiryDate] = useState('2027-08-01');
   const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
   const [noteInput, setNoteInput] = useState(student.notes || '');
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
 
   const handleConfirmExtend = () => {
     setIsExtendModalOpen(false);
@@ -121,19 +159,19 @@ export const StudentSinglePage: React.FC = () => {
     showToast('Instructor note saved successfully.');
   };
 
-  const tabs: { id: StudentTabId; label: string; icon: React.ElementType; count?: string | number; featureKey?: keyof typeof courseFeatures }[] = [
+  const tabs: { id: StudentTabId; label: string; icon: React.ElementType; count?: string | number }[] = [
     { id: 'overview', label: 'Overview', icon: BookOpen },
     { id: 'courses', label: 'Courses', icon: BookOpen, count: student.enrolledCourses?.length || 1 },
     { id: 'progress', label: 'Learning Progress', icon: BarChart3 },
     { id: 'lessons', label: 'Lessons', icon: BookOpen, count: '18/24' },
-    { id: 'assignments', label: 'Assignments', icon: ClipboardCheck, count: 2, featureKey: 'quizzes' },
-    { id: 'quizzes', label: 'Quizzes', icon: CircleHelp, count: 4, featureKey: 'quizzes' },
-    { id: 'certificates', label: 'Certificates', icon: Award, count: 1, featureKey: 'courseCertificates' },
+    { id: 'assignments', label: 'Assignments', icon: ClipboardCheck, count: 2 },
+    { id: 'quizzes', label: 'Quizzes', icon: CircleHelp, count: 4 },
+    { id: 'certificates', label: 'Certificates', icon: Award, count: 1 },
     { id: 'activity', label: 'Activity Log', icon: Activity },
     { id: 'notes', label: 'Notes', icon: FileText },
   ];
 
-  const visibleTabs = tabs.filter((t) => !t.featureKey || Boolean(courseFeatures[t.featureKey]));
+  const visibleTabs = tabs;
 
   // Initials generator
   const getInitials = (name: string) => {

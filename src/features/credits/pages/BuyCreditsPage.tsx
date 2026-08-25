@@ -14,9 +14,12 @@ import { parseApiError } from '../../../api/errors';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { normalizeIndianPhone } from '../../../utils/phone.utils';
 
+import { useCreditSummary } from '../../../hooks/useCreditSummary';
+
 export const BuyCreditsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, academy } = useAuth();
+  const { invalidateSummary } = useCreditSummary();
 
   const [rates, setRates] = useState<CreditPurchaseRateItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -161,7 +164,7 @@ export const BuyCreditsPage: React.FC = () => {
             });
             showToast('Payment successful! Credits added to your account.');
             // Refetch summary so wallet balance in header updates from authoritative backend data
-            creditService.getSummary().catch(() => {});
+            invalidateSummary();
             setTimeout(() => navigate('/credits'), 1500);
           } catch (vErr: any) {
             const parsed = parseApiError(vErr);

@@ -10,7 +10,7 @@ import type { CourseLesson } from '../../../types/curriculum.types';
 
 export const LessonEditPage: React.FC = () => {
   const navigate = useNavigate();
-  const { courseUuid = '550e8400-e29b-41d4-a716-446655440000', lessonUuid = '' } = useParams<{
+  const { courseUuid = '', lessonUuid = '' } = useParams<{
     courseUuid?: string;
     lessonUuid?: string;
   }>();

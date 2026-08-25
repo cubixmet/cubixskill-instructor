@@ -18,9 +18,10 @@ import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { Card } from "../../../components/ui/Card";
 import { SearchableCategorySelector } from "../components/SearchableCategorySelector";
+import { coursesService } from "../../../services/courses.service";
+import { normalizeCourseId, buildCourseDetailPath } from "../../../utils/courseValidation.utils";
 import { SearchableLanguageSelector } from "../components/SearchableLanguageSelector";
 import { CategoryMergeModal } from "../components/CategoryMergeModal";
-import { coursesService } from "../../../services/courses.service";
 import { useAuthStore } from "../../../store/auth.store";
 import { resolveMediaUrl } from "../../../utils/media.utils";
 
@@ -141,8 +142,9 @@ export const CourseCreateWizardPage: React.FC = () => {
   // Fetch existing course detail if editing
   const loadInitialData = useCallback(async () => {
     try {
-      if (courseUuid) {
-        const existing = await coursesService.getCourse(courseUuid);
+      const validId = normalizeCourseId(courseUuid);
+      if (validId) {
+        const existing = await coursesService.getCourse(validId);
         reset({
           title: existing.title,
           subtitle: existing.subtitle || "",
@@ -324,17 +326,19 @@ export const CourseCreateWizardPage: React.FC = () => {
 
 
     try {
-      if (courseUuid) {
-        await coursesService.updateCourse(courseUuid, payload);
+      const validEditId = normalizeCourseId(courseUuid);
+      if (validEditId) {
+        await coursesService.updateCourse(validEditId, payload);
         showToast("Course updated successfully!");
-        navigate(`/courses/${courseUuid}/overview`);
+        navigate(`/courses/${validEditId}/overview`);
       } else {
         const created = await coursesService.createCourse(payload);
-        if (!created?.id) {
-          throw new Error("Course created but backend Course ID was not returned.");
+        const createdId = normalizeCourseId(created?.id);
+        if (!createdId) {
+          throw new Error("Course created but backend returned an invalid Course ID.");
         }
         showToast("Course created successfully! Set up course features.");
-        navigate(`/courses/${created.id}/features`, { replace: true, state: { isInitialSetup: true } });
+        navigate(`/courses/${createdId}/features`, { replace: true, state: { isInitialSetup: true } });
       }
     } catch (err: any) {
       const responseData = err?.response?.data;

@@ -25,6 +25,8 @@ export interface StudentFeeRecordItem {
   student_phone?: string;
   avatar_url: string;
   fee_account_id: string | null;
+  course_id?: string;
+  course_title?: string;
   plan_type: string;
   total_fee: number;
   effective_fee: number;
@@ -124,6 +126,25 @@ export interface CourseFeeConfigurationData {
 }
 
 export const courseFeesCollectionService = {
+  async getGlobalSummary(): Promise<{ total_expected: number; total_collected: number; total_pending: number; total_overdue: number; currency: string }> {
+    const res = await apiClient.get('/api/v1/fees/summary/');
+    const data = res.data;
+    return (data && typeof data === 'object' && 'data' in data ? data.data : data);
+  },
+
+  async getGlobalAccounts(params?: { search?: string; status?: string }): Promise<StudentFeeRecordItem[]> {
+    const cleanParams: Record<string, string> = {};
+    if (params?.search && params.search.trim()) {
+      cleanParams.search = params.search.trim();
+    }
+    if (params?.status && params.status !== 'all') {
+      cleanParams.status = params.status;
+    }
+    const res = await apiClient.get('/api/v1/fees/accounts/', { params: cleanParams });
+    const data = res.data;
+    return (data && typeof data === 'object' && 'data' in data ? data.data : data) as StudentFeeRecordItem[];
+  },
+
   async getSummary(courseUuid: string): Promise<CourseFeeSummary> {
     const res = await apiClient.get(`/api/v1/payments/courses/${courseUuid}/fee-summary/`);
     const data = res.data;

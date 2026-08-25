@@ -170,27 +170,27 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
   };
 
   return (
-    <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden h-[calc(100dvh-170px)] min-h-[480px] max-h-[850px] flex flex-col font-sans text-xs text-left w-full max-w-full min-w-0">
+    <div className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl shadow-xs overflow-hidden h-[calc(100dvh-170px)] min-h-[480px] max-h-[850px] flex flex-col font-sans text-xs text-left w-full max-w-full min-w-0">
       <div className="grid grid-cols-1 md:grid-cols-3 flex-1 h-full min-h-0 w-full max-w-full min-w-0">
         {/* PART A — PERSONAL CONVERSATION LIST (< md: full page; >= md: left sidebar) */}
         <div
-          className={`md:col-span-1 border-r border-slate-200/80 flex flex-col bg-slate-50/50 h-full min-h-0 w-full max-w-full min-w-0 ${
+          className={`md:col-span-1 border-r border-[#E2E8F0] dark:border-[#263244] flex flex-col bg-slate-50/50 dark:bg-[#0F172A] h-full min-h-0 w-full max-w-full min-w-0 ${
             activeStudentUuid ? 'hidden md:flex' : 'flex'
           }`}
         >
           {/* Header & Search */}
-          <div className="p-3 sm:p-4 border-b border-slate-200/80 space-y-2.5 bg-white shrink-0 w-full max-w-full min-w-0">
+          <div className="p-3 sm:p-4 border-b border-[#E2E8F0] dark:border-[#263244] space-y-2.5 bg-white dark:bg-[#111827] shrink-0 w-full max-w-full min-w-0">
             <div className="flex items-center justify-between gap-2 w-full min-w-0">
               <div className="min-w-0 flex-1">
-                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Personal Chats</h3>
-                <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">
+                <h3 className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] text-sm sm:text-base">Personal Chats</h3>
+                <p className="text-[10px] sm:text-xs text-[#64748B] dark:text-[#94A3B8] font-normal truncate">
                   1-on-1 messages with enrolled students
                 </p>
               </div>
               <Button
                 size="sm"
                 onClick={() => setNewChatModalOpen(true)}
-                className="h-8 text-xs bg-[#2563EB] text-white font-bold shrink-0 px-3 min-w-fit"
+                className="h-8 text-xs bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium shrink-0 px-3 min-w-fit shadow-[0_4px_12px_rgba(37,99,235,0.12)]"
                 leftIcon={<Plus className="w-3.5 h-3.5" />}
               >
                 New DM
@@ -201,14 +201,14 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                 placeholder="Search students or conversations..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                leftIcon={<Search className="w-3.5 h-3.5 text-slate-400" />}
+                leftIcon={<Search className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />}
                 className="h-10 text-xs w-full min-w-0 box-border"
               />
             </div>
           </div>
 
           {/* Student Chat List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100/90 min-h-0 w-full max-w-full min-w-0">
+          <div className="flex-1 overflow-y-auto divide-y divide-[#E2E8F0] dark:divide-[#263244] min-h-0 w-full max-w-full min-w-0">
             {filteredConversations.length > 0 ? (
               filteredConversations.map((chat) => {
                 const isActive = chat.studentUuid === activeStudentUuid;
@@ -223,44 +223,44 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                     onClick={() => onSelectStudentChat(chat.studentUuid)}
                     className={`p-3 sm:p-3.5 flex items-start gap-3 cursor-pointer transition-all w-full max-w-full min-w-0 ${
                       isActive
-                        ? 'bg-blue-50/90 border-l-4 border-l-blue-600'
-                        : 'hover:bg-slate-100/70 bg-white'
+                        ? 'bg-blue-50/90 dark:bg-[rgba(37,99,235,0.15)] border-l-4 border-l-[#2563EB]'
+                        : 'hover:bg-slate-100/70 dark:hover:bg-[#172033] bg-white dark:bg-[#111827]'
                     }`}
                   >
                     {chat.studentAvatar ? (
                       <img
                         src={chat.studentAvatar}
                         alt={chat.studentName}
-                        className="w-9 h-9 rounded-full object-cover shrink-0 border border-slate-200"
+                        className="w-9 h-9 rounded-full object-cover shrink-0 border border-[#E2E8F0] dark:border-[#334155]"
                       />
                     ) : (
-                      <div className="w-9 h-9 rounded-full bg-slate-700 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-[#172033] text-[#475569] dark:text-[#CBD5E1] font-semibold text-xs flex items-center justify-center shrink-0">
                         {chat.studentName.charAt(0)}
                       </div>
                     )}
 
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center justify-between gap-1 w-full min-w-0">
-                        <span className="font-bold text-slate-900 text-xs sm:text-sm truncate flex-1 min-w-0">
+                        <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] text-xs sm:text-sm truncate flex-1 min-w-0">
                           {chat.studentName}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-medium shrink-0">
+                        <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal shrink-0">
                           {formattedTime}
                         </span>
                       </div>
 
-                      <p className="text-slate-600 text-xs line-clamp-1 font-normal break-words w-full min-w-0">
+                      <p className="text-[#475569] dark:text-[#CBD5E1] text-xs line-clamp-1 font-normal break-words w-full min-w-0">
                         {chat.lastMessage}
                       </p>
 
                       <div className="flex items-center justify-between text-[10px] pt-0.5 gap-1 w-full min-w-0">
-                        <span className="text-blue-600 font-semibold truncate flex-1 min-w-0">
+                        <span className="text-[#2563EB] dark:text-[#60A5FA] font-semibold truncate flex-1 min-w-0">
                           {chat.topicTitle || 'Private Inquiry'}
                         </span>
                         <div className="flex items-center gap-1 shrink-0">
                           {renderStatusTicks(chat.status)}
                           {chat.unreadCount > 0 && (
-                            <span className="bg-blue-600 text-white font-extrabold px-1.5 py-0.2 rounded-full text-[9px]">
+                            <span className="bg-[#2563EB] text-white font-semibold px-1.5 py-0.2 rounded-full text-[9px]">
                               {chat.unreadCount}
                             </span>
                           )}
@@ -271,10 +271,10 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                 );
               })
             ) : (
-              <div className="p-8 text-center text-slate-400 space-y-2">
-                <MessageCircle className="w-8 h-8 mx-auto text-slate-300" />
-                <p className="font-bold text-slate-600 text-xs">No personal conversations yet.</p>
-                <p className="text-[11px] text-slate-400">Click "New DM" above to start a private student conversation.</p>
+              <div className="p-8 text-center text-[#64748B] dark:text-[#94A3B8] space-y-2">
+                <MessageCircle className="w-8 h-8 mx-auto text-[#94A3B8] dark:text-[#64748B]" />
+                <p className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] text-xs">No personal conversations yet.</p>
+                <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">Click "New DM" above to start a private student conversation.</p>
               </div>
             )}
           </div>
@@ -282,19 +282,19 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
 
         {/* PART B — PERSONAL CHAT THREAD (< md: dedicated thread page; >= md: right pane) */}
         <div
-          className={`md:col-span-2 flex flex-col bg-white h-full min-h-0 w-full max-w-full min-w-0 ${
+          className={`md:col-span-2 flex flex-col bg-white dark:bg-[#111827] h-full min-h-0 w-full max-w-full min-w-0 ${
             !activeStudentUuid ? 'hidden md:flex' : 'flex'
           }`}
         >
           {activeConversation ? (
             <>
               {/* Chat Mobile Header */}
-              <div className="p-3 border-b border-slate-200/80 flex items-center justify-between bg-slate-50/70 shrink-0 w-full max-w-full min-w-0">
+              <div className="p-3 border-b border-[#E2E8F0] dark:border-[#263244] flex items-center justify-between bg-slate-50/70 dark:bg-[#0F172A] shrink-0 w-full max-w-full min-w-0">
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <button
                     type="button"
                     onClick={() => onSelectStudentChat('')}
-                    className="p-1.5 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200/60 cursor-pointer shrink-0 transition-colors"
+                    className="p-1.5 text-[#475569] dark:text-[#CBD5E1] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] rounded-lg hover:bg-slate-200/60 dark:hover:bg-[#172033] cursor-pointer shrink-0 transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" />
                   </button>
@@ -303,27 +303,27 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                     <img
                       src={activeConversation.studentAvatar}
                       alt={activeConversation.studentName}
-                      className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
+                      className="w-8 h-8 rounded-full object-cover border border-[#E2E8F0] dark:border-[#334155] shrink-0"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-[#EFF6FF] dark:bg-[rgba(37,99,235,0.12)] border border-[#DBEAFE] dark:border-[rgba(59,130,246,0.18)] text-[#2563EB] dark:text-[#60A5FA] font-semibold text-xs flex items-center justify-center shrink-0">
                       {activeConversation.studentName.charAt(0)}
                     </div>
                   )}
 
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm truncate">
+                    <h3 className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] text-xs sm:text-sm truncate">
                       {activeConversation.studentName}
                     </h3>
-                    <span className="text-[10px] text-slate-500 font-medium truncate block">
+                    <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal truncate block">
                       Student • {activeConversation.studentEmail}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <div className="hidden sm:flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                    <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                  <div className="hidden sm:flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/40">
+                    <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                     <span>Private DM</span>
                   </div>
 
@@ -331,19 +331,19 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setMenuOpen(!menuOpen)}
-                      className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+                      className="p-1.5 text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] rounded-lg hover:bg-slate-100 dark:hover:bg-[#172033] cursor-pointer"
                     >
                       <MoreVertical className="w-4 h-4" />
                     </button>
                     {menuOpen && (
-                      <div className="absolute right-0 top-8 w-44 bg-white border border-slate-200 rounded-xl shadow-lg z-20 py-1 text-xs">
+                      <div className="absolute right-0 top-8 w-44 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#334155] rounded-xl shadow-lg z-20 py-1 text-xs">
                         <button
                           type="button"
                           onClick={() => {
                             setMenuOpen(false);
                             onMarkSeen(activeConversation.id);
                           }}
-                          className="w-full text-left px-3 py-2 text-slate-700 hover:bg-slate-50 font-semibold"
+                          className="w-full text-left px-3 py-2 text-[#475569] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#172033] hover:text-[#0F172A] dark:hover:text-[#FFFFFF] font-medium"
                         >
                           Mark as Read
                         </button>
@@ -356,11 +356,11 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
               {/* Chat Messages Container */}
               <div
                 ref={chatContainerRef}
-                className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3 bg-slate-50/40 min-h-0 relative w-full max-w-full min-w-0"
+                className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3 bg-slate-50/40 dark:bg-[#0B1120] min-h-0 relative w-full max-w-full min-w-0"
               >
                 {/* Date Separator Example */}
                 <div className="flex justify-center my-2">
-                  <span className="text-[10px] font-bold text-slate-400 bg-slate-200/60 px-2.5 py-0.5 rounded-full">
+                  <span className="text-[10px] font-semibold text-[#64748B] dark:text-[#94A3B8] bg-slate-200/60 dark:bg-[#172033] px-2.5 py-0.5 rounded-full">
                     Today
                   </span>
                 </div>
@@ -378,7 +378,7 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                         className={`p-3 rounded-2xl space-y-1 shadow-2xs max-w-[85%] sm:max-w-[78%] min-w-0 ${
                           isMe
                             ? 'bg-[#2563EB] text-white rounded-tr-none'
-                            : 'bg-white border border-slate-200 text-slate-900 rounded-tl-none'
+                            : 'bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] text-[#0F172A] dark:text-[#F8FAFC] rounded-tl-none'
                         }`}
                       >
                         <p className="text-xs leading-relaxed whitespace-pre-wrap overflow-wrap-anywhere break-words font-normal">
@@ -391,10 +391,10 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                             {msg.attachments.map((att) => (
                               <div
                                 key={att.id}
-                                className={`flex items-center gap-1.5 p-2 rounded-lg text-[11px] font-bold ${
+                                className={`flex items-center gap-1.5 p-2 rounded-lg text-[11px] font-medium ${
                                   isMe
                                     ? 'bg-blue-700/60 text-white'
-                                    : 'bg-slate-100 text-slate-800'
+                                    : 'bg-slate-100 dark:bg-[#172033] text-[#0F172A] dark:text-[#CBD5E1]'
                                 }`}
                               >
                                 <Paperclip className="w-3.5 h-3.5 shrink-0" />
@@ -410,7 +410,7 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                         {/* Timestamp & Ticks */}
                         <div
                           className={`flex items-center justify-end gap-1 text-[9.5px] pt-0.5 ${
-                            isMe ? 'text-blue-100' : 'text-slate-400'
+                            isMe ? 'text-blue-100' : 'text-[#64748B] dark:text-[#94A3B8]'
                           }`}
                         >
                           <span>
@@ -425,13 +425,13 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
 
                       {/* Send Failure State */}
                       {isFailed && (
-                        <div className="flex items-center gap-1.5 text-[10px] text-red-600 font-bold pt-1">
+                        <div className="flex items-center gap-1.5 text-[10px] text-red-600 dark:text-[#F87171] font-semibold pt-1">
                           <AlertTriangle className="w-3 h-3" />
                           <span>Failed to send</span>
                           <button
                             type="button"
                             onClick={() => handleRetryFailed(msg.id, msg.content)}
-                            className="underline text-blue-600 hover:text-blue-800 flex items-center gap-0.5"
+                            className="underline text-[#2563EB] dark:text-[#60A5FA] hover:text-[#1D4ED8] flex items-center gap-0.5"
                           >
                             <RefreshCw className="w-2.5 h-2.5" /> Retry
                           </button>
@@ -450,7 +450,7 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
                         setShowNewMessageBanner(false);
                       }}
-                      className="bg-blue-600 text-white font-extrabold text-[11px] px-3.5 py-1.5 rounded-full shadow-lg hover:bg-blue-700 transition-all cursor-pointer flex items-center gap-1.5"
+                      className="bg-[#2563EB] text-white font-semibold text-[11px] px-3.5 py-1.5 rounded-full shadow-lg hover:bg-[#1D4ED8] transition-all cursor-pointer flex items-center gap-1.5"
                     >
                       New messages ↓
                     </button>
@@ -463,10 +463,10 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
               {/* Chat Input Footer (Mobile Full-Width Vertical Composer) */}
               <form
                 onSubmit={handleSend}
-                className="p-3 sm:p-4 border-t border-slate-200/90 space-y-2.5 bg-white shrink-0 sticky bottom-0 z-20 w-full max-w-full min-w-0 box-border"
+                className="p-3 sm:p-4 border-t border-[#E2E8F0] dark:border-[#263244] space-y-2.5 bg-white dark:bg-[#111827] shrink-0 sticky bottom-0 z-20 w-full max-w-full min-w-0 box-border"
               >
                 {/* 1. Attachment / Storage Warning (Placed safely above textarea) */}
-                <div className="text-[10px] text-amber-700 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1.5 w-full min-w-0">
+                <div className="text-[10px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/40 flex items-center gap-1.5 w-full min-w-0">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                   <span className="truncate flex-1">File attachments consume storage credits after upload.</span>
                 </div>
@@ -477,14 +477,14 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                     {attachments.map((att) => (
                       <div
                         key={att.id}
-                        className="flex items-center gap-1.5 p-1 px-2.5 bg-blue-50 border border-blue-200 rounded-lg text-xs font-bold text-blue-900"
+                        className="flex items-center gap-1.5 p-1 px-2.5 bg-blue-50 dark:bg-[rgba(37,99,235,0.12)] border border-blue-200 dark:border-[rgba(59,130,246,0.25)] rounded-lg text-xs font-semibold text-[#2563EB] dark:text-[#60A5FA]"
                       >
-                        <Paperclip className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <Paperclip className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
                         <span className="truncate max-w-[140px]">{att.name}</span>
                         <button
                           type="button"
                           onClick={() => setAttachments([])}
-                          className="text-red-500 hover:text-red-700 p-0.5 cursor-pointer shrink-0"
+                          className="text-red-500 hover:text-red-700 dark:hover:text-[#F87171] p-0.5 cursor-pointer shrink-0"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -500,13 +500,13 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                     placeholder="Write a message..."
                     value={messageContent}
                     onChange={(e) => setMessageContent(e.target.value)}
-                    className="w-full min-w-0 max-w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 pr-10 text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-normal leading-relaxed overflow-wrap-break-word whitespace-pre-wrap break-normal block box-border min-h-[44px] max-h-[120px]"
+                    className="w-full min-w-0 max-w-full rounded-xl border border-[#CBD5E1] dark:border-[#334155] p-2.5 sm:p-3 pr-10 text-xs sm:text-sm bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#94A3B8] dark:placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6] focus:ring-4 focus:ring-blue-500/10 font-normal leading-relaxed overflow-wrap-break-word whitespace-pre-wrap break-normal block box-border min-h-[44px] max-h-[120px] transition-all"
                   />
 
                   <button
                     type="button"
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    className="absolute right-3 top-3 text-slate-400 hover:text-blue-600 cursor-pointer p-0.5"
+                    className="absolute right-3 top-3 text-[#64748B] dark:text-[#94A3B8] hover:text-[#2563EB] dark:hover:text-[#60A5FA] cursor-pointer p-0.5"
                     title="Add Emoji"
                   >
                     <Smile className="w-4 h-4" />
@@ -514,7 +514,7 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
 
                   {/* Emoji Picker Popup */}
                   {showEmojiPicker && (
-                    <div className="absolute right-0 bottom-12 bg-white border border-slate-200 rounded-xl shadow-xl z-30 p-1 flex items-center gap-1 flex-wrap max-w-xs">
+                    <div className="absolute right-0 bottom-12 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#334155] rounded-xl shadow-xl z-30 p-1 flex items-center gap-1 flex-wrap max-w-xs">
                       {EMOJIS.map((e) => (
                         <button
                           key={e}
@@ -523,7 +523,7 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                             setMessageContent((prev) => prev + e);
                             setShowEmojiPicker(false);
                           }}
-                          className="p-1.5 hover:bg-blue-50 rounded-lg text-sm cursor-pointer"
+                          className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#172033] rounded-lg text-sm cursor-pointer"
                         >
                           {e}
                         </button>
@@ -537,16 +537,16 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                   <button
                     type="button"
                     onClick={handleAddAttachment}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs cursor-pointer transition-colors shrink-0"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E2E8F0] dark:border-[#334155] bg-slate-50 dark:bg-[#172033] hover:bg-slate-100 dark:hover:bg-[#1E293B] text-[#0F172A] dark:text-[#F8FAFC] font-semibold text-xs cursor-pointer transition-colors shrink-0"
                   >
-                    <Paperclip className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <Paperclip className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
                     <span>Attach File</span>
                   </button>
 
                   <Button
                     type="submit"
                     disabled={sending}
-                    className="h-9 sm:h-10 bg-[#2563EB] text-white px-4 font-bold text-xs rounded-xl shrink-0 min-w-[82px] w-auto"
+                    className="h-9 sm:h-10 bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-4 font-medium text-xs rounded-xl shrink-0 min-w-[82px] w-auto shadow-[0_4px_12px_rgba(37,99,235,0.12)]"
                     leftIcon={<Send className="w-3.5 h-3.5" />}
                   >
                     {sending ? 'Sending...' : 'Send'}
@@ -555,10 +555,10 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
               </form>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400 space-y-2">
-              <MessageCircle className="w-12 h-12 text-slate-300" />
-              <h3 className="text-sm font-bold text-slate-800">No Student Conversation Selected</h3>
-              <p className="text-xs text-slate-500 max-w-xs">
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-[#64748B] dark:text-[#94A3B8] space-y-2">
+              <MessageCircle className="w-12 h-12 text-[#94A3B8] dark:text-[#64748B]" />
+              <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">No Student Conversation Selected</h3>
+              <p className="text-xs text-[#64748B] dark:text-[#94A3B8] max-w-xs font-normal">
                 Select a student conversation from the list to view and send private 1-on-1 messages.
               </p>
             </div>
@@ -582,7 +582,7 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                 onSelectStudentChat(student.uuid);
                 setNewChatModalOpen(false);
               }}
-              className="p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-xl flex items-center justify-between cursor-pointer transition-colors"
+              className="p-3 bg-slate-50 dark:bg-[#0F172A] hover:bg-blue-50 dark:hover:bg-[#172033] border border-[#E2E8F0] dark:border-[#263244] rounded-xl flex items-center justify-between cursor-pointer transition-colors"
             >
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 {student.avatar ? (
@@ -592,17 +592,17 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                     className="w-8 h-8 rounded-full object-cover shrink-0"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-[#EFF6FF] dark:bg-[rgba(37,99,235,0.12)] border border-[#DBEAFE] dark:border-[rgba(59,130,246,0.18)] text-[#2563EB] dark:text-[#60A5FA] font-medium text-xs flex items-center justify-center shrink-0">
                     {student.name.charAt(0)}
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <strong className="font-bold text-slate-900 block truncate">{student.name}</strong>
-                  <span className="text-[10px] text-slate-500 font-medium block truncate">{student.email}</span>
+                  <strong className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] block truncate">{student.name}</strong>
+                  <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal block truncate">{student.email}</span>
                 </div>
               </div>
 
-              <Button size="sm" variant="outline" className="h-7 text-[11px] font-bold text-blue-600 shrink-0 ml-2">
+              <Button size="sm" variant="outline" className="h-7 text-[11px] font-semibold text-[#2563EB] dark:text-[#60A5FA] bg-white dark:bg-[#0F172A] border-[#E2E8F0] dark:border-[#334155] shrink-0 ml-2">
                 Start Chat
               </Button>
             </div>

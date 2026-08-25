@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import {
   RotateCcw,
   Save,
@@ -19,13 +19,17 @@ import { CourseSettingsNav, SETTINGS_SECTIONS } from '../components/settings/Cou
 import { CourseSettingsSections } from '../components/settings/CourseSettingsSections';
 import { DeleteCourseModal } from '../components/settings/DeleteCourseModal';
 import { coursesService } from '../../../services/courses.service';
+import { queryClient } from '../../../lib/query-client';
+import type { CourseDetail } from '../types/course.types';
 
 
 export const CourseSettingsPage: React.FC = () => {
   const params = useParams<{ courseUuid?: string }>();
   const navigate = useNavigate();
+  const outletContext = useOutletContext<{ course?: CourseDetail; fetchCourseDetail?: () => Promise<void> }>();
 
-  const courseUuid = params.courseUuid || '550e8400-e29b-41d4-a716-446655440000';
+  const courseUuid = params.courseUuid || '';
+  const parentCourse = outletContext?.course;
 
   const getCourseSettings = useCourseSettingsStore((state) => state.getCourseSettings);
   const updateCourseSettings = useCourseSettingsStore((state) => state.updateCourseSettings);
@@ -34,7 +38,22 @@ export const CourseSettingsPage: React.FC = () => {
   const getCourseFeatures = useCourseFeaturesStore((state) => state.getCourseFeatures);
   const courseFeatures = getCourseFeatures ? getCourseFeatures(courseUuid) : DEFAULT_COURSE_FEATURES;
 
-  const initialSettings = getCourseSettings(courseUuid);
+  const initialSettings = useMemo(() => {
+    const storeSettings = getCourseSettings(courseUuid);
+    if (!parentCourse) return storeSettings;
+    return {
+      ...storeSettings,
+      title: parentCourse.title || storeSettings.title,
+      subtitle: parentCourse.subtitle || storeSettings.subtitle,
+      shortDescription: parentCourse.short_description || storeSettings.shortDescription,
+      fullDescription: parentCourse.description || storeSettings.fullDescription,
+      level: parentCourse.level || storeSettings.level,
+      language: parentCourse.language || storeSettings.language,
+      visibility: parentCourse.visibility || storeSettings.visibility,
+      isFree: parentCourse.is_free ?? storeSettings.isFree,
+      price: parentCourse.price ?? storeSettings.price,
+    };
+  }, [parentCourse, courseUuid, getCourseSettings]);
 
   // Local editing state for unsaved dirty tracking
   const [localSettings, setLocalSettings] = useState<CourseSettingsConfig>(() => ({ ...initialSettings }));
@@ -42,32 +61,32 @@ export const CourseSettingsPage: React.FC = () => {
   const [mobileExpandedSection, setMobileExpandedSection] = useState<string | null>('basic');
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Sync localSettings when courseUuid changes
-  const [prevUuid, setPrevUuid] = useState(courseUuid);
-  if (prevUuid !== courseUuid) {
-    setPrevUuid(courseUuid);
-    setLocalSettings({ ...getCourseSettings(courseUuid) });
-  }
+  // Sync localSettings when parentCourse or courseUuid loads/updates
+  useEffect(() => {
+    setLocalSettings({ ...initialSettings });
+  }, [initialSettings]);
 
   // Dirty count
   const unsavedCount = useMemo(() => {
     let count = 0;
-    const currentStore = getCourseSettings(courseUuid);
     (Object.keys(localSettings) as (keyof CourseSettingsConfig)[]).forEach((key) => {
-      if (localSettings[key] !== currentStore[key]) {
+      if (localSettings[key] !== initialSettings[key]) {
         count++;
       }
     });
     return count;
-  }, [localSettings, courseUuid, getCourseSettings]);
+  }, [localSettings, initialSettings]);
 
   const handleUpdate = (updates: Partial<CourseSettingsConfig>) => {
     setLocalSettings((prev) => ({ ...prev, ...updates }));
   };
 
   const handleSaveChanges = async () => {
+    if (!courseUuid) return;
+    setIsSaving(true);
     try {
       await coursesService.patchCourse(courseUuid, {
         title: localSettings.title,
@@ -80,11 +99,23 @@ export const CourseSettingsPage: React.FC = () => {
         is_free: localSettings.isFree || false,
         price: localSettings.isFree ? 0 : localSettings.price || 0,
       });
+
+      updateCourseSettings(courseUuid, localSettings);
+
+      // Invalidate queries & refetch parent course details
+      queryClient.invalidateQueries({ queryKey: ["course", courseUuid] });
+      queryClient.invalidateQueries({ queryKey: ["courses"] });
+      if (outletContext?.fetchCourseDetail) {
+        await outletContext.fetchCourseDetail();
+      }
+
       setToastMessage('Course configuration settings saved successfully!');
       setTimeout(() => setToastMessage(null), 3000);
     } catch (err: any) {
-      setToastMessage(err?.response?.data?.message || 'Failed to update course settings.');
+      setToastMessage(err?.response?.data?.message || err?.message || 'Failed to update course settings.');
       setTimeout(() => setToastMessage(null), 3000);
+    } finally {
+      setIsSaving(false);
     }
   };
 

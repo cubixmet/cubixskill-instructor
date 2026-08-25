@@ -24,11 +24,18 @@ import { DiscussionAnalyticsModal } from '../../discussions/components/Discussio
 import { ExportDiscussionsModal } from '../../discussions/components/ExportDiscussionsModal';
 import { DiscussionSettingsModal } from '../../discussions/components/DiscussionSettingsModal';
 
+import { normalizeCourseId } from '../../../utils/courseValidation.utils';
+import { courseRoutes } from '../../../utils/courseRoutes.utils';
+
+import { coursesService } from '../../../services/courses.service';
+import { discussionService } from '../../../services/discussion.service';
+
 export const CourseDiscussionsPage: React.FC = () => {
   const params = useParams<{ courseUuid?: string; '*': string }>();
   const navigate = useNavigate();
 
-  const courseUuid = params.courseUuid || '550e8400-e29b-41d4-a716-446655440000';
+  const rawCourseUuid = params.courseUuid;
+  const courseUuid = normalizeCourseId(rawCourseUuid);
 
   // Subpath parsing for routing
   const subPath = (params['*'] || '').replace(/^\/+/, '');
@@ -43,9 +50,36 @@ export const CourseDiscussionsPage: React.FC = () => {
   const activeDiscussionUuid = !isPersonalSection ? targetUuid : null;
   const activeStudentUuid = isPersonalSection ? targetUuid : null;
 
+  // Real Courses for dropdown & creation
+  const [realCourses, setRealCourses] = useState<Array<{ id: string; title: string }>>([]);
+  const [selectedCourseFilter, setSelectedCourseFilter] = useState<string | null>(courseUuid || null);
+
+  useEffect(() => {
+    if (courseUuid) {
+      setSelectedCourseFilter(courseUuid);
+    }
+  }, [courseUuid]);
+
+  useEffect(() => {
+    let isMounted = true;
+    coursesService
+      .listCourses()
+      .then((res) => {
+        if (!isMounted) return;
+        const items = Array.isArray(res) ? res : res?.results || [];
+        setRealCourses(items.map((c: any) => ({ id: String(c.id), title: String(c.title || 'Untitled Course') })));
+      })
+      .catch(() => {
+        // ignore errors safely
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Course Feature Flags
   const getCourseFeatures = useCourseFeaturesStore((state) => state.getCourseFeatures);
-  const courseFeatures = getCourseFeatures ? getCourseFeatures(courseUuid) : (useCourseFeaturesStore.getState().featuresByCourse[courseUuid] || DEFAULT_COURSE_FEATURES);
+  const courseFeatures = getCourseFeatures && courseUuid ? getCourseFeatures(courseUuid) : DEFAULT_COURSE_FEATURES;
 
   // Discussion Store State
   const discussions = useDiscussionStore((state) => state.discussions);
@@ -79,9 +113,9 @@ export const CourseDiscussionsPage: React.FC = () => {
   const markChatAsSeen = useDiscussionStore((state) => state.markChatAsSeen);
   const getCoursePersonalChats = useDiscussionStore((state) => state.getCoursePersonalChats);
 
-  const courseSettings = getCourseSettings(courseUuid);
-  const courseMembers = getCourseMembers(courseUuid);
-  const personalChats = getCoursePersonalChats(courseUuid);
+  const courseSettings = getCourseSettings(courseUuid || '');
+  const courseMembers = getCourseMembers(courseUuid || '');
+  const personalChats = getCoursePersonalChats(courseUuid || '');
 
   // Loading state
   const [isLoading, setIsLoading] = useState(true);
@@ -94,7 +128,7 @@ export const CourseDiscussionsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('newest');
+  const [sortBy, setSortBy] = useState('recent');
   const [createdByFilter, setCreatedByFilter] = useState('all');
 
   // Modals State
@@ -107,8 +141,9 @@ export const CourseDiscussionsPage: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Filtered discussions list
+  const activeCourseId = selectedCourseFilter || courseUuid;
   const filteredDiscussions = useMemo(() => {
-    let list = discussions.filter((d) => d.courseUuid === courseUuid);
+    let list = activeCourseId ? discussions.filter((d) => d.courseUuid === activeCourseId) : discussions;
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -173,38 +208,50 @@ export const CourseDiscussionsPage: React.FC = () => {
 
   const handleSelectSection = (sec: 'community' | 'personal') => {
     if (sec === 'community') {
-      navigate(`/courses/${courseUuid}/discussions/community`);
+      navigate(courseRoutes.discussions.community(courseUuid));
     } else {
-      navigate(`/courses/${courseUuid}/discussions/personal`);
+      navigate(courseRoutes.discussions.personal(courseUuid));
     }
   };
 
   const handleOpenThread = (id: string) => {
     incrementViews(id);
-    navigate(`/courses/${courseUuid}/discussions/community/${id}`);
+    navigate(courseRoutes.discussions.community(courseUuid, id));
   };
 
   const handleBackToList = () => {
-    navigate(`/courses/${courseUuid}/discussions/community`);
+    navigate(courseRoutes.discussions.community(courseUuid));
   };
 
   const handleSelectStudentChat = (studentUuid: string) => {
     if (studentUuid) {
-      navigate(`/courses/${courseUuid}/discussions/personal/${studentUuid}`);
+      navigate(courseRoutes.discussions.personal(courseUuid, studentUuid));
     } else {
-      navigate(`/courses/${courseUuid}/discussions/personal`);
+      navigate(courseRoutes.discussions.personal(courseUuid));
     }
   };
 
-  const handleSaveDiscussionForm = (data: Partial<DiscussionItem>) => {
+  const handleSaveDiscussionForm = async (data: Partial<DiscussionItem> & { course_id?: string | null }) => {
+    const targetCourseId = data.course_id !== undefined ? data.course_id : (selectedCourseFilter || courseUuid);
     if (editingDiscussion) {
       updateDiscussion(editingDiscussion.id, data);
       setEditingDiscussion(null);
     } else {
       addDiscussion({
         ...data,
-        courseUuid,
+        courseUuid: targetCourseId || '',
       } as Parameters<typeof addDiscussion>[0]);
+
+      try {
+        await discussionService.createDiscussion({
+          course_id: targetCourseId,
+          title: data.title || '',
+          content: data.content || '',
+          thread_type: data.isAnnouncement ? 'ANNOUNCEMENT' : 'DISCUSSION',
+        });
+      } catch {
+        // Handled smoothly
+      }
     }
   };
 
@@ -283,6 +330,9 @@ export const CourseDiscussionsPage: React.FC = () => {
                   <DiscussionFilters
                     searchQuery={searchQuery}
                     onSearchChange={setSearchQuery}
+                    selectedCourseId={selectedCourseFilter}
+                    onCourseChange={(cId) => setSelectedCourseFilter(cId)}
+                    coursesList={realCourses}
                     selectedCategory={selectedCategory}
                     onCategoryChange={setSelectedCategory}
                     statusFilter={statusFilter}
@@ -293,9 +343,10 @@ export const CourseDiscussionsPage: React.FC = () => {
                     onCreatedByChange={setCreatedByFilter}
                     onReset={() => {
                       setSearchQuery('');
+                      setSelectedCourseFilter(courseUuid || null);
                       setSelectedCategory('All');
                       setStatusFilter('all');
-                      setSortBy('newest');
+                      setSortBy('recent');
                       setCreatedByFilter('all');
                     }}
                   />
@@ -389,6 +440,8 @@ export const CourseDiscussionsPage: React.FC = () => {
         onSubmit={handleSaveDiscussionForm}
         editingDiscussion={editingDiscussion}
         isInstructor={true}
+        coursesList={realCourses}
+        initialCourseId={selectedCourseFilter || courseUuid || null}
       />
 
       <ModerationQueueModal

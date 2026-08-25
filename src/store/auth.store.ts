@@ -80,10 +80,10 @@ class AuthStore {
   }
 
   public async init() {
-    const accessToken = tokenStorage.getAccessToken();
-    const refreshToken = tokenStorage.getRefreshToken();
-    const storedCacheJson = localStorage.getItem(STORAGE_BOOTSTRAP_KEY);
+    // Clear any legacy JWTs from localStorage
+    tokenStorage.clearTokens();
 
+    const storedCacheJson = localStorage.getItem(STORAGE_BOOTSTRAP_KEY);
     let cachedData: AuthBootstrapData | null = null;
     if (storedCacheJson) {
       try {
@@ -96,65 +96,55 @@ class AuthStore {
       }
     }
 
-    if (accessToken && refreshToken) {
-      try {
-        let bootstrap = cachedData;
-        try {
-          bootstrap = await authApi.getCurrentUser();
-        } catch (err) {
-          if (!bootstrap) {
-            throw err;
-          }
+    try {
+      const bootstrap = await authApi.getCurrentUser();
+      const user = bootstrap.user;
+      const isAllowedRole = (r?: string) =>
+        r === "ACADEMY_ADMIN" || r === "ACADEMY_STAFF" || r === "SUPER_ADMIN" || r === "SUPER_ADMIN_STAFF";
+
+      if (user && isAllowedRole(user.role) && (user.is_active ?? true)) {
+        let academy = bootstrap.academy;
+
+        // Fetch fresh Academy Profile (/api/v1/academy/profile/)
+        this.setState({ isLoadingAcademyProfile: true });
+        const academyProfile = await authApi.getAcademyProfile();
+        if (academyProfile) {
+          academy = { ...academy, ...academyProfile };
         }
+        this.applyBranding(academy);
 
-        const user = bootstrap.user;
-        const isAllowedRole = (r?: string) =>
-          r === "ACADEMY_ADMIN" || r === "ACADEMY_STAFF" || r === "SUPER_ADMIN" || r === "SUPER_ADMIN_STAFF";
+        const updatedBootstrap: AuthBootstrapData = {
+          ...bootstrap,
+          academy,
+        };
 
-        if (user && isAllowedRole(user.role) && (user.is_active ?? true)) {
-          let academy = bootstrap.academy;
+        localStorage.setItem(STORAGE_BOOTSTRAP_KEY, JSON.stringify(updatedBootstrap));
 
-          // Fetch fresh Academy Profile (/api/v1/academy/profile/)
-          this.setState({ isLoadingAcademyProfile: true });
-          const academyProfile = await authApi.getAcademyProfile();
-          if (academyProfile) {
-            academy = { ...academy, ...academyProfile };
-          }
-          this.applyBranding(academy);
-
-          const updatedBootstrap: AuthBootstrapData = {
-            ...bootstrap,
-            academy,
-          };
-
-          localStorage.setItem(STORAGE_BOOTSTRAP_KEY, JSON.stringify(updatedBootstrap));
-
-          this.setState({
-            user,
-            academy,
-            role: user.role,
-            permissions: bootstrap.permissions || [],
-            features: bootstrap.features || {},
-            demoStatus: bootstrap.demo_status,
-            accessToken,
-            refreshToken,
-            isAuthenticated: true,
-            isInitializing: false,
-            isLoadingAcademyProfile: false,
-            error: null,
-          });
-          return;
-        } else if (user && !isAllowedRole(user.role)) {
-          this.clearSession(AUTH_MESSAGES.UNAUTHORIZED_ROLE);
-          return;
-        } else if (user && user.is_active === false) {
-          this.clearSession(AUTH_MESSAGES.INACTIVE_USER);
-          return;
-        }
-      } catch (_) {
-        this.clearSession();
+        this.setState({
+          user,
+          academy,
+          role: user.role,
+          permissions: bootstrap.permissions || [],
+          features: bootstrap.features || {},
+          demoStatus: bootstrap.demo_status,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: true,
+          isInitializing: false,
+          isLoadingAcademyProfile: false,
+          error: null,
+        });
+        return;
+      } else if (user && !isAllowedRole(user.role)) {
+        this.clearSession(AUTH_MESSAGES.UNAUTHORIZED_ROLE);
+        return;
+      } else if (user && user.is_active === false) {
+        this.clearSession(AUTH_MESSAGES.INACTIVE_USER);
         return;
       }
+    } catch (_) {
+      this.clearSession();
+      return;
     }
 
     this.setState({
@@ -172,7 +162,7 @@ class AuthStore {
     });
   }
 
-  public async setSession(user: AuthUser, accessToken: string, refreshToken: string) {
+  public async setSession(user: AuthUser) {
     const isAllowedRole =
       user.role === "ACADEMY_ADMIN" || user.role === "ACADEMY_STAFF" || user.role === "SUPER_ADMIN" || user.role === "SUPER_ADMIN_STAFF";
     if (!isAllowedRole) {
@@ -185,14 +175,13 @@ class AuthStore {
       throw new Error(AUTH_MESSAGES.INACTIVE_USER);
     }
 
-    tokenStorage.setAccessToken(accessToken);
-    tokenStorage.setRefreshToken(refreshToken);
+    tokenStorage.clearTokens();
 
     this.setState({
       user,
       role: user.role,
-      accessToken,
-      refreshToken,
+      accessToken: null,
+      refreshToken: null,
       isAuthenticated: true,
       isInitializing: false,
       isLoadingAcademyProfile: true,
@@ -233,13 +222,10 @@ class AuthStore {
   }
 
   public async logout(errorMessage: string | null = null) {
-    const refreshToken = this.state.refreshToken || tokenStorage.getRefreshToken();
-    if (refreshToken) {
-      try {
-        await authApi.logout(refreshToken);
-      } catch (_) {
-        // Silently catch errors if token was already invalid or blacklisted
-      }
+    try {
+      await authApi.logout();
+    } catch (_) {
+      // Silently catch errors if cookie was already cleared or expired
     }
 
     tokenStorage.clearTokens();

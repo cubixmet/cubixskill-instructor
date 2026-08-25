@@ -57,7 +57,8 @@ import { curriculumService } from '../services/curriculum.service';
 export const CourseCurriculumPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { courseUuid } = useParams<{ courseUuid?: string }>();
+  const params = useParams<{ courseId?: string; courseUuid?: string }>();
+  const courseUuid = params.courseId || params.courseUuid;
   const autoAttachedUuid = searchParams.get('attachedUuid');
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<{ code?: number; message: string } | null>(null);
@@ -163,6 +164,8 @@ export const CourseCurriculumPage: React.FC = () => {
     title: string;
     lessonCount?: number;
   } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Sensors for dnd-kit with touch support
   const sensors = useSensors(
@@ -231,15 +234,23 @@ export const CourseCurriculumPage: React.FC = () => {
   };
 
   const handleConfirmDelete = async () => {
-    if (!deleteModalTarget || !courseUuid) return;
-    if (deleteModalTarget.type === 'module') {
-      await curriculumService.deleteModule(deleteModalTarget.moduleUuid, courseUuid);
-      showToast('Module and its lessons deleted.');
-    } else if (deleteModalTarget.lessonUuid) {
-      curriculumService.deleteLesson(deleteModalTarget.lessonUuid);
-      showToast('Lesson deleted successfully.');
+    if (!deleteModalTarget || !courseUuid || isDeleting) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      if (deleteModalTarget.type === 'module') {
+        await curriculumService.deleteModule(deleteModalTarget.moduleUuid, courseUuid);
+        showToast('Module and its lessons deleted.');
+      } else if (deleteModalTarget.lessonUuid) {
+        await curriculumService.deleteLesson(deleteModalTarget.lessonUuid);
+        showToast('Lesson deleted successfully.');
+      }
+      setDeleteModalTarget(null);
+    } catch (err: any) {
+      setDeleteError(err?.response?.data?.message || err?.message || 'Failed to delete. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
-    setDeleteModalTarget(null);
   };
 
   // LESSON SERVICE HANDLERS
@@ -666,27 +677,68 @@ export const CourseCurriculumPage: React.FC = () => {
       {/* DELETE CONFIRMATION MODAL */}
       <Modal
         isOpen={Boolean(deleteModalTarget)}
-        onClose={() => setDeleteModalTarget(null)}
+        onClose={() => {
+          if (!isDeleting) {
+            setDeleteModalTarget(null);
+            setDeleteError(null);
+          }
+        }}
         title={`Delete ${deleteModalTarget?.type === 'module' ? 'Module' : 'Lesson'}?`}
+        maxWidth="sm"
       >
-        <div className="space-y-4 text-xs text-left font-sans">
-          <p className="text-[#64748B] font-normal">
-            Are you sure you want to delete <strong className="text-[#0F172A]">{deleteModalTarget?.title}</strong>?
+        <div className="flex flex-col gap-3 p-6 text-left font-sans text-xs">
+          <p className="text-sm font-normal text-[var(--text-secondary,#64748B)] dark:text-[#94A3B8] leading-relaxed">
+            Are you sure you want to delete{' '}
+            <span className="font-medium text-[var(--text-primary,#0F172A)] dark:text-[#F8FAFC]">
+              "{deleteModalTarget?.title}"
+            </span>
+            ?
+          </p>
+
+          <p className="text-xs text-[#F87171] font-medium">
+            This action cannot be undone.
           </p>
 
           {deleteModalTarget?.type === 'module' && (deleteModalTarget.lessonCount || 0) > 0 && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 font-medium">
-              ⚠️ Warning: This module contains {deleteModalTarget.lessonCount} lessons. Deleting the module will also permanently remove all inner lessons.
+            <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-xl text-rose-800 dark:text-rose-300 font-medium text-xs">
+              Warning: This module contains {deleteModalTarget.lessonCount} {deleteModalTarget.lessonCount === 1 ? 'lesson' : 'lessons'}. Deleting it will permanently remove all contained lessons.
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#E2E8F0]">
-            <Button variant="outline" onClick={() => setDeleteModalTarget(null)}>
+          {deleteError && (
+            <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-xl text-rose-800 dark:text-rose-300 font-medium text-xs">
+              {deleteError}
+            </div>
+          )}
+
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pt-4 border-t border-[var(--border,#E2E8F0)] dark:border-[#263244] mt-2">
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={() => {
+                setDeleteModalTarget(null);
+                setDeleteError(null);
+              }}
+              className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl font-medium text-sm bg-[var(--surface-secondary,#F1F5F9)] dark:bg-[#1E293B] border border-[var(--border,#E2E8F0)] dark:border-[#334155] text-[var(--text-secondary,#64748B)] dark:text-[#CBD5E1] hover:bg-[var(--surface-hover,#E2E8F0)] dark:hover:bg-[#334155] hover:text-[var(--text-primary,#0F172A)] dark:hover:text-[#F8FAFC] transition-colors cursor-pointer disabled:opacity-50"
+            >
               Cancel
-            </Button>
-            <Button onClick={handleConfirmDelete} className="bg-rose-600 hover:bg-rose-700 text-white font-semibold">
-              Confirm Delete
-            </Button>
+            </button>
+
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={handleConfirmDelete}
+              className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl font-medium text-sm bg-[#E11D48] hover:bg-[#BE123C] text-white transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeleting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                <span>Confirm Delete</span>
+              )}
+            </button>
           </div>
         </div>
       </Modal>

@@ -73,33 +73,33 @@ export const DedicatedLiveClassroomView: React.FC<DedicatedLiveClassroomViewProp
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900 text-white font-sans flex flex-col overflow-hidden select-none w-full max-w-full min-w-0">
+    <div className="fixed inset-0 z-50 bg-[#F8FAFC] dark:bg-[#0B1120] text-[#0F172A] dark:text-[#F8FAFC] font-sans flex flex-col overflow-hidden select-none w-full max-w-full min-w-0">
       {/* 1. CLASSROOM HEADER BAR */}
-      <header className="h-12 sm:h-14 bg-slate-950 border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between shrink-0 w-full max-w-full min-w-0">
+      <header className="h-12 sm:h-14 bg-white dark:bg-[#111827] border-b border-[#E2E8F0] dark:border-[#263244] px-3 sm:px-4 flex items-center justify-between shrink-0 w-full max-w-full min-w-0">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <button
             type="button"
             onClick={onLeaveClassroom}
-            className="lg:hidden p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer shrink-0"
+            className="lg:hidden p-1 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-[#172033] cursor-pointer shrink-0"
             title="Leave Classroom"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-xs sm:text-sm shrink-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#2563EB] text-white font-bold flex items-center justify-center text-xs sm:text-sm shrink-0">
             C
           </div>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="font-extrabold text-xs sm:text-sm text-white truncate max-w-[200px] sm:max-w-sm">
+              <h2 className="font-semibold text-xs sm:text-sm text-[#0F172A] dark:text-[#F8FAFC] truncate max-w-[200px] sm:max-w-sm">
                 {session.title}
               </h2>
-              <span className="bg-rose-600 text-white text-[9px] sm:text-[10px] font-extrabold px-1.5 py-0.5 rounded-full flex items-center gap-1 animate-pulse shrink-0">
+              <span className="bg-rose-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1 animate-pulse shrink-0">
                 <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> LIVE
               </span>
             </div>
-            <span className="text-[9.5px] sm:text-[10px] text-slate-400 font-medium block truncate">
+            <span className="text-[9.5px] sm:text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal block truncate">
               {session.courseTitle || 'CubixSkill LMS'}
             </span>
           </div>
@@ -107,15 +107,15 @@ export const DedicatedLiveClassroomView: React.FC<DedicatedLiveClassroomViewProp
 
         {/* Live Timer & Leave Action */}
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-          <div className="flex items-center gap-1.5 bg-slate-900 px-2 sm:px-3 py-1 rounded-xl border border-slate-800 text-[11px] font-mono font-bold text-sky-400">
-            <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#0F172A] px-2 sm:px-3 py-1 rounded-xl border border-[#E2E8F0] dark:border-[#334155] text-[11px] font-mono font-semibold text-[#2563EB] dark:text-[#60A5FA]">
+            <Clock className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
             <span>{formatTimer(secondsElapsed)}</span>
           </div>
 
           <Button
             size="sm"
             onClick={onLeaveClassroom}
-            className="h-8 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs px-2.5 sm:px-3"
+            className="h-8 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs px-2.5 sm:px-3"
             leftIcon={<LogOut className="w-3.5 h-3.5" />}
           >
             <span className="hidden sm:inline">Leave</span>
@@ -126,40 +126,40 @@ export const DedicatedLiveClassroomView: React.FC<DedicatedLiveClassroomViewProp
       {/* 2. MAIN RESPONSIVE CONTENT AREA */}
       <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 overflow-hidden min-h-0 w-full max-w-full min-w-0">
         {/* LEFT PANEL: DESKTOP COURSE CONTEXT & NAV (3 Cols Desktop) */}
-        <div className="hidden lg:flex lg:col-span-3 bg-slate-950 border-r border-slate-800 flex-col p-3 space-y-4 overflow-y-auto min-h-0">
+        <div className="hidden lg:flex lg:col-span-3 bg-white dark:bg-[#111827] border-r border-[#E2E8F0] dark:border-[#263244] flex-col p-3 space-y-4 overflow-y-auto min-h-0">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase text-slate-400">Course Info</span>
-            <h4 className="font-extrabold text-xs text-white">
+            <span className="text-[10px] font-semibold uppercase text-[#64748B] dark:text-[#94A3B8]">Course Info</span>
+            <h4 className="font-semibold text-xs text-[#0F172A] dark:text-[#F8FAFC]">
               {session.courseTitle || 'Full Stack Web Development Architecture'}
             </h4>
           </div>
 
-          <div className="space-y-2 pt-2 border-t border-slate-800 text-xs">
-            <span className="text-[10px] font-bold uppercase text-slate-400 block">Classroom Agenda</span>
-            <p className="text-slate-300 leading-relaxed text-[11px]">
+          <div className="space-y-2 pt-2 border-t border-[#E2E8F0] dark:border-[#263244] text-xs">
+            <span className="text-[10px] font-semibold uppercase text-[#64748B] dark:text-[#94A3B8] block">Classroom Agenda</span>
+            <p className="text-[#475569] dark:text-[#CBD5E1] leading-relaxed text-[11px]">
               {session.description}
             </p>
           </div>
 
           {session.instructions && (
-            <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-1 text-[11px]">
-              <span className="font-bold text-amber-400 block">Session Instructions:</span>
-              <p className="text-slate-300">{session.instructions}</p>
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 rounded-xl space-y-1 text-[11px]">
+              <span className="font-semibold text-amber-900 dark:text-amber-300 block">Session Instructions:</span>
+              <p className="text-amber-800 dark:text-amber-200">{session.instructions}</p>
             </div>
           )}
 
-          <div className="p-3 bg-blue-950/40 border border-blue-800/60 rounded-xl space-y-1.5 text-[11px]">
-            <div className="flex items-center justify-between text-blue-300 font-bold">
+          <div className="p-3 bg-blue-50 dark:bg-[rgba(37,99,235,0.12)] border border-blue-200 dark:border-[rgba(59,130,246,0.18)] rounded-xl space-y-1.5 text-[11px]">
+            <div className="flex items-center justify-between text-[#2563EB] dark:text-[#60A5FA] font-semibold">
               <span>{session.platform} Embedded Room</span>
-              <ShieldCheck className="w-4 h-4 text-blue-400" />
+              <ShieldCheck className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
             </div>
             {session.meetingId && (
-              <span className="text-slate-300 block font-mono text-[10px]">
+              <span className="text-[#475569] dark:text-[#CBD5E1] block font-mono text-[10px]">
                 ID: <strong>{session.meetingId}</strong>
               </span>
             )}
             {session.passcode && (
-              <span className="text-slate-300 block font-mono text-[10px]">
+              <span className="text-[#475569] dark:text-[#CBD5E1] block font-mono text-[10px]">
                 Passcode: <strong>{session.passcode}</strong>
               </span>
             )}
@@ -167,27 +167,27 @@ export const DedicatedLiveClassroomView: React.FC<DedicatedLiveClassroomViewProp
               href={session.meetingUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-blue-400 hover:underline font-bold text-[10px] flex items-center gap-1 pt-1"
+              className="text-[#2563EB] dark:text-[#60A5FA] hover:underline font-semibold text-[10px] flex items-center gap-1 pt-1"
             >
               <ExternalLink className="w-3 h-3" /> Direct Provider Window
             </a>
           </div>
         </div>
 
-        {/* CENTER PANEL: LIVE VIDEO CONTAINER (Aspect 16:9 on mobile, flex-1 on desktop) */}
-        <div className="w-full lg:col-span-6 bg-black flex flex-col relative justify-center items-center overflow-hidden aspect-video lg:aspect-auto lg:h-full shrink-0 lg:shrink">
+        {/* CENTER PANEL: LIVE VIDEO CONTAINER */}
+        <div className="w-full lg:col-span-6 bg-[#020617] border border-[#263244] flex flex-col relative justify-center items-center overflow-hidden aspect-video lg:aspect-auto lg:h-full shrink-0 lg:shrink">
           {session.sessionType === 'external' ? (
-            <div className="w-full h-full flex flex-col items-center justify-center p-3 sm:p-6 text-center space-y-2 sm:space-y-4 bg-slate-950">
-              <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center shrink-0">
+            <div className="w-full h-full flex flex-col items-center justify-center p-3 sm:p-6 text-center space-y-2 sm:space-y-4 bg-[#020617]">
+              <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-blue-600/20 text-[#60A5FA] border border-blue-500/30 flex items-center justify-center shrink-0">
                 <Video className="w-5 h-5 sm:w-8 sm:h-8" />
               </div>
 
               <div className="space-y-1 max-w-md">
-                <Badge variant="info" size="sm" className="font-bold uppercase text-[9px] sm:text-[10px]">
+                <Badge variant="info" size="sm" className="font-semibold uppercase text-[9px] sm:text-[10px]">
                   {session.platform} Classroom Active
                 </Badge>
-                <h3 className="text-xs sm:text-lg font-extrabold text-white truncate max-w-xs sm:max-w-md">{session.title}</h3>
-                <p className="text-[10px] sm:text-xs text-slate-400 leading-relaxed hidden sm:block">
+                <h3 className="text-xs sm:text-lg font-semibold text-[#F8FAFC] truncate max-w-xs sm:max-w-md">{session.title}</h3>
+                <p className="text-[10px] sm:text-xs text-[#94A3B8] leading-relaxed hidden sm:block">
                   Participating in a secure CubixSkill embedded session. Attendance &amp; chat are synchronized.
                 </p>
               </div>
@@ -196,21 +196,21 @@ export const DedicatedLiveClassroomView: React.FC<DedicatedLiveClassroomViewProp
                 href={session.meetingUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl bg-[#2563EB] hover:bg-blue-700 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
+                className="px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-xs flex items-center gap-1.5 shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
               >
                 <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Launch Interactive Meeting
               </a>
             </div>
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 relative">
-              <div className="w-full h-full bg-slate-900 flex items-center justify-center relative">
+            <div className="w-full h-full flex flex-col items-center justify-center bg-[#020617] relative">
+              <div className="w-full h-full bg-[#0F172A] flex items-center justify-center relative">
                 <img
                   src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200"
                   alt="CubixSkill Native Stream"
                   className="w-full h-full object-cover opacity-60"
                 />
 
-                <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-slate-950/80 backdrop-blur-md px-2.5 py-1 rounded-xl border border-slate-800 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold">
+                <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-[#0F172A]/90 backdrop-blur-md px-2.5 py-1 rounded-xl border border-[#334155] flex items-center gap-1.5 text-[10px] sm:text-xs font-semibold text-[#F8FAFC]">
                   <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
                   <span>Native Stream</span>
                 </div>
@@ -219,10 +219,10 @@ export const DedicatedLiveClassroomView: React.FC<DedicatedLiveClassroomViewProp
           )}
         </div>
 
-        {/* INTERACTIVE CHAT & TABS PANE (Flex-1 below video on mobile; Right 3 Cols Desktop) */}
-        <div className="flex-1 lg:col-span-3 bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col overflow-hidden min-h-0 w-full max-w-full min-w-0">
+        {/* INTERACTIVE CHAT & TABS PANE */}
+        <div className="flex-1 lg:col-span-3 bg-white dark:bg-[#111827] border-t lg:border-t-0 lg:border-l border-[#E2E8F0] dark:border-[#263244] flex flex-col overflow-hidden min-h-0 w-full max-w-full min-w-0">
           {/* Mobile/Desktop Tab Header */}
-          <div className="p-1.5 sm:p-2 border-b border-slate-800 flex items-center gap-1 bg-slate-900 shrink-0 w-full overflow-x-auto no-scrollbar">
+          <div className="p-1.5 sm:p-2 border-b border-[#E2E8F0] dark:border-[#263244] flex items-center gap-1 bg-slate-50 dark:bg-[#0F172A] shrink-0 w-full overflow-x-auto no-scrollbar">
             {[
               { id: 'chat', label: 'Chat', icon: MessageSquare },
               { id: 'participants', label: 'People (4)', icon: Users },
@@ -236,8 +236,8 @@ export const DedicatedLiveClassroomView: React.FC<DedicatedLiveClassroomViewProp
                   key={t.id}
                   type="button"
                   onClick={() => setActiveTab(t.id as 'chat' | 'participants' | 'resources' | 'qa')}
-                  className={`flex-1 py-1.5 px-2 text-[10.5px] font-bold rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer shrink-0 ${
-                    active ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                  className={`flex-1 py-1.5 px-2 text-[10.5px] font-semibold rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer shrink-0 ${
+                    active ? 'bg-[#2563EB] text-white font-bold' : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
                   }`}
                 >
                   <Icon className="w-3 h-3 shrink-0" />
@@ -249,17 +249,17 @@ export const DedicatedLiveClassroomView: React.FC<DedicatedLiveClassroomViewProp
 
           {/* TAB 1: LIVE CHAT STREAM & COMPOSER */}
           {activeTab === 'chat' && (
-            <div className="flex-1 flex flex-col min-h-0 bg-slate-950 w-full max-w-full min-w-0">
+            <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-[#111827] w-full max-w-full min-w-0">
               <div className="flex-1 p-3 overflow-y-auto space-y-2.5 min-h-0">
                 {chatMessages.map((m) => (
                   <div key={m.id} className="space-y-0.5 text-xs text-left w-full min-w-0">
                     <div className="flex items-center justify-between text-[10px] gap-1">
-                      <span className={`font-bold truncate ${m.role === 'instructor' ? 'text-blue-400' : 'text-slate-300'}`}>
+                      <span className={`font-semibold truncate ${m.role === 'instructor' ? 'text-[#2563EB] dark:text-[#60A5FA]' : 'text-[#0F172A] dark:text-[#F8FAFC]'}`}>
                         {m.sender}
                       </span>
-                      <span className="text-slate-500 text-[9px] shrink-0">{m.time}</span>
+                      <span className="text-[#64748B] text-[9px] shrink-0">{m.time}</span>
                     </div>
-                    <p className="bg-slate-900 border border-slate-800 p-2 rounded-xl text-slate-200 text-xs leading-relaxed break-words whitespace-pre-wrap">
+                    <p className="bg-slate-50 dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] p-2 rounded-xl text-[#0F172A] dark:text-[#CBD5E1] text-xs leading-relaxed break-words whitespace-pre-wrap">
                       {m.content}
                     </p>
                   </div>
@@ -267,17 +267,17 @@ export const DedicatedLiveClassroomView: React.FC<DedicatedLiveClassroomViewProp
               </div>
 
               {/* Chat Full-Width Input */}
-              <form onSubmit={handleSendChat} className="p-2 sm:p-2.5 border-t border-slate-800 bg-slate-900 flex items-center gap-2 shrink-0 w-full box-border">
+              <form onSubmit={handleSendChat} className="p-2 sm:p-2.5 border-t border-[#E2E8F0] dark:border-[#263244] bg-white dark:bg-[#111827] flex items-center gap-2 shrink-0 w-full box-border">
                 <input
                   type="text"
                   placeholder="Type a message..."
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  className="flex-1 min-w-0 h-9 rounded-xl bg-slate-950 border border-slate-800 px-3 text-xs text-white focus:outline-none focus:border-blue-500 font-normal"
+                  className="flex-1 min-w-0 h-9 rounded-xl bg-slate-50 dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] px-3 text-xs text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6] font-normal"
                 />
                 <button
                   type="submit"
-                  className="h-9 px-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center justify-center cursor-pointer shrink-0"
+                  className="h-9 px-3.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl font-medium text-xs flex items-center justify-center cursor-pointer shrink-0"
                 >
                   <Send className="w-3.5 h-3.5" />
                 </button>
@@ -287,16 +287,16 @@ export const DedicatedLiveClassroomView: React.FC<DedicatedLiveClassroomViewProp
 
           {/* TAB 2: PARTICIPANTS STREAM */}
           {activeTab === 'participants' && (
-            <div className="flex-1 p-3 overflow-y-auto space-y-2 text-xs text-left min-h-0">
+            <div className="flex-1 p-3 overflow-y-auto space-y-2 text-xs text-left min-h-0 bg-white dark:bg-[#111827]">
               {(session.attendanceRecords || []).map((student) => (
-                <div key={student.studentUuid} className="p-2 bg-slate-900 rounded-xl flex items-center justify-between border border-slate-800">
+                <div key={student.studentUuid} className="p-2 bg-slate-50 dark:bg-[#0F172A] rounded-xl flex items-center justify-between border border-[#E2E8F0] dark:border-[#334155]">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-blue-50 dark:bg-[rgba(37,99,235,0.12)] text-[#2563EB] dark:text-[#60A5FA] font-bold text-[10px] flex items-center justify-center shrink-0 border border-blue-100 dark:border-[rgba(59,130,246,0.18)]">
                       {student.studentName.charAt(0)}
                     </div>
-                    <span className="font-bold text-slate-200 text-xs truncate">{student.studentName}</span>
+                    <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] text-xs truncate">{student.studentName}</span>
                   </div>
-                  <span className="text-[9.5px] text-emerald-400 font-bold bg-emerald-950 px-2 py-0.5 rounded shrink-0">
+                  <span className="text-[9.5px] text-emerald-700 dark:text-[#6EE7B7] font-semibold bg-emerald-50 dark:bg-[rgba(16,185,129,0.12)] px-2 py-0.5 rounded border border-emerald-200 dark:border-[rgba(52,211,153,0.22)] shrink-0">
                     Joined
                   </span>
                 </div>
@@ -306,14 +306,14 @@ export const DedicatedLiveClassroomView: React.FC<DedicatedLiveClassroomViewProp
 
           {/* TAB 3: RESOURCES */}
           {activeTab === 'resources' && (
-            <div className="flex-1 p-3 overflow-y-auto space-y-2 text-xs text-left min-h-0">
+            <div className="flex-1 p-3 overflow-y-auto space-y-2 text-xs text-left min-h-0 bg-white dark:bg-[#111827]">
               {(session.attachments || []).map((att) => (
-                <div key={att.id} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between gap-2">
+                <div key={att.id} className="p-2.5 bg-slate-50 dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <Paperclip className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                    <span className="font-bold text-slate-200 text-xs truncate">{att.name}</span>
+                    <Paperclip className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
+                    <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] text-xs truncate">{att.name}</span>
                   </div>
-                  <Button size="sm" variant="outline" className="h-7 text-[10px] font-bold text-blue-400 border-slate-700 shrink-0">
+                  <Button size="sm" variant="outline" className="h-7 text-[10px] font-semibold text-[#2563EB] dark:text-[#60A5FA] border-[#CBD5E1] dark:border-[#334155] shrink-0">
                     Get
                   </Button>
                 </div>
@@ -323,49 +323,53 @@ export const DedicatedLiveClassroomView: React.FC<DedicatedLiveClassroomViewProp
 
           {/* TAB 4: Q&A */}
           {activeTab === 'qa' && (
-            <div className="flex-1 p-4 text-center text-slate-500 space-y-1 text-xs min-h-0 flex flex-col justify-center">
-              <HelpCircle className="w-8 h-8 mx-auto text-slate-600" />
-              <p className="font-bold text-slate-300">Q&amp;A Queue Empty</p>
-              <p className="text-[11px]">Students can raise hand or post questions.</p>
+            <div className="flex-1 p-4 text-center text-[#64748B] dark:text-[#94A3B8] space-y-1 text-xs min-h-0 flex flex-col justify-center bg-white dark:bg-[#111827]">
+              <HelpCircle className="w-8 h-8 mx-auto text-[#64748B] dark:text-[#94A3B8]" />
+              <p className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Q&amp;A Queue Empty</p>
+              <p className="text-[11px] font-normal">Students can raise hand or post questions.</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* 3. BOTTOM CLASSROOM CONTROL BAR (Sticky above mobile nav) */}
-      <footer className="h-12 sm:h-14 bg-slate-950 border-t border-slate-800 px-3 sm:px-4 flex items-center justify-between shrink-0 z-20 pb-[env(safe-area-inset-bottom)]">
+      {/* 3. BOTTOM CLASSROOM CONTROL BAR */}
+      <footer className="h-12 sm:h-14 bg-white dark:bg-[#111827] border-t border-[#E2E8F0] dark:border-[#263244] px-3 sm:px-4 flex items-center justify-between shrink-0 z-20 pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setIsMicOn(!isMicOn)}
-            className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
-              isMicOn ? 'bg-slate-900 border-slate-800 text-white' : 'bg-rose-900/60 border-rose-800 text-rose-300'
+            className={`p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+              isMicOn
+                ? 'bg-slate-100 dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1]'
+                : 'bg-rose-50 dark:bg-[rgba(239,68,68,0.10)] border border-rose-200 dark:border-[rgba(248,113,113,0.25)] text-rose-600 dark:text-[#F87171]'
             }`}
           >
-            {isMicOn ? <Mic className="w-4 h-4 text-emerald-400" /> : <MicOff className="w-4 h-4 text-rose-400" />}
+            {isMicOn ? <Mic className="w-4 h-4 text-emerald-600 dark:text-[#34D399]" /> : <MicOff className="w-4 h-4 text-rose-500 dark:text-rose-400" />}
             <span className="hidden sm:inline">{isMicOn ? 'Mute Mic' : 'Unmute Mic'}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setHandRaised(!handRaised)}
-            className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
-              handRaised ? 'bg-amber-900/60 border-amber-800 text-amber-300' : 'bg-slate-900 border-slate-800 text-slate-300'
+            className={`p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+              handRaised
+                ? 'bg-amber-50 dark:bg-[rgba(245,158,11,0.14)] border border-amber-300 dark:border-amber-500/50 text-amber-700 dark:text-amber-300'
+                : 'bg-slate-100 dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1]'
             }`}
           >
-            <Hand className="w-4 h-4 text-amber-400" />
+            <Hand className="w-4 h-4 text-amber-500 dark:text-amber-400" />
             <span className="hidden sm:inline">{handRaised ? 'Hand Raised' : 'Raise Hand'}</span>
           </button>
         </div>
 
-        <div className="text-[11px] text-slate-400 font-medium hidden md:block">
+        <div className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-normal hidden md:block">
           CubixSkill Enterprise Virtual Classroom Engine
         </div>
 
         <Button
           size="sm"
           onClick={onLeaveClassroom}
-          className="h-8 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs px-3 sm:px-4"
+          className="h-8 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs px-3 sm:px-4"
         >
           Leave
         </Button>

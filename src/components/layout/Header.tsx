@@ -26,7 +26,7 @@ import { DesktopGlobalSearch } from "../global-search/DesktopGlobalSearch";
 import { MobileGlobalSearch } from "../global-search/MobileGlobalSearch";
 import { getUserInitials, getAcademyInitials, getRoleLabel } from "../../utils/branding.utils";
 
-import { creditService } from "../../services/credit.service";
+import { useCreditSummary } from "../../hooks/useCreditSummary";
 
 export interface HeaderProps {
   onOpenMobileMenu?: () => void;
@@ -37,8 +37,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   const { setTheme, resolvedTheme } = useTheme();
   const location = useLocation();
 
-  const [creditBalance, setCreditBalance] = useState<string>("0");
-  const [isLowBalance, setIsLowBalance] = useState<boolean>(false);
+  const { summary } = useCreditSummary();
+  const creditBalance = summary ? Math.floor(Number(summary.balance || 0)).toLocaleString() : "0";
+  const isLowBalance = Boolean(summary?.is_low_balance);
+
   const [profileOpen, setProfileOpen] = useState(false);
   const [quickActionOpen, setQuickActionOpen] = useState(false);
   const [mobileCreateDrawerOpen, setMobileCreateDrawerOpen] = useState(false);
@@ -46,18 +48,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
 
   const profileRef = useRef<HTMLDivElement>(null);
   const quickActionRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    creditService.getSummary().then((data) => {
-      if (isMounted && data) {
-        const balNum = Number(data.balance || 0);
-        setCreditBalance(Math.floor(balNum).toLocaleString());
-        setIsLowBalance(Boolean(data.is_low_balance));
-      }
-    }).catch(() => {});
-    return () => { isMounted = false; };
-  }, [location.pathname]);
 
   // Close popups on click outside & Escape key
   useEffect(() => {

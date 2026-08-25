@@ -66,16 +66,16 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
   const getStatusBadge = (status: string) => {
     if (status === 'live') {
       return (
-        <Badge variant="error" size="sm" className="font-extrabold animate-pulse flex items-center gap-1 text-[10px]">
+        <Badge variant="error" size="sm" className="font-semibold animate-pulse flex items-center gap-1 text-[10px]">
           <Radio className="w-3 h-3 shrink-0" /> LIVE NOW
         </Badge>
       );
     }
     if (status === 'upcoming') {
-      return <Badge variant="warning" size="sm" className="font-extrabold text-[10px]">Upcoming</Badge>;
+      return <Badge variant="info" size="sm" className="font-semibold text-[10px] bg-blue-50 dark:bg-[rgba(37,99,235,0.12)] border border-blue-100 dark:border-[rgba(59,130,246,0.18)] text-[#2563EB] dark:text-[#60A5FA]">Upcoming</Badge>;
     }
     if (status === 'completed') {
-      return <Badge variant="success" size="sm" className="font-extrabold text-[10px]">Completed</Badge>;
+      return <Badge variant="success" size="sm" className="font-semibold text-[10px]">Completed</Badge>;
     }
     return <Badge variant="neutral" size="sm" className="font-semibold text-[10px]">Cancelled</Badge>;
   };
@@ -97,16 +97,16 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
         <div className="flex items-start justify-between gap-2 w-full min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 min-w-0 flex-1">
             {getStatusBadge(session.status)}
-            <span className="bg-slate-100 dark:bg-[#0F172A] text-slate-800 dark:text-[#60A5FA] font-extrabold px-2 py-0.5 rounded text-[10px] border border-slate-200 dark:border-[#334155]">
+            <span className="bg-slate-100 dark:bg-[#0F172A] text-slate-800 dark:text-[#60A5FA] font-semibold px-2 py-0.5 rounded text-[10px] border border-slate-200 dark:border-[#334155]">
               {session.platform}
             </span>
             {session.courseTitle && (
-              <span className="bg-blue-50 dark:bg-[#0F172A] text-[#2563EB] dark:text-[#60A5FA] font-bold px-2 py-0.5 rounded text-[10px] truncate max-w-[180px] border border-blue-100 dark:border-[#334155]">
+              <span className="bg-blue-50 dark:bg-[#0F172A] text-[#2563EB] dark:text-[#60A5FA] font-semibold px-2 py-0.5 rounded text-[10px] truncate max-w-[180px] border border-blue-100 dark:border-[#334155]">
                 {session.courseTitle}
               </span>
             )}
-            <span className="text-[#64748B] dark:text-[#94A3B8] font-semibold text-[11px] truncate">
-              Host: {session.hostName}
+            <span className="text-[#64748B] dark:text-[#94A3B8] font-normal text-[11px] truncate">
+              Host: <span className="text-[#0F172A] dark:text-[#CBD5E1] font-medium">{session.hostName}</span>
             </span>
           </div>
 
@@ -118,11 +118,11 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
               className="p-1.5 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl cursor-pointer transition-colors"
               aria-label="More actions"
             >
-              <MoreVertical className="w-4 h-4" />
+              <MoreVertical className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />
             </button>
 
             {showMenu && (
-              <div className="absolute right-0 top-full mt-1 z-30 w-44 bg-white dark:bg-[#111827] rounded-xl border border-[#E2E8F0] dark:border-[#334155] shadow-xl py-1 text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1]">
+              <div className="absolute right-0 top-full mt-1 z-30 w-44 bg-white dark:bg-[#111827] rounded-xl border border-[#E2E8F0] dark:border-[#334155] shadow-xl py-1 text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1]">
                 <button
                   type="button"
                   onClick={() => {
@@ -165,37 +165,37 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
           </div>
         </div>
 
-        {/* FULL TITLE - NO TRUNCATION */}
-        <h3 className="text-xs sm:text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] leading-snug tracking-tight break-words whitespace-normal">
+        {/* FULL TITLE */}
+        <h3 className="text-xs sm:text-base font-semibold text-[#0F172A] dark:text-[#F8FAFC] leading-snug tracking-tight break-words whitespace-normal">
           {session.title}
         </h3>
 
         {session.description && (
-          <p className="text-[#64748B] dark:text-[#94A3B8] text-xs line-clamp-2 leading-relaxed break-words">
+          <p className="text-[#64748B] dark:text-[#94A3B8] text-xs line-clamp-2 leading-relaxed break-words font-normal">
             {session.description}
           </p>
         )}
 
         {/* DATE, TIME & DURATION */}
-        <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8] pt-1 border-t border-slate-100 dark:border-[#263244]">
-          <div className="flex items-center gap-1 text-[#0F172A] dark:text-[#CBD5E1] font-bold">
+        <div className="flex flex-wrap items-center gap-3 text-[11px] font-normal text-[#64748B] dark:text-[#94A3B8] pt-1 border-t border-[#E2E8F0] dark:border-[#263244]">
+          <div className="flex items-center gap-1 text-[#0F172A] dark:text-[#CBD5E1] font-medium">
             <Calendar className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
             <span>{session.scheduledDate}</span>
           </div>
-          <div className="flex items-center gap-1 text-[#0F172A] dark:text-[#CBD5E1] font-bold">
-            <Clock className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+          <div className="flex items-center gap-1 text-[#0F172A] dark:text-[#CBD5E1] font-medium">
+            <Clock className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
             <span>{session.scheduledTime} ({session.durationMinutes} min)</span>
           </div>
         </div>
 
         {/* PRIMARY & SECONDARY ACTIONS ROW */}
-        <div className="pt-2 border-t border-slate-100 dark:border-[#263244] w-full min-w-0">
+        <div className="pt-2 border-t border-[#E2E8F0] dark:border-[#263244] w-full min-w-0">
           {session.status === 'live' ? (
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
               <button
                 type="button"
                 onClick={handleJoinMeeting}
-                className="h-10 sm:h-9 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer w-full sm:w-auto flex-1 text-center"
+                className="h-10 sm:h-9 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer w-full sm:w-auto flex-1 text-center"
               >
                 <ExternalLink className="w-4 h-4 shrink-0" /> Join Live Classroom
               </button>
@@ -203,7 +203,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                 size="sm"
                 variant="outline"
                 onClick={() => onEnd(session.id)}
-                className="h-10 sm:h-9 font-bold text-xs w-full sm:w-auto bg-white dark:bg-[#172033] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#1E293B]"
+                className="h-10 sm:h-9 font-medium text-xs w-full sm:w-auto bg-slate-100 dark:bg-[#172033] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-200 dark:hover:bg-[#1E293B] hover:border-[#3B82F6] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]"
               >
                 End Session
               </Button>
@@ -214,7 +214,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                 size="sm"
                 disabled={isStarting}
                 onClick={handleStartClick}
-                className="h-10 sm:h-9 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-extrabold text-xs px-4 w-full sm:w-auto flex-1 shadow-[0_4px_12px_rgba(37,99,235,0.12)] cursor-pointer"
+                className="h-10 sm:h-9 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-xs px-4 w-full sm:w-auto flex-1 shadow-[0_4px_12px_rgba(37,99,235,0.12)] cursor-pointer"
                 leftIcon={<Play className="w-4 h-4 fill-current shrink-0" />}
               >
                 {isStarting ? 'Starting...' : 'Start Class'}
@@ -222,7 +222,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
               <button
                 type="button"
                 onClick={handleJoinMeeting}
-                className="h-10 sm:h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#CBD5E1] font-bold hover:bg-slate-50 dark:hover:bg-[#1E293B] hover:border-blue-400 dark:hover:border-[#3B82F6] flex items-center justify-center gap-1 transition-colors cursor-pointer text-xs w-full sm:w-auto"
+                className="h-10 sm:h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-slate-100 dark:bg-[#172033] text-[#0F172A] dark:text-[#CBD5E1] font-medium hover:bg-slate-200 dark:hover:bg-[#1E293B] hover:border-[#3B82F6] dark:hover:border-[#3B82F6] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] flex items-center justify-center gap-1 transition-colors cursor-pointer text-xs w-full sm:w-auto"
               >
                 <ExternalLink className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" /> Provider Link
               </button>
@@ -233,7 +233,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                 size="sm"
                 variant="outline"
                 onClick={() => onOpenAttendance?.(session)}
-                className="h-9 text-xs font-bold bg-white dark:bg-[#172033] border border-[#CBD5E1] dark:border-[#334155] text-[#2563EB] dark:text-[#60A5FA] hover:bg-slate-50 dark:hover:bg-[#1E293B] hover:border-blue-400 dark:hover:border-[#3B82F6] flex-1 sm:flex-initial"
+                className="h-9 text-xs font-medium bg-slate-100 dark:bg-[#172033] border border-[#CBD5E1] dark:border-[#334155] text-[#2563EB] dark:text-[#60A5FA] hover:bg-slate-200 dark:hover:bg-[#1E293B] hover:border-[#3B82F6] hover:text-[#2563EB] dark:hover:text-[#60A5FA] flex-1 sm:flex-initial"
                 leftIcon={<Users className="w-3.5 h-3.5" />}
               >
                 Attendance ({joinedCount})
@@ -243,7 +243,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                   size="sm"
                   variant="outline"
                   onClick={() => onOpenRecording?.(session)}
-                  className="h-9 text-xs font-bold bg-white dark:bg-[#172033] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#1E293B] hover:border-blue-400 dark:hover:border-[#3B82F6] flex-1 sm:flex-initial"
+                  className="h-9 text-xs font-medium bg-slate-100 dark:bg-[#172033] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-200 dark:hover:bg-[#1E293B] hover:border-[#3B82F6] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] flex-1 sm:flex-initial"
                   leftIcon={<Film className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />}
                 >
                   Recording
@@ -256,9 +256,9 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
 
       {/* CONFIRMATION DIALOG FOR CANCEL / DELETE */}
       {confirmModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-[#0F172A]/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white dark:bg-[#111827] rounded-2xl p-4 sm:p-5 max-w-sm w-full space-y-4 shadow-2xl border border-[#E2E8F0] dark:border-[#263244] text-left font-sans">
-            <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F8FAFC]">
+            <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
               {confirmModal === 'cancel' ? 'Cancel Live Session?' : 'Delete Live Session?'}
             </h3>
             <p className="text-xs text-[#64748B] dark:text-[#94A3B8] font-normal leading-relaxed">
@@ -272,7 +272,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => setConfirmModal(null)}
-                className="text-xs font-semibold h-9 px-3 bg-white dark:bg-[#172033] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1]"
+                className="text-xs font-semibold h-9 px-3 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1]"
               >
                 Keep Session
               </Button>
@@ -283,7 +283,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                   else onDelete(session.id);
                   setConfirmModal(null);
                 }}
-                className={`text-xs font-bold h-9 px-4 text-white ${
+                className={`text-xs font-semibold h-9 px-4 text-white ${
                   confirmModal === 'cancel' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-[#DC2626] hover:bg-rose-700'
                 }`}
               >

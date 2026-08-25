@@ -4,43 +4,62 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
-import { useStudentStore } from '../store/student.store';
+import { studentsService } from '../../../services/students.service';
 
 export const StudentEditPage: React.FC = () => {
   const navigate = useNavigate();
-  const { studentUuid } = useParams<{ studentUuid?: string }>();
-  const student = useStudentStore((state) => state.students.find((s) => s.uuid === studentUuid));
-  const updateStudent = useStudentStore((state) => state.updateStudent);
+  const { studentId, studentUuid } = useParams<{ studentId?: string; studentUuid?: string }>();
+  const id = studentId || studentUuid || '';
 
-  const [name, setName] = useState(student?.name || '');
-  const [email, setEmail] = useState(student?.email || '');
-  const [phone, setPhone] = useState(student?.phone || '');
-  const [notes, setNotes] = useState(student?.notes || '');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    if (student) {
-      const tid = setTimeout(() => {
-        setName(student.name);
-        setEmail(student.email);
-        setPhone(student.phone || '');
-        setNotes(student.notes || '');
-      }, 0);
-      return () => clearTimeout(tid);
-    }
-  }, [student]);
+    if (!id) return;
+    let isMounted = true;
+    setIsLoading(true);
+    studentsService.getStudent(id)
+      .then((data) => {
+        if (!isMounted) return;
+        setName(data.display_name || data.full_name || data.user?.full_name || '');
+        setEmail(data.email || data.user?.email || '');
+        setPhone(data.phone || data.user?.phone || '');
+        setNotes(data.bio || '');
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        setErrorMsg(err.message || 'Failed to load student details.');
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, [id]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!studentUuid || !name || !email) return;
+    if (!id || !name || !email) return;
 
-    updateStudent(studentUuid, {
-      name,
-      email,
-      phone,
-      notes,
-    });
-
-    navigate(`/students/${studentUuid}`);
+    setIsSubmitting(true);
+    setErrorMsg('');
+    try {
+      await studentsService.updateStudent(id, {
+        full_name: name,
+        email,
+        phone,
+        bio: notes,
+      });
+      navigate(`/students/${id}`);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to update student.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -48,7 +67,7 @@ export const StudentEditPage: React.FC = () => {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => navigate(`/students/${studentUuid}`)}
+          onClick={() => navigate(`/students/${id}`)}
           className="p-2 text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5 text-[#0F172A]" />
@@ -104,7 +123,7 @@ export const StudentEditPage: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E2E8F0]">
-            <Button type="button" variant="outline" onClick={() => navigate(`/students/${studentUuid}`)} className="border-[#E2E8F0]">
+            <Button type="button" variant="outline" onClick={() => navigate(`/students/${id}`)} className="border-[#E2E8F0]">
               Cancel
             </Button>
             <Button type="submit" leftIcon={<Save className="w-4 h-4" />} className="bg-[#2563EB] text-white">

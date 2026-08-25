@@ -29,7 +29,7 @@ export const CourseAnnouncementsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const courseUuid = params.courseUuid || '550e8400-e29b-41d4-a716-446655440000';
+  const courseUuid = params.courseUuid || '';
 
   // Subroute action handling
   const subPath = (params['*'] || '').replace(/^\/+/, '');

@@ -158,16 +158,16 @@ export const CreateLiveSessionModal: React.FC<CreateLiveSessionModalProps> = ({
       >
         <form onSubmit={handleSubmit} className="space-y-4 font-sans text-xs text-left max-h-[75vh] overflow-y-auto pr-1">
           {/* Session Mode Selector: External Provider vs CubixSkill Live */}
-          <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl space-y-2">
-            <label className="block font-extrabold text-blue-950 text-xs">Live Classroom Engine</label>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="p-3 bg-blue-50/80 dark:bg-[rgba(37,99,235,0.12)] border border-blue-200 dark:border-[rgba(59,130,246,0.22)] rounded-xl space-y-2">
+            <label className="block font-semibold text-[#0F172A] dark:text-[#CBD5E1] text-xs">Live Classroom Engine</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setSessionType('external')}
-                className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   sessionType === 'external'
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-xs'
+                    : 'bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#CBD5E1] border-[#E2E8F0] dark:border-[#334155] hover:bg-slate-50 dark:hover:bg-[#172033]'
                 }`}
               >
                 <Video className="w-4 h-4" />
@@ -177,13 +177,13 @@ export const CreateLiveSessionModal: React.FC<CreateLiveSessionModalProps> = ({
               <button
                 type="button"
                 onClick={() => setSessionType('cubixskill_live')}
-                className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   sessionType === 'cubixskill_live'
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-xs'
+                    : 'bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#CBD5E1] border-[#E2E8F0] dark:border-[#334155] hover:bg-slate-50 dark:hover:bg-[#172033]'
                 }`}
               >
-                <Radio className="w-4 h-4 text-rose-300" />
+                <Radio className="w-4 h-4 text-rose-400" />
                 <span>CubixSkill Live (Native WebRTC)</span>
               </button>
             </div>
@@ -192,81 +192,87 @@ export const CreateLiveSessionModal: React.FC<CreateLiveSessionModalProps> = ({
           {/* Title & Description */}
           <div className="space-y-3">
             <div>
-              <label className="block font-bold text-slate-900 mb-1">Session Title *</label>
+              <label className="block font-medium text-[#475569] dark:text-[#CBD5E1] mb-1">Session Title *</label>
               <Input
                 placeholder="e.g. 🚀 React 19 Server Components Architecture & Live Q&A"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
+                className="bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B]"
               />
             </div>
 
             <div>
-              <label className="block font-bold text-slate-900 mb-1">Short Agenda Description</label>
+              <label className="block font-medium text-[#475569] dark:text-[#CBD5E1] mb-1">Short Agenda Description</label>
               <Input
                 placeholder="Key topics to cover during lecture..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                className="bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B]"
               />
             </div>
           </div>
 
           {/* Platform & Host Name */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold text-slate-900 mb-1">Meeting Provider</label>
+              <label className="block font-medium text-[#475569] dark:text-[#CBD5E1] mb-1">Meeting Provider</label>
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value as LiveSessionItem['platform'])}
-                className="w-full h-9 rounded-lg border border-slate-200 px-3 bg-white text-slate-900 font-bold"
+                className="w-full h-9 rounded-lg border border-[#CBD5E1] dark:border-[#334155] px-3 bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] font-medium cursor-pointer"
               >
-                <option value="Zoom">Zoom</option>
-                <option value="Google Meet">Google Meet</option>
-                <option value="Microsoft Teams">Microsoft Teams</option>
-                <option value="Jitsi">Jitsi</option>
-                <option value="Custom">Custom Provider Link</option>
+                <option value="Zoom" className="bg-white dark:bg-[#111827]">Zoom</option>
+                <option value="Google Meet" className="bg-white dark:bg-[#111827]">Google Meet</option>
+                <option value="Microsoft Teams" className="bg-white dark:bg-[#111827]">Microsoft Teams</option>
+                <option value="Jitsi" className="bg-white dark:bg-[#111827]">Jitsi</option>
+                <option value="Custom" className="bg-white dark:bg-[#111827]">Custom Provider Link</option>
               </select>
             </div>
 
             <div>
-              <label className="block font-bold text-slate-900 mb-1">Host Name</label>
+              <label className="block font-medium text-[#475569] dark:text-[#CBD5E1] mb-1">Host Name</label>
               <Input
                 value={hostName}
                 onChange={(e) => setHostName(e.target.value)}
                 placeholder="Instructor Name"
+                className="bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B]"
               />
             </div>
           </div>
 
           {/* Provider Credentials */}
           {sessionType === 'external' && (
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+            <div className="p-3 bg-slate-50 dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl space-y-3">
               <div>
-                <label className="block font-bold text-slate-900 mb-1">Meeting Join Link *</label>
+                <label className="block font-medium text-[#475569] dark:text-[#CBD5E1] mb-1">Meeting Join Link *</label>
                 <Input
                   placeholder="https://zoom.us/j/9876543210 or Google Meet URL"
                   value={meetingUrl}
                   onChange={(e) => setMeetingUrl(e.target.value)}
                   required
-                  leftIcon={<LinkIcon className="w-4 h-4 text-slate-400" />}
+                  leftIcon={<LinkIcon className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />}
+                  className="bg-white dark:bg-[#111827] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B]"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-bold text-slate-700 text-[11px] mb-1">Meeting ID (Optional)</label>
+                  <label className="block font-medium text-[#64748B] dark:text-[#94A3B8] text-[11px] mb-1">Meeting ID (Optional)</label>
                   <Input
                     placeholder="987 654 3210"
                     value={meetingId}
                     onChange={(e) => setMeetingId(e.target.value)}
+                    className="bg-white dark:bg-[#111827] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B]"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 text-[11px] mb-1">Passcode (Optional)</label>
+                  <label className="block font-medium text-[#64748B] dark:text-[#94A3B8] text-[11px] mb-1">Passcode (Optional)</label>
                   <Input
                     placeholder="cubix2026"
                     value={passcode}
                     onChange={(e) => setPasscode(e.target.value)}
+                    className="bg-white dark:bg-[#111827] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B]"
                   />
                 </div>
               </div>
@@ -274,45 +280,48 @@ export const CreateLiveSessionModal: React.FC<CreateLiveSessionModalProps> = ({
           )}
 
           {/* Date, Time & Duration */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block font-bold text-slate-900 mb-1">Scheduled Date *</label>
+              <label className="block font-medium text-[#475569] dark:text-[#CBD5E1] mb-1">Scheduled Date *</label>
               <Input
                 type="date"
                 value={scheduledDate}
                 onChange={(e) => setScheduledDate(e.target.value)}
                 required
+                className="bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC]"
               />
             </div>
 
             <div>
-              <label className="block font-bold text-slate-900 mb-1">Start Time *</label>
+              <label className="block font-medium text-[#475569] dark:text-[#CBD5E1] mb-1">Start Time *</label>
               <Input
                 type="time"
                 value={scheduledTime}
                 onChange={(e) => setScheduledTime(e.target.value)}
                 required
+                className="bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC]"
               />
             </div>
 
             <div>
-              <label className="block font-bold text-slate-900 mb-1">Duration (Mins)</label>
+              <label className="block font-medium text-[#475569] dark:text-[#CBD5E1] mb-1">Duration (Mins)</label>
               <Input
                 type="number"
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(Number(e.target.value))}
                 required
+                className="bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC]"
               />
             </div>
           </div>
 
           {/* Auto-Announcement Dispatcher Toggle */}
-          <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between">
-            <div className="space-y-0.5">
-              <span className="font-extrabold text-indigo-950 flex items-center gap-1.5 text-xs">
-                <Megaphone className="w-4 h-4 text-indigo-600" /> Auto-Publish Course Announcement
+          <div className="p-3 bg-indigo-50/80 dark:bg-[rgba(99,102,241,0.12)] border border-indigo-200 dark:border-[rgba(99,102,241,0.22)] rounded-xl flex items-center justify-between gap-3">
+            <div className="space-y-0.5 min-w-0">
+              <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1.5 text-xs">
+                <Megaphone className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" /> Auto-Publish Course Announcement
               </span>
-              <p className="text-[10px] text-indigo-800 font-medium">
+              <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal leading-relaxed">
                 Automatically generate a linked Course Announcement with a "Join Live Classroom" action button.
               </p>
             </div>
@@ -320,18 +329,18 @@ export const CreateLiveSessionModal: React.FC<CreateLiveSessionModalProps> = ({
               type="checkbox"
               checked={autoCreateAnnouncement}
               onChange={(e) => setAutoCreateAnnouncement(e.target.checked)}
-              className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+              className="w-4 h-4 rounded text-[#2563EB] focus:ring-[#3B82F6] cursor-pointer shrink-0"
             />
           </div>
 
           {/* Attachments Section */}
-          <div className="space-y-2">
+          <div className="space-y-2 border-t border-[#E2E8F0] dark:border-[#263244] pt-3">
             <div className="flex items-center justify-between">
-              <label className="block font-extrabold text-slate-900">Lecture Materials &amp; Resources</label>
+              <label className="block font-medium text-[#475569] dark:text-[#CBD5E1]">Lecture Materials &amp; Resources</label>
               <button
                 type="button"
                 onClick={handleRequestAttachment}
-                className="text-blue-600 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                className="text-[#2563EB] dark:text-[#60A5FA] font-semibold text-xs hover:underline cursor-pointer flex items-center gap-1"
               >
                 <Plus className="w-3.5 h-3.5" /> Attach Lecture Resource
               </button>
@@ -340,17 +349,17 @@ export const CreateLiveSessionModal: React.FC<CreateLiveSessionModalProps> = ({
             {attachments.length > 0 && (
               <div className="space-y-1.5">
                 {attachments.map((att) => (
-                  <div key={att.id} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs">
-                    <div className="flex items-center gap-2">
-                      <Paperclip className="w-4 h-4 text-blue-600" />
-                      <span className="font-bold text-slate-900">{att.name}</span>
-                      <span className="text-[10px] text-slate-500">({att.sizeMb} MB)</span>
+                  <div key={att.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-lg text-xs">
+                    <div className="flex items-center gap-2 truncate">
+                      <Paperclip className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
+                      <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] truncate">{att.name}</span>
+                      <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal">({att.sizeMb} MB)</span>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => setAttachments(attachments.filter((a) => a.id !== att.id))}
-                      className="text-slate-400 hover:text-red-600 p-1 cursor-pointer"
+                      className="text-red-500 hover:text-red-700 dark:hover:text-[#F87171] p-1 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -361,11 +370,11 @@ export const CreateLiveSessionModal: React.FC<CreateLiveSessionModalProps> = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 sticky bottom-0 bg-white">
-            <Button variant="outline" type="button" onClick={onClose}>
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E2E8F0] dark:border-[#263244] sticky bottom-0 bg-white dark:bg-[#111827]">
+            <Button variant="outline" type="button" onClick={onClose} className="bg-white dark:bg-[#0F172A] border-[#E2E8F0] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1]">
               Cancel
             </Button>
-            <Button type="submit" className="bg-[#2563EB] text-white font-extrabold px-6">
+            <Button type="submit" className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium px-6 shadow-[0_4px_12px_rgba(37,99,235,0.12)]">
               {editingSession ? 'Save Changes' : 'Schedule Live Session'}
             </Button>
           </div>
@@ -381,21 +390,21 @@ export const CreateLiveSessionModal: React.FC<CreateLiveSessionModalProps> = ({
         maxWidth="sm"
       >
         <div className="space-y-4 font-sans text-xs text-left">
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2 text-amber-900">
-            <div className="flex items-center gap-2 font-black text-amber-950">
+          <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 rounded-xl space-y-2 text-amber-900 dark:text-amber-300">
+            <div className="flex items-center gap-2 font-semibold text-amber-950 dark:text-amber-200">
               <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
               <span>Academy Storage Consumption Notice</span>
             </div>
-            <p className="text-amber-800 text-xs leading-relaxed font-medium">
+            <p className="text-amber-800 dark:text-amber-300 text-xs leading-relaxed font-normal">
               Files uploaded to live session lecture materials are stored in your academy media storage. Storage credits will be deducted based on the uploaded file size.
             </p>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
-            <Button variant="outline" type="button" onClick={() => setStorageNoticeOpen(false)}>
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E2E8F0] dark:border-[#263244]">
+            <Button variant="outline" type="button" onClick={() => setStorageNoticeOpen(false)} className="bg-white dark:bg-[#0F172A] border-[#E2E8F0] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1]">
               Cancel
             </Button>
-            <Button type="button" onClick={handleConfirmStorage} className="bg-blue-600 text-white font-extrabold px-5">
+            <Button type="button" onClick={handleConfirmStorage} className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium px-5">
               Continue &amp; Attach Resource
             </Button>
           </div>

@@ -40,7 +40,7 @@ const COUNTRIES = [
 export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
   isOpen,
   onClose,
-  defaultCourseUuid = '550e8400-e29b-41d4-a716-446655440000',
+  defaultCourseUuid = '',
   defaultCourseTitle = 'Fullstack React 19 & TypeScript Masterclass',
   onSuccess,
 }) => {

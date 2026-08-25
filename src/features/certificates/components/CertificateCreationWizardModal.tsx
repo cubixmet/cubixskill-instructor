@@ -63,7 +63,7 @@ export const CertificateCreationWizardModal: React.FC<CertificateCreationWizardM
   isOpen,
   onClose,
   onLaunchDesigner,
-  initialCourseUuid = '550e8400-e29b-41d4-a716-446655440000',
+  initialCourseUuid = '',
 }) => {
   const navigate = useNavigate();
   const coursesByUuid = useCourseStore((state) => state.coursesByUuid) || {};
@@ -384,7 +384,7 @@ export const CertificateCreationWizardModal: React.FC<CertificateCreationWizardM
                   onChange={(e) => setCourseUuid(e.target.value)}
                   className="w-full h-11 px-3 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-semibold focus:border-blue-600 focus:outline-hidden"
                 >
-                  {(coursesList.length > 0 ? coursesList : [{ uuid: '550e8400-e29b-41d4-a716-446655440000', title: 'Full-Stack Software Architecture' }]).map((c) => (
+                  {coursesList.map((c) => (
                     <option key={c.uuid} value={c.uuid}>
                       {c.title}
                     </option>

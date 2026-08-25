@@ -23,14 +23,15 @@ import { Button } from '../../../components/ui/Button';
 import { Modal } from '../../../components/ui/Modal';
 import { exportToCsv, type CsvColumn } from '../../../utils/export-csv';
 
+import { useCreditSummary } from '../../../hooks/useCreditSummary';
+
 export const CreditsPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Backend Summary State
-  const [summary, setSummary] = useState<CreditSummaryData | null>(null);
-  const [isSummaryLoading, setIsSummaryLoading] = useState<boolean>(true);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
+  // Backend Summary State via shared TanStack Query hook
+  const { summary, isLoading: isSummaryLoading, isError, refetch: loadSummary } = useCreditSummary();
+  const summaryError = isError ? 'Unable to load credit balance.' : null;
 
   // Backend Usage Breakdown State
   const [usageItems, setUsageItems] = useState<CreditUsageItem[]>([]);
@@ -50,20 +51,6 @@ export const CreditsPage: React.FC = () => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 4000);
   };
-
-  const loadSummary = useCallback(async () => {
-    setIsSummaryLoading(true);
-    setSummaryError(null);
-    try {
-      const data = await creditService.getSummary();
-      setSummary(data);
-    } catch (err: any) {
-      console.error('Failed to load credit summary:', err);
-      setSummaryError('Unable to load credit balance.');
-    } finally {
-      setIsSummaryLoading(false);
-    }
-  }, []);
 
   const loadUsage = useCallback(async () => {
     setIsUsageLoading(true);
@@ -100,10 +87,10 @@ export const CreditsPage: React.FC = () => {
     loadUsage();
     loadLedger();
 
-    // Check for Stripe Checkout return query params
+    // Check for payment return query params
     const paymentStatus = searchParams.get('payment');
     if (paymentStatus === 'success') {
-      showToast('Stripe payment completed! Refreshing credit balance...');
+      showToast('Payment completed! Refreshing credit balance...');
       window.history.replaceState({}, '', '/credits');
     }
   }, [loadSummary, loadUsage, loadLedger, searchParams]);
@@ -205,7 +192,7 @@ export const CreditsPage: React.FC = () => {
       {summaryError ? (
         <Card padding="md" className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 text-center py-6">
           <p className="text-xs text-rose-700 dark:text-rose-300 font-medium mb-2">{summaryError}</p>
-          <Button size="sm" onClick={loadSummary} className="h-8 text-xs bg-rose-600 text-white hover:bg-rose-700">
+          <Button size="sm" onClick={() => loadSummary()} className="h-8 text-xs bg-rose-600 text-white hover:bg-rose-700">
             Retry Loading Summary
           </Button>
         </Card>

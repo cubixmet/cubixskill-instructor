@@ -1,4 +1,4 @@
-export type StudentStatus = 'Active' | 'Completed' | 'Suspended' | 'Inactive';
+export type StudentStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ARCHIVED' | 'Active' | 'Inactive' | 'Suspended' | 'Completed';
 
 export interface StudentCourseProgress {
   courseUuid: string;
@@ -22,25 +22,43 @@ export interface StudentActivityLog {
 }
 
 export interface StudentDetail {
+  id: string;
   uuid: string;
+  user_id?: string;
+  userId?: string;
   name: string;
+  full_name?: string;
+  display_name?: string;
   email: string;
   phone?: string;
-  countryCode?: string;
-  country?: string;
+  student_code?: string;
+  studentCode?: string;
   avatarUrl?: string;
+  profile_photo?: any;
   status: StudentStatus;
   enrollmentDate: string;
+  joined_at?: string;
   lastActivity: string;
+  date_of_birth?: string | null;
+  bio?: string;
   notes?: string;
   creditsConsumed: number;
+  enrollments_count?: number;
   enrolledCourses: StudentCourseProgress[];
   activityLogs: StudentActivityLog[];
 }
 
-export type CreateStudentInput = Omit<
-  StudentDetail,
-  'uuid' | 'enrollmentDate' | 'lastActivity' | 'creditsConsumed' | 'enrolledCourses' | 'activityLogs'
->;
+export type CreateStudentInput = {
+  full_name: string;
+  email: string;
+  phone?: string;
+  date_of_birth?: string | null;
+  bio?: string;
+  status?: string;
+};
 
-export type UpdateStudentInput = Partial<CreateStudentInput>;
+export type UpdateStudentInput = Partial<CreateStudentInput> & {
+  name?: string;
+  display_name?: string;
+  notes?: string;
+};

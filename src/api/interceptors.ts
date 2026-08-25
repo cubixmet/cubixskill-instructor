@@ -5,26 +5,18 @@ import { API_ENDPOINTS } from "./endpoints";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-let refreshPromise: Promise<string> | null = null;
+let refreshPromise: Promise<boolean> | null = null;
 
 export const setupInterceptors = (client: AxiosInstance) => {
-  // Request Interceptor: Attach current access token to every request
+  // Request Interceptor: Ensure request passes through without attaching manual Authorization tokens
   client.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-      const accessToken = tokenStorage.getAccessToken();
-      if (accessToken && config.headers) {
-        if (typeof config.headers.set === "function") {
-          config.headers.set("Authorization", `Bearer ${accessToken}`);
-        } else {
-          config.headers["Authorization"] = `Bearer ${accessToken}`;
-        }
-      }
       return config;
     },
     (error) => Promise.reject(parseApiError(error))
   );
 
-  // Response Interceptor: Handle 401 errors with token refresh & request retry
+  // Response Interceptor: Handle 401 errors with cookie-based token refresh & request retry
   client.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -49,42 +41,17 @@ export const setupInterceptors = (client: AxiosInstance) => {
 
         if (!refreshPromise) {
           refreshPromise = (async () => {
-            const refreshToken = tokenStorage.getRefreshToken();
-
-            if (!refreshToken) {
-              tokenStorage.clearTokens();
-              window.location.href = "/login";
-              throw new Error("No refresh token available");
-            }
-
             try {
-              console.debug("API 401:", requestUrl);
-              console.debug("Refreshing access token...");
-
+              console.debug("API 401 encountered, refreshing session cookie...");
               const refreshUrl = `${API_BASE_URL}${API_ENDPOINTS.AUTH.REFRESH}`;
-              const response = await axios.post(refreshUrl, { refresh: refreshToken });
-
-              console.debug("Refresh succeeded");
-
-              const payload = response.data?.data ?? response.data;
-              const newAccessToken = payload?.access ?? payload?.access_token;
-              const newRefreshToken = payload?.refresh ?? payload?.refresh_token;
-
-              if (!newAccessToken) {
-                throw new Error("No access token returned from refresh endpoint.");
-              }
-
-              tokenStorage.setAccessToken(newAccessToken);
-              if (newRefreshToken) {
-                tokenStorage.setRefreshToken(newRefreshToken);
-              }
-
-              client.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
-
-              return newAccessToken;
+              await axios.post(refreshUrl, {}, { withCredentials: true });
+              console.debug("Session cookie refresh succeeded");
+              return true;
             } catch (refreshErr) {
               tokenStorage.clearTokens();
-              window.location.href = "/login";
+              if (window.location.pathname !== "/login") {
+                window.location.href = "/login";
+              }
               throw refreshErr;
             } finally {
               refreshPromise = null;
@@ -93,17 +60,8 @@ export const setupInterceptors = (client: AxiosInstance) => {
         }
 
         try {
-          const newAccessToken = await refreshPromise;
-          console.debug("Retrying:", requestUrl);
-
-          if (originalRequest.headers) {
-            if (typeof originalRequest.headers.set === "function") {
-              originalRequest.headers.set("Authorization", `Bearer ${newAccessToken}`);
-            } else {
-              originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
-            }
-          }
-
+          await refreshPromise;
+          console.debug("Retrying original request after cookie refresh:", requestUrl);
           return client(originalRequest);
         } catch (retryErr) {
           return Promise.reject(parseApiError(retryErr));

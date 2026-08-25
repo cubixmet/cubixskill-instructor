@@ -6,11 +6,11 @@ const generateUuid = (): string => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  return '550e8400-e29b-41d4-a716-' + Date.now().toString(16) + Math.random().toString(16).substring(2, 8);
+  return 'c' + Date.now().toString(16) + Math.random().toString(16).substring(2, 8);
 };
 
 const DEFAULT_COURSE: CourseDetails = {
-  uuid: '550e8400-e29b-41d4-a716-446655440000',
+  uuid: '',
   slug: 'fullstack-react-19-typescript-masterclass',
   title: 'Fullstack React 19 & TypeScript Masterclass',
   shortDescription: 'Build enterprise Next.js applications with Zustand, React Query & Tailwind v4.',
@@ -51,9 +51,7 @@ interface CourseStoreState {
 export const useCourseStore = create<CourseStoreState>()(
   persist(
     (set, get) => ({
-      coursesByUuid: {
-        [DEFAULT_COURSE.uuid]: DEFAULT_COURSE,
-      },
+      coursesByUuid: {},
 
       getCourseByUuid: (uuid) => {
         return get().coursesByUuid[uuid] || { ...DEFAULT_COURSE, uuid };

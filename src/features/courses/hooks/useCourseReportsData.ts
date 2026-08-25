@@ -3,31 +3,34 @@ import { usePlatformStore } from '../../../store/usePlatformStore';
 import { useAnnouncementStore } from '../../announcements/store/announcement.store';
 import { useLiveSessionStore } from '../../live-sessions/store/liveSession.store';
 import { useCourseFeaturesStore, DEFAULT_COURSE_FEATURES } from '../store/courseFeatures.store';
+import { isValidCourseId } from '../../../utils/courseValidation.utils';
 
-export function useCourseReportsData(courseUuid: string) {
+export function useCourseReportsData(courseUuid?: string | null) {
+  const validUuid = isValidCourseId(courseUuid) ? courseUuid.trim() : null;
+
   const courses = usePlatformStore((state) => state.courses || []);
   const students = usePlatformStore((state) => state.students || []);
   const assignments = usePlatformStore((state) => state.assignments || []);
   const quizzes = usePlatformStore((state) => state.quizzes || []);
 
   const getCourseFeatures = useCourseFeaturesStore((state) => state.getCourseFeatures);
-  const courseFeatures = getCourseFeatures ? getCourseFeatures(courseUuid) : DEFAULT_COURSE_FEATURES;
+  const courseFeatures = getCourseFeatures && validUuid ? getCourseFeatures(validUuid) : DEFAULT_COURSE_FEATURES;
 
   const announcements = useAnnouncementStore((state) => state.announcements || []);
   const liveSessions = useLiveSessionStore((state) => state.sessions || []);
 
   return useMemo(() => {
     const certificates = (usePlatformStore.getState() as unknown as { certificates?: unknown[] }).certificates || [];
-    const courseObj = courses.find((c) => c.id === courseUuid) || {
-      id: courseUuid,
+    const courseObj = courses.find((c) => c.id === validUuid) || {
+      id: validUuid || '',
       title: 'Full Stack Web Development Architecture',
       enrolledStudentsCount: 420,
       price: 149,
       rating: 4.9,
     };
 
-    const courseAnnouncements = announcements.filter((a) => a.courseUuid === courseUuid);
-    const courseLiveSessions = liveSessions.filter((s) => s.courseUuid === courseUuid);
+    const courseAnnouncements = validUuid ? announcements.filter((a) => a.courseUuid === validUuid) : [];
+    const courseLiveSessions = validUuid ? liveSessions.filter((s) => s.courseUuid === validUuid) : [];
 
     // Calculated metrics
     const courseTyped = courseObj as { enrolledStudentsCount?: number; price?: number; rating?: number };
@@ -97,5 +100,5 @@ export function useCourseReportsData(courseUuid: string) {
       quizzes,
       certificates,
     };
-  }, [courseUuid, courses, students, assignments, quizzes, announcements, liveSessions, courseFeatures]);
+  }, [validUuid, courses, students, assignments, quizzes, announcements, liveSessions, courseFeatures]);
 }

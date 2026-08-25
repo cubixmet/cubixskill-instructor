@@ -24,12 +24,13 @@ import { courseFeaturesService, CourseFeatureItem } from '../../../services/cour
 import { Button } from '../../../components/ui/Button';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { parseApiError } from '../../../api/errors';
+import { normalizeCourseId } from '../../../utils/courseValidation.utils';
 
 export const CourseFeaturesPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { courseUuid, courseId } = useParams<{ courseUuid?: string; courseId?: string }>();
-  const activeCourseId = courseUuid || courseId;
+  const activeCourseId = normalizeCourseId(courseUuid || courseId);
 
   // Detect if this is the initial post-creation setup step
   const isInitialSetup = Boolean(location.state?.isInitialSetup || location.search.includes('setup=true'));
@@ -135,18 +136,28 @@ export const CourseFeaturesPage: React.FC = () => {
     return list;
   }, [features, activeCategory, searchQuery]);
 
+  const baseCreditsPerStudent = 1;
+  const activeFeatureCreditsSum = useMemo(() => {
+    return features.reduce((sum, f) => {
+      if (localSelections[f.code]) {
+        return sum + (f.credit_cost ?? f.pricing?.credit_cost ?? 0);
+      }
+      return sum;
+    }, 0);
+  }, [features, localSelections]);
+
+  const totalCourseCreditsPerStudent = baseCreditsPerStudent + activeFeatureCreditsSum;
+
   const getFeatureIcon = (code: string) => {
     switch (code) {
-      case 'LIVE_SESSIONS': return <Video className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
-      case 'QUIZZES': return <HelpCircle className="w-4 h-4 text-purple-600 dark:text-purple-400" />;
-      case 'ASSIGNMENTS': return <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />;
-      case 'DISCUSSIONS': return <MessageSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />;
-      case 'ANNOUNCEMENTS': return <Bell className="w-4 h-4 text-amber-600 dark:text-amber-400" />;
-      case 'CERTIFICATES': return <Award className="w-4 h-4 text-amber-500" />;
-      case 'COUPONS': return <Tag className="w-4 h-4 text-[#2563EB]" />;
-      case 'FEES': return <Wallet className="w-4 h-4 text-teal-600" />;
-      case 'COURSE_RESOURCES': return <Download className="w-4 h-4 text-slate-600" />;
-      case 'COURSE_REPORTS': return <BarChart2 className="w-4 h-4 text-blue-600" />;
+      case 'LESSONS': return <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />;
+      case 'FEE_COLLECTION': return <Wallet className="w-4 h-4 text-teal-600" />;
+      case 'COURSE_ANNOUNCEMENT': return <Bell className="w-4 h-4 text-amber-600 dark:text-amber-400" />;
+      case 'LIVE_CLASS': return <Video className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
+      case 'EMAIL_DELIVERY': return <MessageSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />;
+      case 'COMPLETION_CERTIFICATE': return <Award className="w-4 h-4 text-amber-500" />;
+      case 'COURSE_DISCUSSION': return <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
+      case 'ONE_TO_ONE_SESSION': return <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />;
       default: return <SlidersHorizontal className="w-4 h-4 text-slate-500" />;
     }
   };
@@ -225,7 +236,7 @@ export const CourseFeaturesPage: React.FC = () => {
             </span>
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal mt-0.5">
-            Choose features to enable for this course. You can change these selections at any time later.
+            Choose features to enable for this course. Configure pricing rates centrally in Super Admin Control Panel.
           </p>
         </div>
 
@@ -239,6 +250,46 @@ export const CourseFeaturesPage: React.FC = () => {
           >
             Refresh
           </Button>
+        </div>
+      </div>
+
+      {/* PER STUDENT PRICING CALCULATOR BANNER */}
+      <div className="bg-white dark:bg-[#111827] p-4 rounded-2xl border border-blue-200 dark:border-blue-900/50 shadow-2xs space-y-3 font-normal">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#263244] pb-3">
+          <div>
+            <h2 className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              Course Credit Pricing Calculator
+            </h2>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal mt-0.5">
+              Platform usage is charged per enrolled student (Base Student Access + Enabled Features).
+            </p>
+          </div>
+          <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 px-3.5 py-1.5 rounded-xl shrink-0 text-right">
+            <span className="text-[10px] text-blue-600 dark:text-blue-400 block font-normal">Per Student Credit Rate</span>
+            <span className="text-sm font-bold text-blue-700 dark:text-blue-300">
+              {totalCourseCreditsPerStudent} Credits / Student
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-normal">
+          <div className="bg-slate-50 dark:bg-[#0F172A] p-2.5 rounded-xl border border-slate-200 dark:border-[#263244]">
+            <span className="text-slate-500 block text-[10px]">Base Student Access</span>
+            <strong className="text-slate-900 dark:text-white font-semibold">{baseCreditsPerStudent} Cr / Student</strong>
+          </div>
+          <div className="bg-slate-50 dark:bg-[#0F172A] p-2.5 rounded-xl border border-slate-200 dark:border-[#263244]">
+            <span className="text-slate-500 block text-[10px]">Active Features Sum</span>
+            <strong className="text-slate-900 dark:text-white font-semibold">+{activeFeatureCreditsSum} Cr / Student</strong>
+          </div>
+          <div className="bg-slate-50 dark:bg-[#0F172A] p-2.5 rounded-xl border border-slate-200 dark:border-[#263244]">
+            <span className="text-slate-500 block text-[10px]">10 Enrolled Students</span>
+            <strong className="text-slate-900 dark:text-white font-semibold">{totalCourseCreditsPerStudent * 10} Credits Total</strong>
+          </div>
+          <div className="bg-slate-50 dark:bg-[#0F172A] p-2.5 rounded-xl border border-slate-200 dark:border-[#263244]">
+            <span className="text-slate-500 block text-[10px]">100 Enrolled Students</span>
+            <strong className="text-slate-900 dark:text-white font-semibold">{totalCourseCreditsPerStudent * 100} Credits Total</strong>
+          </div>
         </div>
       </div>
 
@@ -325,8 +376,22 @@ export const CourseFeaturesPage: React.FC = () => {
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal leading-relaxed">
                       {feat.description}
                     </p>
+
+                    {/* REAL BACKEND PRICING BADGE */}
+                    <div className="pt-1 flex items-center gap-1.5 flex-wrap">
+                      {feat.pricing && feat.pricing.is_active === false ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                          Currently Unavailable
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
+                          {feat.display_text || feat.pricing?.display_text || `${(feat.credit_cost ?? feat.pricing?.credit_cost ?? 0) > 0 ? '+' : ''}${feat.credit_cost ?? feat.pricing?.credit_cost ?? 0} Credits / ${feat.billing_unit || feat.pricing?.billing_unit}`}
+                        </span>
+                      )}
+                    </div>
+
                     {isAcademyDisabled && (
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-normal">
+                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-normal pt-0.5">
                         Not available for your Academy subscription plan.
                       </p>
                     )}

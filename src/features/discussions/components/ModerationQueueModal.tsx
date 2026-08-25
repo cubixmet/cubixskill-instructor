@@ -33,32 +33,32 @@ export const ModerationQueueModal: React.FC<ModerationQueueModalProps> = ({
             {pendingReports.map((report) => (
               <div
                 key={report.id}
-                className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3"
+                className="p-4 bg-slate-50 dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#263244] rounded-xl space-y-3"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded text-[10px] uppercase">
+                    <span className="bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 font-semibold px-2 py-0.5 rounded text-[10px] uppercase border border-amber-200 dark:border-amber-800/40">
                       Reason: {report.reason}
                     </span>
-                    <span className="text-slate-500 font-semibold">
-                      Reported by: <strong>{report.reportedBy}</strong>
+                    <span className="text-[#64748B] dark:text-[#94A3B8] font-medium">
+                      Reported by: <strong className="text-[#0F172A] dark:text-[#F8FAFC]">{report.reportedBy}</strong>
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-medium">
+                  <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal">
                     {new Date(report.createdAt).toLocaleString()}
                   </span>
                 </div>
 
-                <div className="p-3 bg-white border border-slate-200 rounded-lg text-slate-800 font-medium italic">
+                <div className="p-3 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#334155] rounded-lg text-[#475569] dark:text-[#CBD5E1] font-medium italic">
                   "{report.snippet}"
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E2E8F0] dark:border-[#263244]">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => onAction(report.id, 'approved')}
-                    className="h-8 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50"
+                    className="h-8 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-white dark:bg-[#0F172A] border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
                     leftIcon={<Check className="w-3.5 h-3.5" />}
                   >
                     Dismiss Report
@@ -68,7 +68,7 @@ export const ModerationQueueModal: React.FC<ModerationQueueModalProps> = ({
                     size="sm"
                     variant="outline"
                     onClick={() => onAction(report.id, 'warned')}
-                    className="h-8 text-[11px] font-semibold text-amber-700 hover:bg-amber-50"
+                    className="h-8 text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-white dark:bg-[#0F172A] border-amber-200 dark:border-amber-800/50 hover:bg-amber-50 dark:hover:bg-amber-950/40"
                     leftIcon={<UserX className="w-3.5 h-3.5" />}
                   >
                     Warn User
@@ -77,7 +77,7 @@ export const ModerationQueueModal: React.FC<ModerationQueueModalProps> = ({
                   <Button
                     size="sm"
                     onClick={() => onAction(report.id, 'removed')}
-                    className="h-8 text-[11px] bg-red-600 text-white font-bold hover:bg-red-700"
+                    className="h-8 text-[11px] bg-[#DC2626] hover:bg-red-700 text-white font-medium shadow-2xs"
                     leftIcon={<Trash2 className="w-3.5 h-3.5" />}
                   >
                     Remove Content
@@ -88,11 +88,11 @@ export const ModerationQueueModal: React.FC<ModerationQueueModalProps> = ({
           </div>
         ) : (
           <div className="py-12 text-center space-y-2">
-            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-200 dark:border-emerald-800/40">
               <Check className="w-6 h-6" />
             </div>
-            <h3 className="text-sm font-bold text-slate-900">Moderation Queue Clear!</h3>
-            <p className="text-slate-500 text-xs">
+            <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Moderation Queue Clear!</h3>
+            <p className="text-[#64748B] dark:text-[#94A3B8] text-xs font-normal">
               There are currently no reported or flagged messages pending review.
             </p>
           </div>

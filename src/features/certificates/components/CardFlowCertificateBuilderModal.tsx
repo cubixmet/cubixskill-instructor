@@ -48,7 +48,7 @@ export const CardFlowCertificateBuilderModal: React.FC<CardFlowCertificateBuilde
   onClose,
   onSave,
   initialTemplate,
-  courseUuid = '550e8400-e29b-41d4-a716-446655440000',
+  courseUuid = '',
 }) => {
   const addTemplate = useCertificateStore((state) => state.addTemplate);
   const updateTemplate = useCertificateStore((state) => state.updateTemplate);

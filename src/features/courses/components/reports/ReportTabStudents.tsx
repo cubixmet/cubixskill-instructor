@@ -7,7 +7,9 @@ export interface ReportStudentItem {
   id?: string;
   name: string;
   email: string;
-  [key: string]: unknown;
+  avatar?: string;
+  avatarUrl?: string;
+  [key: string]: any;
 }
 
 export interface ReportTabStudentsProps {
@@ -52,7 +54,7 @@ export const ReportTabStudents: React.FC<ReportTabStudentsProps> = ({ students }
           <div key={st.id || idx} className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
             <div className="flex items-center gap-3">
               <img
-                src={st.avatar || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100`}
+                src={st.avatar || st.avatarUrl || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100`}
                 alt={st.name}
                 className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
               />

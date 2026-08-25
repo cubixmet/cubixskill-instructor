@@ -15,10 +15,12 @@ import type {
 } from '../../../types/curriculum.types';
 import { resourceService } from './resource.service';
 
+import { isValidCourseId } from '../../../utils/courseValidation.utils';
+
 export const curriculumService = {
   // 1. Module APIs
   async fetchModules(courseUuid: string): Promise<CourseModule[]> {
-    if (!courseUuid) return [];
+    if (!isValidCourseId(courseUuid)) return [];
 
     console.log(`[curriculumService] Fetching modules for course: ${courseUuid}`);
     const response = await apiClient.get<
@@ -107,8 +109,8 @@ export const curriculumService = {
   },
 
   async deleteModule(moduleUuid: string, courseUuid: string): Promise<void> {
-    useCurriculumStore.getState().deleteModule(moduleUuid);
     await apiClient.delete(`/api/v1/modules/courses/${courseUuid}/modules/${moduleUuid}/`);
+    useCurriculumStore.getState().deleteModule(moduleUuid);
   },
 
   duplicateModule: (moduleUuid: string): CourseModule | null => {
@@ -196,11 +198,9 @@ export const curriculumService = {
       .catch((err) => console.warn('Failed to sync updated lesson with backend API:', err));
   },
 
-  deleteLesson: (lessonUuid: string): void => {
+  async deleteLesson(lessonUuid: string): Promise<void> {
+    await apiClient.delete(`/api/v1/lessons/${lessonUuid}/`);
     useCurriculumStore.getState().deleteLesson(lessonUuid);
-    apiClient
-      .delete(`/api/v1/lessons/${lessonUuid}/`)
-      .catch((err) => console.warn('Failed to sync deleted lesson with backend API:', err));
   },
 
   duplicateLesson: (lessonUuid: string): CourseLesson | null => {

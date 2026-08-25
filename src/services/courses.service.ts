@@ -1,6 +1,7 @@
 import { apiClient } from "../api/client";
 import { API_ENDPOINTS } from "../api/endpoints";
 import { categoryService } from "./category.service";
+import { normalizeCourseId } from "../utils/courseValidation.utils";
 import type { BackendApiResponse, PaginatedResponse } from "../api/types";
 import type {
   CourseListItem,
@@ -30,11 +31,12 @@ export const coursesService = {
   },
 
   async getCourse(id: string): Promise<CourseDetail> {
-    if (!id || id === 'undefined') {
+    const validId = normalizeCourseId(id);
+    if (!validId) {
       throw new Error("Invalid course ID provided.");
     }
     const response = await apiClient.get<BackendApiResponse<CourseDetail>>(
-      API_ENDPOINTS.COURSES.DETAIL(id)
+      API_ENDPOINTS.COURSES.DETAIL(validId)
     );
     return response.data?.data || (response.data as unknown as CourseDetail);
   },
@@ -48,42 +50,58 @@ export const coursesService = {
   },
 
   async updateCourse(id: string, payload: UpdateCoursePayload): Promise<CourseDetail> {
+    const validId = normalizeCourseId(id);
+    if (!validId) {
+      throw new Error("Invalid course ID provided.");
+    }
     const response = await apiClient.put<BackendApiResponse<CourseDetail>>(
-      API_ENDPOINTS.COURSES.DETAIL(id),
+      API_ENDPOINTS.COURSES.DETAIL(validId),
       payload
     );
     return response.data?.data || (response.data as unknown as CourseDetail);
   },
 
   async patchCourse(id: string, payload: UpdateCoursePayload): Promise<CourseDetail> {
+    const validId = normalizeCourseId(id);
+    if (!validId) {
+      throw new Error("Invalid course ID provided.");
+    }
     const response = await apiClient.patch<BackendApiResponse<CourseDetail>>(
-      API_ENDPOINTS.COURSES.DETAIL(id),
+      API_ENDPOINTS.COURSES.DETAIL(validId),
       payload
     );
     return response.data?.data || (response.data as unknown as CourseDetail);
   },
 
   async deleteCourse(id: string): Promise<void> {
-    await apiClient.delete(API_ENDPOINTS.COURSES.DETAIL(id));
+    const validId = normalizeCourseId(id);
+    if (!validId) return;
+    await apiClient.delete(API_ENDPOINTS.COURSES.DETAIL(validId));
   },
 
   async publishCourse(id: string): Promise<CourseDetail> {
+    const validId = normalizeCourseId(id);
+    if (!validId) throw new Error("Invalid course ID provided.");
     const response = await apiClient.post<BackendApiResponse<CourseDetail>>(
-      `/api/v1/courses/courses/${id}/publish/`
+      `/api/v1/courses/courses/${validId}/publish/`
     );
     return response.data?.data || (response.data as unknown as CourseDetail);
   },
 
   async archiveCourse(id: string): Promise<CourseDetail> {
+    const validId = normalizeCourseId(id);
+    if (!validId) throw new Error("Invalid course ID provided.");
     const response = await apiClient.post<BackendApiResponse<CourseDetail>>(
-      `/api/v1/courses/courses/${id}/archive/`
+      `/api/v1/courses/courses/${validId}/archive/`
     );
     return response.data?.data || (response.data as unknown as CourseDetail);
   },
 
   async duplicateCourse(id: string): Promise<CourseDetail> {
+    const validId = normalizeCourseId(id);
+    if (!validId) throw new Error("Invalid course ID provided.");
     const response = await apiClient.post<BackendApiResponse<CourseDetail>>(
-      `/api/v1/courses/courses/${id}/duplicate/`
+      `/api/v1/courses/courses/${validId}/duplicate/`
     );
     return response.data?.data || (response.data as unknown as CourseDetail);
   },
@@ -129,9 +147,11 @@ export const coursesService = {
 
 
   async listModules(courseId: string): Promise<CourseModule[]> {
+    const validId = normalizeCourseId(courseId);
+    if (!validId) return [];
     const response = await apiClient.get<BackendApiResponse<CourseModule[]> | CourseModule[]>(
       `/api/v1/courses/course-modules/`,
-      { params: { course: courseId } }
+      { params: { course: validId } }
     );
     const data = (response.data as any)?.data || response.data;
     return Array.isArray(data) ? data : [];

@@ -13,8 +13,11 @@ import {
   UserCheck,
   ShieldAlert,
   Sparkles,
-  Ticket,
   IndianRupee,
+  Wallet,
+  Building2,
+  Ticket,
+  BarChart2,
   type LucideIcon,
 } from "lucide-react";
 import type { UserRole } from "../features/auth/types/auth.types";
@@ -27,6 +30,7 @@ export interface NavItemConfig {
   requiredFeature?: string;
   requiredPermission?: string | string[];
   allowedRoles?: (UserRole | string)[];
+  children?: NavItemConfig[];
 }
 
 export interface NavSectionConfig {
@@ -96,6 +100,19 @@ export const navigationConfig: NavSectionConfig[] = [
     group: "Credits & Finance",
     items: [
       {
+        label: "Payments",
+        href: "/payments",
+        icon: Wallet,
+        requiredFeature: "payments",
+        requiredPermission: "payments.view",
+        children: [
+          { label: "Overview", href: "/payments", icon: LayoutDashboard },
+          { label: "Transactions", href: "/payments/transactions", icon: CreditCard },
+          { label: "Settlements", href: "/payments/settlements", icon: Building2 },
+          { label: "Settings", href: "/settings/payments", icon: Settings },
+        ],
+      },
+      {
         label: "Fees Collection",
         href: "/fees",
         icon: IndianRupee,
@@ -103,16 +120,16 @@ export const navigationConfig: NavSectionConfig[] = [
         requiredPermission: "payments.view",
       },
       {
-        label: "Coupons",
-        href: "/coupons",
-        icon: Ticket,
-        requiredFeature: "coupons",
-      },
-      {
         label: "Credits & Wallet",
         href: "/credits",
         icon: CreditCard,
         requiredFeature: "credits",
+      },
+      {
+        label: "Coupons & Discounts",
+        href: "/coupons",
+        icon: Ticket,
+        requiredFeature: "coupons",
       },
     ],
   },
@@ -143,6 +160,7 @@ export const navigationConfig: NavSectionConfig[] = [
   {
     group: "System & Help",
     items: [
+      { label: "Reports", href: "/reports", icon: BarChart2 },
       { label: "Support Desk", href: "/support", icon: SupportIcon },
       { label: "Settings", href: "/settings", icon: Settings },
     ],

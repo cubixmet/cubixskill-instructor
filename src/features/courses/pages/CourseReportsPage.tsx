@@ -25,9 +25,11 @@ import { ReportTabModuleSpecific } from '../components/reports/ReportTabModuleSp
 import { ReportExportModal } from '../components/reports/ReportExportModal';
 import { GenerateReportModal } from '../components/reports/GenerateReportModal';
 
+import { normalizeCourseId } from '../../../utils/courseValidation.utils';
+
 export const CourseReportsPage: React.FC = () => {
-  const params = useParams<{ courseUuid?: string }>();
-  const courseUuid = params.courseUuid || '550e8400-e29b-41d4-a716-446655440000';
+  const params = useParams<{ courseId?: string; courseUuid?: string }>();
+  const courseUuid = normalizeCourseId(params.courseId || params.courseUuid);
 
   const {
     courseObj,
@@ -59,7 +61,7 @@ export const CourseReportsPage: React.FC = () => {
 
     return allTabs.filter((tab) => {
       if (!tab.featureKey) return true;
-      return (courseFeatures as Record<string, boolean>)[tab.featureKey] !== false;
+      return (courseFeatures as unknown as Record<string, boolean>)[tab.featureKey] !== false;
     });
   }, [courseFeatures]);
 

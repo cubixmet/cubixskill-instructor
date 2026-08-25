@@ -23,8 +23,7 @@ import { Badge } from '../../../components/ui/Badge';
 import { Modal } from '../../../components/ui/Modal';
 
 export const QuizBuilderPage: React.FC = () => {
-  const { courseUuid = '550e8400-e29b-41d4-a716-446655440000', quizUuid = '550e8400-e29b-41d4-a716-446655443001' } =
-    useParams<{ courseUuid?: string; quizUuid?: string }>();
+  const { courseUuid = '', quizUuid = '' } = useParams<{ courseUuid?: string; quizUuid?: string }>();
 
   const [activeTab, setActiveTab] = useState<'editor' | 'settings' | 'exam_mode' | 'results' | 'review'>('editor');
 

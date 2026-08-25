@@ -10,7 +10,7 @@ import type { CourseLesson, LessonType } from '../../../types/curriculum.types';
 export const LessonCreatePage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { courseUuid = '550e8400-e29b-41d4-a716-446655440000' } = useParams<{ courseUuid?: string }>();
+  const { courseUuid = '' } = useParams<{ courseUuid?: string }>();
 
   const targetModuleUuid = searchParams.get('moduleUuid') || '';
   const rawTypeParam = searchParams.get('type') || 'video';

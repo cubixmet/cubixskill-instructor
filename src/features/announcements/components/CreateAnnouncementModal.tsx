@@ -89,7 +89,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
       setAttachments(editingAnnouncement.attachments || []);
       setTargetSegment((editingAnnouncement.targetSegment as 'all_students' | 'enrolled_only' | 'interested_only') || 'all_students');
     } else {
-      setSelectedCourseUuid(defaultCourseUuid || (courses[0]?.id || '550e8400-e29b-41d4-a716-446655440000'));
+      setSelectedCourseUuid(defaultCourseUuid || (courses[0]?.id || ''));
       setTitle('');
       setSummary('');
       setContent('');

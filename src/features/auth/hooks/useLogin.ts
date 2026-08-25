@@ -12,15 +12,15 @@ export function useLogin() {
     mutationFn: async (payload: LoginPayload) => {
       const data = await authApi.login(payload);
 
-      if (!data || !data.user || !data.access) {
+      if (!data || !data.user) {
         throw new Error("Invalid response from server.");
       }
 
-      if (!ALLOWED_ROLES.includes(data.user.role)) {
+      if (!ALLOWED_ROLES.includes(data.user.role as UserRole)) {
         throw new Error(AUTH_MESSAGES.UNAUTHORIZED_ROLE);
       }
 
-      authStore.setSession(data.user, data.access, data.refresh);
+      await authStore.setSession(data.user);
       return data;
     },
     onError: (error: unknown) => {

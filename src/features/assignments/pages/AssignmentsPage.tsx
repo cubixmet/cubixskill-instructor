@@ -353,9 +353,9 @@ export const AssignmentsPage: React.FC = () => {
           if (editingAssignment) {
             updateAssignment(editingAssignment.id, data);
           } else {
-            const created = addAssignment({ ...data, courseUuid: courseUuid || '550e8400-e29b-41d4-a716-446655440000' });
-            if (returnToCurriculum) {
-              navigate(`/courses/${courseUuid || '550e8400-e29b-41d4-a716-446655440000'}/curriculum?attachedUuid=${created.id}`);
+            const created = addAssignment({ ...data, courseUuid: courseUuid || '' });
+            if (courseUuid) {
+              navigate(`/courses/${courseUuid}/curriculum?attachedUuid=${created.id}`);
             }
           }
         }}

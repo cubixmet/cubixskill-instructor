@@ -7,7 +7,7 @@ import {
 import { NavLink, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuthStore } from "../../store/auth.store";
-import { getFilteredNavigation } from "../../config/navigation.config";
+import { getFilteredNavigation, type NavItemConfig } from "../../config/navigation.config";
 import { getUserInitials, getAcademyInitials, getRoleLabel } from "../../utils/branding.utils";
 import { cn } from "../../lib/cn";
 
@@ -18,45 +18,38 @@ export interface SidebarProps {
   isMobileDrawer?: boolean;
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function isNavItemActive(href: string, pathname: string): boolean {
   if (href === "/dashboard") {
     return pathname === "/dashboard" || pathname === "/";
   }
 
   if (href === "/courses") {
-    const isSubFeature =
-      pathname.includes("/discussions") ||
-      pathname.includes("/announcements") ||
-      pathname.includes("/assignments") ||
-      pathname.includes("/quizzes") ||
-      pathname.includes("/certificates") ||
-      pathname.includes("/students") ||
-      pathname.includes("/coupons") ||
-      pathname.includes("/reports") ||
-      pathname.includes("/settings");
-    return !isSubFeature && pathname.startsWith("/courses");
+    return pathname.startsWith("/courses") && !pathname.startsWith("/courses/categories");
+  }
+
+  if (href === "/payments") {
+    return pathname.startsWith("/payments") || pathname === "/settings/payments";
   }
 
   if (href === "/coupons") return pathname.startsWith("/coupons");
-  if (href === "/students") return pathname.includes("/students");
-  if (href === "/assignments") return pathname.includes("/assignments");
-  if (href === "/quizzes") return pathname.includes("/quizzes");
-  if (href === "/certificates") return pathname.includes("/certificates");
-  if (href === "/discussions") return pathname.includes("/discussions");
-  if (href === "/announcements") return pathname.includes("/announcements");
-  if (href === "/live-classroom") return pathname.includes("/live-classroom");
-  if (href === "/reports") return pathname.includes("/reports") && !pathname.startsWith("/students");
+  if (href === "/students") return pathname.startsWith("/students");
+  if (href === "/assignments") return pathname.startsWith("/assignments");
+  if (href === "/quizzes") return pathname.startsWith("/quizzes");
+  if (href === "/certificates") return pathname.startsWith("/certificates");
+  if (href === "/discussions") return pathname.startsWith("/discussions");
+  if (href === "/announcements") return pathname.startsWith("/announcements");
+  if (href === "/live-classroom") return pathname.startsWith("/live-classroom");
+  if (href === "/reports") return pathname.startsWith("/reports");
   if (href === "/credits") return pathname.startsWith("/credits");
-  if (href === "/fees") return pathname.startsWith("/fees") || pathname.includes("/fees");
+  if (href === "/fees") return pathname.startsWith("/fees");
   if (href === "/media") return pathname.startsWith("/media");
   if (href === "/staff") return pathname.startsWith("/staff");
   if (href === "/roles") return pathname.startsWith("/roles");
   if (href === "/website-builder") return pathname.startsWith("/website-builder");
   if (href === "/support") return pathname.startsWith("/support");
-  if (href === "/settings") return pathname.includes("/settings") && !pathname.startsWith("/courses/create");
+  if (href === "/settings") return pathname.startsWith("/settings") && !pathname.startsWith("/settings/payments");
 
-  return pathname.startsWith(href);
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -149,33 +142,60 @@ export const Sidebar: React.FC<SidebarProps> = ({
               const active = isNavItemActive(item.href, location.pathname);
 
               return (
-                <NavLink
-                  key={item.href}
-                  to={item.href}
-                  onClick={onCloseMobile}
-                  title={collapsed ? item.label : undefined}
-                  className={() =>
-                    cn(
-                      "relative flex items-center rounded-xl text-xs font-medium transition-all duration-200 group min-h-[40px]",
-                      collapsed ? "justify-center px-2 py-2.5" : "justify-between px-3.5 py-2.5",
-                      active
-                        ? "bg-blue-50 border border-blue-200 text-blue-600 dark:bg-blue-600/15 dark:border-blue-500/30 dark:text-blue-400 font-semibold"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
-                    )
-                  }
-                >
-                  <div className={cn("flex items-center gap-3 z-10", collapsed && "justify-center")}>
-                    <item.icon
-                      className={cn(
-                        "w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110",
+                <div key={item.href} className="space-y-1">
+                  <NavLink
+                    to={item.href}
+                    onClick={onCloseMobile}
+                    title={collapsed ? item.label : undefined}
+                    className={() =>
+                      cn(
+                        "flex items-center gap-3 min-h-[40px] px-3 rounded-xl text-xs font-medium transition-all duration-200 group cursor-pointer",
+                        collapsed && "justify-center",
                         active
-                          ? "text-blue-600 dark:text-blue-400"
-                          : "text-slate-400 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-white"
-                      )}
-                    />
-                    {!collapsed && <span className="truncate">{item.label}</span>}
-                  </div>
-                </NavLink>
+                          ? "bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-600/15 dark:text-blue-400 dark:border-blue-500/30 font-semibold"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white border border-transparent"
+                      )
+                    }
+                  >
+                    <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+                      <item.icon
+                        className={cn(
+                          "w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110",
+                          active
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-slate-400 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-white"
+                        )}
+                      />
+                    </div>
+                    {!collapsed && (
+                      <span className="flex-1 leading-none truncate">{item.label}</span>
+                    )}
+                  </NavLink>
+
+                  {/* Sub-items for expanded menu */}
+                  {!collapsed && active && item.children && item.children.length > 0 && (
+                    <div className="pl-9 pr-2 space-y-1 py-1">
+                      {item.children.map((child) => {
+                        const childActive = location.pathname === child.href;
+                        return (
+                          <NavLink
+                            key={child.href}
+                            to={child.href}
+                            onClick={onCloseMobile}
+                            className={cn(
+                              "block px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer",
+                              childActive
+                                ? "bg-blue-100/60 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 font-semibold"
+                                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-white/5"
+                            )}
+                          >
+                            {child.label}
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -223,4 +243,3 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </aside>
   );
 };
-

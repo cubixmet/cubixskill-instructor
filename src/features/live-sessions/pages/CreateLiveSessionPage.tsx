@@ -70,7 +70,7 @@ export const CreateLiveSessionPage: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const backLink = courseUuid ? `/courses/${courseUuid}/live-sessions` : '/courses';
+  const backLink = courseUuid ? `/courses/${courseUuid}/live-sessions` : '/live-classroom';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,10 +81,6 @@ export const CreateLiveSessionPage: React.FC = () => {
 
     const newFieldErrors: Record<string, string> = {};
 
-    if (!courseUuid) {
-      setFormError('Course ID is missing from URL route.');
-      return;
-    }
     if (!title.trim()) {
       newFieldErrors.title = 'Session title is required.';
     }
@@ -115,14 +111,6 @@ export const CreateLiveSessionPage: React.FC = () => {
 
     const endDateTime = new Date(startDateTime.getTime() + durationMinutes * 60 * 1000);
 
-    // Validate start in past for new sessions
-    if (!sessionId && startDateTime.getTime() < Date.now() - 15 * 60 * 1000) {
-      setFieldErrors({ time: 'Start time must be in the future.' });
-      setFormError('Scheduled start time cannot be in the past.');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -141,7 +129,7 @@ export const CreateLiveSessionPage: React.FC = () => {
         showToast('Live session updated successfully.');
       } else {
         await createLiveSession({
-          course_id: courseUuid,
+          course_id: courseUuid || '',
           title: title.trim(),
           description: description.trim(),
           scheduled_start: startDateTime.toISOString(),
@@ -174,7 +162,6 @@ export const CreateLiveSessionPage: React.FC = () => {
         if (responseData.scheduled_start) mappedFieldErrors.time = Array.isArray(responseData.scheduled_start) ? responseData.scheduled_start[0] : responseData.scheduled_start;
         if (responseData.scheduled_end) mappedFieldErrors.duration = Array.isArray(responseData.scheduled_end) ? responseData.scheduled_end[0] : responseData.scheduled_end;
         if (responseData.meeting_url) mappedFieldErrors.meetingUrl = Array.isArray(responseData.meeting_url) ? responseData.meeting_url[0] : responseData.meeting_url;
-        if (responseData.course_id) mappedFieldErrors.course = Array.isArray(responseData.course_id) ? responseData.course_id[0] : responseData.course_id;
       }
 
       if (Object.keys(mappedFieldErrors).length > 0) {
@@ -277,7 +264,7 @@ export const CreateLiveSessionPage: React.FC = () => {
               <select
                 value={provider}
                 onChange={(e) => setProvider(e.target.value as any)}
-                className="w-full h-11 px-3 bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] rounded-xl text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC]"
+                className="w-full h-11 px-3 bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] rounded-xl text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC]"
               >
                 <option value="GOOGLE_MEET" className="bg-white dark:bg-[#111827]">Google Meet</option>
                 <option value="ZOOM" className="bg-white dark:bg-[#111827]">Zoom</option>
@@ -347,7 +334,7 @@ export const CreateLiveSessionPage: React.FC = () => {
               <select
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                className="w-full h-11 px-3 bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] rounded-xl text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC]"
+                className="w-full h-11 px-3 bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] rounded-xl text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC]"
               >
                 <option value={30} className="bg-white dark:bg-[#111827]">30 Minutes</option>
                 <option value={45} className="bg-white dark:bg-[#111827]">45 Minutes</option>
@@ -372,26 +359,26 @@ export const CreateLiveSessionPage: React.FC = () => {
 
           {/* NOTIFICATION PREFERENCES */}
           <div className="space-y-3 pt-3 border-t border-[#E2E8F0] dark:border-[#263244]">
-            <h4 className="text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC]">Notifications</h4>
+            <h4 className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Notifications</h4>
 
-            <div className="p-3 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl flex items-center justify-between gap-3">
+            <div className="p-3 bg-slate-50 dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
                 <Bell className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
                 <div className="min-w-0">
-                  <strong className="text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC] block">In-App Notifications</strong>
+                  <strong className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] block">In-App Notifications</strong>
                   <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] block font-medium truncate">Automatically sent to all enrolled course students</span>
                 </div>
               </div>
-              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 shrink-0">
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 shrink-0">
                 ALWAYS ACTIVE
               </span>
             </div>
 
-            <label className="flex items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl cursor-pointer">
+            <label className="flex items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl cursor-pointer">
               <div className="flex items-center gap-2.5 min-w-0">
                 <Mail className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                 <div className="min-w-0">
-                  <strong className="text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC] block">Send Email Notification</strong>
+                  <strong className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] block">Send Email Notification</strong>
                   <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] block font-medium">
                     When enabled, enrolled students will receive a scheduled email now and a reminder email 1 hour before the session.
                   </span>
@@ -408,11 +395,11 @@ export const CreateLiveSessionPage: React.FC = () => {
 
           {/* TOGGLES & ACCESS RULES */}
           <div className="space-y-3 pt-3 border-t border-[#E2E8F0] dark:border-[#263244]">
-            <label className="flex items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl cursor-pointer">
+            <label className="flex items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl cursor-pointer">
               <div className="flex items-center gap-2.5 min-w-0">
                 <Video className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
                 <div className="min-w-0">
-                  <strong className="text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC] block">Enable Auto-Cloud Recording</strong>
+                  <strong className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] block">Enable Auto-Cloud Recording</strong>
                   <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] block font-medium truncate">Record session automatically for replay</span>
                 </div>
               </div>
@@ -424,11 +411,11 @@ export const CreateLiveSessionPage: React.FC = () => {
               />
             </label>
 
-            <label className="flex items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl cursor-pointer">
+            <label className="flex items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl cursor-pointer">
               <div className="flex items-center gap-2.5 min-w-0">
                 {isPrivate ? <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" /> : <Globe className="w-4 h-4 text-emerald-600 dark:text-[#34D399] shrink-0" />}
                 <div className="min-w-0">
-                  <strong className="text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC] block">Enrolled Students Only</strong>
+                  <strong className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] block">Enrolled Students Only</strong>
                   <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] block font-medium truncate">Restrict attendance access to course members</span>
                 </div>
               </div>
@@ -457,7 +444,7 @@ export const CreateLiveSessionPage: React.FC = () => {
             type="submit"
             disabled={isSubmitting}
             leftIcon={<Video className="w-4 h-4" />}
-            className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs h-10 px-5 w-full sm:w-auto cursor-pointer shadow-[0_4px_12px_rgba(37,99,235,0.12)]"
+            className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs h-10 px-5 w-full sm:w-auto cursor-pointer shadow-[0_4px_12px_rgba(37,99,235,0.12)]"
           >
             {isSubmitting ? 'Scheduling...' : sessionId ? 'Save Session Changes' : 'Schedule Live Session'}
           </Button>

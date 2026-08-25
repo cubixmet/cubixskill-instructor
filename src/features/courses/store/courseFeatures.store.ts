@@ -146,18 +146,20 @@ interface CourseFeaturesState {
   toggleFeature: (courseUuid: string, key: keyof CourseFeaturesConfig) => void;
 }
 
+import { isValidCourseId } from '../../../utils/courseValidation.utils';
+
 export const useCourseFeaturesStore = create<CourseFeaturesState>()(
   persist(
     (set, get) => ({
-      featuresByCourse: {
-        '550e8400-e29b-41d4-a716-446655440000': DEFAULT_COURSE_FEATURES,
-      },
+      featuresByCourse: {},
 
       getCourseFeatures: (courseUuid) => {
+        if (!isValidCourseId(courseUuid)) return DEFAULT_COURSE_FEATURES;
         return get().featuresByCourse[courseUuid] || DEFAULT_COURSE_FEATURES;
       },
 
       updateCourseFeatures: (courseUuid, updates) => {
+        if (!isValidCourseId(courseUuid)) return;
         set((state) => {
           const current = state.featuresByCourse[courseUuid] || DEFAULT_COURSE_FEATURES;
           return {
@@ -170,6 +172,7 @@ export const useCourseFeaturesStore = create<CourseFeaturesState>()(
       },
 
       toggleFeature: (courseUuid, key) => {
+        if (!isValidCourseId(courseUuid)) return;
         set((state) => {
           const current = state.featuresByCourse[courseUuid] || DEFAULT_COURSE_FEATURES;
           return {

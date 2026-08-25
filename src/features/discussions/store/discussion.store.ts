@@ -463,9 +463,7 @@ export const useDiscussionStore = create<DiscussionStoreState>()(
       replies: SEED_REPLIES,
       reports: SEED_REPORTS,
       settings: {},
-      members: {
-        '550e8400-e29b-41d4-a716-446655440000': SEED_MEMBERS,
-      },
+      members: {},
       personalChats: SEED_PERSONAL_CHATS,
 
       addDiscussion: (input) => {
@@ -846,6 +844,7 @@ export const useDiscussionStore = create<DiscussionStoreState>()(
       },
 
       getCoursePersonalChats: (courseUuid) => {
+        if (!courseUuid) return get().personalChats;
         return get().personalChats.filter((c) => c.courseUuid === courseUuid);
       },
     }),

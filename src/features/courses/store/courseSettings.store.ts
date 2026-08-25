@@ -157,9 +157,7 @@ interface CourseSettingsStoreState {
 export const useCourseSettingsStore = create<CourseSettingsStoreState>()(
   persist(
     (set, get) => ({
-      settingsByCourse: {
-        '550e8400-e29b-41d4-a716-446655440000': DEFAULT_COURSE_SETTINGS,
-      },
+      settingsByCourse: {},
 
       getCourseSettings: (courseUuid) => {
         return get().settingsByCourse[courseUuid] || DEFAULT_COURSE_SETTINGS;

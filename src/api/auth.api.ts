@@ -17,7 +17,7 @@ import type {
 
 export const authApi = {
   login: (payload: LoginPayload): Promise<LoginResponseData> => authService.login(payload),
-  logout: (refreshToken: string): Promise<{ message: string }> => authService.logout(refreshToken),
+  logout: (): Promise<{ message: string }> => authService.logout(),
   getCurrentUser: (): Promise<AuthBootstrapData> => authService.getCurrentUser(),
   getAcademyProfile: (): Promise<AcademyContext | null> => authService.getAcademyProfile(),
 

@@ -7,10 +7,12 @@ import type { CourseDetail } from "../types/course.types";
 import { useCurriculumStore } from "../store/curriculum.store";
 import { curriculumService } from "../services/curriculum.service";
 
+import { normalizeCourseId, isValidCourseId } from "../../../utils/courseValidation.utils";
+
 export const CourseOverviewPage: React.FC = () => {
   const { course } = useOutletContext<{ course: CourseDetail }>();
-  const { courseUuid } = useParams<{ courseUuid?: string }>();
-  const activeCourseId = courseUuid || course?.id;
+  const params = useParams<{ courseId?: string; courseUuid?: string }>();
+  const activeCourseId = normalizeCourseId(params.courseId || params.courseUuid || course?.id);
 
   const [isLoadingModules, setIsLoadingModules] = useState(false);
 
@@ -19,7 +21,7 @@ export const CourseOverviewPage: React.FC = () => {
   const allLessons = useCurriculumStore((state) => state.lessons);
 
   useEffect(() => {
-    if (activeCourseId) {
+    if (isValidCourseId(activeCourseId)) {
       setIsLoadingModules(true);
       curriculumService
         .fetchModules(activeCourseId)

@@ -1,32 +1,30 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { courseFeaturesService, CourseFeatureItem } from '../services/courseFeatures.service';
+import { isValidCourseId } from '../utils/courseValidation.utils';
 
-export function useCourseFeatures(courseUuid?: string) {
-  const [features, setFeatures] = useState<CourseFeatureItem[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+export function useCourseFeatures(
+  courseUuid?: string | null,
+  options: { enabled?: boolean } = {}
+) {
+  const validCourseId = isValidCourseId(courseUuid) ? courseUuid.trim() : null;
 
-  const fetchFeatures = useCallback(async () => {
-    if (!courseUuid) {
-      setIsLoading(false);
-      return;
+  const query = useQuery<CourseFeatureItem[]>({
+    queryKey: ['course', validCourseId, 'features'],
+    queryFn: () => courseFeaturesService.list(validCourseId!),
+    enabled: Boolean(validCourseId) && (options.enabled ?? true),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const features = query.data || [];
+  const isLoading = validCourseId ? query.isLoading : false;
+  const error = query.error ? (query.error as any)?.message || 'Failed to load course features' : null;
+
+  const refetch = useCallback(() => {
+    if (validCourseId) {
+      query.refetch();
     }
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await courseFeaturesService.list(courseUuid);
-      setFeatures(data);
-    } catch (err: any) {
-      console.error('Failed to load course features:', err);
-      setError('Failed to load course features');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [courseUuid]);
-
-  useEffect(() => {
-    fetchFeatures();
-  }, [fetchFeatures]);
+  }, [validCourseId, query]);
 
   const isFeatureEnabled = useCallback(
     (featureCode: string): boolean => {
@@ -39,5 +37,12 @@ export function useCourseFeatures(courseUuid?: string) {
     [features]
   );
 
-  return { features, isLoading, error, fetchFeatures, isFeatureEnabled };
+  return {
+    features,
+    isLoading,
+    error,
+    fetchFeatures: refetch,
+    refetch,
+    isFeatureEnabled,
+  };
 }

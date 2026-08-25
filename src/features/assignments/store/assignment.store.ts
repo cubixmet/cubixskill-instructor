@@ -44,7 +44,7 @@ export const useAssignmentStore = create<AssignmentStoreState>()(
       addAssignment: (data) => {
         const newAssignment: Assignment = {
           id: `assign-${Date.now()}`,
-          courseUuid: data.courseUuid || '550e8400-e29b-41d4-a716-446655440000',
+          courseUuid: data.courseUuid || '',
           courseTitle: data.courseTitle || 'Fullstack React 19 & Next.js 15 Masterclass',
           title: data.title || 'Untitled Assignment',
           shortDescription: data.shortDescription || '',

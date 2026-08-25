@@ -28,7 +28,7 @@ type ModuleFormValues = z.infer<typeof moduleFormSchema>;
 
 export const ModuleEditPage: React.FC = () => {
   const navigate = useNavigate();
-  const { courseUuid = '550e8400-e29b-41d4-a716-446655440000', moduleUuid = '' } = useParams<{
+  const { courseUuid = '', moduleUuid = '' } = useParams<{
     courseUuid?: string;
     moduleUuid?: string;
   }>();

@@ -20,6 +20,7 @@ import { Badge } from '../../../components/ui/Badge';
 import { Card } from '../../../components/ui/Card';
 import { exportToCsv, type CsvColumn } from '../../../utils/export-csv';
 import { studentsService, type BulkUploadRowResult } from '../../../services/students.service';
+import { courseRoutes } from '../../../utils/courseRoutes.utils';
 
 export interface ParsedCsvRow {
   rowNumber: number;
@@ -77,7 +78,7 @@ export const BulkUploadStudentsPage: React.FC = () => {
     return parsedRows;
   }, [parsedRows, validRows, invalidRows, duplicateRows, reviewFilter]);
 
-  const backLink = courseUuid ? `/courses/${courseUuid}/students` : '/students';
+  const backLink = courseRoutes.students(courseUuid);
 
   const handleDownloadTemplate = () => {
     const templateData = [
