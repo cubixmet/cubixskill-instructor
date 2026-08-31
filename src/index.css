@@ -10,6 +10,7 @@
     --background: #F8FAFC;
     --surface: #FFFFFF;
     --surface-secondary: #F8FAFC;
+    --surface-hover: #F1F5F9;
     --surface-elevated: #F1F5F9;
     --text-primary: #0F172A;
     --text-secondary: #64748B;
@@ -18,6 +19,11 @@
     --input-border: #CBD5E1;
     --primary: #2563EB;
     --primary-hover: #1D4ED8;
+    --brand-primary: var(--primary);
+    --brand-primary-hover: var(--primary-hover);
+    --brand-primary-foreground: #FFFFFF;
+
+    --page-background: var(--background);
 
     --auth-bg: #F8FAFC;
     --auth-card: #FFFFFF;
@@ -32,8 +38,9 @@
 
     --background: #0B1120;
     --surface: #111827;
-    --surface-secondary: #111827;
-    --surface-elevated: #172033;
+    --surface-secondary: #172033;
+    --surface-hover: #1E293B;
+    --surface-elevated: #1E293B;
     --text-primary: #F8FAFC;
     --text-secondary: #CBD5E1;
     --text-muted: #94A3B8;
@@ -41,6 +48,11 @@
     --input-border: #334155;
     --primary: #2563EB;
     --primary-hover: #3B82F6;
+    --brand-primary: var(--primary);
+    --brand-primary-hover: var(--primary-hover);
+    --brand-primary-foreground: #FFFFFF;
+
+    --page-background: var(--background);
 
     --auth-bg: #0B1120;
     --auth-card: #111827;

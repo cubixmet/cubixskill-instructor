@@ -1,32 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Video,
-  Headphones,
   Files,
-  Image as ImageIcon,
   Layers,
   CheckCircle2,
   AlertCircle,
-  ExternalLink,
-  Eye,
-  FileText,
   Clock,
-  Sparkles,
-  Download,
   Calendar,
   Link2,
-  Upload,
-  Loader2,
+  Plus,
 } from 'lucide-react';
+import { authService } from '../../../../services/auth.service';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 import { Badge } from '../../../../components/ui/Badge';
-import { AudioPlayer } from '../../../../components/ui/AudioPlayer';
-import type { CourseLesson, LessonType } from '../../../../types/curriculum.types';
+import type { CourseLesson, LessonType, CreateAssignmentInput } from '../../../../types/curriculum.types';
 import { getLessonTypeMeta } from '../../config/lessonTypes.config';
 import { RichTextEditor } from './RichTextEditor';
 import { isHtmlContentEmpty, sanitizeHtml } from '../../utils/sanitizeHtml.util';
-import { resolveMediaUrl } from '../../../../utils/media.utils';
 import {
   QuizQuestionBuilder,
   BuilderQuestion,
@@ -36,12 +27,16 @@ import { LessonResourcesSection } from './LessonResourcesSection';
 import { parseEmbedVideoUrl } from './VideoLessonSettings';
 import { useCurriculumStore } from '../../store/curriculum.store';
 import { coursesService } from '../../../../services/courses.service';
+import { storageService } from '../../../../services/storage.service';
+import { MediaPickerModal } from '../../../../components/media/MediaPickerModal';
+import { LessonResourcesEditor, PendingResource } from './LessonResourcesEditor';
+import { LessonFormActions } from './LessonFormActions';
 
 interface SingleLessonEditorProps {
   type: LessonType;
   moduleTitle?: string;
   moduleUuid?: string;
-  onSaveLesson: (updated: Partial<CourseLesson>) => void;
+  onSaveLesson: (updated: Partial<CourseLesson>) => Promise<CourseLesson | void> | void;
   onCancel?: () => void;
   lesson?: CourseLesson;
   isCreateMode?: boolean;
@@ -52,42 +47,67 @@ const preloadBuilderQuestions = (rawQuestions?: Record<string, unknown>[]): Buil
     return [createDefaultQuestion()];
   }
 
-  return rawQuestions.map((q, idx) => {
-    const qId = (q.id as string) || `q-${idx}-${Date.now()}`;
-    const qType =
-      q.type === 'true_false' || q.type === 'short_answer' ? q.type : 'mcq';
-    const questionText = (q.questionText as string) || (q.question as string) || '';
+  return rawQuestions.map((q: any, idx: number) => {
+    const qId = String(q.id || `q-${idx}-${Date.now()}`);
+    const rawType = String(q.question_type || q.type || 'single_choice').toLowerCase();
+    const qType: BuilderQuestionType =
+      rawType === 'multiple_choice'
+        ? 'multiple_choice'
+        : rawType === 'true_false'
+        ? 'true_false'
+        : rawType === 'short_answer'
+        ? 'short_answer'
+        : rawType === 'long_answer'
+        ? 'long_answer'
+        : rawType === 'fill_blank'
+        ? 'fill_blank'
+        : 'single_choice';
+
+    const questionText = String(q.question_text || q.questionText || q.question || '');
 
     let options: { id: string; text: string }[] = [];
+    let detectedCorrectAnswer = String(q.correct_answer || q.correctAnswer || q.answer_text || '');
+
     if (Array.isArray(q.options)) {
-      options = q.options.map((opt: unknown, optIdx: number) => {
+      options = q.options.map((opt: any, optIdx: number) => {
         if (typeof opt === 'string') {
           return { id: `opt-${optIdx + 1}-${qId}`, text: opt };
         }
-        const objOpt = opt as { id?: string; text?: string };
+        const optId = String(opt.id || `opt-${optIdx + 1}-${qId}`);
+        const optText = String(opt.option_text || opt.text || opt.label || '');
+        const isOptCorrect = Boolean(opt.is_correct ?? opt.isCorrect);
+
+        if (isOptCorrect && (!detectedCorrectAnswer || detectedCorrectAnswer === 'undefined' || detectedCorrectAnswer === 'null')) {
+          detectedCorrectAnswer = optId;
+        }
+
         return {
-          id: objOpt.id || `opt-${optIdx + 1}-${qId}`,
-          text: objOpt.text || '',
+          id: optId,
+          text: optText,
         };
       });
     }
 
-    if (qType === 'mcq' && options.length < 2) {
-      options = [
-        { id: `opt-1-${qId}`, text: '' },
-        { id: `opt-2-${qId}`, text: '' },
-      ];
+    if (qType === 'single_choice' || qType === 'mcq') {
+      if (options.length < 2) {
+        options = [
+          { id: `opt-1-${qId}`, text: '' },
+          { id: `opt-2-${qId}`, text: '' },
+        ];
+      }
+      if (!detectedCorrectAnswer && options.length > 0) {
+        detectedCorrectAnswer = options[0].id;
+      }
+    } else if (qType === 'true_false' && !detectedCorrectAnswer) {
+      detectedCorrectAnswer = 'True';
     }
-
-    const correctAnswer =
-      q.correctAnswer || q.correctAnswers || (options[0]?.id || 'True');
 
     return {
       id: qId,
       type: qType,
       questionText,
       options,
-      correctAnswer: String(correctAnswer),
+      correctAnswer: detectedCorrectAnswer,
     };
   });
 };
@@ -131,6 +151,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
     lesson?.allowDownload ?? lesson?.content?.allowDownload ?? lesson?.content?.downloadable ?? false
   );
   const [durationMinutes, setDurationMinutes] = useState(lesson?.durationMinutes || 15);
+  const navigate = useNavigate();
 
   // Errors
   const [titleError, setTitleError] = useState('');
@@ -138,9 +159,31 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
   const [urlError, setUrlError] = useState('');
   const [questionErrors, setQuestionErrors] = useState<Record<string, string>>({});
 
+  // Helpers
+  const showFreeDemoOption = type === 'video' || type === 'audio';
+  const showAllowDownloadOption = type === 'document';
+  const canUseUrlSource = !isDemo;
+
   // Content Source State for Video, Audio, Document, Image
-  const initialMediaSource = lesson?.content?.mediaFile || lesson?.content?.mediaFileId ? 'UPLOAD' : 'URL';
+  const initialMediaSource = (lesson?.content?.mediaFile || lesson?.content?.mediaFileId || !canUseUrlSource) ? 'UPLOAD' : 'URL';
   const [mediaSource, setMediaSource] = useState<'UPLOAD' | 'URL'>(initialMediaSource);
+
+  // Per-Lesson Upload HLS Toggle State (Initialized from Academy Settings)
+  const [hlsEnabled, setHlsEnabled] = useState<boolean>(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadAcademyHlsDefault() {
+      try {
+        const settings = await authService.getAcademySettings();
+        if (isMounted && settings && typeof settings.hls_video_enabled === 'boolean') {
+          setHlsEnabled(settings.hls_video_enabled);
+        }
+      } catch (_) {}
+    }
+    loadAcademyHlsDefault();
+    return () => { isMounted = false; };
+  }, []);
 
   const [uploadedMediaId, setUploadedMediaId] = useState<string | null>(
     lesson?.content?.mediaFileId || lesson?.content?.mediaFile?.id || null
@@ -166,6 +209,8 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
       lesson?.content?.documentUrl ||
       lesson?.content?.mediaUrl ||
       lesson?.content?.externalUrl ||
+      lesson?.external_url ||
+      lesson?.audio_url ||
       ''
   );
   const [caption, setCaption] = useState(lesson?.content?.instructions || '');
@@ -181,42 +226,75 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
 
   // Quiz State
   const [quizQuestions, setQuizQuestions] = useState<BuilderQuestion[]>(
-    preloadBuilderQuestions(lesson?.content?.questions)
+    preloadBuilderQuestions((lesson as any)?.quiz?.questions || lesson?.content?.questions)
   );
   const [passingScore, setPassingScore] = useState<number>(
-    (lesson?.content as Record<string, unknown>)?.passingScore
+    (lesson as any)?.quiz?.passing_score ?? ((lesson?.content as Record<string, unknown>)?.passingScore
       ? Number((lesson?.content as Record<string, unknown>).passingScore)
-      : 70
+      : 70)
   );
   const [timeLimitMinutes, setTimeLimitMinutes] = useState<number | undefined>(
-    (lesson?.content as Record<string, unknown>)?.timeLimitMinutes
+    (lesson as any)?.quiz?.time_limit_minutes ?? ((lesson?.content as Record<string, unknown>)?.timeLimitMinutes
       ? Number((lesson?.content as Record<string, unknown>).timeLimitMinutes)
-      : undefined
+      : undefined)
   );
   const [maxAttempts, setMaxAttempts] = useState<number | undefined>(
-    (lesson?.content as Record<string, unknown>)?.maxAttempts
+    (lesson as any)?.quiz?.max_attempts ?? ((lesson?.content as Record<string, unknown>)?.maxAttempts
       ? Number((lesson?.content as Record<string, unknown>).maxAttempts)
-      : undefined
+      : undefined)
   );
 
   // Assignment & Project State
   const [instructions, setInstructions] = useState(
     lesson?.content?.instructions || ''
   );
-  const [dueDate, setDueDate] = useState<string>(
-    (lesson?.content as Record<string, unknown>)?.dueDate
-      ? String((lesson?.content as Record<string, unknown>).dueDate)
-      : ''
-  );
+  
+  const initialDueDays = (() => {
+    const raw =
+      (lesson as any)?.assignment?.due_days ??
+      (lesson as any)?.assignment?.dueDays ??
+      (lesson?.content as any)?.dueDays ??
+      (lesson?.content as any)?.due_days;
+    if (typeof raw === 'number' && !isNaN(raw) && raw >= 1) return raw;
+    if (typeof raw === 'string' && raw.trim() !== '') {
+      const parsed = parseInt(raw, 10);
+      return !isNaN(parsed) && parsed >= 1 ? parsed : null;
+    }
+    return null;
+  })();
+
+  const [dueDays, setDueDays] = useState<number | null>(initialDueDays);
+  const [dueDaysError, setDueDaysError] = useState<string | null>(null);
+  const [savedLessonUuid, setSavedLessonUuid] = useState<string | null>(null);
+
   const [maxScore, setMaxScore] = useState(lesson?.content?.maxScore ?? 100);
   const [submissionType, setSubmissionType] = useState<'file' | 'text' | 'both'>(
     lesson?.content?.submissionType || 'file'
   );
   const [allowUrlSubmission] = useState(true);
 
+  // Staged / Pending Resources State
+  const initialPendingResources: PendingResource[] = (() => {
+    const existing = lesson?.resources || lesson?.content?.resources || [];
+    if (Array.isArray(existing)) {
+      return existing.map((r: any, idx: number) => ({
+        id: String(r.id || `existing-${idx}`),
+        title: r.title || r.media_file?.original_filename || 'Attached Resource',
+        resourceType: r.resource_type || r.resourceType || 'document',
+        mediaFileId: r.media_file?.id || r.media_file_id || r.mediaFileId,
+        url: r.url || '',
+        sizeMb: r.media_file?.size_bytes ? parseFloat((r.media_file.size_bytes / (1024 * 1024)).toFixed(2)) : undefined,
+        status: 'ready' as const,
+      }));
+    }
+    return [];
+  })();
+
+  const [pendingResources, setPendingResources] = useState<PendingResource[]>(initialPendingResources);
+
+
+
   // Helpers
-  const showFreeDemoOption = type === 'video';
-  const showAllowDownloadOption = type === 'document';
   const parsedEmbed = type === 'video' && mediaSource === 'URL' ? parseEmbedVideoUrl(mediaUrl) : null;
   const attachedResources = lesson?.content?.resources || [];
 
@@ -244,13 +322,14 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
 
     try {
       setUploadProgress(50);
-      const media = await coursesService.uploadMedia(file);
+      const targetLessonUuid = lesson?.uuid || (lesson as any)?.id;
+      const media = await coursesService.uploadMedia(file, currentCourseUuid, targetLessonUuid, hlsEnabled);
       setUploadProgress(100);
       setUploadedMediaId(media.id);
       setUploadedFileObj({
         name: media.original_filename || file.name,
         sizeMb: (file.size / (1024 * 1024)).toFixed(1),
-        url: media.url,
+        url: (media as any)?.stream_url || media.url,
       });
     } catch (err: any) {
       setUrlError(err?.message || 'File upload failed. Please try again.');
@@ -276,9 +355,11 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
       setTitleError('');
     }
 
+    const effectiveSource = canUseUrlSource ? mediaSource : 'UPLOAD';
+
     // 2. Content check for media types
     if (type === 'video' || type === 'audio' || type === 'image' || type === 'document') {
-      if (mediaSource === 'UPLOAD') {
+      if (effectiveSource === 'UPLOAD') {
         if (!uploadedMediaId && !uploadedFileObj) {
           setUrlError(`Please upload a valid ${meta.label} file.`);
           isValid = false;
@@ -316,13 +397,18 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
           if (!q.questionText || !q.questionText.trim()) {
             errors[q.id] = 'Question statement is required.';
             if (!firstInvalidId) firstInvalidId = q.id;
-          } else if (q.type === 'mcq') {
+          } else if (q.type === 'single_choice' || q.type === 'mcq' || q.type === 'multiple_choice') {
             const validOpts = q.options.filter((o) => o.text && o.text.trim());
             if (validOpts.length < 2) {
               errors[q.id] = 'Multiple Choice requires at least 2 non-empty options.';
               if (!firstInvalidId) firstInvalidId = q.id;
-            } else if (!q.correctAnswer) {
-              errors[q.id] = 'Please select a correct answer option.';
+            } else if (!q.correctAnswer || !q.correctAnswer.trim()) {
+              errors[q.id] = 'Select the correct answer for this question.';
+              if (!firstInvalidId) firstInvalidId = q.id;
+            }
+          } else if (q.type === 'true_false') {
+            if (!q.correctAnswer || !q.correctAnswer.trim()) {
+              errors[q.id] = 'Select the correct answer for this question.';
               if (!firstInvalidId) firstInvalidId = q.id;
             }
           }
@@ -345,7 +431,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
     return isValid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -361,90 +447,159 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
 
     setIsSaving(true);
 
-    let effectiveAllowDownload = false;
-    if (type === 'document') {
-      effectiveAllowDownload = allowDownload;
-    }
+    try {
+      let effectiveAllowDownload = false;
+      if (type === 'document') {
+        effectiveAllowDownload = allowDownload;
+      }
 
-    let contentPayload: Record<string, unknown> = {
-      resources: attachedResources,
-      allowDownload: effectiveAllowDownload,
-    };
+      let contentPayload: Record<string, unknown> = {
+        resources: attachedResources,
+        allowDownload: effectiveAllowDownload,
+      };
 
-    if (type === 'video' || type === 'audio' || type === 'image' || type === 'document') {
-      if (mediaSource === 'UPLOAD') {
+      const effectiveSource = canUseUrlSource ? mediaSource : 'UPLOAD';
+
+      if (type === 'video' || type === 'audio' || type === 'image' || type === 'document') {
+        if (effectiveSource === 'UPLOAD') {
+          contentPayload = {
+            ...contentPayload,
+            sourceMode: 'UPLOAD',
+            mediaFileId: uploadedMediaId,
+            mediaFile: uploadedFileObj,
+            videoUrl: uploadedFileObj?.url || '',
+            audioUrl: uploadedFileObj?.url || '',
+            imageUrl: uploadedFileObj?.url || '',
+            documentUrl: uploadedFileObj?.url || '',
+            caption: type === 'image' ? caption.trim() : undefined,
+          };
+        } else {
+          contentPayload = {
+            ...contentPayload,
+            sourceMode: 'URL',
+            mediaUrl: mediaUrl.trim(),
+            externalUrl: mediaUrl.trim(),
+            videoUrl: type === 'video' ? mediaUrl.trim() : undefined,
+            audioUrl: type === 'audio' ? mediaUrl.trim() : undefined,
+            imageUrl: type === 'image' ? mediaUrl.trim() : undefined,
+            documentUrl: type === 'document' ? mediaUrl.trim() : undefined,
+            caption: type === 'image' ? caption.trim() : undefined,
+          };
+        }
+      } else if (type === 'text') {
+        const cleanHtml = sanitizeHtml(textContent);
         contentPayload = {
           ...contentPayload,
-          sourceMode: 'UPLOAD',
-          mediaFileId: uploadedMediaId,
-          mediaFile: uploadedFileObj,
-          videoUrl: uploadedFileObj?.url || '',
-          audioUrl: uploadedFileObj?.url || '',
-          imageUrl: uploadedFileObj?.url || '',
-          documentUrl: uploadedFileObj?.url || '',
-          caption: type === 'image' ? caption.trim() : undefined,
+          textContent: cleanHtml,
+          body: cleanHtml,
         };
-      } else {
+      } else if (type === 'quiz') {
         contentPayload = {
           ...contentPayload,
-          sourceMode: 'URL',
-          mediaUrl: mediaUrl.trim(),
-          externalUrl: mediaUrl.trim(),
-          videoUrl: type === 'video' ? mediaUrl.trim() : undefined,
-          audioUrl: type === 'audio' ? mediaUrl.trim() : undefined,
-          imageUrl: type === 'image' ? mediaUrl.trim() : undefined,
-          documentUrl: type === 'document' ? mediaUrl.trim() : undefined,
-          caption: type === 'image' ? caption.trim() : undefined,
+          passingScore,
+          timeLimitMinutes,
+          maxAttempts,
+          questions: quizQuestions.map((q) => ({
+            id: q.id,
+            type: q.type,
+            questionText: q.questionText.trim(),
+            options:
+              q.type === 'single_choice' || q.type === 'mcq' || q.type === 'multiple_choice'
+                ? q.options.map((opt) => {
+                    const isCorr = q.correctAnswer === opt.id || q.correctAnswer === opt.text;
+                    return {
+                      id: opt.id,
+                      text: opt.text.trim(),
+                      is_correct: isCorr,
+                      isCorrect: isCorr,
+                    };
+                  })
+                : undefined,
+            correctAnswer: q.correctAnswer,
+          })),
+        };
+      } else if (type === 'assignment' || type === 'project') {
+        if (dueDays !== null && (isNaN(dueDays) || dueDays < 1)) {
+          setDueDaysError('Due Day must be at least 1.');
+          setIsSaving(false);
+          return;
+        }
+
+        const assignmentPayload: CreateAssignmentInput = {
+          title: title.trim(),
+          instructions: instructions.trim(),
+          due_days: dueDays,
+          max_marks: maxScore,
+          allow_text_submission: submissionType === 'text' || submissionType === 'both',
+          allow_file_submission: submissionType === 'file' || submissionType === 'both',
+          allow_url_submission: true,
+        };
+
+        contentPayload = {
+          ...contentPayload,
+          instructions: instructions.trim(),
+          maxScore,
+          dueDays,
+          submissionType,
+          allowUrlSubmission,
+          assignmentPayload,
         };
       }
-    } else if (type === 'text') {
-      const cleanHtml = sanitizeHtml(textContent);
+
+      let processedResourcesPayload: Array<Record<string, unknown>> = [];
+      if (pendingResources.length > 0) {
+        processedResourcesPayload = await Promise.all(
+          pendingResources.map(async (res) => {
+            let finalMediaId = res.mediaFileId;
+            if (res.file && !finalMediaId) {
+              try {
+                const uploadedMedia = await storageService.uploadFile(
+                  res.file,
+                  currentCourseUuid || lesson?.courseUuid || ''
+                );
+                finalMediaId = uploadedMedia.id;
+              } catch (uploadErr) {
+                console.error('Failed to upload resource file:', uploadErr);
+                throw new Error(`Failed to upload resource file "${res.title}".`);
+              }
+            }
+            return {
+              media_file_id: finalMediaId || null,
+              title: res.title,
+              url: res.url || '',
+              resource_type: res.resourceType,
+              allow_download: true,
+            };
+          })
+        );
+      }
+
       contentPayload = {
         ...contentPayload,
-        textContent: cleanHtml,
-        body: cleanHtml,
+        resources: processedResourcesPayload,
       };
-    } else if (type === 'quiz') {
-      contentPayload = {
-        ...contentPayload,
-        passingScore,
-        timeLimitMinutes,
-        maxAttempts,
-        questions: quizQuestions.map((q) => ({
-          id: q.id,
-          type: q.type,
-          questionText: q.questionText.trim(),
-          options:
-            q.type === 'mcq'
-              ? q.options.map((opt) => ({ id: opt.id, text: opt.text.trim() }))
-              : undefined,
-          correctAnswer: q.correctAnswer,
-        })),
-      };
-    } else if (type === 'assignment' || type === 'project') {
-      contentPayload = {
-        ...contentPayload,
-        instructions: instructions.trim(),
-        maxScore,
-        dueDate,
-        submissionType,
-        allowUrlSubmission,
-      };
+
+      const savedResult = await onSaveLesson({
+        moduleUuid: selectedModuleUuid,
+        title: title.trim(),
+        description: description.trim(),
+        type,
+        status: lesson?.status || 'published',
+        durationMinutes,
+        isDemo: showFreeDemoOption ? isDemo : false,
+        allowDownload: effectiveAllowDownload,
+        content: contentPayload,
+      });
+
+      const returnedUuid = (savedResult as any)?.uuid || (savedResult as any)?.id;
+      if (returnedUuid && isCreateMode && (type === 'assignment' || type === 'project')) {
+        setSavedLessonUuid(String(returnedUuid));
+      }
+    } catch (err) {
+      console.error('Save lesson failed in editor:', err);
+    } finally {
+      setIsSaving(false);
     }
-
-    onSaveLesson({
-      moduleUuid: selectedModuleUuid,
-      title: title.trim(),
-      description: description.trim(),
-      type,
-      status: lesson?.status || 'published',
-      durationMinutes,
-      isDemo: showFreeDemoOption ? isDemo : false,
-      allowDownload: effectiveAllowDownload,
-      content: contentPayload,
-    });
-
-    setIsSaving(false);
   };
 
   const handleCancelClick = () => {
@@ -470,19 +625,78 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
       return urlStr.split('/').pop() || 'Document File';
     }
   };
+  if (savedLessonUuid) {
+    return (
+      <div className="w-full max-w-xl mx-auto p-6 sm:p-8 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-sm text-center space-y-5 my-8 font-sans">
+        <div className="w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+          <CheckCircle2 className="w-8 h-8" />
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="text-lg font-bold text-[var(--text-primary)]">
+            Assignment Saved Successfully!
+          </h3>
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
+            You can add supporting learning resources (files, documents, templates) now or return to your curriculum.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3">
+          <Button
+            type="button"
+            onClick={() =>
+              navigate(
+                `/courses/${currentCourseUuid || lesson?.courseUuid}/curriculum/lessons/${savedLessonUuid}/resources?moduleUuid=${selectedModuleUuid}`
+              )
+            }
+            style={{
+              backgroundColor: 'var(--brand-primary)',
+              color: 'var(--brand-primary-foreground, #FFFFFF)',
+            }}
+            className="w-full sm:w-auto px-6 py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-2 shrink-0 min-h-[44px]"
+          >
+            <Plus className="w-4 h-4" />
+            Add Resources
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate(`/courses/${currentCourseUuid || lesson?.courseUuid}/curriculum`)}
+            className="w-full sm:w-auto px-6 py-2.5 text-xs font-bold border-[var(--border)] bg-[var(--surface-secondary)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] shrink-0 min-h-[44px]"
+          >
+            Back to Curriculum
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 text-left font-sans max-w-4xl mx-auto pb-36 md:pb-12 w-full min-w-0 px-1 md:px-0">
+    <form id="lesson-form" onSubmit={handleSubmit} className="space-y-5 text-left font-sans max-w-4xl mx-auto pb-44 md:pb-16 w-full min-w-0 px-1 md:px-0">
       {/* Top Header Card */}
-      <div className="p-3.5 sm:p-5 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl shadow-2xs space-y-4 w-full min-w-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E2E8F0] dark:border-[#263244] pb-3.5 w-full min-w-0">
+      <div
+        style={{
+          backgroundColor: 'var(--surface)',
+          borderColor: 'var(--border)',
+          color: 'var(--text-primary)',
+        }}
+        className="p-3.5 sm:p-5 border rounded-2xl shadow-2xs space-y-4 w-full min-w-0"
+      >
+        <div style={{ borderColor: 'var(--border)' }} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3.5 w-full min-w-0">
           <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1 w-full">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-blue-50 dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] border border-blue-100 dark:border-[#263244] flex items-center justify-center shrink-0 shadow-2xs">
+            <div
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
+                color: 'var(--brand-primary)',
+                borderColor: 'var(--border)',
+              }}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl border flex items-center justify-center shrink-0 shadow-2xs"
+            >
               <Icon className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
             </div>
             <div className="min-w-0 flex-1 w-full">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm sm:text-base font-semibold text-[#0F172A] dark:text-[#F8FAFC] truncate">
+                <h3 style={{ color: 'var(--text-primary)' }} className="text-sm sm:text-base font-semibold truncate">
                   {isCreateMode ? `Create ${meta.label}` : `Edit ${meta.label}`}
                 </h3>
                 <Badge variant="primary" size="sm" className="text-xs px-2 py-0.5">
@@ -492,62 +706,36 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
 
               {/* Explicit Module Selector Dropdown */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 mt-2 sm:mt-1 w-full min-w-0">
-                <div className="flex items-center gap-1 text-xs text-[#64748B] dark:text-[#94A3B8] font-medium shrink-0">
-                  <Layers className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
-                  <span>Target Module:</span>
+                <div style={{ color: 'var(--text-muted)' }} className="flex items-center gap-1 text-xs font-medium shrink-0">
+                  <Layers style={{ color: 'var(--brand-primary)' }} className="w-3.5 h-3.5 shrink-0" />
+                  <span>Section:</span>
                 </div>
                 <select
                   value={selectedModuleUuid}
                   onChange={(e) => setSelectedModuleUuid(e.target.value)}
-                  className="w-full sm:w-auto min-w-0 max-w-full bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] font-semibold text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] cursor-pointer truncate"
+                  style={{
+                    backgroundColor: 'var(--surface-secondary)',
+                    borderColor: 'var(--input-border)',
+                    color: 'var(--text-primary)',
+                  }}
+                  className="w-full sm:w-auto min-w-0 max-w-full font-semibold text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-[var(--brand-primary)] cursor-pointer truncate"
                 >
-                  {activeModules.map((mod, idx) => {
-                    const count = allLessons.filter((l) => l.moduleUuid === mod.uuid).length;
-                    return (
-                      <option key={mod.uuid} value={mod.uuid} className="dark:bg-[#111827] truncate">
-                        Module #{idx + 1}: {mod.title} ({count} {count === 1 ? 'lesson' : 'lessons'})
-                      </option>
-                    );
-                  })}
+                  {activeModules.map((mod, idx) => (
+                    <option key={mod.uuid} value={mod.uuid} style={{ backgroundColor: 'var(--surface)', color: 'var(--text-primary)' }} className="truncate">
+                      Module #{idx + 1}: {mod.title}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
-          </div>
-
-          {/* Single Page Editor / Student Preview Switcher */}
-          <div className="grid grid-cols-2 gap-1 bg-[#F8FAFC] dark:bg-[#0F172A] p-1 rounded-xl border border-[#E2E8F0] dark:border-[#263244] w-full sm:w-auto shrink-0">
-            <button
-              type="button"
-              onClick={() => setEditorMode('editor')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer text-center whitespace-normal leading-tight ${
-                editorMode === 'editor'
-                  ? 'bg-[#2563EB] text-white shadow-2xs'
-                  : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 shrink-0" />
-              <span>Editor Controls</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditorMode('preview')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer text-center whitespace-normal leading-tight ${
-                editorMode === 'preview'
-                  ? 'bg-[#2563EB] text-white shadow-2xs'
-                  : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
-              }`}
-            >
-              <Eye className="w-3.5 h-3.5 shrink-0" />
-              <span>Student Preview</span>
-            </button>
           </div>
         </div>
 
         {/* 1. COMMON LESSON FIELDS (TOP SECTION) */}
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] mb-1">
-              Lesson Title <span className="text-[#2563EB] dark:text-[#60A5FA]">*</span>
+            <label style={{ color: 'var(--text-secondary)' }} className="block text-xs font-medium mb-1">
+              Lesson Title <span style={{ color: 'var(--brand-primary)' }}>*</span>
             </label>
             <Input
               id="lesson-title-input"
@@ -564,24 +752,35 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] mb-1">
-              Short Description <span className="text-[#64748B] dark:text-[#94A3B8] font-normal">(Optional)</span>
+            <label style={{ color: 'var(--text-secondary)' }} className="block text-xs font-medium mb-1">
+              Short Description <span style={{ color: 'var(--text-muted)' }} className="font-normal">(Optional)</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Concise summary of what students will learn in this unit..."
               rows={2}
-              className="w-full p-3 bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl text-xs sm:text-sm text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6] focus:ring-2 focus:ring-[#2563EB]/10 dark:focus:ring-[#3B82F6]/10 transition-all resize-y font-normal"
+              style={{
+                backgroundColor: 'var(--surface-secondary)',
+                borderColor: 'var(--input-border)',
+                color: 'var(--text-primary)',
+              }}
+              className="w-full p-3 rounded-xl text-xs sm:text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)] transition-all resize-y font-normal"
             />
           </div>
 
           {/* Quick Settings Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
             {/* Field: Duration */}
-            <div className="p-3 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#263244] rounded-xl space-y-1">
-              <label className="text-[11px] font-semibold text-[#0F172A] dark:text-[#CBD5E1] flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
+            <div
+              style={{
+                backgroundColor: 'var(--surface-secondary)',
+                borderColor: 'var(--border)',
+              }}
+              className="p-3 border rounded-xl space-y-1"
+            >
+              <label style={{ color: 'var(--text-secondary)' }} className="text-[11px] font-semibold flex items-center gap-1.5">
+                <Clock style={{ color: 'var(--brand-primary)' }} className="w-3.5 h-3.5" />
                 <span>Duration (Mins)</span>
               </label>
               <input
@@ -590,38 +789,65 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                 max={600}
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(Math.max(1, Number(e.target.value)))}
-                className="w-full h-8 px-2.5 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#334155] rounded-lg text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6]"
+                style={{
+                  backgroundColor: 'var(--surface)',
+                  borderColor: 'var(--input-border)',
+                  color: 'var(--text-primary)',
+                }}
+                className="w-full h-8 px-2.5 border rounded-lg text-xs font-bold focus:outline-none focus:border-[var(--brand-primary)]"
               />
             </div>
 
             {/* Field: Free Trial / Demo Toggle (Only for Video Lessons) */}
             {showFreeDemoOption && (
-              <div className="p-3 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#263244] rounded-xl flex items-center justify-between">
+              <div
+                style={{
+                  backgroundColor: 'var(--surface-secondary)',
+                  borderColor: 'var(--border)',
+                }}
+                className="p-3 border rounded-xl flex items-center justify-between"
+              >
                 <div>
-                  <span className="text-[11px] font-semibold text-[#0F172A] dark:text-[#CBD5E1] block">Free Demo / Trial</span>
-                  <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">Trial preview for non-enrolled</span>
+                  <span style={{ color: 'var(--text-secondary)' }} className="text-[11px] font-semibold block">Free Demo / Trial</span>
+                  <span style={{ color: 'var(--text-muted)' }} className="text-[10px]">Trial preview for non-enrolled</span>
                 </div>
                 <input
                   type="checkbox"
                   checked={isDemo}
-                  onChange={(e) => setIsDemo(e.target.checked)}
-                  className="w-4 h-4 text-[#2563EB] rounded cursor-pointer accent-[#2563EB]"
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setIsDemo(enabled);
+                    if (enabled) {
+                      setMediaSource('UPLOAD');
+                      setMediaUrl('');
+                      setUrlError('');
+                    }
+                  }}
+                  style={{ accentColor: 'var(--brand-primary)' }}
+                  className="w-4 h-4 rounded cursor-pointer"
                 />
               </div>
             )}
 
             {/* Field: Allow Download Toggle (Only for Document Lessons) */}
             {showAllowDownloadOption && (
-              <div className="p-3 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#263244] rounded-xl flex items-center justify-between">
+              <div
+                style={{
+                  backgroundColor: 'var(--surface-secondary)',
+                  borderColor: 'var(--border)',
+                }}
+                className="p-3 border rounded-xl flex items-center justify-between"
+              >
                 <div>
-                  <span className="text-[11px] font-semibold text-[#0F172A] dark:text-[#CBD5E1] block">Allow Download</span>
-                  <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">Permit learners to save/download the uploaded file</span>
+                  <span style={{ color: 'var(--text-secondary)' }} className="text-[11px] font-semibold block">Allow Download</span>
+                  <span style={{ color: 'var(--text-muted)' }} className="text-[10px]">Permit learners to save/download file</span>
                 </div>
                 <input
                   type="checkbox"
                   checked={allowDownload}
                   onChange={(e) => setAllowDownload(e.target.checked)}
-                  className="w-4 h-4 text-[#2563EB] rounded cursor-pointer accent-[#2563EB]"
+                  style={{ accentColor: 'var(--brand-primary)' }}
+                  className="w-4 h-4 rounded cursor-pointer"
                 />
               </div>
             )}
@@ -630,14 +856,20 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
       </div>
 
       {/* 2. TYPE-SPECIFIC CONTENT EDITOR SECTION */}
-      {editorMode === 'editor' && (
-        <div className="p-4 sm:p-5 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl shadow-2xs space-y-4">
-          <div className="border-b border-[#E2E8F0] dark:border-[#263244] pb-2 flex items-center justify-between">
+      <div
+        style={{
+          backgroundColor: 'var(--surface)',
+          borderColor: 'var(--border)',
+          color: 'var(--text-primary)',
+        }}
+        className="p-4 sm:p-5 border rounded-2xl shadow-2xs space-y-4"
+      >
+          <div style={{ borderColor: 'var(--border)' }} className="border-b pb-2 flex items-center justify-between">
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-[#0F172A] dark:text-[#F8FAFC]">
+              <h4 style={{ color: 'var(--text-primary)' }} className="text-xs font-semibold uppercase tracking-wider">
                 Lesson Content Configuration
               </h4>
-              <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">
+              <p style={{ color: 'var(--text-muted)' }} className="text-[11px]">
                 Enter media URL, text content, assessment questions, or project criteria.
               </p>
             </div>
@@ -667,23 +899,63 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                     <Upload className="w-3.5 h-3.5" />
                     <span>Upload File</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMediaSource('URL');
-                      setUrlError('');
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      mediaSource === 'URL'
-                        ? 'bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs'
-                        : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white'
-                    }`}
-                  >
-                    <Link2 className="w-3.5 h-3.5" />
-                    <span>Use URL</span>
-                  </button>
+                  {canUseUrlSource && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMediaSource('URL');
+                        setUrlError('');
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        mediaSource === 'URL'
+                          ? 'bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs'
+                          : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white'
+                      }`}
+                    >
+                      <Link2 className="w-3.5 h-3.5" />
+                      <span>Use URL</span>
+                    </button>
+                  )}
                 </div>
               </div>
+
+              {/* HLS Video Processing Toggle (Only visible for Video lessons in Upload File mode) */}
+              {type === 'video' && mediaSource === 'UPLOAD' && (
+                <div className="p-3 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#263244] rounded-xl flex items-center justify-between gap-3">
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1]">
+                        HLS Video Processing
+                      </span>
+                      {hlsEnabled ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
+                          ON
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                          OFF
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] leading-tight">
+                      {hlsEnabled
+                        ? 'Video will be converted to HLS after upload.'
+                        : 'Original uploaded video will be used directly.'}
+                    </p>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={hlsEnabled}
+                      disabled={isUploadingFile}
+                      onChange={(e) => setHlsEnabled(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]" />
+                  </label>
+                </div>
+              )}
 
               {/* UPLOAD FILE MODE */}
               {mediaSource === 'UPLOAD' && (
@@ -760,7 +1032,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                   <div>
                     <label className="block text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] mb-1 flex items-center gap-1.5">
                       <Link2 className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
-                      <span>{meta.label} Content URL</span> <span className="text-[#2563EB] dark:text-[#60A5FA]">*</span>
+                      <span>{type === 'audio' ? 'Audio URL' : `${meta.label} Content URL`}</span> <span className="text-[#2563EB] dark:text-[#60A5FA]">*</span>
                     </label>
                     <Input
                       id="media-url-input"
@@ -773,7 +1045,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                         type === 'video'
                           ? 'https://www.youtube.com/embed/VIDEO_ID or direct MP4 URL'
                           : type === 'audio'
-                          ? 'https://domain.com/audio/lesson-01.mp3'
+                          ? 'https://example.com/audio/lesson.mp3'
                           : type === 'image'
                           ? 'https://domain.com/images/diagram.png'
                           : 'https://domain.com/docs/handout.pdf'
@@ -781,8 +1053,15 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                       className="h-11 text-xs sm:text-sm font-medium rounded-xl"
                       error={urlError}
                     />
-                    <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] mt-1">
-                      Enter a publicly accessible URL starting with http:// or https://
+                    <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] mt-1 font-medium hidden sm:block">
+                      {type === 'audio'
+                        ? 'Enter a direct link to an audio file such as MP3, M4A, OGG, or WAV.'
+                        : 'Enter a publicly accessible URL starting with http:// or https://'}
+                    </p>
+                    <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] mt-1 font-medium sm:hidden">
+                      {type === 'audio'
+                        ? 'Direct audio file link'
+                        : 'Enter a publicly accessible URL starting with http:// or https://'}
                     </p>
                   </div>
 
@@ -825,8 +1104,8 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
           {/* E. TEXT LESSON TYPE */}
           {type === 'text' && (
             <div className="space-y-3">
-              <label className="block text-xs font-bold text-[#0F172A] mb-1">
-                Rich Text Lesson Content <span className="text-rose-500">*</span>
+              <label style={{ color: 'var(--text-secondary)' }} className="block text-xs font-semibold mb-1">
+                Text Lesson Article Content <span style={{ color: 'var(--brand-primary)' }}>*</span>
               </label>
               <RichTextEditor
                 value={textContent}
@@ -849,9 +1128,15 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
           {/* F. QUIZ LESSON TYPE */}
           {type === 'quiz' && (
             <div className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
+              <div
+                style={{
+                  backgroundColor: 'var(--surface-secondary)',
+                  borderColor: 'var(--border)',
+                }}
+                className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 border rounded-xl"
+              >
                 <div>
-                  <label className="block text-[11px] font-bold text-[#0F172A] mb-1">
+                  <label style={{ color: 'var(--text-secondary)' }} className="block text-[11px] font-bold mb-1">
                     Passing Score (%)
                   </label>
                   <input
@@ -860,12 +1145,17 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                     max={100}
                     value={passingScore}
                     onChange={(e) => setPassingScore(Math.min(100, Math.max(1, Number(e.target.value))))}
-                    className="w-full h-9 px-2.5 bg-white border border-[#E2E8F0] rounded-lg text-xs font-bold text-[#0F172A]"
+                    style={{
+                      backgroundColor: 'var(--surface)',
+                      borderColor: 'var(--input-border)',
+                      color: 'var(--text-primary)',
+                    }}
+                    className="w-full h-9 px-2.5 border rounded-lg text-xs font-bold focus:outline-none focus:border-[var(--brand-primary)]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-[#0F172A] mb-1">
+                  <label style={{ color: 'var(--text-secondary)' }} className="block text-[11px] font-bold mb-1">
                     Time Limit (Mins)
                   </label>
                   <input
@@ -877,12 +1167,17 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                       setTimeLimitMinutes(e.target.value ? Number(e.target.value) : undefined)
                     }
                     placeholder="No limit"
-                    className="w-full h-9 px-2.5 bg-white border border-[#E2E8F0] rounded-lg text-xs font-bold text-[#0F172A]"
+                    style={{
+                      backgroundColor: 'var(--surface)',
+                      borderColor: 'var(--input-border)',
+                      color: 'var(--text-primary)',
+                    }}
+                    className="w-full h-9 px-2.5 border rounded-lg text-xs font-bold placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-[#0F172A] mb-1">
+                  <label style={{ color: 'var(--text-secondary)' }} className="block text-[11px] font-bold mb-1">
                     Max Attempts
                   </label>
                   <input
@@ -894,7 +1189,12 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                       setMaxAttempts(e.target.value ? Number(e.target.value) : undefined)
                     }
                     placeholder="Unlimited"
-                    className="w-full h-9 px-2.5 bg-white border border-[#E2E8F0] rounded-lg text-xs font-bold text-[#0F172A]"
+                    style={{
+                      backgroundColor: 'var(--surface)',
+                      borderColor: 'var(--input-border)',
+                      color: 'var(--text-primary)',
+                    }}
+                    className="w-full h-9 px-2.5 border rounded-lg text-xs font-bold placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]"
                   />
                 </div>
               </div>
@@ -918,7 +1218,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
           {(type === 'assignment' || type === 'project') && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#0F172A] mb-1">
+                <label className="block text-xs font-bold mb-1 text-[var(--text-primary)]">
                   {type === 'project' ? 'Project Requirements & Guidelines' : 'Assignment Instructions'}{' '}
                   <span className="text-rose-500">*</span>
                 </label>
@@ -930,7 +1230,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                   }}
                   rows={4}
                   placeholder="Detail step-by-step requirements, submission format, grading criteria..."
-                  className="w-full p-3 bg-white border border-[#E2E8F0] rounded-xl text-xs sm:text-sm text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                  className="w-full p-3 rounded-xl text-xs sm:text-sm bg-[var(--surface-secondary)] border border-[var(--input-border)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)] transition-all resize-y font-normal"
                 />
                 {contentError && (
                   <p id="content-error-box" className="text-xs font-semibold text-rose-600 mt-1">
@@ -941,7 +1241,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-[#0F172A] mb-1">
+                  <label className="block text-[11px] font-bold mb-1 text-[var(--text-secondary)]">
                     Max Marks / Score
                   </label>
                   <input
@@ -950,31 +1250,60 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                     max={1000}
                     value={maxScore}
                     onChange={(e) => setMaxScore(Math.max(1, Number(e.target.value)))}
-                    className="w-full h-9 px-2.5 bg-white border border-[#E2E8F0] rounded-lg text-xs font-bold text-[#0F172A]"
+                    className="w-full h-9 px-2.5 rounded-lg text-xs font-bold bg-[var(--surface-secondary)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-[#0F172A] mb-1 flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-[#2563EB]" />
-                    <span>Due Date</span>
+                  <label className="block text-[11px] font-bold mb-1 flex items-center gap-1 text-[var(--text-secondary)]">
+                    <Clock style={{ color: 'var(--brand-primary)' }} className="w-3.5 h-3.5" />
+                    <span>Due Day (Optional)</span>
                   </label>
-                  <input
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full h-9 px-2.5 bg-white border border-[#E2E8F0] rounded-lg text-xs font-bold text-[#0F172A]"
-                  />
+                  <div className="relative flex items-center">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      step={1}
+                      placeholder="e.g. 7"
+                      value={dueDays === null ? '' : dueDays}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') {
+                          setDueDays(null);
+                          setDueDaysError(null);
+                        } else {
+                          const parsed = parseInt(val, 10);
+                          setDueDays(parsed);
+                          if (isNaN(parsed) || parsed < 1) {
+                            setDueDaysError('Due Day must be at least 1.');
+                          } else {
+                            setDueDaysError(null);
+                          }
+                        }
+                      }}
+                      className="w-full h-9 pl-2.5 pr-11 rounded-lg text-xs font-bold bg-[var(--surface-secondary)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]"
+                    />
+                    <span className="absolute right-2.5 text-[11px] text-[var(--text-muted)] pointer-events-none font-medium">
+                      days
+                    </span>
+                  </div>
+                  {dueDaysError && (
+                    <p className="text-[10px] font-semibold text-rose-600 mt-0.5">{dueDaysError}</p>
+                  )}
+                  <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                    Number of days students have to complete this assignment.
+                  </p>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-[#0F172A] mb-1">
+                  <label className="block text-[11px] font-bold mb-1 text-[var(--text-secondary)]">
                     Submission Format
                   </label>
                   <select
                     value={submissionType}
                     onChange={(e) => setSubmissionType(e.target.value as 'file' | 'text' | 'both')}
-                    className="w-full h-9 px-2 bg-white border border-[#E2E8F0] rounded-lg text-xs font-bold text-[#0F172A] cursor-pointer"
+                    className="w-full h-9 px-2 rounded-lg text-xs font-bold bg-[var(--surface-secondary)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)] cursor-pointer"
                   >
                     <option value="file">File Upload Only</option>
                     <option value="text">Text Response Only</option>
@@ -985,255 +1314,21 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
             </div>
           )}
 
-          {/* Attached Resources Section */}
-          <LessonResourcesSection
-            courseUuid={currentCourseUuid}
-            moduleUuid={selectedModuleUuid}
-            lessonUuid={lesson?.id || lesson?.uuid}
-            resources={attachedResources}
+          {/* Staged & Attached Resources Section */}
+          <LessonResourcesEditor
+            resources={pendingResources}
+            onChangeResources={setPendingResources}
+            courseUuid={currentCourseUuid || lesson?.courseUuid}
           />
         </div>
-      )}
 
-      {/* 3. STUDENT LIVE PREVIEW SECTION */}
-      {editorMode === 'preview' && (
-        <div className="p-4 sm:p-5 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl space-y-4 text-white font-sans">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <div className="flex items-center gap-2">
-              <Badge variant="primary" size="sm" className="bg-blue-600 text-white">
-                Student View
-              </Badge>
-              <h4 className="text-xs font-bold text-slate-200">
-                {title || 'Untitled Lesson'}
-              </h4>
-            </div>
-            <span className="text-[10px] text-slate-400 font-medium">Live Render</span>
-          </div>
-
-          {/* Video Preview */}
-          {type === 'video' && (
-            <div>
-              {(mediaSource === 'UPLOAD' ? uploadedFileObj?.url : mediaUrl) ? (
-                parsedEmbed ? (
-                  <div className="aspect-video w-full max-h-96 bg-black rounded-xl overflow-hidden shadow-2xl border border-slate-800">
-                    <iframe
-                      src={parsedEmbed.embedUrl}
-                      title="Video Preview"
-                      className="w-full h-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                ) : (
-                  <div className="aspect-video w-full max-h-96 bg-black rounded-xl overflow-hidden shadow-2xl border border-slate-800 flex items-center justify-center">
-                    <video controls className="w-full h-full object-contain" src={resolveMediaUrl(mediaSource === 'UPLOAD' ? uploadedFileObj?.url : mediaUrl)}>
-                      Your browser does not support the video tag.
-                    </video>
-                  </div>
-                )
-              ) : (
-                <div className="aspect-video w-full max-h-60 bg-slate-850 rounded-xl border border-slate-800 flex flex-col items-center justify-center p-4 text-center space-y-2">
-                  <Video className="w-8 h-8 text-slate-600" />
-                  <p className="text-xs text-slate-400 font-medium">Upload a video file or enter a video URL above to preview playback here.</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Audio Preview */}
-          {type === 'audio' && (
-            <AudioPlayer
-              src={resolveMediaUrl(mediaSource === 'UPLOAD' ? (uploadedFileObj?.url || '') : mediaUrl)}
-              title={uploadedFileObj?.name || 'Audio Content'}
-              subtitle={mediaSource === 'UPLOAD' ? uploadedFileObj?.url : mediaUrl}
-            />
-          )}
-
-          {/* Image Preview */}
-          {type === 'image' && (
-            <div>
-              {(mediaSource === 'UPLOAD' ? uploadedFileObj?.url : mediaUrl) ? (
-                <div className="space-y-2 bg-slate-800 p-3 rounded-xl border border-slate-700">
-                  <div className="max-h-80 w-full overflow-hidden rounded-lg flex items-center justify-center bg-black">
-                    <img
-                      src={resolveMediaUrl(mediaSource === 'UPLOAD' ? uploadedFileObj?.url : mediaUrl)}
-                      alt={caption || title}
-                      className="max-h-80 object-contain rounded-lg"
-                    />
-                  </div>
-                  {caption && <p className="text-xs italic text-slate-300 text-center">{caption}</p>}
-                </div>
-              ) : (
-                <div className="p-6 bg-slate-850 border border-slate-800 rounded-xl text-center text-xs text-slate-400 space-y-1">
-                  <ImageIcon className="w-6 h-6 text-slate-600 mx-auto" />
-                  <span>Enter an image URL to preview responsive display.</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Document Preview */}
-          {type === 'document' && (
-            <div>
-              {mediaUrl ? (
-                isDocPdf ? (
-                  <div className="aspect-[4/3] w-full max-h-96 bg-white rounded-xl overflow-hidden border border-slate-700">
-                    <iframe
-                      src={resolveMediaUrl(mediaUrl)}
-                      title="PDF Document Preview"
-                      className="w-full h-full border-0"
-                    />
-                  </div>
-                ) : (
-                  <div className="p-4 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <FileText className="w-7 h-7 text-blue-400 shrink-0" />
-                      <div className="min-w-0">
-                        <strong className="text-xs text-white block truncate">{getCleanDocFileName(mediaUrl)}</strong>
-                        <span className="text-[10px] text-slate-400">Document Resource URL</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <a
-                        href={mediaUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" /> Open / View
-                      </a>
-                      {allowDownload && (
-                        <a
-                          href={mediaUrl}
-                          download
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
-                        >
-                          <Download className="w-3.5 h-3.5" /> Download
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )
-              ) : (
-                <div className="p-6 bg-slate-850 border border-slate-800 rounded-xl text-center text-xs text-slate-400 space-y-1">
-                  <Files className="w-6 h-6 text-slate-600 mx-auto" />
-                  <span>Enter a document URL to display document preview.</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Text Preview */}
-          {type === 'text' && (
-            <div className="bg-white text-slate-900 p-5 rounded-xl border border-slate-700 text-xs sm:text-sm leading-relaxed max-h-80 overflow-y-auto">
-              {textContent ? (
-                <div
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(textContent) }}
-                  className="prose max-w-none [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_blockquote]:border-l-4 [&_blockquote]:border-[#2563EB] [&_blockquote]:pl-3 [&_blockquote]:bg-slate-50 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-                />
-              ) : (
-                <p className="text-slate-400 italic text-center py-4">Rich text preview will render here as you type...</p>
-              )}
-            </div>
-          )}
-
-          {/* Quiz Preview */}
-          {type === 'quiz' && (
-            <div className="bg-slate-850 p-4 rounded-xl border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="text-xs font-bold text-slate-200">
-                  Quiz Questions ({quizQuestions.length})
-                </span>
-                <span className="text-[10px] text-slate-400">
-                  Passing: {passingScore}% • {timeLimitMinutes ? `${timeLimitMinutes} mins` : 'No time limit'}
-                </span>
-              </div>
-
-              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                {quizQuestions.map((q, idx) => (
-                  <div key={q.id} className="p-3 bg-slate-800 rounded-lg text-xs space-y-2 border border-slate-750">
-                    <div className="flex items-start justify-between gap-2">
-                      <strong className="text-slate-200 block font-semibold">
-                        Q{idx + 1}. {q.questionText || 'Empty Question'}
-                      </strong>
-                      <Badge variant="secondary" size="sm" className="text-[9px] uppercase">
-                        {q.type}
-                      </Badge>
-                    </div>
-
-                    {q.type === 'mcq' && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
-                        {q.options.map((opt) => (
-                          <div
-                            key={opt.id}
-                            className={`p-2 rounded border text-[11px] flex items-center justify-between ${
-                              q.correctAnswer === opt.id
-                                ? 'bg-emerald-950/60 border-emerald-500 text-emerald-300 font-bold'
-                                : 'bg-slate-850 border-slate-700 text-slate-300'
-                            }`}
-                          >
-                            <span>{opt.text || 'Option'}</span>
-                            {q.correctAnswer === opt.id && (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Assignment / Project Preview */}
-          {(type === 'assignment' || type === 'project') && (
-            <div className="bg-slate-850 p-4 rounded-xl border border-slate-800 space-y-3 text-xs">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="font-bold text-slate-200 capitalize">
-                  {type} Task Specification
-                </span>
-                <Badge variant="primary" size="sm">
-                  {maxScore} Marks
-                </Badge>
-              </div>
-
-              <div>
-                <span className="text-[10px] text-slate-400 block mb-0.5 uppercase tracking-wider">Instructions</span>
-                <p className="text-slate-300 whitespace-pre-wrap leading-relaxed">
-                  {instructions || 'No instructions provided.'}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 4. STICKY BOTTOM ACTION BAR */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#111827]/95 backdrop-blur-md border-t border-[#E2E8F0] dark:border-[#263244] p-3 sm:p-4 shadow-lg">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleCancelClick}
-            className="text-xs font-semibold text-[#64748B] dark:text-[#CBD5E1] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] dark:hover:bg-[#172033]"
-          >
-            Cancel
-          </Button>
-
-          <Button
-            type="submit"
-            size="sm"
-            disabled={isSaving}
-            className="h-10 text-xs font-semibold px-6 bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-xs rounded-xl cursor-pointer"
-          >
-            {isSaving ? 'Saving Lesson...' : isCreateMode ? 'Save Lesson' : 'Save Changes'}
-          </Button>
-        </div>
-      </div>
+      {/* 4. RESPONSIVE LESSON FORM ACTIONS (Container-aligned on Desktop, persistent above navbar on Mobile) */}
+      <LessonFormActions
+        formId="lesson-form"
+        isCreateMode={isCreateMode}
+        isSaving={isSaving}
+        onCancel={handleCancelClick}
+      />
     </form>
   );
 };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Plus,
   Trash2,
@@ -9,10 +9,18 @@ import {
   CheckCircle2,
   HelpCircle,
 } from 'lucide-react';
-import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
+import { Modal } from '../../../../components/ui/Modal';
 
-export type BuilderQuestionType = 'mcq' | 'true_false' | 'short_answer';
+export type BuilderQuestionType =
+  | 'single_choice'
+  | 'mcq'
+  | 'multiple_choice'
+  | 'multiple_select'
+  | 'true_false'
+  | 'short_answer'
+  | 'long_answer'
+  | 'fill_blank';
 
 export interface QuizOptionItem {
   id: string;
@@ -36,15 +44,18 @@ interface QuizQuestionBuilderProps {
 // eslint-disable-next-line react-refresh/only-export-components
 export const createDefaultQuestion = (): BuilderQuestion => {
   const qId = `q-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const opt1Id = `opt-1-${qId}`;
+  const opt2Id = `opt-2-${qId}`;
+
   return {
     id: qId,
-    type: 'mcq',
+    type: 'single_choice',
     questionText: '',
     options: [
-      { id: `opt-1-${qId}`, text: '' },
-      { id: `opt-2-${qId}`, text: '' },
+      { id: opt1Id, text: '' },
+      { id: opt2Id, text: '' },
     ],
-    correctAnswer: '',
+    correctAnswer: opt1Id,
   };
 };
 
@@ -53,6 +64,8 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
   onChange,
   errors = {},
 }) => {
+  const [deleteModalIndex, setDeleteModalIndex] = useState<number | null>(null);
+
   const handleAddQuestion = () => {
     const newQ = createDefaultQuestion();
     onChange([...questions, newQ]);
@@ -61,27 +74,39 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
   const handleDuplicateQuestion = (index: number) => {
     const target = questions[index];
     const newQId = `q-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+    const idMap: Record<string, string> = {};
+    const newOptions = target.options.map((opt, i) => {
+      const newOptId = `opt-${i + 1}-${newQId}`;
+      idMap[opt.id] = newOptId;
+      return { id: newOptId, text: opt.text };
+    });
+
+    let newCorrect = target.correctAnswer;
+    if (idMap[target.correctAnswer]) {
+      newCorrect = idMap[target.correctAnswer];
+    }
+
     const duplicated: BuilderQuestion = {
       ...target,
       id: newQId,
-      options: target.options.map((opt, i) => ({
-        id: `opt-${i + 1}-${newQId}`,
-        text: opt.text,
-      })),
+      options: newOptions,
+      correctAnswer: newCorrect,
     };
     const updated = [...questions];
     updated.splice(index + 1, 0, duplicated);
     onChange(updated);
   };
 
-  const handleDeleteQuestion = (index: number) => {
+  const confirmDeleteQuestion = (index: number) => {
     if (questions.length <= 1) {
-      // Reset to 1 fresh empty question instead of leaving zero questions
       onChange([createDefaultQuestion()]);
+      setDeleteModalIndex(null);
       return;
     }
     const updated = questions.filter((_, i) => i !== index);
     onChange(updated);
+    setDeleteModalIndex(null);
   };
 
   const handleMoveQuestion = (index: number, direction: 'up' | 'down') => {
@@ -106,7 +131,7 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
     let defaultOptions: QuizOptionItem[] = q.options;
     let defaultCorrect = q.correctAnswer;
 
-    if (newType === 'mcq') {
+    if (newType === 'single_choice' || newType === 'mcq' || newType === 'multiple_choice' || newType === 'multiple_select') {
       if (!defaultOptions || defaultOptions.length < 2) {
         defaultOptions = [
           { id: `opt-1-${qId}`, text: '' },
@@ -117,7 +142,7 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
     } else if (newType === 'true_false') {
       defaultOptions = [];
       defaultCorrect = 'True';
-    } else if (newType === 'short_answer') {
+    } else {
       defaultOptions = [];
       defaultCorrect = '';
     }
@@ -138,13 +163,15 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
 
   const handleRemoveOption = (qIndex: number, optIndex: number) => {
     const q = questions[qIndex];
-    if (q.options.length <= 2) return; // Require at least 2 options for MCQ
+    if (q.options.length <= 2) return;
     const targetOpt = q.options[optIndex];
     const updatedOptions = q.options.filter((_, i) => i !== optIndex);
+
     let newCorrect = q.correctAnswer;
     if (q.correctAnswer === targetOpt.id || q.correctAnswer === targetOpt.text) {
-      newCorrect = updatedOptions[0]?.id || '';
+      newCorrect = ''; // Require instructor to select a new option
     }
+
     handleUpdateQuestion(qIndex, {
       options: updatedOptions,
       correctAnswer: newCorrect,
@@ -159,24 +186,27 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
   };
 
   return (
-    <div className="space-y-4 font-sans text-left">
-      <div className="flex items-center justify-between">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-[#0F172A] flex items-center gap-1.5">
-          <HelpCircle className="w-4 h-4 text-[#2563EB]" />
+    <div className="space-y-4 font-sans text-left w-full min-w-0 box-border">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h4 style={{ color: 'var(--text-primary)' }} className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+          <HelpCircle style={{ color: 'var(--brand-primary)' }} className="w-4 h-4" />
           <span>Questions ({questions.length})</span>
         </h4>
-        <Button
+        <button
           type="button"
-          size="xs"
-          variant="outline"
           onClick={handleAddQuestion}
-          className="gap-1 text-[11px] font-semibold"
+          style={{
+            backgroundColor: 'var(--surface-secondary)',
+            borderColor: 'var(--border)',
+            color: 'var(--brand-primary)',
+          }}
+          className="px-3 py-1.5 rounded-xl border text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors hover:border-[var(--brand-primary)]"
         >
           <Plus className="w-3.5 h-3.5" /> Add Question
-        </Button>
+        </button>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 w-full min-w-0">
         {questions.map((q, index) => {
           const cardError = errors[q.id];
 
@@ -184,56 +214,88 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
             <div
               key={q.id}
               id={`question-card-${q.id}`}
-              className={`p-4 sm:p-5 bg-white border rounded-2xl shadow-2xs space-y-4 transition-all relative ${
-                cardError
-                  ? 'border-rose-400 ring-1 ring-rose-400/30'
-                  : 'border-[#E2E8F0] hover:border-blue-200'
+              style={{
+                backgroundColor: 'var(--surface)',
+                borderColor: cardError ? '#F87171' : 'var(--border)',
+                color: 'var(--text-primary)',
+              }}
+              className={`p-4 sm:p-5 border rounded-2xl shadow-2xs space-y-4 transition-all relative w-full min-w-0 box-border ${
+                cardError ? 'ring-1 ring-rose-400/30' : ''
               }`}
             >
               {/* Card Header: Numbering, Type Selector, Order Control */}
-              <div className="flex items-center justify-between gap-2 pb-3 border-b border-[#E2E8F0]">
+              <div style={{ borderColor: 'var(--border)' }} className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 pb-3 border-b">
                 <div className="flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-lg bg-blue-50 text-[#2563EB] font-extrabold text-xs flex items-center justify-center shrink-0 border border-blue-100">
+                  <span
+                    style={{
+                      backgroundColor: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
+                      color: 'var(--brand-primary)',
+                      borderColor: 'color-mix(in srgb, var(--brand-primary) 20%, transparent)',
+                    }}
+                    className="w-7 h-7 rounded-lg font-extrabold text-xs flex items-center justify-center shrink-0 border"
+                  >
                     {index + 1}
                   </span>
-                  <span className="text-xs font-bold text-[#0F172A]">
+                  <span style={{ color: 'var(--text-primary)' }} className="text-xs font-bold">
                     Question {index + 1}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {/* Question Type Selector */}
-                  <select
-                    value={q.type}
-                    onChange={(e) =>
-                      handleTypeChange(index, e.target.value as BuilderQuestionType)
-                    }
-                    className="h-8 px-2.5 bg-slate-50 border border-[#E2E8F0] rounded-lg text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#2563EB] cursor-pointer"
-                  >
-                    <option value="mcq">Multiple Choice</option>
-                    <option value="true_false">True / False</option>
-                    <option value="short_answer">Short Answer</option>
-                  </select>
+                <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap w-full sm:w-auto shrink-0 justify-between sm:justify-end">
+                  {/* Standardized Theme Dropdown Container */}
+                  <div className="relative inline-flex items-center w-full sm:w-auto min-w-0">
+                    <select
+                      value={q.type}
+                      onChange={(e) =>
+                        handleTypeChange(index, e.target.value as BuilderQuestionType)
+                      }
+                      style={{
+                        backgroundColor: 'var(--surface-secondary)',
+                        borderColor: 'var(--input-border)',
+                        color: 'var(--text-primary)',
+                      }}
+                      className="h-10 w-full sm:w-auto min-w-[150px] pl-3.5 pr-9 rounded-lg text-[13px] font-medium border appearance-none cursor-pointer transition-all duration-150 focus:outline-none focus:border-[var(--brand-primary)] hover:bg-[var(--surface-hover)] hover:border-[var(--brand-primary)]"
+                    >
+                      <option value="single_choice" style={{ backgroundColor: 'var(--surface)', color: 'var(--text-primary)' }}>Single Choice</option>
+                      <option value="multiple_select" style={{ backgroundColor: 'var(--surface)', color: 'var(--text-primary)' }}>Multiple Select</option>
+                      <option value="true_false" style={{ backgroundColor: 'var(--surface)', color: 'var(--text-primary)' }}>True / False</option>
+                      <option value="short_answer" style={{ backgroundColor: 'var(--surface)', color: 'var(--text-primary)' }}>Short Answer</option>
+                      <option value="long_answer" style={{ backgroundColor: 'var(--surface)', color: 'var(--text-primary)' }}>Long Answer / Essay</option>
+                      <option value="fill_blank" style={{ backgroundColor: 'var(--surface)', color: 'var(--text-primary)' }}>Fill in the Blank</option>
+                    </select>
+                    <ChevronDown
+                      style={{ color: 'var(--text-muted)' }}
+                      className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none stroke-current"
+                    />
+                  </div>
 
-                  {/* Move Up / Move Down */}
-                  <div className="flex items-center gap-0.5 border border-[#E2E8F0] rounded-lg bg-slate-50 p-0.5">
+                  {/* Move Up / Move Down Reorder Controls */}
+                  <div
+                    style={{
+                      backgroundColor: 'var(--surface-secondary)',
+                      borderColor: 'var(--border)',
+                    }}
+                    className="h-10 px-1 border rounded-lg flex items-center justify-center gap-0.5 shrink-0"
+                  >
                     <button
                       type="button"
                       disabled={index === 0}
                       onClick={() => handleMoveQuestion(index, 'up')}
-                      className="p-1 text-slate-500 hover:text-slate-900 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                      style={{ color: 'var(--text-secondary)' }}
+                      className="p-1.5 hover:text-[var(--text-primary)] disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
                       title="Move Up"
                     >
-                      <ChevronUp className="w-3.5 h-3.5" />
+                      <ChevronUp className="w-4 h-4" />
                     </button>
                     <button
                       type="button"
                       disabled={index === questions.length - 1}
                       onClick={() => handleMoveQuestion(index, 'down')}
-                      className="p-1 text-slate-500 hover:text-slate-900 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                      style={{ color: 'var(--text-secondary)' }}
+                      className="p-1.5 hover:text-[var(--text-primary)] disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
                       title="Move Down"
                     >
-                      <ChevronDown className="w-3.5 h-3.5" />
+                      <ChevronDown className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -241,7 +303,7 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
 
               {/* Question Statement Input */}
               <div>
-                <label className="block text-xs font-semibold text-[#0F172A] mb-1">
+                <label style={{ color: 'var(--text-secondary)' }} className="block text-xs font-semibold mb-1">
                   Question Statement <span className="text-rose-500">*</span>
                 </label>
                 <Input
@@ -254,11 +316,11 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
                 />
               </div>
 
-              {/* Multiple Choice Options */}
-              {q.type === 'mcq' && (
+              {/* Single / Multiple Choice & Multiple Select Options */}
+              {(q.type === 'single_choice' || q.type === 'mcq' || q.type === 'multiple_choice' || q.type === 'multiple_select') && (
                 <div className="space-y-3 pt-1">
-                  <label className="block text-xs font-semibold text-[#0F172A]">
-                    Options & Correct Answer <span className="text-rose-500">*</span>
+                  <label style={{ color: 'var(--text-secondary)' }} className="block text-xs font-semibold">
+                    Options &amp; Correct Answer{q.type === 'multiple_select' ? 's' : ''} <span className="text-rose-500">*</span>
                   </label>
 
                   <div className="space-y-2">
@@ -269,20 +331,54 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
                       return (
                         <div
                           key={opt.id}
-                          className="flex items-center gap-2 group"
+                          className="flex items-center gap-2.5 group min-w-0"
                         >
-                          {/* Radio button to mark correct answer */}
+                          {/* Company Theme Dynamic Option Selector */}
+                          <button
+                            type="button"
+                            role={q.type === 'multiple_select' ? 'checkbox' : 'radio'}
+                            aria-checked={Boolean(isChecked)}
+                            onClick={() =>
+                              handleUpdateQuestion(index, {
+                                correctAnswer: opt.id,
+                              })
+                            }
+                            style={
+                              isChecked
+                                ? {
+                                    borderColor: 'var(--brand-primary)',
+                                    backgroundColor: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
+                                  }
+                                : {
+                                    backgroundColor: 'var(--surface-secondary)',
+                                    borderColor: 'var(--input-border)',
+                                  }
+                            }
+                            className={`w-5 h-5 border flex items-center justify-center shrink-0 cursor-pointer transition-all focus:outline-2 focus:outline-[var(--brand-primary)] ${
+                              q.type === 'multiple_select' ? 'rounded-md' : 'rounded-full'
+                            }`}
+                            title="Mark as correct answer"
+                          >
+                            {isChecked && (
+                              <span
+                                style={{ backgroundColor: 'var(--brand-primary)' }}
+                                className={`shrink-0 ${q.type === 'multiple_select' ? 'w-3 h-3 rounded-xs' : 'w-2.5 h-2.5 rounded-full'}`}
+                              />
+                            )}
+                          </button>
+
+                          {/* Hidden Input for Form Accessibility */}
                           <input
-                            type="radio"
+                            type={q.type === 'multiple_select' ? 'checkbox' : 'radio'}
                             name={`correct-ans-${q.id}`}
+                            value={opt.id}
                             checked={Boolean(isChecked)}
                             onChange={() =>
                               handleUpdateQuestion(index, {
-                                correctAnswer: opt.id || opt.text,
+                                correctAnswer: opt.id,
                               })
                             }
-                            className="w-4 h-4 text-[#2563EB] border-slate-300 focus:ring-[#2563EB] cursor-pointer shrink-0"
-                            title="Mark as correct answer"
+                            className="sr-only"
                           />
 
                           <Input
@@ -291,14 +387,14 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
                               handleOptionTextChange(index, optIdx, e.target.value)
                             }
                             placeholder={`Option ${optIdx + 1}`}
-                            className="h-9 text-xs flex-1"
+                            className="h-9 text-xs flex-1 min-w-0"
                           />
 
                           {q.options.length > 2 && (
                             <button
                               type="button"
                               onClick={() => handleRemoveOption(index, optIdx)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer shrink-0"
+                              className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg transition-colors cursor-pointer shrink-0"
                               title="Remove Option"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -309,22 +405,25 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
                     })}
                   </div>
 
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
-                    size="xs"
                     onClick={() => handleAddOption(index)}
-                    className="gap-1 text-[11px] text-[#2563EB] border-dashed border-blue-200 hover:bg-blue-50"
+                    style={{
+                      backgroundColor: 'var(--surface-secondary)',
+                      borderColor: 'var(--border)',
+                      color: 'var(--brand-primary)',
+                    }}
+                    className="px-3 py-1.5 rounded-xl border border-dashed text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors hover:border-[var(--brand-primary)]"
                   >
                     <Plus className="w-3 h-3" /> Add Option
-                  </Button>
+                  </button>
                 </div>
               )}
 
               {/* True / False Options */}
               {q.type === 'true_false' && (
                 <div className="space-y-2 pt-1">
-                  <label className="block text-xs font-semibold text-[#0F172A]">
+                  <label style={{ color: 'var(--text-secondary)' }} className="block text-xs font-semibold">
                     Select Correct Answer <span className="text-rose-500">*</span>
                   </label>
                   <div className="flex items-center gap-3">
@@ -338,16 +437,24 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
                           onClick={() =>
                             handleUpdateQuestion(index, { correctAnswer: val })
                           }
-                          className={`flex-1 py-2 px-4 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                          style={
                             isSelected
-                              ? 'bg-blue-50 border-[#2563EB] text-[#2563EB] shadow-2xs'
-                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                          }`}
+                              ? {
+                                  backgroundColor: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
+                                  borderColor: 'var(--brand-primary)',
+                                  color: 'var(--brand-primary)',
+                                }
+                              : {
+                                  backgroundColor: 'var(--surface-secondary)',
+                                  borderColor: 'var(--border)',
+                                  color: 'var(--text-secondary)',
+                                }
+                          }
+                          className="flex-1 py-2 px-4 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs"
                         >
                           <CheckCircle2
-                            className={`w-4 h-4 ${
-                              isSelected ? 'text-[#2563EB]' : 'text-slate-300'
-                            }`}
+                            style={{ color: isSelected ? 'var(--brand-primary)' : 'var(--text-muted)' }}
+                            className="w-4 h-4 shrink-0"
                           />
                           <span>{val}</span>
                         </button>
@@ -357,10 +464,10 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
                 </div>
               )}
 
-              {/* Short Answer Field */}
-              {q.type === 'short_answer' && (
+              {/* Short Answer / Fill Blank Field */}
+              {(q.type === 'short_answer' || q.type === 'fill_blank') && (
                 <div className="pt-1">
-                  <label className="block text-xs font-semibold text-[#0F172A] mb-1">
+                  <label style={{ color: 'var(--text-secondary)' }} className="block text-xs font-semibold mb-1">
                     Expected / Correct Answer <span className="text-rose-500">*</span>
                   </label>
                   <Input
@@ -368,8 +475,31 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
                     onChange={(e) =>
                       handleUpdateQuestion(index, { correctAnswer: e.target.value })
                     }
-                    placeholder="Enter expected text answer..."
+                    placeholder="Enter expected answer text..."
                     className="h-10 text-xs sm:text-sm"
+                  />
+                </div>
+              )}
+
+              {/* Long Answer / Essay Field */}
+              {q.type === 'long_answer' && (
+                <div className="pt-1 space-y-1">
+                  <label style={{ color: 'var(--text-secondary)' }} className="block text-xs font-semibold">
+                    Grading Notes / Model Solution (Instructor Only)
+                  </label>
+                  <textarea
+                    value={q.correctAnswer}
+                    onChange={(e) =>
+                      handleUpdateQuestion(index, { correctAnswer: e.target.value })
+                    }
+                    placeholder="Enter grading guidelines or sample answer for manual evaluation..."
+                    rows={3}
+                    style={{
+                      backgroundColor: 'var(--surface-secondary)',
+                      borderColor: 'var(--input-border)',
+                      color: 'var(--text-primary)',
+                    }}
+                    className="w-full p-2.5 rounded-xl border text-xs font-medium focus:outline-none focus:border-[var(--brand-primary)]"
                   />
                 </div>
               )}
@@ -383,25 +513,31 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
               )}
 
               {/* Card Footer Actions: Duplicate & Delete */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E2E8F0]">
-                <Button
+              <div style={{ borderColor: 'var(--border)' }} className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-3 border-t">
+                <button
                   type="button"
-                  variant="outline"
-                  size="xs"
                   onClick={() => handleDuplicateQuestion(index)}
-                  className="gap-1 text-[11px] text-slate-700"
+                  style={{
+                    backgroundColor: 'var(--surface-secondary)',
+                    borderColor: 'var(--border)',
+                    color: 'var(--text-secondary)',
+                  }}
+                  className="w-full sm:w-auto px-3 py-1.5 rounded-xl border text-[11px] font-semibold inline-flex items-center justify-center gap-1 transition-colors hover:text-[var(--text-primary)] cursor-pointer"
                 >
-                  <Copy className="w-3 h-3" /> Duplicate
-                </Button>
-                <Button
+                  <Copy className="w-3 h-3 shrink-0" /> Duplicate
+                </button>
+                <button
                   type="button"
-                  variant="outline"
-                  size="xs"
-                  onClick={() => handleDeleteQuestion(index)}
-                  className="gap-1 text-[11px] text-rose-600 hover:bg-rose-50 border-rose-200"
+                  onClick={() => setDeleteModalIndex(index)}
+                  style={{
+                    backgroundColor: 'transparent',
+                    borderColor: 'rgba(248,113,113,0.3)',
+                    color: '#F87171',
+                  }}
+                  className="w-full sm:w-auto px-3 py-1.5 rounded-xl border text-[11px] font-semibold inline-flex items-center justify-center gap-1 transition-colors hover:bg-rose-950/20 cursor-pointer"
                 >
-                  <Trash2 className="w-3 h-3" /> Delete
-                </Button>
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" /> Delete
+                </button>
               </div>
             </div>
           );
@@ -409,15 +545,51 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
       </div>
 
       <div className="pt-2">
-        <Button
+        <button
           type="button"
-          variant="outline"
           onClick={handleAddQuestion}
-          className="w-full py-2.5 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/50 text-xs font-bold text-[#2563EB] gap-1.5 justify-center"
+          style={{
+            backgroundColor: 'var(--surface-secondary)',
+            borderColor: 'var(--border)',
+            color: 'var(--brand-primary)',
+          }}
+          className="w-full py-2.5 border border-dashed rounded-xl text-xs font-bold inline-flex items-center gap-1.5 justify-center transition-colors hover:border-[var(--brand-primary)] cursor-pointer"
         >
-          <Plus className="w-4 h-4" /> Add Question
-        </Button>
+          <Plus className="w-4 h-4 shrink-0" /> Add Question
+        </button>
       </div>
+
+      {/* Delete Question Confirmation Modal */}
+      {deleteModalIndex !== null && (
+        <Modal
+          isOpen={true}
+          onClose={() => setDeleteModalIndex(null)}
+          title="Delete Question"
+          maxWidth="sm"
+        >
+          <div className="space-y-4 font-sans text-left">
+            <p className="text-xs text-[var(--text-secondary)]">
+              Are you sure you want to delete Question {deleteModalIndex + 1}? This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteModalIndex(null)}
+                className="px-3.5 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => confirmDeleteQuestion(deleteModalIndex)}
+                className="px-3.5 py-1.5 rounded-xl bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700 cursor-pointer"
+              >
+                Delete Question
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

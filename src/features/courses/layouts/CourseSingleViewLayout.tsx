@@ -10,7 +10,7 @@ import { Button } from "../../../components/ui/Button";
 import { Modal } from "../../../components/ui/Modal";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { coursesService } from "../../../services/courses.service";
-import { COURSE_NAV_SECTIONS } from "../config/courseNavigation.config";
+import { COURSE_NAV_SECTIONS, isCourseTabActive } from "../config/courseNavigation.config";
 import type { CourseDetail } from "../types/course.types";
 import { SharedCourseHeader } from "../components/SharedCourseHeader";
 import { useCourseFeatures } from "../../../hooks/useCourseFeatures";
@@ -79,10 +79,6 @@ export const CourseSingleViewLayout: React.FC = () => {
       setIsActionBusy(false);
     }
   };
-
-  // Detect current active tab from pathname
-  const pathParts = location.pathname.split("/");
-  const currentRoute = pathParts[pathParts.length - 1] || "overview";
 
   if (!validCourseUuid) {
     return (
@@ -158,7 +154,7 @@ export const CourseSingleViewLayout: React.FC = () => {
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full">
             {COURSE_NAV_SECTIONS.filter((sec) => !sec.requiredFeature || isFeatureEnabled(sec.requiredFeature)).map((sec) => {
               const Icon = sec.icon;
-              const isActive = currentRoute === sec.route;
+              const isActive = isCourseTabActive(sec, location.pathname);
 
               return (
                 <NavLink
@@ -187,7 +183,7 @@ export const CourseSingleViewLayout: React.FC = () => {
         <div className="flex items-center gap-1.5 flex-nowrap w-max px-1">
           {COURSE_NAV_SECTIONS.filter((sec) => !sec.requiredFeature || isFeatureEnabled(sec.requiredFeature)).map((sec) => {
             const Icon = sec.icon;
-            const isActive = currentRoute === sec.route;
+            const isActive = isCourseTabActive(sec, location.pathname);
 
             return (
               <NavLink

@@ -5,6 +5,7 @@ import {
   BookOpen,
   Users,
   IndianRupee,
+  MessageCircle,
   MessageSquare,
   Layers,
   Menu,
@@ -27,8 +28,8 @@ export const MobileBottomNav: React.FC<MobileNavProps> = ({
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Courses", href: "/courses", icon: BookOpen },
     { label: "Students", href: "/students", icon: Users },
-    { label: "Fees", href: "/fees", icon: IndianRupee },
-    { label: "Discussions", href: "/discussions", icon: MessageSquare },
+    { label: "Personal Chat", href: "/discussions/personal", icon: MessageCircle },
+    { label: "Community", href: "/discussions/community", icon: Users },
     { label: "Media", href: "/media", icon: Layers },
   ];
 

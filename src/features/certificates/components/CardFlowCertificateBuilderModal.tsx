@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { AutoFitTextContainer } from './AutoFitTextContainer';
+import { calculateTextInitialSize } from '../utils/textMeasurement';
 import { Badge } from '../../../components/ui/Badge';
 import { useCertificateStore } from '../store/certificate.store';
 import {
@@ -160,6 +161,17 @@ export const CardFlowCertificateBuilderModal: React.FC<CardFlowCertificateBuilde
   if (!isOpen) return null;
 
   const handleAddPlaceholder = (placeholder: typeof DYNAMIC_PLACEHOLDERS[0]) => {
+    const sampleText = placeholder.sample || placeholder.label;
+    const initialSize = calculateTextInitialSize({
+      text: sampleText,
+      fontSize: 32,
+      fontFamily: 'Inter',
+      fontWeight: '600',
+      padding: { top: 6, right: 10, bottom: 6, left: 10 },
+      canvasWidth: 840,
+      canvasHeight: 580,
+    });
+
     const newEl: CanvasElement = {
       id: `el-${crypto.randomUUID()}`,
       type: placeholder.type,
@@ -168,14 +180,16 @@ export const CardFlowCertificateBuilderModal: React.FC<CardFlowCertificateBuilde
       text: placeholder.sample,
       x: 50,
       y: 50,
-      width: 60,
-      height: 10,
+      width: placeholder.type === 'qr_code' ? 14 : initialSize.widthPercent,
+      height: placeholder.type === 'qr_code' ? 14 : initialSize.heightPercent,
       fontFamily: 'Inter',
-      fontSize: 18,
+      fontSize: 32,
+      minimumFontSize: 18,
       fontWeight: '600',
       fontColor: '#0F172A',
       textAlign: 'center',
       opacity: 1,
+      padding: initialSize.padding,
       isLocked: false,
     };
     setElements([...elements, newEl]);
@@ -365,11 +379,13 @@ export const CardFlowCertificateBuilderModal: React.FC<CardFlowCertificateBuilde
                       key={el.id}
                       text={el.text || el.placeholderKey || ''}
                       maxFontSize={el.fontSize}
+                      minFontSize={Math.min(el.fontSize || 32, el.minimumFontSize || 18)}
                       fontFamily={el.fontFamily}
                       fontWeight={el.fontWeight}
                       fontColor={el.fontColor}
                       textAlign={el.textAlign}
                       opacity={el.opacity}
+                      padding={el.padding}
                       onClick={() => setSelectedElementId(el.id)}
                       style={{
                         position: 'absolute',
@@ -377,10 +393,9 @@ export const CardFlowCertificateBuilderModal: React.FC<CardFlowCertificateBuilde
                         top: `${el.y}%`,
                         transform: 'translate(-50%, -50%)',
                         width: `${el.width}%`,
-                        height: 'auto',
-                        minHeight: '28px',
+                        height: `${el.height}%`,
                       }}
-                      className={`cursor-pointer select-none transition-all p-2 rounded-lg ${
+                      className={`cursor-pointer select-none transition-all ${
                         isSelected ? 'ring-2 ring-blue-500 bg-blue-50/40 shadow-xs' : 'hover:ring-1 hover:ring-blue-300'
                       }`}
                     >

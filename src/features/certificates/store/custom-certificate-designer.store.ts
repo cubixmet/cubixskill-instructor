@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { PlaceholderKey, CanvasSizeType } from '../../../types/certificate.types';
+import { calculateTextInitialSize, DEFAULT_PADDING } from '../utils/textMeasurement';
 
 export interface CustomCanvasElement {
   id: string;
@@ -30,6 +31,8 @@ export interface CustomCanvasElement {
   borderRadius?: number;
   zIndex?: number;
   isLocked?: boolean;
+  padding?: { top: number; right: number; bottom: number; left: number };
+  minFontSize?: number;
   isVisible?: boolean;
 }
 
@@ -412,9 +415,36 @@ export const useCustomCertificateDesignerStore = create<CustomCertificateDesigne
         const state = get();
         const newId = `el-${Date.now()}`;
         const maxZIndex = state.draft.elements.reduce((max, e) => Math.max(max, e.zIndex || 10), 10);
+        
+        let initialWidth = el.width;
+        let initialHeight = el.height;
+        const fontSz = el.fontSize || 32;
+        const padding = el.padding || DEFAULT_PADDING;
+        const textContent = el.text || el.label || 'Sample Text';
+
+        if ((el.type === 'text' || el.type === 'placeholder') && (!el.width || !el.height)) {
+          const metrics = calculateTextInitialSize({
+            text: textContent,
+            fontSize: fontSz,
+            fontFamily: el.fontFamily || 'Inter',
+            fontWeight: el.fontWeight || '600',
+            fontStyle: el.fontStyle || 'normal',
+            letterSpacing: el.letterSpacing || 0,
+            lineHeight: el.lineHeight || 1.1,
+            padding,
+          });
+          initialWidth = metrics.widthPercent;
+          initialHeight = metrics.heightPercent;
+        }
+
         const newElement: CustomCanvasElement = {
           ...el,
           id: newId,
+          width: initialWidth || 50,
+          height: initialHeight || 40,
+          fontSize: fontSz,
+          minFontSize: el.minFontSize ?? Math.min(fontSz, 18),
+          padding,
           zIndex: maxZIndex + 1,
           isLocked: false,
           isVisible: true,

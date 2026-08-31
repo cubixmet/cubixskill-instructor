@@ -185,7 +185,9 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
         <div className="space-y-5 text-left font-sans text-xs">
           {/* 1. ENROLLMENT METHOD SELECTOR CARDS */}
           <div className="space-y-2">
-            <label className="block text-xs font-semibold text-[#0F172A]">How would you like to enroll a student?</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC]">
+              How would you like to enroll a student?
+            </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Card 1: Select Existing Student */}
               <button
@@ -193,26 +195,32 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
                 onClick={() => setEnrollMethod('existing')}
                 className={`min-h-[76px] p-4 rounded-[14px] border text-left transition-all flex items-center justify-between gap-3 cursor-pointer ${
                   enrollMethod === 'existing'
-                    ? 'bg-blue-50/70 border-[#2563EB] shadow-2xs'
-                    : 'bg-white border-[#E2E8F0] hover:bg-slate-50'
+                    ? 'bg-[color-mix(in_srgb,var(--brand-primary)_10%,var(--surface-secondary))] dark:bg-[color-mix(in_srgb,var(--brand-primary)_15%,#172033)] border-[var(--brand-primary)] shadow-2xs'
+                    : 'bg-[var(--surface-secondary)] dark:bg-[#172033] border-[var(--border)] dark:border-[#263244] hover:bg-[var(--surface-hover)] dark:hover:bg-[#1E293B] hover:border-[var(--brand-primary)]'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                      enrollMethod === 'existing' ? 'bg-[#2563EB] text-white' : 'bg-slate-100 text-[#64748B]'
+                      enrollMethod === 'existing'
+                        ? 'bg-[color-mix(in_srgb,var(--brand-primary)_14%,transparent)] text-[var(--brand-primary)]'
+                        : 'bg-[var(--surface-elevated)] dark:bg-[#1E293B] text-[var(--text-muted)] dark:text-[#94A3B8]'
                     }`}
                   >
                     <UserCheck className="w-4.5 h-4.5" />
                   </div>
                   <div>
-                    <strong className="text-xs font-semibold text-[#0F172A] block leading-tight">Select Existing Student</strong>
-                    <span className="text-[11px] text-[#64748B]">Enroll student already registered</span>
+                    <strong className="text-xs font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC] block leading-tight">
+                      Select Existing Student
+                    </strong>
+                    <span className="text-[11px] text-[var(--text-muted)] dark:text-[#94A3B8]">
+                      Enroll student already registered
+                    </span>
                   </div>
                 </div>
 
                 {enrollMethod === 'existing' && (
-                  <div className="w-5 h-5 rounded-full bg-[#2563EB] text-white flex items-center justify-center shrink-0">
+                  <div className="w-5 h-5 rounded-full bg-[var(--brand-primary)] text-[var(--brand-primary-foreground)] flex items-center justify-center shrink-0">
                     <Check className="w-3 h-3 stroke-[3]" />
                   </div>
                 )}
@@ -224,26 +232,32 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
                 onClick={() => setEnrollMethod('new')}
                 className={`min-h-[76px] p-4 rounded-[14px] border text-left transition-all flex items-center justify-between gap-3 cursor-pointer ${
                   enrollMethod === 'new'
-                    ? 'bg-blue-50/70 border-[#2563EB] shadow-2xs'
-                    : 'bg-white border-[#E2E8F0] hover:bg-slate-50'
+                    ? 'bg-[color-mix(in_srgb,var(--brand-primary)_10%,var(--surface-secondary))] dark:bg-[color-mix(in_srgb,var(--brand-primary)_15%,#172033)] border-[var(--brand-primary)] shadow-2xs'
+                    : 'bg-[var(--surface-secondary)] dark:bg-[#172033] border-[var(--border)] dark:border-[#263244] hover:bg-[var(--surface-hover)] dark:hover:bg-[#1E293B] hover:border-[var(--brand-primary)]'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                      enrollMethod === 'new' ? 'bg-[#2563EB] text-white' : 'bg-slate-100 text-[#64748B]'
+                      enrollMethod === 'new'
+                        ? 'bg-[color-mix(in_srgb,var(--brand-primary)_14%,transparent)] text-[var(--brand-primary)]'
+                        : 'bg-[var(--surface-elevated)] dark:bg-[#1E293B] text-[var(--text-muted)] dark:text-[#94A3B8]'
                     }`}
                   >
                     <UserPlus className="w-4.5 h-4.5" />
                   </div>
                   <div>
-                    <strong className="text-xs font-semibold text-[#0F172A] block leading-tight">Create New Student</strong>
-                    <span className="text-[11px] text-[#64748B]">Register and enroll new student</span>
+                    <strong className="text-xs font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC] block leading-tight">
+                      Create New Student
+                    </strong>
+                    <span className="text-[11px] text-[var(--text-muted)] dark:text-[#94A3B8]">
+                      Register and enroll new student
+                    </span>
                   </div>
                 </div>
 
                 {enrollMethod === 'new' && (
-                  <div className="w-5 h-5 rounded-full bg-[#2563EB] text-white flex items-center justify-center shrink-0">
+                  <div className="w-5 h-5 rounded-full bg-[var(--brand-primary)] text-[var(--brand-primary-foreground)] flex items-center justify-center shrink-0">
                     <Check className="w-3 h-3 stroke-[3]" />
                   </div>
                 )}
@@ -259,14 +273,17 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
                   value={studentSearch}
                   onChange={(e) => setStudentSearch(e.target.value)}
                   placeholder="Search by name, email, or phone..."
-                  leftIcon={<Search className="w-4 h-4 text-[#64748B]" />}
+                  leftIcon={<Search className="w-4 h-4 text-[var(--text-muted)] dark:text-[#94A3B8]" />}
                 />
               </FormField>
 
               {/* Searchable Students List */}
-              <div className="max-h-52 overflow-y-auto space-y-2 border border-[#E2E8F0] rounded-[14px] p-2 bg-[#F8FAFC]">
+              <div className="max-h-[280px] overflow-y-auto space-y-2 border border-[var(--border)] dark:border-[#263244] rounded-[14px] p-2 bg-[var(--surface-secondary)] dark:bg-[#172033] no-scrollbar">
                 {filteredStudents.length === 0 ? (
-                  <p className="text-center py-5 text-[#64748B] text-xs font-medium">No matching students found.</p>
+                  <div className="text-center py-6 space-y-1">
+                    <p className="text-[var(--text-primary)] dark:text-[#F8FAFC] text-xs font-semibold">No students found</p>
+                    <p className="text-[var(--text-muted)] dark:text-[#94A3B8] text-[11px]">Try a different name, email, or phone number.</p>
+                  </div>
                 ) : (
                   filteredStudents.map((student) => {
                     const isSelected = selectedStudentUuid === student.uuid;
@@ -278,23 +295,29 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
                         onClick={() => handleSelectExistingStudent(student)}
                         className={`p-3.5 rounded-[12px] border transition-all flex items-center justify-between gap-3 cursor-pointer ${
                           isSelected
-                            ? 'bg-white border-[#2563EB] shadow-2xs ring-2 ring-blue-100'
-                            : 'bg-white border-[#E2E8F0] hover:bg-slate-50'
+                            ? 'bg-[color-mix(in_srgb,var(--brand-primary)_8%,var(--surface))] dark:bg-[color-mix(in_srgb,var(--brand-primary)_12%,#111827)] border-[var(--brand-primary)] shadow-2xs'
+                            : 'bg-[var(--surface)] dark:bg-[#111827] border-[var(--border)] dark:border-[#263244] hover:bg-[var(--surface-hover)] dark:hover:bg-[#1E293B] hover:border-[var(--brand-primary)]'
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-9 h-9 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                          <div className="w-9 h-9 rounded-full bg-[color-mix(in_srgb,var(--brand-primary)_14%,var(--surface-secondary))] dark:bg-[color-mix(in_srgb,var(--brand-primary)_20%,#172033)] text-[var(--brand-primary)] flex items-center justify-center font-bold text-xs shrink-0">
                             {student.name.charAt(0)}
                           </div>
                           <div className="min-w-0">
-                            <strong className="text-xs font-semibold text-[#0F172A] block truncate">{student.name}</strong>
-                            <span className="text-[11px] text-[#64748B] block truncate">{student.email} • {student.phone}</span>
+                            <strong className="text-xs font-medium text-[var(--text-primary)] dark:text-[#F8FAFC] block truncate">
+                              {student.name}
+                            </strong>
+                            <span className="text-[12px] text-[var(--text-muted)] dark:text-[#94A3B8] font-normal block truncate overflow-wrap-anywhere">
+                              {student.email} • {student.phone}
+                            </span>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                          <Badge variant="secondary" size="sm">{enrolledCount} {enrolledCount === 1 ? 'Course' : 'Courses'}</Badge>
-                          {isSelected && <Check className="w-4 h-4 text-[#2563EB]" />}
+                          <span className="px-2.5 py-1 rounded-lg border text-[11px] font-medium bg-[var(--surface-secondary)] dark:bg-[#172033] border-[var(--border)] dark:border-[#263244] text-[var(--text-secondary)] dark:text-[#CBD5E1]">
+                            {enrolledCount} {enrolledCount === 1 ? 'Course' : 'Courses'}
+                          </span>
+                          {isSelected && <Check className="w-4 h-4 text-[var(--brand-primary)]" />}
                         </div>
                       </div>
                     );
@@ -312,7 +335,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
               )}
             </div>
           ) : (
-            /* CREATE NEW STUDENT FORM (DESKTOP 2-COLUMN GRID / MOBILE 1-COLUMN) */
+            /* CREATE NEW STUDENT FORM */
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField label="Full Name" required error={nameError}>
@@ -356,31 +379,31 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
 
               {/* CLEAN STRUCTURED EXISTING STUDENT MATCH PANEL */}
               {existingDuplicateByEmailOrPhone && (
-                <div className="p-4 bg-[#FFFBEB] border border-[#FEF3C7] rounded-[14px] space-y-3">
+                <div className="p-4 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-[14px] space-y-3">
                   <div className="space-y-0.5">
-                    <strong className="text-xs font-semibold text-amber-900 block flex items-center gap-1.5">
-                      <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+                    <strong className="text-xs font-semibold text-amber-900 dark:text-amber-300 block flex items-center gap-1.5">
+                      <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                       Existing student found
                     </strong>
-                    <span className="text-[11px] text-amber-800 block">
+                    <span className="text-[11px] text-amber-800 dark:text-amber-400 block">
                       A student already uses the entered email or phone number.
                     </span>
                   </div>
 
                   {/* Compact Student Card */}
-                  <div className="p-3.5 bg-white border border-[#E2E8F0] rounded-[12px] flex items-center justify-between gap-3 shadow-2xs">
+                  <div className="p-3.5 bg-[var(--surface)] dark:bg-[#111827] border border-[var(--border)] dark:border-[#263244] rounded-[12px] flex items-center justify-between gap-3 shadow-2xs">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-bold text-sm shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--brand-primary)_14%,var(--surface-secondary))] dark:bg-[color-mix(in_srgb,var(--brand-primary)_20%,#172033)] text-[var(--brand-primary)] flex items-center justify-center font-bold text-sm shrink-0">
                         {existingDuplicateByEmailOrPhone.name.charAt(0)}
                       </div>
                       <div className="min-w-0">
-                        <strong className="text-xs font-semibold text-[#0F172A] block truncate">
+                        <strong className="text-xs font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC] block truncate">
                           {existingDuplicateByEmailOrPhone.name}
                         </strong>
-                        <span className="text-[11px] text-[#64748B] block truncate">
+                        <span className="text-[11px] text-[var(--text-muted)] dark:text-[#94A3B8] block truncate">
                           {existingDuplicateByEmailOrPhone.email}
                         </span>
-                        <span className="text-[11px] text-[#64748B] block">
+                        <span className="text-[11px] text-[var(--text-muted)] dark:text-[#94A3B8] block">
                           {existingDuplicateByEmailOrPhone.phone}
                         </span>
                       </div>
@@ -394,66 +417,71 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
                     </div>
                   </div>
 
-                  <Button
+                  <button
                     type="button"
                     onClick={() => {
                       setEnrollMethod('existing');
                       setSelectedStudentUuid(existingDuplicateByEmailOrPhone.uuid);
                     }}
-                    className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold h-10 rounded-[12px]"
+                    className="w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] text-xs font-semibold h-10 rounded-[12px] cursor-pointer transition-colors"
                   >
                     Select Existing Student
-                  </Button>
+                  </button>
                 </div>
               )}
             </div>
           )}
 
-          {/* 3. CREDIT BREAKDOWN CARD */}
-          <div className="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[14px] space-y-2">
-            <div className="flex items-center justify-between font-semibold text-xs text-[#0F172A]">
+          {/* 3. ENROLLMENT COST BREAKDOWN CARD */}
+          <div className="p-4 bg-[var(--surface-secondary)] dark:bg-[#172033] border border-[var(--border)] dark:border-[#263244] rounded-[14px] space-y-2">
+            <div className="flex items-center justify-between font-semibold text-xs text-[var(--text-primary)] dark:text-[#F8FAFC]">
               <span className="flex items-center gap-1.5">
-                <CreditCard className="w-4 h-4 text-[#2563EB]" /> Enrollment Credit Breakdown
+                <CreditCard className="w-4 h-4 text-[var(--brand-primary)]" /> Enrollment Credit Breakdown
               </span>
-              <strong className="text-[#2563EB]">{creditsRequired} Credits</strong>
+              <strong className="text-[var(--brand-primary)]">{creditsRequired} Credits</strong>
             </div>
 
-            <div className="space-y-1 text-[11px] text-[#64748B]">
+            <div className="space-y-1 text-[11px] text-[var(--text-muted)] dark:text-[#94A3B8]">
               <div className="flex justify-between">
                 <span>Base Student Credit</span>
-                <span className="font-semibold text-[#0F172A]">{baseCredit} Credits</span>
+                <span className="font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC]">{baseCredit} Credits</span>
               </div>
               <div className="flex justify-between">
                 <span>Enabled Feature Add-ons</span>
-                <span className="font-semibold text-[#0F172A]">+{featureCredits} Credits</span>
+                <span className="font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC]">+{featureCredits} Credits</span>
               </div>
-              <div className="flex justify-between pt-1 border-t border-[#E2E8F0] font-semibold text-[#0F172A]">
+              <div className="flex justify-between pt-1 border-t border-[var(--border)] dark:border-[#263244] font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC]">
                 <span>Remaining Balance After Enrollment</span>
-                <span className="text-emerald-600 font-bold">{remainingBalance.toLocaleString()} Credits</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{remainingBalance.toLocaleString()} Credits</span>
               </div>
             </div>
           </div>
 
           {/* FOOTER ACTIONS & EXPLANATION */}
-          <div className="space-y-2 pt-3 border-t border-[#E2E8F0]">
+          <div className="space-y-2 pt-3 border-t border-[var(--border)] dark:border-[#263244]">
             {!isFormValid && (
-              <p className="text-[11px] font-medium text-amber-800 bg-amber-50 px-3 py-1.5 rounded-lg text-right flex items-center justify-end gap-1.5">
-                <HelpCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <p className="text-[11px] font-medium text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 rounded-lg text-right flex items-center justify-end gap-1.5">
+                <HelpCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                 <span>{getDisabledReason()}</span>
               </p>
             )}
 
             <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2">
-              <Button variant="outline" onClick={onClose} className="h-12 sm:h-10 text-xs font-semibold w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-12 sm:h-10 px-4 text-xs font-semibold w-full sm:w-auto bg-[var(--surface-secondary)] dark:bg-[#172033] border border-[var(--border)] dark:border-[#263244] text-[var(--text-secondary)] dark:text-[#CBD5E1] hover:bg-[var(--surface-hover)] dark:hover:bg-[#1E293B] hover:text-[var(--text-primary)] dark:hover:text-white rounded-[12px] cursor-pointer transition-colors"
+              >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
+                type="button"
                 onClick={handleStartEnrollmentProcess}
                 disabled={!isFormValid}
-                className="h-12 sm:h-10 min-w-[170px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-12 sm:h-10 min-w-[170px] px-4 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-semibold text-xs w-full sm:w-auto rounded-[12px] cursor-pointer transition-colors disabled:bg-[var(--surface-secondary)] dark:disabled:bg-[#172033] disabled:border disabled:border-[var(--border)] dark:disabled:border-[#263244] disabled:text-[var(--text-muted)] dark:disabled:text-[#94A3B8] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Continue to Enrollment
-              </Button>
+              </button>
             </div>
           </div>
         </div>
@@ -462,31 +490,39 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
       {/* CONFIRMATION DIALOG */}
       <Modal isOpen={isConfirmModalOpen} onClose={() => setIsConfirmModalOpen(false)} title="Confirm Course Enrollment">
         <div className="space-y-4 text-xs font-sans text-left">
-          <div className="p-3.5 bg-blue-50 border border-blue-100 rounded-[12px] space-y-1">
-            <strong className="text-xs font-bold text-[#0F172A] block">
+          <div className="p-3.5 bg-[var(--surface-secondary)] dark:bg-[#172033] border border-[var(--border)] dark:border-[#263244] rounded-[12px] space-y-1">
+            <strong className="text-xs font-bold text-[var(--text-primary)] dark:text-[#F8FAFC] block">
               Student: {enrollMethod === 'existing' ? selectedStudent?.name : newName}
             </strong>
-            <span className="text-[11px] text-[#64748B] block">Course: {selectedCourseTitle}</span>
+            <span className="text-[11px] text-[var(--text-muted)] dark:text-[#94A3B8] block">Course: {selectedCourseTitle}</span>
           </div>
 
-          <div className="p-3.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[12px] space-y-1 text-[11px]">
-            <div className="flex justify-between text-[#64748B]">
+          <div className="p-3.5 bg-[var(--surface-secondary)] dark:bg-[#172033] border border-[var(--border)] dark:border-[#263244] rounded-[12px] space-y-1 text-[11px]">
+            <div className="flex justify-between text-[var(--text-muted)] dark:text-[#94A3B8]">
               <span>Credits to Deduct:</span>
-              <strong className="text-[#2563EB] font-bold">{creditsRequired} Credits</strong>
+              <strong className="text-[var(--brand-primary)] font-bold">{creditsRequired} Credits</strong>
             </div>
-            <div className="flex justify-between text-[#64748B]">
+            <div className="flex justify-between text-[var(--text-muted)] dark:text-[#94A3B8]">
               <span>Remaining Credit Balance:</span>
-              <strong className="text-emerald-600 font-bold">{remainingBalance.toLocaleString()} Credits</strong>
+              <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{remainingBalance.toLocaleString()} Credits</strong>
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E2E8F0]">
-            <Button variant="outline" onClick={() => setIsConfirmModalOpen(false)}>
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border)] dark:border-[#263244]">
+            <button
+              type="button"
+              onClick={() => setIsConfirmModalOpen(false)}
+              className="h-10 px-4 text-xs font-semibold bg-[var(--surface-secondary)] dark:bg-[#172033] border border-[var(--border)] dark:border-[#263244] text-[var(--text-secondary)] dark:text-[#CBD5E1] hover:bg-[var(--surface-hover)] dark:hover:bg-[#1E293B] rounded-[12px] cursor-pointer"
+            >
               Cancel
-            </Button>
-            <Button onClick={handleExecuteEnrollment} className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold h-10">
+            </button>
+            <button
+              type="button"
+              onClick={handleExecuteEnrollment}
+              className="h-10 px-4 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-semibold text-xs rounded-[12px] cursor-pointer"
+            >
               Confirm Enrollment
-            </Button>
+            </button>
           </div>
         </div>
       </Modal>

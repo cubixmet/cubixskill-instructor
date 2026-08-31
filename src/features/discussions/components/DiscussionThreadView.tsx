@@ -42,14 +42,7 @@ export interface DiscussionThreadViewProps {
   currentUserRole?: 'instructor' | 'student';
 }
 
-const MENTIONABLE_USERS = [
-  { name: 'Dr. Vikramaditya Rao', role: 'Instructor' },
-  { name: 'Ananya Deshmukh', role: 'TA' },
-  { name: 'Aarav Sharma', role: 'Student' },
-  { name: 'Priya Patel', role: 'Student' },
-  { name: 'Rohan Mehta', role: 'Student' },
-  { name: 'Kavita Sundaram', role: 'Student' },
-];
+const MENTIONABLE_USERS: Array<{ name: string; role: string }> = [];
 
 const EMOJIS = ['👍', '💡', '🔥', '🎯', '🙌', '❤️', '🚀'];
 

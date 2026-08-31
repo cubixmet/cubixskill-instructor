@@ -85,7 +85,7 @@ export const SortableLessonItem: React.FC<SortableLessonItemProps> = ({
   };
 
   const isLocked = lesson.unlockRule && lesson.unlockRule !== 'immediate';
-  const resources = lesson.content?.resources || [];
+  const resources = lesson.resources || lesson.content?.resources || [];
   const resourceCount = resources.length;
 
   const handleDetachResource = (resourceId: string) => {
@@ -97,11 +97,14 @@ export const SortableLessonItem: React.FC<SortableLessonItemProps> = ({
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      className={`bg-white dark:bg-[#0F172A] rounded-[16px] border text-left font-sans transition-all duration-150 overflow-hidden ${
-        isDragging
-          ? 'opacity-40 border-[#2563EB] shadow-lg scale-[1.01]'
-          : 'border-slate-200 dark:border-[#263244] hover:border-blue-200 dark:hover:border-blue-500/30 dark:hover:bg-[#172033] shadow-2xs'
+      style={{
+        ...style,
+        backgroundColor: 'var(--surface)',
+        borderColor: 'var(--border)',
+        color: 'var(--text-primary)',
+      }}
+      className={`rounded-[16px] border text-left font-sans transition-all duration-150 overflow-hidden box-border min-w-0 ${
+        isDragging ? 'opacity-40 shadow-lg scale-[1.01]' : 'shadow-2xs hover:bg-[var(--surface-hover)]'
       }`}
     >
       {/* UNIFIED SINGLE LESSON CARD CONTAINER */}
@@ -113,17 +116,25 @@ export const SortableLessonItem: React.FC<SortableLessonItemProps> = ({
               type="button"
               {...attributes}
               {...listeners}
-              className="p-1 text-slate-400 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#60A5FA] hover:bg-slate-100 dark:hover:bg-[#1E293B] rounded-lg cursor-grab active:cursor-grabbing touch-none shrink-0"
+              style={{ color: 'var(--text-muted)' }}
+              className="p-1 rounded-lg cursor-grab active:cursor-grabbing touch-none shrink-0 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
               title="Drag to reorder lesson"
             >
               <GripVertical className="w-4 h-4" />
             </button>
 
-            <span className="text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] shrink-0 font-mono">
+            <span style={{ color: 'var(--brand-primary)' }} className="text-xs font-bold shrink-0 font-mono">
               {lessonIndex}
             </span>
 
-            <div className="w-6.5 h-6.5 rounded-lg bg-blue-50 dark:bg-[rgba(37,99,235,0.10)] border border-blue-100 dark:border-[#263244] flex items-center justify-center shrink-0">
+            <div
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)',
+                borderColor: 'var(--border)',
+                color: 'var(--brand-primary)',
+              }}
+              className="w-6.5 h-6.5 rounded-lg border flex items-center justify-center shrink-0"
+            >
               {getLessonIcon(lesson.type)}
             </div>
           </div>
@@ -132,7 +143,8 @@ export const SortableLessonItem: React.FC<SortableLessonItemProps> = ({
           <button
             type="button"
             onClick={() => setIsMoreMenuOpen(true)}
-            className="p-1.5 text-slate-400 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#1E293B] rounded-lg transition-colors cursor-pointer shrink-0"
+            style={{ color: 'var(--text-muted)' }}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
             title="More Options"
           >
             <MoreHorizontal className="w-4 h-4" />
@@ -140,35 +152,54 @@ export const SortableLessonItem: React.FC<SortableLessonItemProps> = ({
         </div>
 
         {/* 2. DEDICATED FULL-WIDTH LESSON TITLE */}
-        <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-[#F8FAFC] leading-snug whitespace-normal break-words w-full font-sans">
+        <h4 style={{ color: 'var(--text-primary)' }} className="text-xs sm:text-sm font-semibold leading-snug whitespace-normal break-words w-full font-sans">
           {lesson.title}
         </h4>
 
         {/* 3. METADATA ROW */}
-        <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] flex-wrap">
-          <span className="capitalize font-semibold text-slate-900 dark:text-[#F8FAFC]">
+        <div style={{ color: 'var(--text-muted)' }} className="flex items-center gap-1.5 text-[11px] font-medium flex-wrap">
+          <span style={{ color: 'var(--text-primary)' }} className="capitalize font-semibold">
             {lesson.type.replace('_', ' ')}
           </span>
-          <span className="text-slate-300 dark:text-slate-600">•</span>
-          {lesson.type === 'assignment' && (
+          <span style={{ color: 'var(--border)' }}>•</span>
+          {(lesson.type === 'assignment' || lesson.type === 'project') && (
             <>
-              <span className="px-2 py-0.5 bg-blue-50 dark:bg-[rgba(37,99,235,0.10)] text-[#2563EB] dark:text-[#60A5FA] border border-blue-100 dark:border-[#263244] rounded-md font-semibold text-[10px]">
-                100 Marks
-              </span>
-              <span className="text-slate-300 dark:text-slate-600">•</span>
+              {(() => {
+                const dueDaysVal =
+                  (lesson as any)?.assignment?.due_days ??
+                  (lesson as any)?.assignment?.dueDays ??
+                  (lesson?.content as any)?.dueDays ??
+                  (lesson?.content as any)?.due_days;
+                if (dueDaysVal && typeof dueDaysVal === 'number' && dueDaysVal >= 1) {
+                  return (
+                    <span
+                      style={{
+                        backgroundColor: 'color-mix(in srgb, var(--brand-primary) 10%, var(--surface-secondary))',
+                        borderColor: 'color-mix(in srgb, var(--brand-primary) 20%, var(--border))',
+                        color: 'var(--brand-primary)',
+                      }}
+                      className="px-2 py-0.5 border rounded-md font-semibold text-[10px]"
+                    >
+                      Due in {dueDaysVal} days
+                    </span>
+                  );
+                }
+                return null;
+              })()}
+              <span style={{ color: 'var(--border)' }}>•</span>
             </>
           )}
           <span className="flex items-center gap-1">
-            <Clock className="w-3 h-3 text-slate-400 dark:text-[#94A3B8]" /> {lesson.durationMinutes} mins
+            <Clock className="w-3 h-3 text-current opacity-70" /> {lesson.durationMinutes} mins
           </span>
-          <span className="text-slate-300 dark:text-slate-600">•</span>
+          <span style={{ color: 'var(--border)' }}>•</span>
           <span className="flex items-center gap-1">
             {isLocked ? (
-              <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
+              <span className="flex items-center gap-1 text-amber-500 font-semibold">
                 <Lock className="w-3 h-3" /> Locked
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-[#2563EB] dark:text-[#60A5FA] font-semibold">
+              <span style={{ color: 'var(--brand-primary)' }} className="flex items-center gap-1 font-semibold">
                 <Unlock className="w-3 h-3" /> Unlocked
               </span>
             )}
@@ -193,23 +224,28 @@ export const SortableLessonItem: React.FC<SortableLessonItemProps> = ({
         </div>
 
         {/* 6. RESOURCE ACTION BAR: [Resources: N] (clickable) & [+ Add Resource] */}
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap w-full min-w-0">
+        <div style={{ borderColor: 'var(--border)' }} className="pt-2 border-t flex items-center justify-between gap-2 flex-wrap w-full min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             {resourceCount > 0 ? (
               <button
                 type="button"
                 onClick={() => setIsResourcesExpanded((prev) => !prev)}
                 aria-expanded={isResourcesExpanded}
-                className="h-7 px-2.5 bg-blue-50 hover:bg-blue-100/80 border border-blue-200 text-[#2563EB] rounded-lg font-bold text-[11px] inline-flex items-center gap-1.5 transition-colors cursor-pointer active:scale-[0.98]"
+                style={{
+                  backgroundColor: 'var(--surface-secondary)',
+                  borderColor: 'var(--border)',
+                  color: 'var(--text-secondary)',
+                }}
+                className="h-7 px-2.5 border rounded-lg font-semibold text-[11px] inline-flex items-center gap-1.5 transition-all cursor-pointer hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
                 title={isResourcesExpanded ? "Collapse attached resources" : `Expand ${resourceCount} attached resources`}
               >
-                <Paperclip className="w-3.5 h-3.5" />
+                <Paperclip style={{ color: 'var(--brand-primary)' }} className="w-3.5 h-3.5 shrink-0" />
                 <span>Resources: {resourceCount}</span>
-                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isResourcesExpanded ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3 h-3 transition-transform duration-200 shrink-0 stroke-current ${isResourcesExpanded ? 'rotate-180' : ''}`} />
               </button>
             ) : (
-              <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
-                <Paperclip className="w-3.5 h-3.5 text-slate-300" />
+              <span style={{ color: 'var(--text-muted)' }} className="text-[11px] font-semibold flex items-center gap-1">
+                <Paperclip className="w-3.5 h-3.5 opacity-60" />
                 No resources
               </span>
             )}
@@ -226,85 +262,128 @@ export const SortableLessonItem: React.FC<SortableLessonItemProps> = ({
                 navigate(`/courses/${lesson.courseUuid}/curriculum/resources/add?lessonUuid=${encodeURIComponent(realLessonId)}&moduleUuid=${encodeURIComponent(lesson.moduleUuid)}`);
               }
             }}
-            className="h-7 px-2.5 bg-white hover:bg-slate-50 dark:bg-[#172033] dark:hover:bg-[rgba(37,99,235,0.12)] border border-slate-200 hover:border-blue-300 dark:border-blue-500/40 dark:hover:border-blue-400 text-[#2563EB] dark:text-[#60A5FA] dark:hover:text-[#93C5FD] rounded-lg font-bold text-[11px] inline-flex items-center gap-1 transition-colors cursor-pointer shrink-0 active:scale-[0.98]"
+            style={{
+              backgroundColor: 'var(--surface-secondary)',
+              borderColor: 'var(--border)',
+              color: 'var(--text-secondary)',
+            }}
+            className="h-7 px-2.5 border rounded-lg font-medium text-[11px] inline-flex items-center gap-1 transition-all cursor-pointer shrink-0 hover:bg-[var(--surface-hover)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] active:scale-[0.98]"
             title="Add a resource to this lesson"
           >
-            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            <Plus className="w-3.5 h-3.5 stroke-[2.5] stroke-current" />
             <span>Add Resource</span>
           </button>
         </div>
 
         {/* 7. INLINE EXPANDED RESOURCES LIST */}
         {isResourcesExpanded && resources.length > 0 && (
-          <div className="mt-2 p-3 bg-slate-50 border border-slate-200/90 rounded-xl space-y-2 text-left font-sans animate-fade-in w-full min-w-0">
-            <div className="flex items-center justify-between text-xs border-b border-slate-200/60 pb-1.5">
-              <span className="font-bold text-[#0F172A] flex items-center gap-1.5 text-xs">
-                <Paperclip className="w-3.5 h-3.5 text-[#2563EB]" /> Attached Resources ({resources.length})
+          <div
+            style={{
+              backgroundColor: 'var(--surface)',
+              borderColor: 'var(--border)',
+              borderRadius: '10px',
+            }}
+            className="mt-2 p-3 border space-y-2 text-left font-sans animate-fade-in w-full min-w-0 max-w-full box-border"
+          >
+            <div style={{ borderColor: 'var(--border)' }} className="flex items-center justify-between text-xs border-b pb-1.5 flex-wrap gap-2">
+              <span style={{ color: 'var(--text-primary)' }} className="font-semibold flex items-center gap-1.5 text-xs">
+                <Paperclip style={{ color: 'var(--brand-primary)' }} className="w-3.5 h-3.5 shrink-0" />
+                <span>Attached Resources</span>
+                <span style={{ color: 'var(--text-secondary)' }}>({resources.length})</span>
               </span>
               <button
                 type="button"
                 onClick={() => setIsResourcesExpanded(false)}
-                className="text-[10px] font-bold text-[#64748B] hover:text-[#0F172A] cursor-pointer"
+                style={{ color: 'var(--text-muted)' }}
+                className="text-[10px] font-medium hover:text-[var(--brand-primary)] transition-colors cursor-pointer"
               >
                 Hide
               </button>
             </div>
 
             <div className="space-y-1.5">
-              {resources.map((res) => {
-                const ResourceIcon = getResourceIcon(res.type);
+              {resources.map((res: any, idx: number) => {
+                const ResourceIcon = getResourceIcon(res.resource_type || res.type);
+                const resTitle = res.title || res.name || res.file_name || res.fileName || 'Resource File';
+                const resType = res.resource_type || res.type || 'document';
+                const resUrl = res.url || res.file_url || res.fileUrl || '#';
+
                 return (
                   <div
-                    key={res.id}
-                    className="p-2.5 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-2.5 hover:border-blue-200 transition-colors w-full min-w-0"
+                    key={res.id || res.resourceUuid || idx}
+                    style={{
+                      backgroundColor: 'var(--surface-secondary)',
+                      borderColor: 'var(--border)',
+                    }}
+                    className="p-2.5 border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 w-full min-w-0 max-w-full box-border"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-100 text-[#2563EB] flex items-center justify-center shrink-0">
-                        <ResourceIcon className="w-3.5 h-3.5" />
+                      <div
+                        style={{
+                          backgroundColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)',
+                          color: 'var(--brand-primary)',
+                        }}
+                        className="w-7 h-7 rounded-lg border border-[var(--border)] flex items-center justify-center shrink-0"
+                      >
+                        <ResourceIcon className="w-3.5 h-3.5 stroke-current" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h5 className="text-xs font-bold text-[#0F172A] truncate">
-                          {res.title || res.name}
+                        <h5
+                          style={{ color: 'var(--text-primary)' }}
+                          className="text-xs font-medium truncate block min-w-0 max-w-full"
+                        >
+                          {resTitle}
                         </h5>
-                        <p className="text-[10px] text-[#64748B] font-medium flex items-center gap-1.5">
-                          <span className="uppercase font-bold text-[#2563EB]">{res.type}</span>
+                        <p style={{ color: 'var(--text-secondary)' }} className="text-[10px] font-medium flex items-center gap-1.5">
+                          <span className="uppercase font-semibold" style={{ color: 'var(--brand-primary)' }}>{resType}</span>
                           {res.sizeMb && <span>• {res.sizeMb} MB</span>}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
                       <a
-                        href={res.url || '#'}
+                        href={resUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="h-6 px-2 bg-blue-50 hover:bg-blue-100 text-[#2563EB] text-[10px] font-bold rounded-md inline-flex items-center gap-1 border border-blue-200 transition-colors"
+                        style={{
+                          backgroundColor: 'var(--surface)',
+                          borderColor: 'var(--border)',
+                          color: 'var(--text-primary)',
+                        }}
+                        className="h-6 px-2 text-[10px] font-medium rounded-md inline-flex items-center gap-1 border transition-all hover:bg-[var(--surface-hover)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] cursor-pointer"
                       >
                         <span>Open</span>
-                        <ExternalLink className="w-3 h-3" />
+                        <ExternalLink className="w-3 h-3 stroke-current" />
                       </a>
 
                       {res.allowDownload && (
                         <a
-                          href={res.url || '#'}
+                          href={resUrl}
                           download
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="h-6 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-md inline-flex items-center gap-1 border border-emerald-200 transition-colors"
+                          style={{
+                            backgroundColor: 'var(--surface)',
+                            borderColor: 'var(--border)',
+                            color: 'var(--text-primary)',
+                          }}
+                          className="h-6 px-2 text-[10px] font-medium rounded-md inline-flex items-center gap-1 border transition-all hover:bg-[var(--surface-hover)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] cursor-pointer"
                           title="Download Resource"
                         >
                           <span>Download</span>
-                          <Download className="w-3 h-3" />
+                          <Download className="w-3 h-3 stroke-current" />
                         </a>
                       )}
 
                       <button
                         type="button"
                         onClick={() => handleDetachResource(res.id)}
-                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
+                        style={{ color: '#F87171' }}
+                        className="p-1 rounded-md transition-colors cursor-pointer hover:bg-rose-500/10 hover:text-[#FCA5A5]"
                         title="Detach resource from lesson"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5 stroke-current" />
                       </button>
                     </div>
                   </div>

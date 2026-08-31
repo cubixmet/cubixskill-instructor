@@ -374,11 +374,12 @@ export const CertificateCanvas: React.FC<CertificateCanvasProps> = ({
               <AutoFitTextContainer
                 text={displayText}
                 maxFontSize={el.preferredFontSize || el.fontSize || 32}
-                minFontSize={el.minimumFontSize || 14}
+                minFontSize={Math.min(el.preferredFontSize || el.fontSize || 32, el.minimumFontSize || 18)}
                 fontFamily={el.fontFamily || 'Inter'}
                 fontWeight={el.fontWeight || '600'}
                 fontColor={el.fontColor || '#0F172A'}
                 textAlign={el.textAlign || 'center'}
+                padding={el.padding}
                 isEditorMode={isEditorMode && !isPreviewOnly}
                 className="w-full h-full"
               />

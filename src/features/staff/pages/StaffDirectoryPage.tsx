@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -136,6 +137,7 @@ function formatLastActive(iso?: string) {
 }
 
 export const StaffDirectoryPage: React.FC = () => {
+  const navigate = useNavigate();
   const [staffList, setStaffList] = useState<StaffMember[]>(INITIAL_DEMO_STAFF);
   const [roles, setRoles] = useState<BackendRole[]>([]);
   const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>(DEFAULT_PERMISSION_GROUPS);
@@ -419,23 +421,25 @@ export const StaffDirectoryPage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button
-            size="sm"
-            variant="outline"
-            leftIcon={<PlusCircle className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />}
-            onClick={() => setIsCreateRoleOpen(true)}
-            className="h-[38px] min-h-[38px] px-3.5 rounded-xl border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#111827] text-[#0F172A] dark:text-[#CBD5E1] font-medium cursor-pointer"
-          >
-            Create Role
-          </Button>
-          <Button
-            size="sm"
-            leftIcon={<Plus className="w-4 h-4" />}
-            onClick={() => { resetForm(); setIsInviteOpen(true); }}
-            className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium h-[38px] min-h-[38px] px-4 rounded-xl shadow-xs cursor-pointer"
-          >
-            Add Staff
-          </Button>
+          <Link to="/roles/create">
+            <Button
+              size="sm"
+              variant="outline"
+              leftIcon={<PlusCircle className="w-4 h-4 text-[var(--brand-primary)]" />}
+              className="h-[38px] min-h-[38px] px-3.5 rounded-xl border-[var(--border)] dark:border-[#334155] bg-[var(--surface-secondary)] text-[var(--text-primary)] font-medium cursor-pointer"
+            >
+              Create Role
+            </Button>
+          </Link>
+          <Link to="/staff/create">
+            <Button
+              size="sm"
+              leftIcon={<Plus className="w-4 h-4" />}
+              className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-medium h-[38px] min-h-[38px] px-4 rounded-xl shadow-xs cursor-pointer"
+            >
+              Add Staff
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -616,7 +620,7 @@ export const StaffDirectoryPage: React.FC = () => {
                               <button
                                 type="button"
                                 className="flex items-center gap-2 px-3 py-2 w-full text-left hover:bg-slate-50 dark:hover:bg-[#172033] text-[#0F172A] dark:text-[#CBD5E1] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] cursor-pointer min-h-[36px]"
-                                onClick={() => { setEditingStaff(stf); setActionMenuOpenId(null); }}
+                                onClick={() => { setActionMenuOpenId(null); navigate(`/staff/${stf.id}/edit`); }}
                               >
                                 <Edit3 className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" /> Edit Staff
                               </button>

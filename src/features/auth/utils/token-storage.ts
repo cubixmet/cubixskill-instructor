@@ -3,11 +3,11 @@ export const REFRESH_TOKEN_KEY = "cubixskill_refresh_token";
 
 export const tokenStorage = {
   getAccessToken(): string | null {
-    return localStorage.getItem(ACCESS_TOKEN_KEY);
+    return null;
   },
 
-  setAccessToken(token: string): void {
-    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+  setAccessToken(_token: string): void {
+    // No-op: Auth uses HttpOnly backend cookies
   },
 
   removeAccessToken(): void {
@@ -15,11 +15,11 @@ export const tokenStorage = {
   },
 
   getRefreshToken(): string | null {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
+    return null;
   },
 
-  setRefreshToken(token: string): void {
-    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  setRefreshToken(_token: string): void {
+    // No-op: Auth uses HttpOnly backend cookies
   },
 
   removeRefreshToken(): void {
@@ -29,5 +29,6 @@ export const tokenStorage = {
   clearTokens(): void {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem("cubixskill_auth_bootstrap");
   },
 };

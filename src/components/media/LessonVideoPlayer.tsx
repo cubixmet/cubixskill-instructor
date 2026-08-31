@@ -57,13 +57,8 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
       return;
     }
 
-    if (processingStatus === 'FAILED') {
-      setMediaError('Video adaptive transcode failed.');
-      return;
-    }
-
-    const isAdaptiveOn = media ? (media.adaptive_streaming_enabled !== false) : true;
-    const hlsSource = isAdaptiveOn ? (resolvedStreamUrl || (resolvedVideoUrl.endsWith('.m3u8') ? resolvedVideoUrl : '')) : '';
+    const isAdaptiveOn = media ? (media.adaptive_streaming_enabled !== false && media.processing_mode === 'hls') : true;
+    const hlsSource = (isAdaptiveOn && processingStatus !== 'FAILED') ? (resolvedStreamUrl || (resolvedVideoUrl.endsWith('.m3u8') ? resolvedVideoUrl : '')) : '';
     const mp4Source = resolvedVideoUrl;
 
     if (hlsSource && Hls.isSupported()) {

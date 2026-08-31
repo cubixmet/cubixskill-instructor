@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Shield, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Role } from '../../../types/models.types';
 import { Button } from '../../../components/ui/Button';
@@ -150,14 +151,15 @@ export const RolesPage: React.FC = () => {
             Configure permission matrices and module access rights for team roles.
           </p>
         </div>
-        <Button
-          size="sm"
-          leftIcon={<Plus className="w-4 h-4" />}
-          onClick={() => setIsCreateModalOpen(true)}
-          className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium h-[38px] min-h-[38px] px-4 rounded-xl shadow-xs w-full sm:w-auto shrink-0 cursor-pointer"
-        >
-          Create Role
-        </Button>
+        <Link to="/roles/create">
+          <Button
+            size="sm"
+            leftIcon={<Plus className="w-4 h-4" />}
+            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-medium h-[38px] min-h-[38px] px-4 rounded-xl shadow-xs w-full sm:w-auto shrink-0 cursor-pointer"
+          >
+            Create Role
+          </Button>
+        </Link>
       </div>
 
       {/* ── ROLES LIST ── */}

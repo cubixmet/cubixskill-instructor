@@ -73,16 +73,16 @@ export const ModuleEditPage: React.FC = () => {
   if (!existingModule) {
     return (
       <FormPageLayout
-        title="Edit Course Module"
+        title="Edit Section"
         backUrl={`/courses/${courseUuid}/curriculum`}
         breadcrumbs={[
           { label: 'Curriculum', url: `/courses/${courseUuid}/curriculum` },
-          { label: 'Edit Module' },
+          { label: 'Edit Section' },
         ]}
       >
         <div className="p-8 text-center bg-white border border-[#E2E8F0] rounded-2xl space-y-3 font-sans">
-          <h3 className="font-bold text-[#0F172A] text-sm">Module Not Found</h3>
-          <p className="text-xs text-[#64748B]">Unable to locate the specified course module.</p>
+          <h3 className="font-bold text-[#0F172A] text-sm">Section Not Found</h3>
+          <p className="text-xs text-[#64748B]">Unable to locate the specified course section.</p>
           <Button onClick={() => navigate(`/courses/${courseUuid}/curriculum`)} className="bg-[#2563EB] text-white">
             Return to Curriculum
           </Button>
@@ -93,47 +93,47 @@ export const ModuleEditPage: React.FC = () => {
 
   return (
     <FormPageLayout
-      title={`Edit Module: ${existingModule.title}`}
+      title={`Edit Section: ${existingModule.title}`}
       subtitle="Update section title, description, and status."
       backUrl={`/courses/${courseUuid}/curriculum`}
       breadcrumbs={[
         { label: 'Curriculum', url: `/courses/${courseUuid}/curriculum` },
-        { label: 'Edit Module' },
+        { label: 'Edit Section' },
       ]}
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl mx-auto font-sans pb-12">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl mx-auto font-sans pb-12 text-left">
         <div className="p-5 sm:p-6 bg-white border border-[#E2E8F0] rounded-2xl shadow-2xs space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-[#E2E8F0]">
             <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center shrink-0">
               <Layers className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[#0F172A]">Module Settings</h3>
-              <p className="text-[11px] text-[#64748B]">Update module metadata for your curriculum.</p>
+              <h3 className="text-sm font-bold text-[#0F172A]">Section Details</h3>
+              <p className="text-[11px] text-[#64748B]">Update section title and description.</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-[#0F172A] mb-1">
-                Module Title <span className="text-rose-500">*</span>
+                Section Name <span className="text-rose-500">*</span>
               </label>
               <Input
                 {...register('title')}
-                placeholder="e.g. Module 1: Introduction to React"
-                className="h-10 text-xs sm:text-sm"
+                placeholder="e.g. Getting Started"
+                className="h-10 text-xs sm:text-sm font-medium"
                 error={errors.title?.message}
               />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-[#0F172A] mb-1">
-                Short Description <span className="text-[#64748B] font-normal">(Optional)</span>
+                Description <span className="text-[#64748B] font-normal">(Optional)</span>
               </label>
               <textarea
                 {...register('description')}
                 rows={4}
-                placeholder="Overview of what students will master in this module..."
+                placeholder="Overview of what students will master in this section..."
                 className="w-full p-3 bg-white border border-[#E2E8F0] rounded-xl text-xs sm:text-sm text-[#0F172A] focus:outline-none focus:border-[#2563EB] transition-all resize-y"
               />
               {errors.description && (
@@ -147,8 +147,8 @@ export const ModuleEditPage: React.FC = () => {
                 {...register('status')}
                 className="w-full h-10 px-3 bg-white border border-[#E2E8F0] rounded-xl text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
               >
-                <option value="published">Published</option>
-                <option value="draft">Draft</option>
+                <option value="published">Published (Visible to students)</option>
+                <option value="draft">Draft (Hidden from students)</option>
               </select>
             </div>
           </div>

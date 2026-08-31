@@ -49,74 +49,98 @@ export const LessonResourcesSection: React.FC<LessonResourcesSectionProps> = ({
   };
 
   const getResourceIcon = (type: string) => {
-    if (type === 'video') return <FileVideo className="w-4 h-4 text-blue-600" />;
-    if (type === 'audio') return <FileAudio className="w-4 h-4 text-indigo-600" />;
-    if (type === 'image') return <ImageIcon className="w-4 h-4 text-emerald-600" />;
-    if (type === 'web_link') return <ExternalLink className="w-4 h-4 text-purple-600" />;
-    return <FileText className="w-4 h-4 text-amber-600" />;
+    if (type === 'video') return <FileVideo style={{ color: 'var(--brand-primary)' }} className="w-4 h-4" />;
+    if (type === 'audio') return <FileAudio style={{ color: 'var(--brand-primary)' }} className="w-4 h-4" />;
+    if (type === 'image') return <ImageIcon style={{ color: 'var(--brand-primary)' }} className="w-4 h-4" />;
+    if (type === 'web_link') return <ExternalLink style={{ color: 'var(--brand-primary)' }} className="w-4 h-4" />;
+    return <FileText style={{ color: 'var(--brand-primary)' }} className="w-4 h-4" />;
   };
 
   return (
-    <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-[#334155] text-left font-sans">
+    <div style={{ borderColor: 'var(--border)' }} className="space-y-3 pt-4 border-t text-left font-sans w-full min-w-0 max-w-full">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h4 className="text-xs font-semibold text-slate-900 dark:text-[#F8FAFC] uppercase tracking-wider">
+          <h4 style={{ color: 'var(--text-primary)' }} className="text-xs font-semibold uppercase tracking-wider">
             Resources {resources.length > 0 && `(${resources.length})`}
           </h4>
-          <p className="text-[11px] text-slate-500 dark:text-[#94A3B8]">
+          <p style={{ color: 'var(--text-secondary)' }} className="text-[11px]">
             Attach supporting materials, documents, audio, or external URLs for learners.
           </p>
         </div>
 
-        <Button
+        <button
           type="button"
-          size="xs"
           onClick={handleAddResourceClick}
-          className="bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] hover:bg-blue-50 dark:hover:bg-[#2563EB]/10 font-medium border border-[#2563EB] dark:border-[#3B82F6] cursor-pointer"
+          style={{
+            backgroundColor: 'var(--surface-secondary)',
+            borderColor: 'var(--border)',
+            color: 'var(--text-secondary)',
+          }}
+          className="h-7 px-2.5 border rounded-lg font-medium text-[11px] inline-flex items-center gap-1 transition-all cursor-pointer hover:bg-[var(--surface-hover)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] active:scale-[0.98]"
         >
-          <Plus className="w-3.5 h-3.5 stroke-[3]" />
+          <Plus className="w-3.5 h-3.5 stroke-[2.5] stroke-current" />
           <span>Add Resource</span>
-        </Button>
+        </button>
       </div>
 
       {resources.length === 0 ? (
-        <div className="p-4 bg-slate-50 dark:bg-[#0F172A] border border-dashed border-slate-300 dark:border-[#334155] hover:bg-slate-100/60 dark:hover:bg-[#172033] hover:border-blue-400 dark:hover:border-[#3B82F6] rounded-xl text-center space-y-2 transition-all">
-          <p className="text-xs font-medium text-slate-900 dark:text-[#F8FAFC]">
+        <div
+          style={{
+            backgroundColor: 'var(--surface-secondary)',
+            borderColor: 'var(--border)',
+          }}
+          className="p-4 border border-dashed rounded-xl text-center space-y-2 transition-all w-full min-w-0"
+        >
+          <p style={{ color: 'var(--text-primary)' }} className="text-xs font-medium">
             No resources added yet
           </p>
-          <p className="text-[11px] text-slate-500 dark:text-[#94A3B8]">
+          <p style={{ color: 'var(--text-secondary)' }} className="text-[11px]">
             Add downloadable files or external references to enrich this lesson.
           </p>
-          <Button
+          <button
             type="button"
-            size="xs"
             onClick={handleAddResourceClick}
-            className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium mx-auto shadow-xs"
+            style={{
+              backgroundColor: 'var(--surface-secondary)',
+              borderColor: 'var(--border)',
+              color: 'var(--text-secondary)',
+            }}
+            className="h-7 px-2.5 border rounded-lg font-medium text-[11px] inline-flex items-center gap-1 transition-all cursor-pointer hover:bg-[var(--surface-hover)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] mx-auto"
           >
-            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+            <Plus className="w-3.5 h-3.5 stroke-[2.5] stroke-current" />
             <span>Add Resource</span>
-          </Button>
+          </button>
         </div>
       ) : (
         <div className="space-y-2">
           {resources.map((res) => (
             <div
               key={res.id}
-              className="p-3 bg-white dark:bg-[#172033] border border-slate-200 dark:border-[#334155] rounded-xl flex items-center justify-between gap-3 text-xs shadow-2xs hover:border-blue-300 dark:hover:border-[#3B82F6] transition-all"
+              style={{
+                backgroundColor: 'var(--surface-secondary)',
+                borderColor: 'var(--border)',
+              }}
+              className="p-3 border rounded-xl flex items-center justify-between gap-3 text-xs shadow-2xs hover:border-[var(--brand-primary)] transition-all"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] flex items-center justify-center shrink-0">
+                <div
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)',
+                    color: 'var(--brand-primary)',
+                  }}
+                  className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center shrink-0"
+                >
                   {getResourceIcon(res.type)}
                 </div>
                 <div className="min-w-0">
-                  <h5 className="font-medium text-slate-900 dark:text-[#F8FAFC] truncate">
+                  <h5 style={{ color: 'var(--text-primary)' }} className="font-medium truncate">
                     {res.name}
                   </h5>
-                  <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-[#94A3B8]">
-                    <Badge variant="neutral" size="sm" className="capitalize py-0 dark:bg-[#0F172A] dark:text-[#CBD5E1]">
+                  <div style={{ color: 'var(--text-secondary)' }} className="flex items-center gap-2 text-[10px]">
+                    <span className="capitalize font-semibold" style={{ color: 'var(--brand-primary)' }}>
                       {res.type.replace('_', ' ')}
-                    </Badge>
-                    {res.sizeMb && <span>{res.sizeMb} MB</span>}
+                    </span>
+                    {res.sizeMb && <span>• {res.sizeMb} MB</span>}
                     {res.provider && <span>• {res.provider}</span>}
                   </div>
                 </div>
@@ -127,10 +151,15 @@ export const LessonResourcesSection: React.FC<LessonResourcesSectionProps> = ({
                   href={res.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-1.5 text-slate-500 dark:text-[#CBD5E1] hover:text-blue-600 dark:hover:text-[#60A5FA] hover:bg-slate-100 dark:hover:bg-[#0F172A] rounded-lg transition-colors"
+                  style={{
+                    backgroundColor: 'var(--surface)',
+                    borderColor: 'var(--border)',
+                    color: 'var(--text-primary)',
+                  }}
+                  className="p-1.5 border rounded-lg transition-colors hover:bg-[var(--surface-hover)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]"
                   title="View / Open Resource"
                 >
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-4 h-4 stroke-current" />
                 </a>
 
                 {res.allowDownload && (
@@ -139,10 +168,15 @@ export const LessonResourcesSection: React.FC<LessonResourcesSectionProps> = ({
                     download
                     target="_blank"
                     rel="noreferrer"
-                    className="p-1.5 text-slate-500 dark:text-[#CBD5E1] hover:text-blue-600 dark:hover:text-[#60A5FA] hover:bg-slate-100 dark:hover:bg-[#0F172A] rounded-lg transition-colors"
+                    style={{
+                      backgroundColor: 'var(--surface)',
+                      borderColor: 'var(--border)',
+                      color: 'var(--text-primary)',
+                    }}
+                    className="p-1.5 border rounded-lg transition-colors hover:bg-[var(--surface-hover)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]"
                     title="Download Resource"
                   >
-                    <Download className="w-4 h-4" />
+                    <Download className="w-4 h-4 stroke-current" />
                   </a>
                 )}
 
@@ -150,10 +184,11 @@ export const LessonResourcesSection: React.FC<LessonResourcesSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => onRemoveResource(res.id)}
-                    className="p-1.5 text-slate-400 dark:text-[#F87171] hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors cursor-pointer"
+                    style={{ color: '#F87171' }}
+                    className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-rose-500/10 hover:text-[#FCA5A5]"
                     title="Remove from Lesson"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4 stroke-current" />
                   </button>
                 )}
               </div>

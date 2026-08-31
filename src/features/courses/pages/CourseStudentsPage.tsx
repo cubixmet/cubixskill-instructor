@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Users,
@@ -53,6 +53,7 @@ interface StudentRecord {
 
 export const CourseStudentsPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const params = useParams<{ courseId?: string; courseUuid?: string }>();
   const courseUuid = params.courseId || params.courseUuid;
 
@@ -81,6 +82,14 @@ export const CourseStudentsPage: React.FC = () => {
   // Modal Action States
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [isBulkEnrollOpen, setIsBulkEnrollOpen] = useState(false);
+
+  useEffect(() => {
+    if (location.pathname.endsWith('/enroll')) {
+      setIsEnrollModalOpen(true);
+    } else if (location.pathname.endsWith('/bulk-upload')) {
+      setIsBulkEnrollOpen(true);
+    }
+  }, [location.pathname]);
   const [extendAccessTarget, setExtendAccessTarget] = useState<StudentRecord | null>(null);
   const [newExpiryDate, setNewExpiryDate] = useState('2027-12-31');
   const [removeTarget, setRemoveTarget] = useState<StudentRecord | null>(null);

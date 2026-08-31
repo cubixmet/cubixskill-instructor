@@ -87,8 +87,13 @@ export const CourseFeesPage: React.FC = () => {
     loadAllData();
   }, [loadAllData]);
 
-  // Refetch student accounts on search / status filter change
+  // Refetch student accounts only on subsequent search / status filter changes (skip initial mount)
+  const isInitialMount = React.useRef(true);
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     if (!courseUuid) return;
     let isCancelled = false;
 

@@ -55,8 +55,8 @@ export const courseFeaturesService = {
           data && typeof data === 'object' && 'features' in data
             ? data.features
             : data && typeof data === 'object' && 'data' in data
-            ? data.data
-            : data;
+              ? data.data
+              : data;
         return (Array.isArray(body) ? body : []) as CourseFeatureItem[];
       })
       .finally(() => {
@@ -98,8 +98,8 @@ export const courseFeaturesService = {
       data && typeof data === 'object' && 'features' in data
         ? data.features
         : data && typeof data === 'object' && 'data' in data
-        ? data.data
-        : data;
+          ? data.data
+          : data;
     return (Array.isArray(body) ? body : []) as CourseFeatureItem[];
   },
 };

@@ -20,6 +20,7 @@ export const authService = {
       {
         email: payload.email,
         password: payload.password,
+        portal: "instructor",
       }
     );
     return response.data?.data || (response.data as unknown as LoginResponseData);
@@ -91,6 +92,16 @@ export const authService = {
 
   async updateAcademyProfile(payload: { name?: string; email?: string; phone?: string; theme_color?: string }): Promise<any> {
     const response = await apiClient.patch('/api/v1/academy/profile/', payload);
+    return response.data?.data || response.data;
+  },
+
+  async getAcademySettings(): Promise<{ hls_video_enabled: boolean; personal_chat_file_upload_enabled: boolean; community_chat_file_upload_enabled: boolean; academy_id: string }> {
+    const response = await apiClient.get('/api/v1/academy/settings/');
+    return response.data?.data || response.data;
+  },
+
+  async updateAcademySettings(payload: { hls_video_enabled?: boolean; personal_chat_file_upload_enabled?: boolean; community_chat_file_upload_enabled?: boolean }): Promise<{ hls_video_enabled: boolean; personal_chat_file_upload_enabled: boolean; community_chat_file_upload_enabled: boolean; academy_id: string }> {
+    const response = await apiClient.patch('/api/v1/academy/settings/', payload);
     return response.data?.data || response.data;
   },
 

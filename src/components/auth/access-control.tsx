@@ -98,9 +98,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
 }) => {
   const location = useLocation();
-  const { isAuthenticated, isInitializing, hasRole, can, canAny, canAll, hasFeature } = useAuthStore();
+  const { isAuthenticated, isInitializing, authStatus, hasRole, can, canAny, canAll, hasFeature } = useAuthStore();
 
-  if (isInitializing) {
+  if (isInitializing || authStatus === "checking") {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#F8FAFC]">
         <div className="flex flex-col items-center space-y-4">
@@ -113,7 +113,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || authStatus === "unauthenticated") {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

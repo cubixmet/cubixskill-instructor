@@ -172,9 +172,10 @@ export const certificatesService = {
   },
 
   // --- DYNAMIC BINDINGS ---
-  async getTemplateBindings(): Promise<CertificateBinding[]> {
+  async getTemplateBindings(courseId?: string): Promise<CertificateBinding[]> {
     const response = await apiClient.get<CertificateBinding[]>(
-      '/api/v1/certificates/template-bindings/'
+      '/api/v1/certificates/template-bindings/',
+      { params: courseId ? { course_id: courseId } : {} }
     );
     return response.data || [];
   },
@@ -194,5 +195,17 @@ export const certificatesService = {
       payload
     );
     return response.data;
+  },
+
+  // --- CERTIFICATE FONTS ---
+  async listFonts(): Promise<any[]> {
+    const response = await apiClient.get<any>('/api/v1/certificates/fonts/');
+    const data = (response.data as any)?.data || response.data;
+    return Array.isArray(data) ? data : (data as any)?.results || [];
+  },
+
+  async uploadFont(formData: FormData): Promise<any> {
+    const response = await apiClient.postForm<any>('/api/v1/certificates/fonts/upload/', formData);
+    return response.data?.data || response.data;
   },
 };

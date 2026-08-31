@@ -2,17 +2,19 @@ import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { courseFeaturesService, CourseFeatureItem } from '../services/courseFeatures.service';
 import { isValidCourseId } from '../utils/courseValidation.utils';
+import { useAuthStore } from '../store/auth.store';
 
 export function useCourseFeatures(
   courseUuid?: string | null,
   options: { enabled?: boolean } = {}
 ) {
+  const { isAuthenticated } = useAuthStore();
   const validCourseId = isValidCourseId(courseUuid) ? courseUuid.trim() : null;
 
   const query = useQuery<CourseFeatureItem[]>({
     queryKey: ['course', validCourseId, 'features'],
     queryFn: () => courseFeaturesService.list(validCourseId!),
-    enabled: Boolean(validCourseId) && (options.enabled ?? true),
+    enabled: Boolean(validCourseId) && (options.enabled ?? true) && isAuthenticated,
     staleTime: 5 * 60 * 1000,
   });
 

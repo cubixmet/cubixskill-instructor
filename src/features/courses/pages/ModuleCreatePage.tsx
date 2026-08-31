@@ -96,12 +96,12 @@ export const ModuleCreatePage: React.FC = () => {
 
   return (
     <FormPageLayout
-      title="Create Module"
+      title="Create Section"
       subtitle="Add a new section to organize your curriculum"
       backUrl={`/courses/${validCourseUuid}/curriculum`}
       breadcrumbs={[
         { label: 'Curriculum', url: `/courses/${validCourseUuid}/curriculum` },
-        { label: 'Create Module' },
+        { label: 'Create Section' },
       ]}
     >
       <form
@@ -126,17 +126,17 @@ export const ModuleCreatePage: React.FC = () => {
               <Layers className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Module Details</h3>
+              <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Section Details</h3>
               <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">Quickly set up your new course section.</p>
             </div>
           </div>
 
           <div className="space-y-4">
-            {/* Field 1: Module Title */}
+            {/* Field 1: Section Title */}
             <div>
               <div className="flex items-center justify-between gap-2 mb-1">
                 <label className="block text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1]">
-                  Module Title <span className="text-[#2563EB] dark:text-[#60A5FA]">*</span>
+                  Section Name <span className="text-[#2563EB] dark:text-[#60A5FA]">*</span>
                 </label>
                 <span className="text-[10px] font-medium text-[#64748B] dark:text-[#94A3B8]">
                   {titleValue.length} / 120
@@ -210,7 +210,7 @@ export const ModuleCreatePage: React.FC = () => {
             leftIcon={<CheckCircle2 className="w-4 h-4 stroke-[3]" />}
             className="h-11 md:h-10 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-[0.98] text-white text-xs sm:text-sm font-medium px-5 md:px-6 shadow-[0_4px_12px_rgba(37,99,235,0.12)] flex-1 md:flex-initial cursor-pointer"
           >
-            {isSubmitting ? 'Creating Module...' : 'Create Module'}
+            {isSubmitting ? 'Adding Section...' : 'Add Section'}
           </Button>
         </div>
       </form>

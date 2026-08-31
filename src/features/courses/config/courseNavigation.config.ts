@@ -1,4 +1,5 @@
 import React from 'react';
+import { matchPath } from 'react-router-dom';
 import {
   LayoutDashboard,
   BookOpen,
@@ -21,6 +22,7 @@ export interface CourseNavSection {
   group: CourseNavGroupId;
   priority: 1 | 2; // 1 = Primary desktop tab, 2 = Secondary (More menu)
   requiredFeature?: string;
+  matchPatterns: string[];
 }
 
 export const COURSE_NAV_GROUPS: { id: CourseNavGroupId; label: string }[] = [
@@ -39,6 +41,10 @@ export const COURSE_NAV_SECTIONS: CourseNavSection[] = [
     route: 'overview',
     group: 'CORE',
     priority: 1,
+    matchPatterns: [
+      '/courses/:courseId',
+      '/courses/:courseId/overview',
+    ],
   },
   // 2. Curriculum
   {
@@ -48,6 +54,24 @@ export const COURSE_NAV_SECTIONS: CourseNavSection[] = [
     route: 'curriculum',
     group: 'CORE',
     priority: 1,
+    matchPatterns: [
+      '/courses/:courseId/curriculum',
+      '/courses/:courseId/curriculum/modules/new',
+      '/courses/:courseId/curriculum/modules/:moduleId/edit',
+      '/courses/:courseId/curriculum/lessons/select-type',
+      '/courses/:courseId/curriculum/lessons/new',
+      '/courses/:courseId/curriculum/lessons/:lessonId/edit',
+      '/courses/:courseId/curriculum/quizzes/new',
+      '/courses/:courseId/curriculum/quizzes/:quizId/edit',
+      '/courses/:courseId/curriculum/lessons/:lessonId/resources',
+      '/courses/:courseId/curriculum/resources/add',
+      // Legacy redirects
+      '/courses/:courseId/modules/create',
+      '/courses/:courseId/modules/:moduleId/lessons/create',
+      '/courses/:courseId/modules/:moduleId/lessons/:lessonId/edit',
+      '/courses/:courseId/modules/:moduleId/lessons/:lessonId/resources',
+      '/courses/:courseId/modules/:moduleId/lessons/create/type',
+    ],
   },
   // 3. Students
   {
@@ -57,6 +81,13 @@ export const COURSE_NAV_SECTIONS: CourseNavSection[] = [
     route: 'students',
     group: 'CORE',
     priority: 1,
+    matchPatterns: [
+      '/courses/:courseId/students',
+      '/courses/:courseId/students/enroll',
+      '/courses/:courseId/students/bulk-upload',
+      '/courses/:courseId/students/:studentId',
+      '/courses/:courseId/students/:studentId/overview',
+    ],
   },
   // 4. Live Sessions
   {
@@ -67,6 +98,10 @@ export const COURSE_NAV_SECTIONS: CourseNavSection[] = [
     group: 'LEARNING',
     priority: 1,
     requiredFeature: 'LIVE_SESSIONS',
+    matchPatterns: [
+      '/courses/:courseId/live-sessions',
+      '/courses/:courseId/live-sessions/new',
+    ],
   },
   // 5. Fees Collection
   {
@@ -77,6 +112,9 @@ export const COURSE_NAV_SECTIONS: CourseNavSection[] = [
     group: 'MANAGEMENT',
     priority: 1,
     requiredFeature: 'FEES',
+    matchPatterns: [
+      '/courses/:courseId/fees',
+    ],
   },
   // 6. Coupons
   {
@@ -87,6 +125,12 @@ export const COURSE_NAV_SECTIONS: CourseNavSection[] = [
     group: 'MANAGEMENT',
     priority: 1,
     requiredFeature: 'COUPONS',
+    matchPatterns: [
+      '/courses/:courseId/coupons',
+      '/courses/:courseId/coupons/new',
+      '/courses/:courseId/coupons/:couponId',
+      '/courses/:courseId/coupons/:couponId/edit',
+    ],
   },
   // 7. Course Features
   {
@@ -96,6 +140,9 @@ export const COURSE_NAV_SECTIONS: CourseNavSection[] = [
     route: 'features',
     group: 'MANAGEMENT',
     priority: 1,
+    matchPatterns: [
+      '/courses/:courseId/features',
+    ],
   },
   // 8. Settings
   {
@@ -105,5 +152,22 @@ export const COURSE_NAV_SECTIONS: CourseNavSection[] = [
     route: 'settings',
     group: 'MANAGEMENT',
     priority: 1,
+    matchPatterns: [
+      '/courses/:courseId/settings',
+    ],
   },
 ];
+
+export const isCourseTabActive = (sec: CourseNavSection, pathname: string): boolean => {
+  return sec.matchPatterns.some((pattern) =>
+    Boolean(
+      matchPath(
+        {
+          path: pattern,
+          end: true,
+        },
+        pathname
+      )
+    )
+  );
+};

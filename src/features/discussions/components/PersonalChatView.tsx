@@ -1,53 +1,102 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   MessageCircle,
   Search,
   Send,
-  Paperclip,
-  Check,
-  CheckCheck,
   ArrowLeft,
-  AlertTriangle,
   Smile,
   ShieldCheck,
   Plus,
-  Trash2,
   MoreVertical,
-  RefreshCw,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Modal } from '../../../components/ui/Modal';
-import type {
-  PersonalChatConversation,
-  CourseMember,
-  AttachmentItem,
-} from '../store/discussion.store';
+import { Skeleton } from '../../../components/ui/Skeleton';
+import { discussionService } from '../../../services/discussion.service';
+import { studentsService, type StudentData } from '../../../services/students.service';
+import { authStore, useAuthStore } from '../../../store/auth.store';
+import { usePersonalChatSocket } from '../hooks/usePersonalChatSocket';
+import { normalizeChatMessage, type NormalizedChatMessage } from '../utils/chatNormalizer';
 
 export interface PersonalChatViewProps {
-  courseUuid: string;
-  conversations: PersonalChatConversation[];
-  courseMembers: CourseMember[];
+  courseUuid?: string;
   activeStudentUuid?: string | null;
   onSelectStudentChat: (studentUuid: string) => void;
-  onSendMessage: (
-    studentUuid: string,
-    content: string,
-    attachments?: AttachmentItem[]
-  ) => void;
-  onMarkSeen: (conversationId: string) => void;
 }
 
-const EMOJIS = ['👍', '💡', '🔥', '🎯', '🙌', '❤️', '😊', '👏'];
+const EMOJIS = ['👍', '💡', '🔥', '🎯', '🙌', '❤️', '😊', '👏', '🙏', '🎉'];
+
+function formatMessageTime(dateString?: string): string {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDateSeparator(dateString?: string): string {
+  if (!dateString) return 'Today';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'Today';
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) {
+    return 'Today';
+  }
+  if (date.toDateString() === yesterday.toDateString()) {
+    return 'Yesterday';
+  }
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function getLastMessagePreview(room: any, currentUserId: string): string {
+  if (!room) return 'No messages yet';
+
+  let content = '';
+  let senderId = '';
+  let hasMedia = false;
+  let mediaType = '';
+
+  if (room.last_message && typeof room.last_message === 'object') {
+    content = (room.last_message.content || '').trim();
+    senderId = String(room.last_message.sender_id || room.last_message.sender?.id || '');
+
+    if (Array.isArray(room.last_message.media_files) && room.last_message.media_files.length > 0) {
+      hasMedia = true;
+    } else if (Array.isArray(room.last_message.attachments) && room.last_message.attachments.length > 0) {
+      hasMedia = true;
+      const att = room.last_message.attachments[0];
+      mediaType = String(att?.attachment_type || att?.type || '').toLowerCase();
+    }
+  } else if (typeof room.last_message === 'string' && room.last_message.trim()) {
+    content = room.last_message.trim();
+  } else if (typeof room.latest_message === 'string' && room.latest_message.trim()) {
+    content = room.latest_message.trim();
+  } else if (typeof room.last_message_preview === 'string' && room.last_message_preview.trim()) {
+    content = room.last_message_preview.trim();
+  }
+
+  if (!content && hasMedia) {
+    if (mediaType.includes('image')) content = '[Photo]';
+    else if (mediaType.includes('video')) content = '[Video]';
+    else if (mediaType.includes('audio')) content = '[Audio]';
+    else content = '[Attachment]';
+  }
+
+  if (!content) {
+    return 'No messages yet';
+  }
+
+  const isMine = Boolean(currentUserId && senderId === currentUserId);
+  return isMine ? `You: ${content}` : content;
+}
 
 export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
-  courseUuid: _,
-  conversations,
-  courseMembers,
+  courseUuid,
   activeStudentUuid,
   onSelectStudentChat,
-  onSendMessage,
-  onMarkSeen,
 }) => {
   const [search, setSearch] = useState('');
   const [messageContent, setMessageContent] = useState('');
@@ -55,142 +104,342 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
   const [newChatModalOpen, setNewChatModalOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sending, setSending] = useState(false);
-  const [failedMessageIds, setFailedMessageIds] = useState<string[]>([]);
   const [showNewMessageBanner, setShowNewMessageBanner] = useState(false);
 
-  // Attachments state
-  const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
+  // Authenticated user identity for message side alignment (reactive hook)
+  const { user: currentUser } = useAuthStore();
+  const currentUserId = String(currentUser?.id || (currentUser as any)?.user_id || '');
+
+  // Real Backend Data State
+  const [chatRooms, setChatRooms] = useState<any[]>([]);
+  const [isLoadingRooms, setIsLoadingRooms] = useState<boolean>(true);
+  const [roomsError, setRoomsError] = useState<string | null>(null);
+
+  const [activeRoom, setActiveRoom] = useState<any | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [isLoadingMessages, setIsLoadingMessages] = useState<boolean>(false);
+  const [messagesError, setMessagesError] = useState<string | null>(null);
+
+  // Real Enrolled Students for New DM Modal
+  const [eligibleStudents, setEligibleStudents] = useState<StudentData[]>([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState<boolean>(false);
+  const [studentSearch, setStudentSearch] = useState('');
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previousMessageCountRef = useRef<number>(0);
 
-  const students = courseMembers.filter((m) => m.role === 'student');
+  // Smooth / Auto bottom scroll anchor helper
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    requestAnimationFrame(() => {
+      chatEndRef.current?.scrollIntoView({ behavior, block: 'end' });
+    });
+  }, []);
 
-  // Active Conversation
-  const activeConversation = conversations.find(
-    (c) => c.studentUuid === activeStudentUuid
-  );
+  // 1. WebSocket Hook Integration for Active Room (Deduplicated & Stable)
+  const handleIncomingSocketMessage = useCallback((newMsg: any) => {
+    if (!newMsg || !newMsg.id) return;
+    const msgId = String(newMsg.id);
+
+    setMessages((prev) => {
+      if (prev.some((m) => String(m.id) === msgId)) {
+        return prev;
+      }
+      const updated = [...prev, newMsg].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      return updated;
+    });
+
+    // Update last message preview in chatRooms list
+    setChatRooms((prev) =>
+      prev.map((r) =>
+        String(r.id) === String(newMsg.room_id || activeRoom?.id)
+          ? { ...r, last_message: newMsg, latest_message: newMsg.content }
+          : r
+      )
+    );
+  }, [activeRoom?.id]);
+
+  const { connectionState } = usePersonalChatSocket(activeRoom?.id, handleIncomingSocketMessage);
+
+  // 2. Fetch Real Chat Rooms from Backend
+  const loadChatRooms = useCallback(async () => {
+    setIsLoadingRooms(true);
+    setRoomsError(null);
+    try {
+      const rooms = await discussionService.listChatRooms(courseUuid || undefined);
+      // Filter DIRECT rooms for 1-to-1 personal chat
+      const directRooms = rooms.filter((r: any) => r.room_type === 'DIRECT' || !r.room_type);
+      setChatRooms(directRooms);
+    } catch {
+      setRoomsError("Failed to load personal chat conversations.");
+    } finally {
+      setIsLoadingRooms(false);
+    }
+  }, [courseUuid]);
+
+  useEffect(() => {
+    loadChatRooms();
+  }, [loadChatRooms]);
+
+  // 3. Fetch Eligible Enrolled Students when New DM modal opens
+  useEffect(() => {
+    if (newChatModalOpen) {
+      setIsLoadingStudents(true);
+      const params: Record<string, any> = {};
+      if (courseUuid) params.course = courseUuid;
+
+      studentsService
+        .listStudents(params)
+        .then((res) => {
+          const list = Array.isArray(res) ? res : res?.results || [];
+          setEligibleStudents(list);
+        })
+        .catch(() => {
+          setEligibleStudents([]);
+        })
+        .finally(() => {
+          setIsLoadingStudents(false);
+        });
+    }
+  }, [newChatModalOpen, courseUuid]);
+
+  // 4. Resolve active room when activeStudentUuid changes or on direct URL hard refresh
+  useEffect(() => {
+    const invalidKeywords = ['undefined', 'null', 'new', 'create', 'all'];
+    if (!activeStudentUuid || invalidKeywords.includes(String(activeStudentUuid).toLowerCase())) {
+      setActiveRoom(null);
+      return;
+    }
+
+    // If activeRoom is already set and matches activeStudentUuid, preserve it
+    if (activeRoom) {
+      const otherUser = activeRoom.other_participant || activeRoom.participants?.find((p: any) => String(p.user_id || p.id) !== currentUserId);
+      const otherId = String(otherUser?.user_id || otherUser?.id || activeRoom.other_participant_id || '');
+      if (otherId === String(activeStudentUuid) || String(activeRoom.id) === String(activeStudentUuid)) {
+        return;
+      }
+    }
+
+    if (chatRooms.length > 0) {
+      const found = chatRooms.find((r: any) => {
+        const otherUser = r.other_participant || r.participants?.find((p: any) => String(p.user_id || p.id) !== currentUserId);
+        return (
+          String(otherUser?.user_id || otherUser?.id) === String(activeStudentUuid) ||
+          String(r.other_participant_id) === String(activeStudentUuid) ||
+          String(r.id) === String(activeStudentUuid)
+        );
+      });
+      if (found) {
+        setActiveRoom(found);
+        return;
+      }
+    }
+
+    // If activeStudentUuid is in URL but not found in preloaded rooms list, fetch or create room directly
+    if (!isLoadingRooms) {
+      discussionService
+        .getOrCreatePersonalChatRoom(courseUuid || '', activeStudentUuid)
+        .then((room) => {
+          if (room) {
+            setChatRooms((prev) => {
+              const exists = prev.some((r) => r.id === room.id);
+              return exists ? prev : [room, ...prev];
+            });
+            setActiveRoom(room);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [activeStudentUuid, chatRooms, isLoadingRooms, courseUuid, currentUserId, activeRoom]);
+
+  // 5. Fetch Real Messages when activeRoom changes & Sort Chronologically (Oldest -> Newest)
+  const loadMessages = useCallback(async (roomId: string) => {
+    setIsLoadingMessages(true);
+    setMessagesError(null);
+    try {
+      const msgs = await discussionService.listChatMessages(roomId);
+      const sorted = [...msgs].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      setMessages(sorted);
+      // Mark read
+      await discussionService.markChatRoomRead(roomId).catch(() => {});
+      // Scroll to bottom immediately upon initial load
+      setTimeout(() => scrollToBottom('auto'), 50);
+    } catch {
+      setMessagesError("Failed to load chat messages.");
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  }, [scrollToBottom]);
+
+  useEffect(() => {
+    if (activeRoom?.id) {
+      loadMessages(activeRoom.id);
+    } else {
+      setMessages([]);
+    }
+  }, [activeRoom?.id, loadMessages]);
 
   // Auto-scroll logic & new message banner detection
   useEffect(() => {
-    if (activeConversation) {
-      onMarkSeen(activeConversation.id);
-
-      const currentCount = activeConversation.messages.length;
+    if (activeRoom && messages.length > 0) {
+      const currentCount = messages.length;
       const container = chatContainerRef.current;
 
       if (container) {
-        const isNearBottom =
-          container.scrollHeight - container.scrollTop - container.clientHeight < 120;
+        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 140;
 
         if (previousMessageCountRef.current === 0 || isNearBottom) {
-          chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          scrollToBottom('smooth');
         } else if (currentCount > previousMessageCountRef.current) {
-          setTimeout(() => setShowNewMessageBanner(true), 0);
+          setShowNewMessageBanner(true);
         }
       } else {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        scrollToBottom('smooth');
       }
 
       previousMessageCountRef.current = currentCount;
     } else {
       previousMessageCountRef.current = 0;
     }
-  }, [activeConversation, onMarkSeen]);
+  }, [activeRoom, messages, scrollToBottom]);
 
-  const filteredConversations = conversations.filter(
-    (c) =>
-      c.studentName.toLowerCase().includes(search.toLowerCase()) ||
-      c.lastMessage.toLowerCase().includes(search.toLowerCase())
-  );
+  // Scroll listener to hide "New messages ↓" banner when near bottom
+  const handleScroll = () => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (distanceFromBottom < 120) {
+      setShowNewMessageBanner(false);
+    }
+  };
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if ((!messageContent.trim() && attachments.length === 0) || sending) return;
-    if (!activeStudentUuid) return;
+  // Filtered conversations list
+  const filteredRooms = useMemo(() => {
+    return chatRooms.filter((r) => {
+      const otherUser = r.other_participant || r.participants?.find((p: any) => String(p.user_id || p.id) !== currentUserId);
+      const title = r.name || otherUser?.full_name || otherUser?.email || 'Student';
+      const lastMsg = r.last_message?.content || r.latest_message || '';
+      const q = search.toLowerCase();
+      return title.toLowerCase().includes(q) || lastMsg.toLowerCase().includes(q);
+    });
+  }, [chatRooms, search, currentUserId]);
+
+  // Group messages chronologically with date separators
+  const groupedMessages = useMemo(() => {
+    const groups: { dateLabel: string; msgs: any[] }[] = [];
+    messages.forEach((msg) => {
+      const label = formatDateSeparator(msg.created_at);
+      const lastGroup = groups[groups.length - 1];
+      if (lastGroup && lastGroup.dateLabel === label) {
+        lastGroup.msgs.push(msg);
+      } else {
+        groups.push({ dateLabel: label, msgs: [msg] });
+      }
+    });
+    return groups;
+  }, [messages]);
+
+  // Handle New DM student selection
+  const handleSelectStudentForChat = async (studentId: string) => {
+    setNewChatModalOpen(false);
+    try {
+      const room = await discussionService.getOrCreatePersonalChatRoom(courseUuid || '', studentId);
+      setChatRooms((prev) => {
+        const exists = prev.some((r) => r.id === room.id);
+        return exists ? prev : [room, ...prev];
+      });
+      setActiveRoom(room);
+      onSelectStudentChat(studentId);
+    } catch {
+      // Handled cleanly
+    }
+  };
+
+  // Handle Send Message (Stays in room, scrolls to bottom, NO navigation)
+  const handleSend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!messageContent.trim() || sending || !activeRoom?.id) return;
 
     setSending(true);
-    const contentToSend = messageContent;
-    const attachmentsToSend = attachments.length > 0 ? [...attachments] : undefined;
-
+    const contentToSend = messageContent.trim();
     setMessageContent('');
-    setAttachments([]);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
 
     try {
-      onSendMessage(activeStudentUuid, contentToSend, attachmentsToSend);
-      setTimeout(() => {
-        setSending(false);
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      const createdMsg = await discussionService.sendChatMessage(activeRoom.id, contentToSend);
+      setMessages((prev) => {
+        if (prev.some((m) => String(m.id) === String(createdMsg.id))) return prev;
+        const updated = [...prev, createdMsg].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        return updated;
+      });
+      // Update last message in room list
+      setChatRooms((prev) =>
+        prev.map((r) => (r.id === activeRoom.id ? { ...r, last_message: createdMsg } : r))
+      );
+      scrollToBottom('smooth');
     } catch {
+      // Revert message content on failure
+      setMessageContent(contentToSend);
+    } finally {
       setSending(false);
-      setFailedMessageIds((prev) => [...prev, `failed-${Date.now()}`]);
     }
   };
 
-  const handleRetryFailed = (msgId: string, content: string) => {
-    setFailedMessageIds((prev) => prev.filter((id) => id !== msgId));
-    if (activeStudentUuid) {
-      onSendMessage(activeStudentUuid, content);
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessageContent(e.target.value);
+    e.target.style.height = 'auto';
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
-  const handleAddAttachment = () => {
-    const newAtt: AttachmentItem = {
-      id: `att-${Date.now()}`,
-      name: `Document_${attachments.length + 1}.pdf`,
-      sizeMb: 1.4,
-      type: 'pdf',
-      url: '#',
+  const activeStudentInfo = useMemo(() => {
+    if (!activeRoom) return { full_name: 'Student', email: '', avatar: null };
+    const otherUser = activeRoom.other_participant || activeRoom.participants?.find((p: any) => String(p.user_id || p.id) !== currentUserId);
+    return {
+      full_name: otherUser?.full_name || activeRoom.name || 'Student',
+      email: otherUser?.email || activeRoom.student_email || '',
+      avatar: otherUser?.avatar || otherUser?.profile_photo || null,
     };
-    setAttachments([...attachments, newAtt]);
-  };
-
-  const renderStatusTicks = (status: 'sent' | 'delivered' | 'seen') => {
-    if (status === 'seen') {
-      return (
-        <span title="Seen">
-          <CheckCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-        </span>
-      );
-    }
-    if (status === 'delivered') {
-      return (
-        <span title="Delivered">
-          <CheckCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-        </span>
-      );
-    }
-    return (
-      <span title="Sent">
-        <Check className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-      </span>
-    );
-  };
+  }, [activeRoom, currentUserId]);
 
   return (
-    <div className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl shadow-xs overflow-hidden h-[calc(100dvh-170px)] min-h-[480px] max-h-[850px] flex flex-col font-sans text-xs text-left w-full max-w-full min-w-0">
-      <div className="grid grid-cols-1 md:grid-cols-3 flex-1 h-full min-h-0 w-full max-w-full min-w-0">
-        {/* PART A — PERSONAL CONVERSATION LIST (< md: full page; >= md: left sidebar) */}
+    <div className="bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 md:rounded-2xl shadow-xs overflow-hidden h-[calc(100dvh-130px)] md:h-[calc(100dvh-180px)] min-h-[460px] flex flex-col font-sans text-xs text-left w-full max-w-full min-w-0">
+      <div className="flex flex-1 h-full min-h-0 w-full max-w-full min-w-0 relative">
+        
+        {/* PART A — PERSONAL CONVERSATION LIST (Mobile: hidden if activeRoom is open; Desktop: fixed width w-80 lg:w-96) */}
         <div
-          className={`md:col-span-1 border-r border-[#E2E8F0] dark:border-[#263244] flex flex-col bg-slate-50/50 dark:bg-[#0F172A] h-full min-h-0 w-full max-w-full min-w-0 ${
-            activeStudentUuid ? 'hidden md:flex' : 'flex'
+          className={`w-full md:w-80 lg:w-96 shrink-0 border-r border-slate-200 dark:border-slate-800 flex flex-col bg-slate-50/70 dark:bg-[#0F172A] h-full min-h-0 ${
+            activeRoom ? 'hidden md:flex' : 'flex'
           }`}
         >
           {/* Header & Search */}
-          <div className="p-3 sm:p-4 border-b border-[#E2E8F0] dark:border-[#263244] space-y-2.5 bg-white dark:bg-[#111827] shrink-0 w-full max-w-full min-w-0">
+          <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-800 space-y-3 bg-white dark:bg-[#111827] shrink-0 w-full max-w-full min-w-0">
             <div className="flex items-center justify-between gap-2 w-full min-w-0">
               <div className="min-w-0 flex-1">
-                <h3 className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] text-sm sm:text-base">Personal Chats</h3>
-                <p className="text-[10px] sm:text-xs text-[#64748B] dark:text-[#94A3B8] font-normal truncate">
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base tracking-tight">Personal Chats</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal truncate">
                   1-on-1 messages with enrolled students
                 </p>
               </div>
               <Button
                 size="sm"
                 onClick={() => setNewChatModalOpen(true)}
-                className="h-8 text-xs bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium shrink-0 px-3 min-w-fit shadow-[0_4px_12px_rgba(37,99,235,0.12)]"
+                className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium shrink-0 px-3 min-w-fit shadow-xs"
                 leftIcon={<Plus className="w-3.5 h-3.5" />}
               >
                 New DM
@@ -201,128 +450,177 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                 placeholder="Search students or conversations..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                leftIcon={<Search className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />}
-                className="h-10 text-xs w-full min-w-0 box-border"
+                leftIcon={<Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />}
+                className="h-9 text-xs w-full min-w-0 box-border bg-slate-50 dark:bg-slate-900"
               />
             </div>
           </div>
 
-          {/* Student Chat List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-[#E2E8F0] dark:divide-[#263244] min-h-0 w-full max-w-full min-w-0">
-            {filteredConversations.length > 0 ? (
-              filteredConversations.map((chat) => {
-                const isActive = chat.studentUuid === activeStudentUuid;
-                const formattedTime = new Date(chat.lastMessageAt).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                });
+          {/* Student Chat List Rows */}
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 min-h-0 w-full max-w-full min-w-0">
+            {isLoadingRooms ? (
+              <div className="p-4 space-y-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton className="h-4 w-2/3" />
+                      <Skeleton className="h-3 w-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : roomsError ? (
+              <div className="p-6 text-center space-y-2">
+                <p className="text-rose-600 dark:text-rose-400 font-semibold text-xs">{roomsError}</p>
+                <Button size="sm" variant="outline" onClick={loadChatRooms}>
+                  Try Again
+                </Button>
+              </div>
+            ) : filteredRooms.length > 0 ? (
+              filteredRooms.map((room) => {
+                const isActive = String(room.id) === String(activeRoom?.id);
+                const otherUser = room.other_participant || room.participants?.find((p: any) => String(p.user_id || p.id) !== currentUserId);
+                const studentName = room.name || otherUser?.full_name || otherUser?.email || 'Student';
+                const avatarUrl = otherUser?.avatar || otherUser?.profile_photo;
+                const lastMsgText = getLastMessagePreview(room, currentUserId);
+                const formattedTime = formatMessageTime(
+                  typeof room.last_message === 'object' ? room.last_message?.created_at : (room.last_message_at || room.updated_at)
+                );
+                const targetStudentId = String(otherUser?.user_id || otherUser?.id || room.other_participant_id || '');
 
                 return (
                   <div
-                    key={chat.id}
-                    onClick={() => onSelectStudentChat(chat.studentUuid)}
-                    className={`p-3 sm:p-3.5 flex items-start gap-3 cursor-pointer transition-all w-full max-w-full min-w-0 ${
+                    key={room.id}
+                    onClick={() => {
+                      setActiveRoom(room);
+                      onSelectStudentChat(targetStudentId);
+                    }}
+                    className={`p-3.5 flex items-center gap-3 cursor-pointer transition-all w-full max-w-full min-w-0 border-l-4 ${
                       isActive
-                        ? 'bg-blue-50/90 dark:bg-[rgba(37,99,235,0.15)] border-l-4 border-l-[#2563EB]'
-                        : 'hover:bg-slate-100/70 dark:hover:bg-[#172033] bg-white dark:bg-[#111827]'
+                        ? 'bg-blue-50/90 dark:bg-blue-950/40 border-l-blue-600 dark:border-l-blue-500'
+                        : 'hover:bg-slate-100/70 dark:hover:bg-slate-900/60 bg-white dark:bg-[#111827] border-l-transparent'
                     }`}
                   >
-                    {chat.studentAvatar ? (
+                    {avatarUrl ? (
                       <img
-                        src={chat.studentAvatar}
-                        alt={chat.studentName}
-                        className="w-9 h-9 rounded-full object-cover shrink-0 border border-[#E2E8F0] dark:border-[#334155]"
+                        src={avatarUrl}
+                        alt={studentName}
+                        className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700"
                       />
                     ) : (
-                      <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-[#172033] text-[#475569] dark:text-[#CBD5E1] font-semibold text-xs flex items-center justify-center shrink-0">
-                        {chat.studentName.charAt(0)}
+                      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold text-sm flex items-center justify-center shrink-0 border border-blue-200 dark:border-blue-900/40">
+                        {studentName.charAt(0).toUpperCase()}
                       </div>
                     )}
 
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center justify-between gap-1 w-full min-w-0">
-                        <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] text-xs sm:text-sm truncate flex-1 min-w-0">
-                          {chat.studentName}
+                        <span className="font-semibold text-slate-900 dark:text-slate-100 text-xs sm:text-sm truncate flex-1 min-w-0">
+                          {studentName}
                         </span>
-                        <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal shrink-0">
-                          {formattedTime}
-                        </span>
+                        {formattedTime && (
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal shrink-0">
+                            {formattedTime}
+                          </span>
+                        )}
                       </div>
 
-                      <p className="text-[#475569] dark:text-[#CBD5E1] text-xs line-clamp-1 font-normal break-words w-full min-w-0">
-                        {chat.lastMessage}
-                      </p>
-
-                      <div className="flex items-center justify-between text-[10px] pt-0.5 gap-1 w-full min-w-0">
-                        <span className="text-[#2563EB] dark:text-[#60A5FA] font-semibold truncate flex-1 min-w-0">
-                          {chat.topicTitle || 'Private Inquiry'}
-                        </span>
-                        <div className="flex items-center gap-1 shrink-0">
-                          {renderStatusTicks(chat.status)}
-                          {chat.unreadCount > 0 && (
-                            <span className="bg-[#2563EB] text-white font-semibold px-1.5 py-0.2 rounded-full text-[9px]">
-                              {chat.unreadCount}
-                            </span>
-                          )}
-                        </div>
+                      <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                        <p className="text-slate-500 dark:text-slate-400 text-xs truncate font-normal flex-1 min-w-0">
+                          {lastMsgText}
+                        </p>
+                        {room.unread_count > 0 && (
+                          <span className="bg-blue-600 text-white font-bold px-1.5 py-0.5 rounded-full text-[10px] shrink-0">
+                            {room.unread_count}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div className="p-8 text-center text-[#64748B] dark:text-[#94A3B8] space-y-2">
-                <MessageCircle className="w-8 h-8 mx-auto text-[#94A3B8] dark:text-[#64748B]" />
-                <p className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] text-xs">No personal conversations yet.</p>
-                <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">Click "New DM" above to start a private student conversation.</p>
+              <div className="p-8 text-center text-slate-500 dark:text-slate-400 space-y-2">
+                <MessageCircle className="w-8 h-8 mx-auto text-slate-400 dark:text-slate-500" />
+                <p className="font-semibold text-slate-900 dark:text-slate-100 text-xs">
+                  {search ? 'No matching conversations' : 'No personal chats yet'}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {search ? 'Try searching for another student or name.' : 'Start a private conversation with an enrolled student.'}
+                </p>
               </div>
             )}
           </div>
         </div>
 
-        {/* PART B — PERSONAL CHAT THREAD (< md: dedicated thread page; >= md: right pane) */}
+        {/* PART B — PERSONAL CHAT THREAD (Mobile: full screen active chat; Desktop: flex-1) */}
         <div
-          className={`md:col-span-2 flex flex-col bg-white dark:bg-[#111827] h-full min-h-0 w-full max-w-full min-w-0 ${
-            !activeStudentUuid ? 'hidden md:flex' : 'flex'
+          className={`flex-1 flex flex-col bg-white dark:bg-[#111827] h-full min-h-0 w-full max-w-full min-w-0 ${
+            !activeRoom ? 'hidden md:flex' : 'flex'
           }`}
         >
-          {activeConversation ? (
+          {activeRoom ? (
             <>
-              {/* Chat Mobile Header */}
-              <div className="p-3 border-b border-[#E2E8F0] dark:border-[#263244] flex items-center justify-between bg-slate-50/70 dark:bg-[#0F172A] shrink-0 w-full max-w-full min-w-0">
+              {/* Active Chat Header */}
+              <div className="p-3 sm:px-4 sm:py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-[#0F172A] shrink-0 w-full max-w-full min-w-0">
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  {/* Back button for Mobile (The ONLY action that leaves active thread) */}
                   <button
                     type="button"
-                    onClick={() => onSelectStudentChat('')}
-                    className="p-1.5 text-[#475569] dark:text-[#CBD5E1] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] rounded-lg hover:bg-slate-200/60 dark:hover:bg-[#172033] cursor-pointer shrink-0 transition-colors"
+                    onClick={() => {
+                      setActiveRoom(null);
+                      onSelectStudentChat('');
+                    }}
+                    className="md:hidden p-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 cursor-pointer shrink-0 transition-colors"
+                    aria-label="Back to conversations"
                   >
-                    <ArrowLeft className="w-4 h-4" />
+                    <ArrowLeft className="w-5 h-5" />
                   </button>
 
-                  {activeConversation.studentAvatar ? (
+                  {activeStudentInfo.avatar ? (
                     <img
-                      src={activeConversation.studentAvatar}
-                      alt={activeConversation.studentName}
-                      className="w-8 h-8 rounded-full object-cover border border-[#E2E8F0] dark:border-[#334155] shrink-0"
+                      src={activeStudentInfo.avatar}
+                      alt={activeStudentInfo.full_name}
+                      className="w-9 h-9 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-[#EFF6FF] dark:bg-[rgba(37,99,235,0.12)] border border-[#DBEAFE] dark:border-[rgba(59,130,246,0.18)] text-[#2563EB] dark:text-[#60A5FA] font-semibold text-xs flex items-center justify-center shrink-0">
-                      {activeConversation.studentName.charAt(0)}
+                    <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold text-xs flex items-center justify-center shrink-0">
+                      {(activeStudentInfo.full_name || 'S').charAt(0).toUpperCase()}
                     </div>
                   )}
 
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] text-xs sm:text-sm truncate">
-                      {activeConversation.studentName}
+                    <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-xs sm:text-sm truncate">
+                      {activeStudentInfo.full_name || 'Student'}
                     </h3>
-                    <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal truncate block">
-                      Student • {activeConversation.studentEmail}
-                    </span>
+                    {activeStudentInfo.email && (
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate block">
+                        {activeStudentInfo.email}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <div className="hidden sm:flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/40">
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Realtime Connection Status Indicator */}
+                  <div
+                    className="flex items-center gap-1.5 text-[10px] font-medium px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+                    title={`Socket: ${connectionState}`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        connectionState === 'connected'
+                          ? 'bg-emerald-500'
+                          : connectionState === 'connecting' || connectionState === 'reconnecting'
+                          ? 'bg-amber-500 animate-pulse'
+                          : 'bg-slate-400'
+                      }`}
+                    />
+                    <span className="capitalize text-slate-600 dark:text-slate-300 hidden sm:inline">{connectionState}</span>
+                  </div>
+
+                  <div className="hidden lg:flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/40">
                     <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                     <span>Private DM</span>
                   </div>
@@ -331,19 +629,19 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setMenuOpen(!menuOpen)}
-                      className="p-1.5 text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] rounded-lg hover:bg-slate-100 dark:hover:bg-[#172033] cursor-pointer"
+                      className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 cursor-pointer"
                     >
                       <MoreVertical className="w-4 h-4" />
                     </button>
                     {menuOpen && (
-                      <div className="absolute right-0 top-8 w-44 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#334155] rounded-xl shadow-lg z-20 py-1 text-xs">
+                      <div className="absolute right-0 top-8 w-44 bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-20 py-1 text-xs">
                         <button
                           type="button"
                           onClick={() => {
                             setMenuOpen(false);
-                            onMarkSeen(activeConversation.id);
+                            if (activeRoom?.id) discussionService.markChatRoomRead(activeRoom.id);
                           }}
-                          className="w-full text-left px-3 py-2 text-[#475569] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#172033] hover:text-[#0F172A] dark:hover:text-[#FFFFFF] font-medium"
+                          className="w-full text-left px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium"
                         >
                           Mark as Read
                         </button>
@@ -353,104 +651,83 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                 </div>
               </div>
 
-              {/* Chat Messages Container */}
+              {/* Chat Messages History Container */}
               <div
                 ref={chatContainerRef}
-                className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3 bg-slate-50/40 dark:bg-[#0B1120] min-h-0 relative w-full max-w-full min-w-0"
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto p-3 sm:p-4 bg-slate-50/50 dark:bg-[#0B0F19] min-h-0 relative w-full max-w-full min-w-0 hide-scrollbar"
               >
-                {/* Date Separator Example */}
-                <div className="flex justify-center my-2">
-                  <span className="text-[10px] font-semibold text-[#64748B] dark:text-[#94A3B8] bg-slate-200/60 dark:bg-[#172033] px-2.5 py-0.5 rounded-full">
-                    Today
-                  </span>
-                </div>
-
-                {activeConversation.messages.map((msg) => {
-                  const isMe = msg.senderRole === 'instructor';
-                  const isFailed = failedMessageIds.includes(msg.id);
-
-                  return (
-                    <div
-                      key={msg.id}
-                      className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} w-full max-w-full min-w-0`}
-                    >
-                      <div
-                        className={`p-3 rounded-2xl space-y-1 shadow-2xs max-w-[85%] sm:max-w-[78%] min-w-0 ${
-                          isMe
-                            ? 'bg-[#2563EB] text-white rounded-tr-none'
-                            : 'bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] text-[#0F172A] dark:text-[#F8FAFC] rounded-tl-none'
-                        }`}
-                      >
-                        <p className="text-xs leading-relaxed whitespace-pre-wrap overflow-wrap-anywhere break-words font-normal">
-                          {msg.content}
-                        </p>
-
-                        {/* Message Attachments */}
-                        {msg.attachments && msg.attachments.length > 0 && (
-                          <div className="pt-1.5 space-y-1">
-                            {msg.attachments.map((att) => (
-                              <div
-                                key={att.id}
-                                className={`flex items-center gap-1.5 p-2 rounded-lg text-[11px] font-medium ${
-                                  isMe
-                                    ? 'bg-blue-700/60 text-white'
-                                    : 'bg-slate-100 dark:bg-[#172033] text-[#0F172A] dark:text-[#CBD5E1]'
-                                }`}
-                              >
-                                <Paperclip className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate flex-1">{att.name}</span>
-                                <span className="text-[9px] opacity-75 shrink-0">
-                                  ({att.sizeMb} MB)
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Timestamp & Ticks */}
-                        <div
-                          className={`flex items-center justify-end gap-1 text-[9.5px] pt-0.5 ${
-                            isMe ? 'text-blue-100' : 'text-[#64748B] dark:text-[#94A3B8]'
-                          }`}
-                        >
-                          <span>
-                            {new Date(msg.timestamp).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                          {isMe && renderStatusTicks(msg.status)}
-                        </div>
+                <div className="min-h-full flex flex-col justify-end space-y-3">
+                  {isLoadingMessages ? (
+                    <div className="p-4 space-y-3 my-auto">
+                      <Skeleton className="h-10 w-1/2 ml-auto rounded-2xl" />
+                      <Skeleton className="h-12 w-2/3 rounded-2xl" />
+                      <Skeleton className="h-10 w-1/3 ml-auto rounded-2xl" />
+                    </div>
+                ) : messagesError ? (
+                  <div className="p-6 text-center space-y-2">
+                    <p className="text-rose-600 dark:text-rose-400 font-semibold text-xs">{messagesError}</p>
+                    <Button size="sm" variant="outline" onClick={() => loadMessages(activeRoom.id)}>
+                      Try Again
+                    </Button>
+                  </div>
+                ) : groupedMessages.length > 0 ? (
+                  groupedMessages.map((group, gIdx) => (
+                    <div key={gIdx} className="space-y-3">
+                      {/* Date Separator Pill */}
+                      <div className="flex justify-center my-2">
+                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-200/70 dark:bg-slate-800/70 px-2.5 py-0.5 rounded-full border border-slate-300/40 dark:border-slate-700/40">
+                          {group.dateLabel}
+                        </span>
                       </div>
 
-                      {/* Send Failure State */}
-                      {isFailed && (
-                        <div className="flex items-center gap-1.5 text-[10px] text-red-600 dark:text-[#F87171] font-semibold pt-1">
-                          <AlertTriangle className="w-3 h-3" />
-                          <span>Failed to send</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRetryFailed(msg.id, msg.content)}
-                            className="underline text-[#2563EB] dark:text-[#60A5FA] hover:text-[#1D4ED8] flex items-center gap-0.5"
-                          >
-                            <RefreshCw className="w-2.5 h-2.5" /> Retry
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      {/* Messages in Date Group */}
+                      {group.msgs.map((rawMsg) => {
+                        const msg: NormalizedChatMessage = normalizeChatMessage(rawMsg);
+                        const isMine = Boolean(currentUserId && msg.senderId && msg.senderId === currentUserId);
 
-                {/* New Message Floating Banner */}
+                        const formattedTime = formatMessageTime(msg.createdAt);
+
+                        return (
+                          <div
+                            key={msg.id}
+                            className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} space-y-1 w-full max-w-full min-w-0`}
+                          >
+                            <div
+                              className={`max-w-[82%] sm:max-w-[72%] px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-normal leading-relaxed break-words shadow-xs ${
+                                isMine
+                                  ? 'bg-blue-600 text-white rounded-br-xs'
+                                  : 'bg-white dark:bg-[#1E293B] text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-bl-xs'
+                              }`}
+                            >
+                              <p className="whitespace-pre-wrap leading-relaxed overflow-wrap-anywhere">{msg.content}</p>
+                            </div>
+
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 px-1 font-normal">
+                              {formattedTime}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-slate-500 dark:text-slate-400 space-y-2 my-auto">
+                    <MessageCircle className="w-10 h-10 mx-auto text-slate-400 dark:text-slate-500 opacity-60" />
+                    <p className="font-semibold text-slate-900 dark:text-slate-100 text-xs">No messages yet</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Send the first private message to start this conversation.</p>
+                  </div>
+                )}
+
                 {showNewMessageBanner && (
-                  <div className="sticky bottom-2 flex justify-center z-20">
+                  <div className="sticky bottom-2 left-0 right-0 flex justify-center pointer-events-none z-10">
                     <button
                       type="button"
                       onClick={() => {
-                        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                        scrollToBottom('smooth');
                         setShowNewMessageBanner(false);
                       }}
-                      className="bg-[#2563EB] text-white font-semibold text-[11px] px-3.5 py-1.5 rounded-full shadow-lg hover:bg-[#1D4ED8] transition-all cursor-pointer flex items-center gap-1.5"
+                      className="bg-blue-600 text-white font-semibold text-[11px] px-3.5 py-1.5 rounded-full shadow-lg hover:bg-blue-700 transition-all cursor-pointer flex items-center gap-1.5 pointer-events-auto"
                     >
                       New messages ↓
                     </button>
@@ -458,155 +735,147 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                 )}
 
                 <div ref={chatEndRef} />
+                </div>
               </div>
 
-              {/* Chat Input Footer (Mobile Full-Width Vertical Composer) */}
+              {/* WhatsApp-Style Sticky Composer */}
               <form
                 onSubmit={handleSend}
-                className="p-3 sm:p-4 border-t border-[#E2E8F0] dark:border-[#263244] space-y-2.5 bg-white dark:bg-[#111827] shrink-0 sticky bottom-0 z-20 w-full max-w-full min-w-0 box-border"
+                className="p-2.5 sm:p-3.5 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] shrink-0 sticky bottom-0 z-20 w-full max-w-full min-w-0 box-border pb-safe"
               >
-                {/* 1. Attachment / Storage Warning (Placed safely above textarea) */}
-                <div className="text-[10px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/40 flex items-center gap-1.5 w-full min-w-0">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span className="truncate flex-1">File attachments consume storage credits after upload.</span>
-                </div>
+                <div className="flex items-end gap-2 w-full max-w-full min-w-0">
+                  <div className="relative flex-1 min-w-0">
+                    <textarea
+                      ref={textareaRef}
+                      rows={1}
+                      placeholder="Write a message..."
+                      value={messageContent}
+                      onChange={handleTextareaChange}
+                      onKeyDown={handleKeyDown}
+                      className="w-full min-w-0 max-w-full rounded-2xl border border-slate-300 dark:border-slate-700 py-2.5 px-3.5 pr-10 text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 font-normal leading-relaxed min-h-[42px] max-h-[120px] resize-none transition-all block box-border"
+                    />
 
-                {/* Attachments preview list */}
-                {attachments.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 w-full min-w-0">
-                    {attachments.map((att) => (
-                      <div
-                        key={att.id}
-                        className="flex items-center gap-1.5 p-1 px-2.5 bg-blue-50 dark:bg-[rgba(37,99,235,0.12)] border border-blue-200 dark:border-[rgba(59,130,246,0.25)] rounded-lg text-xs font-semibold text-[#2563EB] dark:text-[#60A5FA]"
-                      >
-                        <Paperclip className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
-                        <span className="truncate max-w-[140px]">{att.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => setAttachments([])}
-                          className="text-red-500 hover:text-red-700 dark:hover:text-[#F87171] p-0.5 cursor-pointer shrink-0"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className="absolute right-3 bottom-3 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer p-0.5"
+                      title="Add Emoji"
+                    >
+                      <Smile className="w-4 h-4" />
+                    </button>
+
+                    {showEmojiPicker && (
+                      <div className="absolute right-0 bottom-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-30 p-2 flex items-center gap-1 flex-wrap max-w-xs">
+                        {EMOJIS.map((e) => (
+                          <button
+                            key={e}
+                            type="button"
+                            onClick={() => {
+                              setMessageContent((prev) => prev + e);
+                              setShowEmojiPicker(false);
+                            }}
+                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-sm cursor-pointer"
+                          >
+                            {e}
+                          </button>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-
-                {/* 2. Message Input (Row 1: 100% full width, multiline capable, no character-by-character wrap) */}
-                <div className="relative w-full max-w-full min-w-0 flex-1">
-                  <textarea
-                    rows={2}
-                    placeholder="Write a message..."
-                    value={messageContent}
-                    onChange={(e) => setMessageContent(e.target.value)}
-                    className="w-full min-w-0 max-w-full rounded-xl border border-[#CBD5E1] dark:border-[#334155] p-2.5 sm:p-3 pr-10 text-xs sm:text-sm bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#94A3B8] dark:placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6] focus:ring-4 focus:ring-blue-500/10 font-normal leading-relaxed overflow-wrap-break-word whitespace-pre-wrap break-normal block box-border min-h-[44px] max-h-[120px] transition-all"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    className="absolute right-3 top-3 text-[#64748B] dark:text-[#94A3B8] hover:text-[#2563EB] dark:hover:text-[#60A5FA] cursor-pointer p-0.5"
-                    title="Add Emoji"
-                  >
-                    <Smile className="w-4 h-4" />
-                  </button>
-
-                  {/* Emoji Picker Popup */}
-                  {showEmojiPicker && (
-                    <div className="absolute right-0 bottom-12 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#334155] rounded-xl shadow-xl z-30 p-1 flex items-center gap-1 flex-wrap max-w-xs">
-                      {EMOJIS.map((e) => (
-                        <button
-                          key={e}
-                          type="button"
-                          onClick={() => {
-                            setMessageContent((prev) => prev + e);
-                            setShowEmojiPicker(false);
-                          }}
-                          className="p-1.5 hover:bg-slate-100 dark:hover:bg-[#172033] rounded-lg text-sm cursor-pointer"
-                        >
-                          {e}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* 3. Action Controls Row (Row 2: Attach File button left, compact Send button right) */}
-                <div className="flex items-center justify-between gap-2 w-full max-w-full min-w-0 pt-0.5">
-                  <button
-                    type="button"
-                    onClick={handleAddAttachment}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E2E8F0] dark:border-[#334155] bg-slate-50 dark:bg-[#172033] hover:bg-slate-100 dark:hover:bg-[#1E293B] text-[#0F172A] dark:text-[#F8FAFC] font-semibold text-xs cursor-pointer transition-colors shrink-0"
-                  >
-                    <Paperclip className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
-                    <span>Attach File</span>
-                  </button>
 
                   <Button
                     type="submit"
-                    disabled={sending}
-                    className="h-9 sm:h-10 bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-4 font-medium text-xs rounded-xl shrink-0 min-w-[82px] w-auto shadow-[0_4px_12px_rgba(37,99,235,0.12)]"
-                    leftIcon={<Send className="w-3.5 h-3.5" />}
+                    disabled={sending || !messageContent.trim()}
+                    className="h-10 bg-blue-600 hover:bg-blue-700 text-white px-4 font-medium text-xs rounded-2xl shrink-0 min-w-[72px] shadow-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   >
-                    {sending ? 'Sending...' : 'Send'}
+                    <Send className="w-4 h-4" />
+                    <span className="hidden sm:inline">{sending ? '...' : 'Send'}</span>
                   </Button>
                 </div>
               </form>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-[#64748B] dark:text-[#94A3B8] space-y-2">
-              <MessageCircle className="w-12 h-12 text-[#94A3B8] dark:text-[#64748B]" />
-              <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">No Student Conversation Selected</h3>
-              <p className="text-xs text-[#64748B] dark:text-[#94A3B8] max-w-xs font-normal">
-                Select a student conversation from the list to view and send private 1-on-1 messages.
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400 space-y-2">
+              <MessageCircle className="w-12 h-12 text-slate-400 dark:text-slate-500 opacity-50" />
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Select a Conversation</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs font-normal">
+                Choose a student conversation from the left pane to view and send private 1-on-1 messages.
               </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* NEW DM MODAL */}
+      {/* NEW DM MODAL — LOADS REAL ENROLLED STUDENTS FROM BACKEND */}
       <Modal
         isOpen={newChatModalOpen}
         onClose={() => setNewChatModalOpen(false)}
         title="Start Private Student Chat"
-        subtitle="Select an enrolled student in this course to start a private conversation."
+        subtitle="Select an enrolled student to start a private conversation."
         maxWidth="sm"
       >
-        <div className="space-y-2.5 font-sans text-xs text-left max-h-[60vh] overflow-y-auto">
-          {students.map((student) => (
-            <div
-              key={student.uuid}
-              onClick={() => {
-                onSelectStudentChat(student.uuid);
-                setNewChatModalOpen(false);
-              }}
-              className="p-3 bg-slate-50 dark:bg-[#0F172A] hover:bg-blue-50 dark:hover:bg-[#172033] border border-[#E2E8F0] dark:border-[#263244] rounded-xl flex items-center justify-between cursor-pointer transition-colors"
-            >
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                {student.avatar ? (
-                  <img
-                    src={student.avatar}
-                    alt={student.name}
-                    className="w-8 h-8 rounded-full object-cover shrink-0"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-[#EFF6FF] dark:bg-[rgba(37,99,235,0.12)] border border-[#DBEAFE] dark:border-[rgba(59,130,246,0.18)] text-[#2563EB] dark:text-[#60A5FA] font-medium text-xs flex items-center justify-center shrink-0">
-                    {student.name.charAt(0)}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <strong className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] block truncate">{student.name}</strong>
-                  <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal block truncate">{student.email}</span>
-                </div>
-              </div>
+        <div className="space-y-3 font-sans text-xs text-left">
+          <Input
+            placeholder="Search enrolled students..."
+            value={studentSearch}
+            onChange={(e) => setStudentSearch(e.target.value)}
+            leftIcon={<Search className="w-3.5 h-3.5 text-slate-400" />}
+          />
 
-              <Button size="sm" variant="outline" className="h-7 text-[11px] font-semibold text-[#2563EB] dark:text-[#60A5FA] bg-white dark:bg-[#0F172A] border-[#E2E8F0] dark:border-[#334155] shrink-0 ml-2">
-                Start Chat
-              </Button>
-            </div>
-          ))}
+          <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+            {isLoadingStudents ? (
+              <div className="p-4 space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-10 w-full rounded-xl" />
+                ))}
+              </div>
+            ) : eligibleStudents.filter((s) =>
+                (s.full_name || s.display_name || s.name || s.email || '')
+                  .toLowerCase()
+                  .includes(studentSearch.toLowerCase())
+              ).length > 0 ? (
+              eligibleStudents
+                .filter((s) =>
+                  (s.full_name || s.display_name || s.name || s.email || '')
+                    .toLowerCase()
+                    .includes(studentSearch.toLowerCase())
+                )
+                .map((student) => {
+                  const studentName = student.full_name || student.display_name || student.name || 'Student';
+                  const studentEmail = student.email || student.user?.email || '';
+                  const studentUserId = student.user_id || student.user?.id || student.id;
+
+                  return (
+                    <div
+                      key={student.id}
+                      onClick={() => handleSelectStudentForChat(studentUserId)}
+                      className="p-3 bg-slate-50 dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900/40 text-blue-700 dark:text-blue-300 font-medium text-xs flex items-center justify-center shrink-0">
+                          {studentName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <strong className="font-semibold text-slate-900 dark:text-slate-100 block truncate">{studentName}</strong>
+                          {studentEmail && (
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal block truncate">{studentEmail}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <Button size="sm" variant="outline" className="h-7 text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shrink-0 ml-2">
+                        Start Chat
+                      </Button>
+                    </div>
+                  );
+                })
+            ) : (
+              <div className="p-6 text-center text-slate-500 space-y-1">
+                <p className="font-semibold">No eligible enrolled students found.</p>
+                <p className="text-[11px]">Ensure students are enrolled in this course or academy.</p>
+              </div>
+            )}
+          </div>
         </div>
       </Modal>
     </div>

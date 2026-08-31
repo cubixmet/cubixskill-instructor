@@ -118,10 +118,23 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
 
   // 3. AUDIO LESSON
   if (type === 'audio') {
-    const audioUrl = anyLesson?.audioUrl || content?.mediaUrl || content?.fileUrl || anyLesson?.primary_media?.url || '';
+    const audioUrl =
+      anyLesson?.audio_url ||
+      anyLesson?.audioUrl ||
+      anyLesson?.external_url ||
+      anyLesson?.externalUrl ||
+      content?.audioUrl ||
+      content?.externalUrl ||
+      content?.mediaUrl ||
+      content?.fileUrl ||
+      anyLesson?.primary_media?.url ||
+      anyLesson?.primary_media?.file ||
+      anyLesson?.media_files?.[0]?.media_file?.url ||
+      '';
+
     const resolvedAudioUrl = resolveMediaUrl(audioUrl);
 
-    return <AudioPlayer src={resolvedAudioUrl} />;
+    return <AudioPlayer src={resolvedAudioUrl} title={lesson.title} />;
   }
 
   // 4. DOCUMENT LESSON
@@ -133,17 +146,36 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
       ? rawFileName.split('/').pop()?.split('?')[0] || lesson.title
       : rawFileName;
 
+    const fileExt = cleanFileName.includes('.') ? cleanFileName.split('.').pop()?.toUpperCase() || 'DOCUMENT' : 'DOCUMENT';
+
     return (
-      <div className="p-2.5 sm:p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2.5 text-xs w-full min-w-0">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-100 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0">
-            <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+      <div
+        style={{
+          backgroundColor: 'var(--surface-secondary)',
+          borderColor: 'var(--border)',
+          color: 'var(--text-primary)',
+          borderRadius: '10px',
+        }}
+        className="p-2.5 sm:p-3 border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs w-full min-w-0 max-w-full box-border"
+      >
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div
+            style={{
+              backgroundColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)',
+              color: 'var(--brand-primary)',
+              borderColor: 'var(--border)',
+            }}
+            className="w-8 h-8 rounded-lg border flex items-center justify-center shrink-0"
+          >
+            <FileText className="w-4 h-4 stroke-current text-current" />
           </div>
           <div className="min-w-0 flex-1">
-            <strong className="font-bold text-slate-900 block text-xs truncate">
+            <strong style={{ color: 'var(--text-primary)' }} className="font-semibold block text-xs truncate min-w-0 max-w-full">
               {cleanFileName}
             </strong>
-            <span className="text-[10px] text-slate-500 font-medium block">PDF / Document</span>
+            <span style={{ color: 'var(--text-muted)' }} className="text-[12px] font-normal block">
+              {fileExt} / Document
+            </span>
           </div>
         </div>
 
@@ -152,15 +184,27 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
             href={resolvedDocUrl}
             target="_blank"
             rel="noreferrer"
-            className="px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-100 hover:border-slate-300 active:scale-95 rounded-md sm:rounded-lg text-[11px] font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 shrink-0 w-auto transition-all shadow-2xs whitespace-nowrap"
+            style={{
+              backgroundColor: 'var(--surface)',
+              borderColor: 'var(--border)',
+              color: 'var(--text-primary)',
+            }}
+            className="h-8 px-3 rounded-lg border font-medium text-[11px] inline-flex items-center justify-center gap-1.5 shrink-0 transition-all hover:bg-[var(--surface-hover)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] cursor-pointer whitespace-nowrap"
           >
-            <ExternalLink className="w-3 h-3 shrink-0" />
+            <ExternalLink className="w-3.5 h-3.5 shrink-0 stroke-current text-current" />
             <span className="whitespace-nowrap">Open Document</span>
           </a>
         ) : (
-          <Badge variant="secondary" size="sm" className="text-[10px] px-2 py-0.5 shrink-0">
+          <span
+            style={{
+              backgroundColor: 'var(--surface)',
+              borderColor: 'var(--border)',
+              color: 'var(--text-muted)',
+            }}
+            className="px-2.5 py-1 rounded-lg border text-[11px] font-medium shrink-0"
+          >
             Attached Document
-          </Badge>
+          </span>
         )}
       </div>
     );
@@ -210,51 +254,72 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
     );
   }
 
-  // 6. QUIZ
   if (type === 'quiz') {
-    const questions = content?.questions || [];
-    const count = Array.isArray(questions) ? questions.length : 0;
+    const questions = anyLesson?.quiz?.questions || content?.questions || anyLesson?.questions || [];
+    const count = typeof anyLesson?.question_count === 'number' && anyLesson.question_count > 0
+      ? anyLesson.question_count
+      : (Array.isArray(questions) && questions.length > 0 ? questions.length : (anyLesson?.quiz?.question_count || anyLesson?.question_count || 0));
 
     return (
-      <div className="p-3 bg-purple-50/60 border border-purple-100 rounded-xl flex items-center justify-between text-xs font-sans">
+      <div className="p-3 bg-purple-50/60 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40 rounded-xl flex items-center justify-between text-xs font-sans">
         <div className="flex items-center gap-2">
-          <HelpCircle className="w-4 h-4 text-purple-600 shrink-0" />
+          <HelpCircle className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
           <div>
-            <strong className="font-bold text-purple-950 block">
+            <strong className="font-bold text-purple-950 dark:text-purple-200 block">
               Quiz • {count} Question{count !== 1 ? 's' : ''}
             </strong>
-            <span className="text-[10px] text-purple-700">
+            <span className="text-[10px] text-purple-700 dark:text-purple-300">
               Multiple Choice • Short Answer • True/False
             </span>
           </div>
         </div>
 
-        <Badge variant="secondary" size="sm" className="border-purple-200 text-purple-700">
+        <Badge variant="secondary" size="sm" className="border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
           Assessment
         </Badge>
       </div>
     );
   }
 
-  // 7. ASSIGNMENT
-  if (type === 'assignment') {
-    const instructions = content?.instructions || '';
-    const maxScore = content?.maxScore ?? 100;
-    const subType = content?.submissionType || 'file';
+  // 7. ASSIGNMENT & PROJECT
+  if (type === 'assignment' || type === 'project') {
+    const instructions = content?.instructions || (lesson as any)?.assignment?.instructions || '';
+    const maxScore = (lesson as any)?.assignment?.max_marks ?? content?.maxScore ?? 100;
+    const subType = (lesson as any)?.assignment?.allow_file_submission
+      ? (lesson as any)?.assignment?.allow_text_submission ? 'file + text' : 'file'
+      : (lesson as any)?.assignment?.allow_text_submission ? 'text' : (content?.submissionType || 'file');
 
     return (
-      <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl space-y-1.5 text-xs text-slate-700 font-sans">
-        <div className="flex items-center justify-between text-xs">
-          <strong className="font-bold text-slate-900 capitalize flex items-center gap-1.5">
-            <FileCode className="w-4 h-4 text-blue-600" /> {type}
+      <div
+        style={{
+          backgroundColor: 'var(--surface-secondary)',
+          borderColor: 'var(--border)',
+          color: 'var(--text-primary)',
+        }}
+        className="p-3 border rounded-xl space-y-1.5 text-xs font-sans w-full min-w-0 max-w-full box-border"
+      >
+        <div className="flex items-center justify-between text-xs flex-wrap gap-2">
+          <strong
+            style={{ color: 'var(--text-primary)' }}
+            className="font-medium capitalize flex items-center gap-1.5"
+          >
+            <FileCode style={{ color: 'var(--brand-primary)' }} className="w-4 h-4 shrink-0 stroke-current text-current" />
+            <span>{type}</span>
           </strong>
-          <Badge variant="primary" size="sm">
+          <span
+            style={{
+              backgroundColor: 'color-mix(in srgb, var(--brand-primary) 10%, var(--surface-secondary))',
+              borderColor: 'color-mix(in srgb, var(--brand-primary) 20%, var(--border))',
+              color: 'var(--brand-primary)',
+            }}
+            className="px-2.5 py-0.5 rounded-md border font-semibold text-[10px] inline-flex items-center shrink-0"
+          >
             {maxScore} Marks • {subType}
-          </Badge>
+          </span>
         </div>
 
         {instructions.trim() && (
-          <p className="text-[11px] text-slate-600 line-clamp-2 italic">
+          <p style={{ color: 'var(--text-secondary)' }} className="text-[11px] line-clamp-2 italic">
             "{instructions}"
           </p>
         )}

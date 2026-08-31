@@ -13,6 +13,7 @@ import { Skeleton } from '../../../components/ui/Skeleton';
 
 // Store & Components
 import { useAnnouncementStore, type AnnouncementItem } from '../../announcements/store/announcement.store';
+import { discussionService } from '../../../services/discussion.service';
 import { useCourseFeaturesStore, DEFAULT_COURSE_FEATURES } from '../store/courseFeatures.store';
 import { FeatureDisabledBanner } from '../../discussions/components/FeatureDisabledBanner';
 
@@ -192,11 +193,21 @@ export const CourseAnnouncementsPage: React.FC = () => {
   const handleSaveForm = (data: Partial<AnnouncementItem>) => {
     if (editingAnnouncement) {
       updateAnnouncement(editingAnnouncement.id, data);
+      discussionService.updateDiscussion(editingAnnouncement.id, {
+        title: data.title,
+        content: data.content,
+      }).catch((err) => console.warn('Failed to sync updated announcement:', err));
     } else {
       addAnnouncement({
         ...data,
         courseUuid,
       } as Parameters<typeof addAnnouncement>[0]);
+      discussionService.createDiscussion({
+        course_id: courseUuid,
+        title: data.title || 'Course Announcement',
+        content: data.content || data.summary || '',
+        thread_type: 'ANNOUNCEMENT',
+      }).catch((err) => console.warn('Failed to sync announcement to backend:', err));
     }
     navigate(`/courses/${courseUuid}/announcements`);
   };

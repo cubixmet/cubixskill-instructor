@@ -8,6 +8,7 @@ export function useAuth() {
     refreshToken: authState.refreshToken,
     isAuthenticated: authState.isAuthenticated,
     isInitializing: authState.isInitializing,
+    authStatus: authState.authStatus,
     error: authState.error,
     logout: authState.logout,
     clearError: () => authState.setError(null),

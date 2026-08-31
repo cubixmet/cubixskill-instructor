@@ -10,7 +10,6 @@ import type {
   ChangePasswordResponse,
   SetupPasswordPayload,
   TokenValidationResponse,
-  AuthUser,
   AuthBootstrapData,
   AcademyContext,
 } from "../features/auth/types/auth.types";

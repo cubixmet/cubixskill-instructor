@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { MessageSquare, Plus } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -9,6 +9,7 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 // Store & Components
 import { useDiscussionStore, type DiscussionItem } from '../../discussions/store/discussion.store';
 import { useCourseFeaturesStore, DEFAULT_COURSE_FEATURES } from '../store/courseFeatures.store';
+import { useCommunityDiscussionsSocket } from '../../discussions/hooks/useCommunityDiscussionsSocket';
 import { DiscussionsSectionTabs } from '../../discussions/components/DiscussionsSectionTabs';
 import { FeatureDisabledBanner } from '../../discussions/components/FeatureDisabledBanner';
 import { DiscussionHomeHeader } from '../../discussions/components/DiscussionHomeHeader';
@@ -37,18 +38,25 @@ export const CourseDiscussionsPage: React.FC = () => {
   const rawCourseUuid = params.courseUuid;
   const courseUuid = normalizeCourseId(rawCourseUuid);
 
+  // Connect to Real WebSocket for Community Discussions
+  const { connectionState } = useCommunityDiscussionsSocket(true);
+
+  const location = useLocation();
+
   // Subpath parsing for routing
   const subPath = (params['*'] || '').replace(/^\/+/, '');
   const pathSegments = subPath.split('/').filter(Boolean);
 
   // Section determination: 'community' vs 'personal'
-  const isPersonalSection = pathSegments[0] === 'personal';
+  const isPersonalSection = location.pathname.includes('/discussions/personal') || pathSegments[0] === 'personal';
   const activeSection: 'community' | 'personal' = isPersonalSection ? 'personal' : 'community';
 
   // Specific UUID targets
-  const targetUuid = pathSegments[1] || null;
-  const activeDiscussionUuid = !isPersonalSection ? targetUuid : null;
-  const activeStudentUuid = isPersonalSection ? targetUuid : null;
+  const personalMatch = location.pathname.match(/\/discussions\/personal\/([^/]+)/);
+  const communityMatch = location.pathname.match(/\/discussions\/community\/([^/]+)/);
+
+  const activeStudentUuid = isPersonalSection ? (personalMatch ? personalMatch[1] : pathSegments[1] || null) : null;
+  const activeDiscussionUuid = !isPersonalSection ? (communityMatch ? communityMatch[1] : pathSegments[1] || null) : null;
 
   // Real Courses for dropdown & creation
   const [realCourses, setRealCourses] = useState<Array<{ id: string; title: string }>>([]);
@@ -117,19 +125,77 @@ export const CourseDiscussionsPage: React.FC = () => {
   const courseMembers = getCourseMembers(courseUuid || '');
   const personalChats = getCoursePersonalChats(courseUuid || '');
 
-  // Loading state
-  const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 200);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Filters State
+  // Filter States
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('recent');
   const [createdByFilter, setCreatedByFilter] = useState('all');
+
+  // REST Load State for Real Backend Community Discussions
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const loadCommunityDiscussions = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const res = await discussionService.listDiscussions({
+        courseId: selectedCourseFilter || courseUuid || undefined,
+        search: searchQuery || undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+      });
+
+      const items = (res.results || []).map((t: any) => ({
+        id: String(t.id),
+        courseUuid: String(t.course || courseUuid || ''),
+        title: t.title || 'Untitled Thread',
+        shortDescription: t.content ? t.content.slice(0, 120) : '',
+        content: t.content || '',
+        category: (t.thread_type === 'ANNOUNCEMENT' ? 'Announcements' : t.thread_type === 'QUESTION' ? 'Q&A' : 'General') as any,
+        tags: [],
+        author: {
+          uuid: String(t.author_id || ''),
+          name: t.author_name || t.author_email || 'Author',
+          role: (t.author_role || 'student') as any,
+        },
+        createdAt: t.created_at || new Date().toISOString(),
+        updatedAt: t.last_activity_at || t.created_at || new Date().toISOString(),
+        repliesCount: typeof t.reply_count === 'number' ? t.reply_count : 0,
+        views: typeof t.views === 'number' ? t.views : 0,
+        likes: typeof t.likes === 'number' ? t.likes : 0,
+        userLiked: false,
+        isPinned: Boolean(t.is_pinned),
+        isLocked: Boolean(t.is_locked),
+        isArchived: Boolean(t.status === 'ARCHIVED'),
+        isResolved: Boolean(t.accepted_answer_id),
+        isAnnouncement: t.thread_type === 'ANNOUNCEMENT',
+        officialAnswerReplyId: t.accepted_answer_id ? String(t.accepted_answer_id) : undefined,
+        attachments: (t.attachments || []).map((att: any) => ({
+          id: String(att.id),
+          name: att.original_name || 'Attachment',
+          sizeMb: 1.0,
+          type: 'doc',
+          url: att.media_url || '#',
+        })),
+        visibility: 'all' as const,
+        allowReplies: !t.is_locked,
+        allowStudentAttachments: true,
+        notifyStudents: true,
+      }));
+
+      // Populate Zustand store cleanly with authoritative database records
+      useDiscussionStore.setState({ discussions: items });
+    } catch {
+      setLoadError("Couldn't load community discussions.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedCourseFilter, courseUuid, searchQuery, statusFilter]);
+
+  useEffect(() => {
+    loadCommunityDiscussions();
+  }, [loadCommunityDiscussions]);
 
   // Modals State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -151,8 +217,7 @@ export const CourseDiscussionsPage: React.FC = () => {
         (d) =>
           d.title.toLowerCase().includes(q) ||
           d.content.toLowerCase().includes(q) ||
-          d.author.name.toLowerCase().includes(q) ||
-          d.tags.some((t) => t.toLowerCase().includes(q))
+          d.author.name.toLowerCase().includes(q)
       );
     }
 
@@ -194,7 +259,7 @@ export const CourseDiscussionsPage: React.FC = () => {
     });
 
     return list;
-  }, [discussions, courseUuid, searchQuery, selectedCategory, createdByFilter, statusFilter, sortBy]);
+  }, [discussions, activeCourseId, searchQuery, selectedCategory, createdByFilter, statusFilter, sortBy]);
 
   // Metrics
   const courseDiscussions = discussions.filter((d) => d.courseUuid === courseUuid);
@@ -233,35 +298,52 @@ export const CourseDiscussionsPage: React.FC = () => {
 
   const handleSaveDiscussionForm = async (data: Partial<DiscussionItem> & { course_id?: string | null }) => {
     const targetCourseId = data.course_id !== undefined ? data.course_id : (selectedCourseFilter || courseUuid);
-    if (editingDiscussion) {
-      updateDiscussion(editingDiscussion.id, data);
-      setEditingDiscussion(null);
-    } else {
-      addDiscussion({
-        ...data,
-        courseUuid: targetCourseId || '',
-      } as Parameters<typeof addDiscussion>[0]);
-
-      try {
-        await discussionService.createDiscussion({
+    try {
+      if (editingDiscussion) {
+        const updated = await discussionService.updateDiscussion(editingDiscussion.id, {
+          title: data.title,
+          content: data.content,
+        });
+        updateDiscussion(editingDiscussion.id, {
+          title: updated.title,
+          content: updated.content,
+        });
+        setEditingDiscussion(null);
+      } else {
+        const created = await discussionService.createDiscussion({
           course_id: targetCourseId,
           title: data.title || '',
           content: data.content || '',
           thread_type: data.isAnnouncement ? 'ANNOUNCEMENT' : 'DISCUSSION',
         });
-      } catch {
-        // Handled smoothly
+        loadCommunityDiscussions();
       }
+    } catch {
+      // Handled cleanly
     }
   };
 
   return (
     <div className="space-y-4 sm:space-y-6 text-left font-sans pb-24 sm:pb-8 px-2.5 sm:px-6 max-w-7xl mx-auto w-full max-w-full overflow-x-hidden min-w-0">
-      {/* 1. PAGE HEADER */}
-      <DiscussionHomeHeader
-        totalCount={totalCount}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-      />
+      {/* 1. PAGE HEADER WITH REAL WEBSOCKET CONNECTION BADGE */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <DiscussionHomeHeader
+          totalCount={totalCount}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
+        <div className="flex items-center gap-2 text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+          <span
+            className={`w-2 h-2 rounded-full ${
+              connectionState === 'connected'
+                ? 'bg-emerald-500 animate-pulse'
+                : connectionState === 'reconnecting' || connectionState === 'connecting'
+                ? 'bg-amber-500 animate-ping'
+                : 'bg-rose-500'
+            }`}
+          />
+          <span className="capitalize">{connectionState === 'connected' ? 'Live WebSocket' : connectionState}</span>
+        </div>
+      </div>
 
       {/* 2. PERMANENT SECTION TABS ([ Community Discussions ] | [ Personal Chats ]) */}
       <DiscussionsSectionTabs
@@ -364,6 +446,13 @@ export const CourseDiscussionsPage: React.FC = () => {
                         </Card>
                       ))}
                     </div>
+                  ) : loadError ? (
+                    <Card padding="lg" className="text-center space-y-3 bg-white dark:bg-[#111827] border border-rose-200 dark:border-rose-900/40">
+                      <p className="font-semibold text-rose-600 dark:text-rose-400 text-sm">{loadError}</p>
+                      <Button size="sm" variant="outline" onClick={loadCommunityDiscussions}>
+                        Try Again
+                      </Button>
+                    </Card>
                   ) : filteredDiscussions.length > 0 ? (
                     <div className="space-y-3">
                       {filteredDiscussions.map((disc) => (
@@ -418,14 +507,8 @@ export const CourseDiscussionsPage: React.FC = () => {
         ) : (
           <PersonalChatView
             courseUuid={courseUuid}
-            conversations={personalChats}
-            courseMembers={courseMembers}
             activeStudentUuid={activeStudentUuid}
             onSelectStudentChat={handleSelectStudentChat}
-            onSendMessage={(studentUuid, content, attachments) =>
-              sendPersonalMessage(courseUuid, studentUuid, content, 'instructor', attachments)
-            }
-            onMarkSeen={markChatAsSeen}
           />
         )
       )}

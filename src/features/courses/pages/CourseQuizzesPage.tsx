@@ -33,6 +33,7 @@ export const CourseQuizzesPage: React.FC = () => {
   const duplicateQuiz = useQuizStore((state) => state.duplicateQuiz);
 
   // Local UI & Filter State
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusTab, setStatusTab] = useState<'All' | 'Published' | 'Draft' | 'Archived' | 'Pending Review'>('All');
   const [quizTypeFilter] = useState('All');
@@ -202,6 +203,32 @@ export const CourseQuizzesPage: React.FC = () => {
                 placeholder="Search quizzes by title..."
                 className="w-full h-10 pl-9 pr-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs font-normal text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
               />
+            </div>
+            <div className="flex items-center p-1 bg-slate-100 dark:bg-[#172033] border border-slate-200 dark:border-[#334155] rounded-xl shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`p-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                  viewMode === 'table'
+                    ? 'bg-white dark:bg-[#0F172A] text-[#2563EB] shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-[#94A3B8]'
+                }`}
+                title="Table view"
+              >
+                Table
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-white dark:bg-[#0F172A] text-[#2563EB] shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-[#94A3B8]'
+                }`}
+                title="Grid view"
+              >
+                Grid
+              </button>
             </div>
           </div>
         </div>

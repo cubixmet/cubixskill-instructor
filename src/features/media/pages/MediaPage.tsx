@@ -39,7 +39,7 @@ import {
   MediaUsageReference,
   PreUploadEstimateResponse,
 } from '../../../services/storage.service';
-import { resolveMediaUrl, formatBytes } from '../../../utils/media.utils';
+import { resolveMediaUrl, formatBytes, formatMediaDate, formatMediaDateTime } from '../../../utils/media.utils';
 import { UploadEstimateModal } from '../../../components/media/UploadEstimateModal';
 
 interface UploadQueueItem {
@@ -175,6 +175,20 @@ export const MediaPage: React.FC = () => {
       setUsageError(err?.response?.data?.message || 'Unable to load asset usage details.');
     } finally {
       setLoadingUsages(false);
+    }
+  };
+
+  // Convert Direct Video to HLS
+  const handleConvertHls = async (asset: MediaFileApiItem) => {
+    try {
+      const updated = await storageService.convertHls(asset.id);
+      showToast(`HLS conversion queued for "${asset.display_name || asset.original_filename}".`);
+      if (detailAsset?.id === asset.id) {
+        setDetailAsset(updated);
+      }
+      fetchMedia();
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || 'Failed to queue HLS conversion.');
     }
   };
 
@@ -763,7 +777,7 @@ export const MediaPage: React.FC = () => {
                 {/* Footer */}
                 <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-[#263244] text-[10.5px] font-normal text-slate-500 dark:text-[#94A3B8]">
                   <span>{asset.file_extension ? `.${asset.file_extension}` : asset.mime_type}</span>
-                  <span>{new Date(asset.created_at).toLocaleDateString()}</span>
+                  <span>{formatMediaDate(asset.uploaded_at || asset.created_at)}</span>
                 </div>
               </Card>
             );
@@ -812,7 +826,7 @@ export const MediaPage: React.FC = () => {
                       </td>
                       <td className="py-3 px-4 text-slate-700 dark:text-[#CBD5E1]">{formatBytes(asset.size_bytes)}</td>
                       <td className="py-3 px-4 text-slate-500 dark:text-[#94A3B8]">
-                        {new Date(asset.created_at).toLocaleDateString()}
+                        {formatMediaDate(asset.uploaded_at || asset.created_at)}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -1062,18 +1076,34 @@ export const MediaPage: React.FC = () => {
               <div><strong>MIME Type:</strong> {detailAsset.mime_type}</div>
               <div><strong>Size:</strong> {formatBytes(detailAsset.size_bytes)}</div>
               <div><strong>Storage Key:</strong> {detailAsset.storage_key}</div>
-              <div className="col-span-2"><strong>Uploaded Date:</strong> {new Date(detailAsset.created_at).toLocaleString()}</div>
+              <div className="col-span-2"><strong>Uploaded Date:</strong> {formatMediaDateTime(detailAsset.uploaded_at || detailAsset.created_at)}</div>
               {detailAsset.media_type === 'VIDEO' && (
-                <div className="col-span-2 pt-1.5 border-t border-slate-200 dark:border-[#334155] flex items-center justify-between">
-                  <span><strong>Adaptive Streaming:</strong></span>
-                  {detailAsset.adaptive_streaming_enabled ? (
-                    <span className="text-indigo-600 font-bold">
-                      {detailAsset.processing_status === 'PROCESSING' || detailAsset.processing_status === 'QUEUED'
-                        ? 'Preparing adaptive streaming...'
-                        : 'Adaptive Streaming Ready'}
-                    </span>
-                  ) : (
-                    <span className="text-slate-500 font-medium">Disabled (Original Video Only)</span>
+                <div className="col-span-2 pt-1.5 border-t border-slate-200 dark:border-[#334155] space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span><strong>Streaming Mode:</strong></span>
+                    {detailAsset.processing_mode === 'hls' ? (
+                      <span className="text-indigo-600 font-bold flex items-center gap-1">
+                        {detailAsset.processing_status === 'PROCESSING' || detailAsset.processing_status === 'QUEUED'
+                          ? 'Transcoding HLS...'
+                          : detailAsset.processing_status === 'FAILED'
+                          ? 'HLS Failed (Fallback MP4)'
+                          : 'HLS Stream Ready'}
+                      </span>
+                    ) : (
+                      <span className="text-slate-500 font-medium">Direct MP4 Playback</span>
+                    )}
+                  </div>
+                  {detailAsset.processing_mode === 'direct' && (
+                    <div className="flex justify-end pt-1">
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => handleConvertHls(detailAsset)}
+                        className="text-[10.5px] border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                      >
+                        ⚡ Convert to HLS
+                      </Button>
+                    </div>
                   )}
                 </div>
               )}

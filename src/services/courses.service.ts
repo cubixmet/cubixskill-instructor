@@ -165,15 +165,21 @@ export const coursesService = {
     return response.data?.data || (response.data as unknown as CourseModule);
   },
 
-  async uploadMedia(file: File): Promise<MediaFile> {
+  async uploadMedia(file: File, courseUuid?: string, lessonUuid?: string, hlsEnabled?: boolean): Promise<MediaFile> {
     const formData = new FormData();
     formData.append("file", file);
+    if (courseUuid) {
+      formData.append("course_uuid", courseUuid);
+    }
+    if (lessonUuid) {
+      formData.append("lesson_uuid", lessonUuid);
+    }
+    if (typeof hlsEnabled === 'boolean') {
+      formData.append("hls_enabled", hlsEnabled ? "true" : "false");
+    }
     const response = await apiClient.post<BackendApiResponse<MediaFile>>(
       "/api/v1/storage/upload/",
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
+      formData
     );
     return response.data?.data || (response.data as unknown as MediaFile);
   },

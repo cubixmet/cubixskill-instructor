@@ -9,7 +9,6 @@ import {
   FileCode,
   AlertTriangle,
   Clock,
-  HardDrive,
   Layers,
   RefreshCw,
 } from 'lucide-react';
@@ -20,7 +19,7 @@ import {
   storageService,
   MediaFileApiItem,
 } from '../../services/storage.service';
-import { resolveMediaUrl, formatBytes } from '../../utils/media.utils';
+import { resolveMediaUrl, formatBytes, formatMediaDate } from '../../utils/media.utils';
 
 interface MediaPickerModalProps {
   isOpen: boolean;
@@ -250,7 +249,7 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
                               {asset.media_type}
                             </Badge>
                             <span>{formatBytes(asset.size_bytes)}</span>
-                            <span>• {new Date(asset.created_at).toLocaleDateString()}</span>
+                            <span>• {formatMediaDate(asset.uploaded_at || asset.created_at)}</span>
                           </div>
                         </div>
                       </div>

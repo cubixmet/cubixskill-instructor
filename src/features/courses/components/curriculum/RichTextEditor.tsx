@@ -68,7 +68,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
   placeholder = 'Write a detailed course description...',
-  minHeight = 'min-h-[150px]',
+  minHeight = 'min-h-[260px]',
   error,
   name,
 }) => {
@@ -92,7 +92,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [isLinkPopoverOpen, setIsLinkPopoverOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
 
-  // Update editor innerHTML when `value` prop changes externally (e.g. Draft Resume)
+  // Update editor innerHTML when `value` prop changes externally
   useEffect(() => {
     if (editorRef.current) {
       const formattedHtml = markdownToHtml(value || '');
@@ -177,7 +177,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     if (selection && selection.rangeCount > 0) {
       savedSelectionRef.current = selection.getRangeAt(0).cloneRange();
 
-      // Check existing link URL
       let node: Node | null = selection.getRangeAt(0).startContainer;
       let existingHref = '';
       while (node && node !== editorRef.current) {
@@ -237,21 +236,30 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   return (
     <div className="space-y-1 font-sans text-left" data-field-name={name}>
       <div
-        className={`border rounded-xl overflow-hidden bg-white shadow-2xs text-left relative focus-within:border-[#2563EB] transition-all ${
-          error ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-[#E2E8F0]'
-        }`}
+        style={{
+          backgroundColor: 'var(--surface)',
+          borderColor: error ? '#EF4444' : 'var(--border)',
+        }}
+        className="border rounded-xl overflow-hidden shadow-2xs text-left relative transition-all focus-within:border-[var(--brand-primary)]"
       >
         {/* Editor Toolbar */}
-        <div className="bg-[#F8FAFC] border-b border-[#E2E8F0] p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar text-[#64748B] select-none">
+        <div
+          style={{
+            backgroundColor: 'var(--surface-secondary)',
+            borderColor: 'var(--border)',
+            color: 'var(--text-secondary)',
+          }}
+          className="border-b p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar select-none"
+        >
           {/* Headings */}
           <button
             type="button"
             onClick={() => handleFormatBlock('h1', activeState.h1)}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer text-xs font-bold flex items-center gap-1 ${
-              activeState.h1
-                ? 'bg-blue-100 text-[#2563EB] border border-blue-200'
-                : 'hover:bg-slate-200 hover:text-[#0F172A]'
-            }`}
+            style={{
+              backgroundColor: activeState.h1 ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent',
+              color: activeState.h1 ? 'var(--brand-primary)' : 'var(--text-secondary)',
+            }}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer text-xs font-bold flex items-center gap-1 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] shrink-0"
             title="Heading 1"
           >
             <Heading1 className="w-3.5 h-3.5" />
@@ -260,27 +268,27 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <button
             type="button"
             onClick={() => handleFormatBlock('h2', activeState.h2)}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer text-xs font-bold flex items-center gap-1 ${
-              activeState.h2
-                ? 'bg-blue-100 text-[#2563EB] border border-blue-200'
-                : 'hover:bg-slate-200 hover:text-[#0F172A]'
-            }`}
+            style={{
+              backgroundColor: activeState.h2 ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent',
+              color: activeState.h2 ? 'var(--brand-primary)' : 'var(--text-secondary)',
+            }}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer text-xs font-bold flex items-center gap-1 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] shrink-0"
             title="Heading 2"
           >
             <Heading2 className="w-3.5 h-3.5" />
           </button>
 
-          <span className="h-4 w-[1px] bg-[#E2E8F0] mx-0.5 shrink-0" />
+          <span style={{ backgroundColor: 'var(--border)' }} className="h-4 w-[1px] mx-0.5 shrink-0" />
 
           {/* Basic formatting */}
           <button
             type="button"
             onClick={() => executeCommand('bold')}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-              activeState.bold
-                ? 'bg-blue-100 text-[#2563EB] border border-blue-200'
-                : 'hover:bg-slate-200 hover:text-[#0F172A]'
-            }`}
+            style={{
+              backgroundColor: activeState.bold ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent',
+              color: activeState.bold ? 'var(--brand-primary)' : 'var(--text-secondary)',
+            }}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] shrink-0"
             title="Bold"
           >
             <Bold className="w-3.5 h-3.5" />
@@ -289,11 +297,11 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <button
             type="button"
             onClick={() => executeCommand('italic')}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-              activeState.italic
-                ? 'bg-blue-100 text-[#2563EB] border border-blue-200'
-                : 'hover:bg-slate-200 hover:text-[#0F172A]'
-            }`}
+            style={{
+              backgroundColor: activeState.italic ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent',
+              color: activeState.italic ? 'var(--brand-primary)' : 'var(--text-secondary)',
+            }}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] shrink-0"
             title="Italic"
           >
             <Italic className="w-3.5 h-3.5" />
@@ -302,27 +310,27 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <button
             type="button"
             onClick={() => executeCommand('underline')}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-              activeState.underline
-                ? 'bg-blue-100 text-[#2563EB] border border-blue-200'
-                : 'hover:bg-slate-200 hover:text-[#0F172A]'
-            }`}
+            style={{
+              backgroundColor: activeState.underline ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent',
+              color: activeState.underline ? 'var(--brand-primary)' : 'var(--text-secondary)',
+            }}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] shrink-0"
             title="Underline"
           >
             <Underline className="w-3.5 h-3.5" />
           </button>
 
-          <span className="h-4 w-[1px] bg-[#E2E8F0] mx-0.5 shrink-0" />
+          <span style={{ backgroundColor: 'var(--border)' }} className="h-4 w-[1px] mx-0.5 shrink-0" />
 
           {/* Lists */}
           <button
             type="button"
             onClick={() => executeCommand('insertUnorderedList')}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-              activeState.bulletList
-                ? 'bg-blue-100 text-[#2563EB] border border-blue-200'
-                : 'hover:bg-slate-200 hover:text-[#0F172A]'
-            }`}
+            style={{
+              backgroundColor: activeState.bulletList ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent',
+              color: activeState.bulletList ? 'var(--brand-primary)' : 'var(--text-secondary)',
+            }}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] shrink-0"
             title="Bullet List"
           >
             <List className="w-3.5 h-3.5" />
@@ -331,27 +339,27 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <button
             type="button"
             onClick={() => executeCommand('insertOrderedList')}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-              activeState.numberList
-                ? 'bg-blue-100 text-[#2563EB] border border-blue-200'
-                : 'hover:bg-slate-200 hover:text-[#0F172A]'
-            }`}
+            style={{
+              backgroundColor: activeState.numberList ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent',
+              color: activeState.numberList ? 'var(--brand-primary)' : 'var(--text-secondary)',
+            }}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] shrink-0"
             title="Numbered List"
           >
             <ListOrdered className="w-3.5 h-3.5" />
           </button>
 
-          <span className="h-4 w-[1px] bg-[#E2E8F0] mx-0.5 shrink-0" />
+          <span style={{ backgroundColor: 'var(--border)' }} className="h-4 w-[1px] mx-0.5 shrink-0" />
 
           {/* Quote & Link */}
           <button
             type="button"
             onClick={() => handleFormatBlock('blockquote', activeState.quote)}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-              activeState.quote
-                ? 'bg-blue-100 text-[#2563EB] border border-blue-200'
-                : 'hover:bg-slate-200 hover:text-[#0F172A]'
-            }`}
+            style={{
+              backgroundColor: activeState.quote ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent',
+              color: activeState.quote ? 'var(--brand-primary)' : 'var(--text-secondary)',
+            }}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] shrink-0"
             title="Blockquote"
           >
             <Quote className="w-3.5 h-3.5" />
@@ -360,23 +368,24 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <button
             type="button"
             onClick={openLinkPopover}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-              activeState.link
-                ? 'bg-blue-100 text-[#2563EB] border border-blue-200'
-                : 'hover:bg-slate-200 hover:text-[#0F172A]'
-            }`}
+            style={{
+              backgroundColor: activeState.link ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'transparent',
+              color: activeState.link ? 'var(--brand-primary)' : 'var(--text-secondary)',
+            }}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] shrink-0"
             title="Insert or Edit Link"
           >
             <Link2 className="w-3.5 h-3.5" />
           </button>
 
-          <span className="h-4 w-[1px] bg-[#E2E8F0] mx-0.5 shrink-0" />
+          <span style={{ backgroundColor: 'var(--border)' }} className="h-4 w-[1px] mx-0.5 shrink-0" />
 
           {/* Undo / Redo */}
           <button
             type="button"
             onClick={() => executeCommand('undo')}
-            className="p-1.5 hover:bg-slate-200 hover:text-[#0F172A] rounded-lg transition-colors cursor-pointer"
+            style={{ color: 'var(--text-secondary)' }}
+            className="p-1.5 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] rounded-lg transition-colors cursor-pointer shrink-0"
             title="Undo"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -385,7 +394,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <button
             type="button"
             onClick={() => executeCommand('redo')}
-            className="p-1.5 hover:bg-slate-200 hover:text-[#0F172A] rounded-lg transition-colors cursor-pointer"
+            style={{ color: 'var(--text-secondary)' }}
+            className="p-1.5 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] rounded-lg transition-colors cursor-pointer shrink-0"
             title="Redo"
           >
             <RotateCw className="w-3.5 h-3.5" />
@@ -394,13 +404,23 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
         {/* Link Input Popover */}
         {isLinkPopoverOpen && (
-          <div className="absolute top-11 left-3 z-30 bg-white border border-[#E2E8F0] rounded-xl shadow-xl p-3 space-y-2.5 w-72 animate-in fade-in zoom-in-95 duration-100">
+          <div
+            style={{
+              backgroundColor: 'var(--surface)',
+              borderColor: 'var(--border)',
+              color: 'var(--text-primary)',
+            }}
+            className="absolute top-11 left-3 z-30 border rounded-xl shadow-xl p-3 space-y-2.5 w-72 animate-in fade-in zoom-in-95 duration-100"
+          >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#0F172A]">Insert Link</span>
+              <span style={{ color: 'var(--text-primary)' }} className="text-xs font-semibold">
+                Insert Link
+              </span>
               <button
                 type="button"
                 onClick={() => setIsLinkPopoverOpen(false)}
-                className="p-1 text-[#64748B] hover:text-[#0F172A] rounded-lg cursor-pointer"
+                style={{ color: 'var(--text-muted)' }}
+                className="p-1 hover:text-[var(--text-primary)] rounded-lg cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -412,7 +432,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
                 placeholder="https://example.com"
-                className="w-full h-8 px-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-xs font-medium text-[#0F172A] focus:outline-none focus:border-[#2563EB]"
+                style={{
+                  backgroundColor: 'var(--surface-secondary)',
+                  borderColor: 'var(--input-border)',
+                  color: 'var(--text-primary)',
+                }}
+                className="w-full h-8 px-2.5 border rounded-lg text-xs font-medium focus:outline-none focus:border-[var(--brand-primary)]"
                 autoFocus
               />
 
@@ -431,13 +456,18 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsLinkPopoverOpen(false)}
-                    className="px-2.5 py-1 text-[11px] font-semibold text-[#64748B] hover:bg-slate-100 rounded-lg cursor-pointer"
+                    style={{ color: 'var(--text-muted)' }}
+                    className="px-2.5 py-1 text-[11px] font-semibold hover:bg-[var(--surface-hover)] rounded-lg cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-3 py-1 text-[11px] font-semibold bg-[#2563EB] text-white rounded-lg hover:bg-[#1D4ED8] cursor-pointer flex items-center gap-1"
+                    style={{
+                      backgroundColor: 'var(--brand-primary)',
+                      color: 'var(--brand-primary-foreground, #FFFFFF)',
+                    }}
+                    className="px-3 py-1 text-[11px] font-semibold rounded-lg hover:opacity-90 cursor-pointer flex items-center gap-1"
                   >
                     <Check className="w-3 h-3" />
                     <span>Apply</span>
@@ -459,7 +489,11 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           aria-invalid={Boolean(error)}
           aria-describedby={error && name ? `${name}-error` : undefined}
           placeholder={placeholder}
-          className={`w-full p-3 sm:p-4 text-xs sm:text-sm text-[#0F172A] leading-relaxed focus:outline-none overflow-y-auto no-scrollbar ${minHeight} [&:empty]:before:content-[attr(placeholder)] [&:empty]:before:text-slate-400 [&:empty]:before:pointer-events-none [&_h1]:text-lg [&_h1]:font-bold [&_h1]:text-[#0F172A] [&_h1]:mt-2 [&_h1]:mb-1 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-[#0F172A] [&_h2]:mt-2 [&_h2]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-[#2563EB] [&_blockquote]:pl-3 [&_blockquote]:py-1 [&_blockquote]:text-slate-600 [&_blockquote]:italic [&_blockquote]:bg-slate-50 [&_blockquote]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ul]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1 [&_ol]:my-1.5 [&_a]:text-[#2563EB] [&_a]:underline [&_a]:font-semibold`}
+          style={{
+            backgroundColor: 'var(--surface-secondary)',
+            color: 'var(--text-primary)',
+          }}
+          className={`w-full p-3 sm:p-4 text-xs sm:text-sm leading-relaxed focus:outline-none overflow-y-auto no-scrollbar ${minHeight} [&:empty]:before:content-[attr(placeholder)] [&:empty]:before:text-[var(--text-muted)] [&:empty]:before:pointer-events-none [&_h1]:text-lg [&_h1]:font-bold [&_h1]:text-[var(--text-primary)] [&_h1]:mt-2 [&_h1]:mb-1 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-[var(--text-primary)] [&_h2]:mt-2 [&_h2]:mb-1 [&_p]:text-[var(--text-secondary)] [&_li]:text-[var(--text-secondary)] [&_blockquote]:border-l-4 [&_blockquote]:border-[var(--brand-primary)] [&_blockquote]:pl-3 [&_blockquote]:py-1 [&_blockquote]:text-[var(--text-secondary)] [&_blockquote]:italic [&_blockquote]:bg-[var(--surface)] [&_blockquote]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ul]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1 [&_ol]:my-1.5 [&_a]:text-[var(--brand-primary)] [&_a]:underline [&_a]:font-semibold`}
         />
       </div>
 

@@ -1,9 +1,12 @@
 import React, { useRef, useLayoutEffect, useState, useEffect, useCallback } from 'react';
+import { calculateAutoFontSize, normalizePadding, PaddingConfig } from '../utils/textFit';
+
+export type PaddingProp = PaddingConfig | Partial<PaddingConfig> | number;
 
 export interface AutoFitTextContainerProps {
   text?: string;
-  maxFontSize: number;
-  minFontSize?: number;
+  maxFontSize?: number | null;
+  minFontSize?: number | null;
   fontFamily?: string;
   fontWeight?: string | number;
   fontStyle?: string;
@@ -11,7 +14,10 @@ export interface AutoFitTextContainerProps {
   textAlign?: 'left' | 'center' | 'right';
   isUnderline?: boolean;
   letterSpacing?: number;
+  lineHeight?: number;
+  multiline?: boolean;
   opacity?: number;
+  padding?: PaddingProp;
   isEditorMode?: boolean;
   onFitCalculated?: (fontSize: number, isOverflowing: boolean) => void;
   className?: string;
@@ -23,8 +29,8 @@ export interface AutoFitTextContainerProps {
 
 export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
   text = '',
-  maxFontSize,
-  minFontSize = 14,
+  maxFontSize = 32,
+  minFontSize = 1,
   fontFamily = 'Inter',
   fontWeight = '600',
   fontStyle = 'normal',
@@ -32,7 +38,10 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
   textAlign = 'center',
   isUnderline = false,
   letterSpacing = 0,
+  lineHeight = 1.0,
+  multiline = false,
   opacity = 1,
+  padding,
   isEditorMode = false,
   onFitCalculated,
   className = '',
@@ -43,48 +52,83 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
-  const [fittedFontSize, setFittedFontSize] = useState<number>(maxFontSize);
+  const [fittedFontSize, setFittedFontSize] = useState<number>(16);
   const [isOverflowing, setIsOverflowing] = useState<boolean>(false);
+
+  const pad = normalizePadding(padding);
 
   const calculateFit = useCallback(() => {
     const container = containerRef.current;
     const textSpan = textRef.current;
-    if (!container || !textSpan || !text) return;
+    if (!container || !text) return;
 
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
 
     if (containerWidth <= 0 || containerHeight <= 0) return;
 
-    // Start at maxFontSize ceiling or container height ratio
-    let size = Math.min(maxFontSize, Math.max(minFontSize, Math.floor(containerHeight * 0.85)));
-    textSpan.style.fontSize = `${size}px`;
+    const fitResult = calculateAutoFontSize({
+      text,
+      width: containerWidth,
+      height: containerHeight,
+      padding: pad,
+      fontFamily,
+      fontWeight,
+      fontStyle,
+      maxFontSize: maxFontSize || 32,
+      minFontSize: minFontSize || 1,
+      lineHeight,
+      letterSpacing,
+      multiline,
+    });
 
-    const scrollWidth = textSpan.scrollWidth;
+    let finalFontSize = fitResult.renderedFontSize;
+    let overflowDetected = fitResult.isOverflowing;
 
-    // Scale font size down if text exceeds container width
-    if (scrollWidth > containerWidth && scrollWidth > 0) {
-      const widthRatio = containerWidth / scrollWidth;
-      size = Math.max(minFontSize, Math.floor(size * widthRatio));
-      textSpan.style.fontSize = `${size}px`;
+    if (textSpan) {
+      const availableWidth = Math.max(1, containerWidth - (pad.left + pad.right));
+      const availableHeight = Math.max(1, containerHeight - (pad.top + pad.bottom));
 
-      // Iterative step down until text fits or minFontSize floor is reached
-      while (textSpan.scrollWidth > container.clientWidth && size > minFontSize) {
-        size -= 1;
-        textSpan.style.fontSize = `${size}px`;
+      textSpan.style.fontSize = `${finalFontSize}px`;
+      const domOverflow = textSpan.scrollWidth > availableWidth || textSpan.scrollHeight > availableHeight;
+
+      if (domOverflow && finalFontSize > (minFontSize || 1)) {
+        let domSize = finalFontSize;
+        const minAllowed = minFontSize || 1;
+        while (domSize > minAllowed) {
+          domSize -= 0.5;
+          textSpan.style.fontSize = `${domSize}px`;
+          if (textSpan.scrollWidth <= availableWidth && textSpan.scrollHeight <= availableHeight) {
+            break;
+          }
+        }
+        finalFontSize = Math.max(minAllowed, domSize);
+        overflowDetected = (textSpan.scrollWidth > availableWidth || textSpan.scrollHeight > availableHeight) && finalFontSize <= minAllowed;
       }
     }
 
-    const clampedSize = Math.min(maxFontSize, Math.max(minFontSize, size));
-    const overflowDetected = textSpan.scrollWidth > container.clientWidth;
-
-    setFittedFontSize(clampedSize);
+    setFittedFontSize(finalFontSize);
     setIsOverflowing(overflowDetected);
 
     if (onFitCalculated) {
-      onFitCalculated(clampedSize, overflowDetected);
+      onFitCalculated(finalFontSize, overflowDetected);
     }
-  }, [maxFontSize, minFontSize, text, onFitCalculated]);
+  }, [
+    maxFontSize,
+    minFontSize,
+    text,
+    fontFamily,
+    fontWeight,
+    fontStyle,
+    letterSpacing,
+    lineHeight,
+    multiline,
+    pad.left,
+    pad.right,
+    pad.top,
+    pad.bottom,
+    onFitCalculated,
+  ]);
 
   useLayoutEffect(() => {
     calculateFit();
@@ -92,15 +136,17 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
     calculateFit,
     text,
     maxFontSize,
+    minFontSize,
     fontFamily,
     fontWeight,
     fontStyle,
     letterSpacing,
+    lineHeight,
+    multiline,
     style?.width,
     style?.height,
   ]);
 
-  // Recalculate dynamically when container resizes or Google fonts finish loading
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -120,7 +166,7 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
     return () => {
       observer.disconnect();
     };
-  }, [calculateFit, text, maxFontSize]);
+  }, [calculateFit, text, maxFontSize, minFontSize]);
 
   const justifyContent =
     textAlign === 'left' ? 'flex-start' : textAlign === 'right' ? 'flex-end' : 'center';
@@ -137,13 +183,17 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
         justifyContent,
         opacity,
         boxSizing: 'border-box',
+        paddingTop: `${pad.top}px`,
+        paddingRight: `${pad.right}px`,
+        paddingBottom: `${pad.bottom}px`,
+        paddingLeft: `${pad.left}px`,
         ...style,
       }}
     >
       {showText && (
         <span
           ref={textRef}
-          className="whitespace-nowrap inline-block select-none transition-all duration-75"
+          className={`${multiline ? 'break-words' : 'whitespace-nowrap'} inline-block select-none transition-none leading-none`}
           style={{
             fontSize: `${fittedFontSize}px`,
             fontFamily,
@@ -153,20 +203,23 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
             textAlign,
             textDecoration: isUnderline ? 'underline' : 'none',
             letterSpacing: `${letterSpacing}px`,
-            lineHeight: 1.1,
+            lineHeight: lineHeight || 1.0,
             maxWidth: '100%',
             maxHeight: '100%',
             overflow: 'hidden',
+            textOverflow: 'clip',
           }}
         >
           {text}
         </span>
       )}
 
-      {/* Editor Warning Indicator if text cannot fit even at minFontSize */}
       {isEditorMode && isOverflowing && (
-        <div className="absolute -bottom-4 right-0 text-[8px] font-bold px-1 py-0.5 rounded shadow-xs pointer-events-none whitespace-nowrap bg-amber-500 text-white z-40">
-          ⚠️ Increase field size to fit
+        <div
+          title="Text does not fit at the minimum font size. Increase the container size."
+          className="absolute top-0 right-0 text-[8px] font-bold px-1.5 py-0.5 rounded pointer-events-none whitespace-nowrap bg-amber-500 text-white z-40 shadow-xs"
+        >
+          Text does not fit at minimum font size
         </div>
       )}
       {children}

@@ -34,15 +34,28 @@ export const FormPageLayout: React.FC<FormPageLayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B1120] font-sans text-left flex flex-col pb-16">
+    <div
+      style={{
+        backgroundColor: 'var(--page-background)',
+        color: 'var(--text-primary)',
+      }}
+      className="min-h-screen font-sans text-left flex flex-col pb-16"
+    >
       {/* Top Sticky Header */}
-      <header className="sticky top-0 z-30 bg-white dark:bg-[#111827] border-b border-[#E2E8F0] dark:border-[#263244] shadow-2xs">
+      <header
+        style={{
+          backgroundColor: 'var(--surface)',
+          borderColor: 'var(--border)',
+        }}
+        className="sticky top-0 z-30 border-b shadow-2xs"
+      >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <button
               type="button"
               onClick={handleBackClick}
-              className="p-2 -ml-2 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#60A5FA] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl transition-all cursor-pointer shrink-0"
+              style={{ color: 'var(--text-secondary)' }}
+              className="p-2 -ml-2 hover:bg-[var(--surface-hover)] hover:text-[var(--brand-primary)] rounded-xl transition-all cursor-pointer shrink-0"
               title="Back"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -50,7 +63,10 @@ export const FormPageLayout: React.FC<FormPageLayoutProps> = ({
 
             <div className="min-w-0 flex-1">
               {/* Mobile Back Link Indicator (Mobile Only) */}
-              <div className="sm:hidden text-[11px] font-bold text-[#2563EB] dark:text-[#60A5FA] mb-0.5 flex items-center gap-1">
+              <div
+                style={{ color: 'var(--brand-primary)' }}
+                className="sm:hidden text-[11px] font-bold mb-0.5 flex items-center gap-1"
+              >
                 <button
                   type="button"
                   onClick={handleBackClick}
@@ -64,34 +80,45 @@ export const FormPageLayout: React.FC<FormPageLayoutProps> = ({
 
               {/* Full Desktop Breadcrumb Chain (Desktop Only) */}
               {breadcrumbs.length > 0 && (
-                <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8] mb-0.5 flex-wrap">
+                <div
+                  style={{ color: 'var(--text-muted)' }}
+                  className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold mb-0.5 flex-wrap"
+                >
                   {breadcrumbs.map((b, idx) => (
                     <React.Fragment key={`bc-${idx}-${b.label}`}>
-                      {idx > 0 && <span className="text-slate-400 dark:text-slate-600">/</span>}
+                      {idx > 0 && <span className="opacity-50">/</span>}
                       {b.url ? (
                         <button
                           type="button"
                           onClick={() => navigate(b.url!)}
-                          className="hover:text-[#2563EB] dark:hover:text-[#60A5FA] hover:underline"
+                          className="hover:text-[var(--brand-primary)] hover:underline cursor-pointer"
                         >
                           {b.label}
                         </button>
                       ) : (
-                        <span className="text-[#0F172A] dark:text-[#CBD5E1] font-bold">{b.label}</span>
+                        <span style={{ color: 'var(--text-primary)' }} className="font-bold">
+                          {b.label}
+                        </span>
                       )}
                     </React.Fragment>
                   ))}
                 </div>
               )}
 
-              {/* Page Main Title (Never truncated with ...) */}
-              <h1 className="text-base sm:text-lg font-semibold text-[#0F172A] dark:text-[#F8FAFC] leading-tight whitespace-normal break-words font-sans">
+              {/* Page Main Title */}
+              <h1
+                style={{ color: 'var(--text-primary)' }}
+                className="text-base sm:text-lg font-semibold leading-tight whitespace-normal break-words font-sans"
+              >
                 {title}
               </h1>
 
               {/* Subtitle / Module Context */}
               {subtitle && (
-                <p className="text-xs text-[#64748B] dark:text-[#94A3B8] font-normal leading-normal whitespace-normal break-words mt-0.5">
+                <p
+                  style={{ color: 'var(--text-muted)' }}
+                  className="text-xs font-normal leading-normal whitespace-normal break-words mt-0.5"
+                >
                   {subtitle}
                 </p>
               )}

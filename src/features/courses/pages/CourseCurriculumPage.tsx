@@ -240,14 +240,19 @@ export const CourseCurriculumPage: React.FC = () => {
     try {
       if (deleteModalTarget.type === 'module') {
         await curriculumService.deleteModule(deleteModalTarget.moduleUuid, courseUuid);
-        showToast('Module and its lessons deleted.');
+        showToast('Section removed from curriculum.');
       } else if (deleteModalTarget.lessonUuid) {
         await curriculumService.deleteLesson(deleteModalTarget.lessonUuid);
         showToast('Lesson deleted successfully.');
       }
       setDeleteModalTarget(null);
     } catch (err: any) {
-      setDeleteError(err?.response?.data?.message || err?.message || 'Failed to delete. Please try again.');
+      const status = err?.response?.status;
+      if (status === 409) {
+        setDeleteError(err?.response?.data?.detail || 'Cannot delete section while lessons exist. Remove lessons first.');
+      } else {
+        setDeleteError(err?.response?.data?.message || err?.message || 'Failed to delete. Please try again.');
+      }
     } finally {
       setIsDeleting(false);
     }

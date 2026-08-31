@@ -1,5 +1,5 @@
 import apiClient from '../api/client';
-import { isValidCourseId } from '../utils/courseValidation.utils';
+import { isValidCourseId, normalizeCourseId } from '../utils/courseValidation.utils';
 
 export interface BackendDiscussionAttachment {
   id: string;
@@ -153,6 +153,72 @@ export const discussionService = {
 
   async acceptAnswer(threadId: string, replyId: string): Promise<BackendDiscussionThread> {
     const res = await apiClient.post(`/api/v1/discussions/discussions/${threadId}/accept-answer/`, { reply_id: replyId });
+    return res.data;
+  },
+
+  // 1-to-1 Personal Chat Endpoints
+  async listChatRooms(courseId?: string): Promise<any[]> {
+    const params = courseId ? { course_id: courseId } : {};
+    const res = await apiClient.get('/api/v1/chat/rooms/', { params });
+    const data = res.data;
+    if (Array.isArray(data)) return data;
+    return data.results || [];
+  },
+
+  async getOrCreatePersonalChatRoom(courseId: string, studentId: string): Promise<any> {
+    const normalizedCourseId = normalizeCourseId(courseId);
+    const normalizedStudentId = studentId?.trim();
+
+    if (!normalizedCourseId) {
+      throw new Error('Valid course_id is required to create a personal chat room.');
+    }
+    if (!normalizedStudentId) {
+      throw new Error('Valid student_id is required to create a personal chat room.');
+    }
+
+    const res = await apiClient.post('/api/v1/chat/rooms/get-or-create-personal/', {
+      course_id: normalizedCourseId,
+      student_id: normalizedStudentId,
+    });
+    return res.data;
+  },
+
+  async listCommunityGroups(): Promise<any[]> {
+    const res = await apiClient.get('/api/v1/chat/rooms/community-groups/');
+    const data = res.data;
+    if (Array.isArray(data)) return data;
+    return data.results || [];
+  },
+
+  async getOrCreateCommunityChatRoom(courseId: string): Promise<any> {
+    const normalizedCourseId = normalizeCourseId(courseId);
+    if (!normalizedCourseId) {
+      throw new Error('Valid course_id is required to access community chat.');
+    }
+    const res = await apiClient.post('/api/v1/chat/rooms/get-or-create-community/', {
+      course_id: normalizedCourseId,
+    });
+    return res.data;
+  },
+
+  async listChatMessages(roomId: string, beforeId?: string): Promise<any[]> {
+    const params = beforeId ? { before_id: beforeId } : {};
+    const res = await apiClient.get(`/api/v1/chat/rooms/${roomId}/messages/`, { params });
+    const data = res.data;
+    if (Array.isArray(data)) return data;
+    return data.results || [];
+  },
+
+  async sendChatMessage(roomId: string, content: string, mediaFileIds: string[] = []): Promise<any> {
+    const res = await apiClient.post(`/api/v1/chat/rooms/${roomId}/send-message/`, {
+      content,
+      media_file_ids: mediaFileIds,
+    });
+    return res.data;
+  },
+
+  async markChatRoomRead(roomId: string): Promise<{ unread_count: number }> {
+    const res = await apiClient.post(`/api/v1/chat/rooms/${roomId}/read/`);
     return res.data;
   },
 };

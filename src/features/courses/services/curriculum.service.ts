@@ -14,20 +14,21 @@ import type {
   LessonResourceAttachment,
 } from '../../../types/curriculum.types';
 import { resourceService } from './resource.service';
+import { toBackendLessonType } from '../config/lessonTypes.config';
 
-import { isValidCourseId } from '../../../utils/courseValidation.utils';
+import { isValidCourseId, isValidModuleUuid } from '../../../utils/courseValidation.utils';
 
 export const curriculumService = {
   // 1. Module APIs
   async fetchModules(courseUuid: string): Promise<CourseModule[]> {
-    if (!isValidCourseId(courseUuid)) return [];
+    if (!isValidCourseId(courseUuid)) {
+      console.warn(`[curriculumService] Rejecting fetchModules due to invalid courseUuid: ${courseUuid}`);
+      return [];
+    }
 
-    console.log(`[curriculumService] Fetching modules for course: ${courseUuid}`);
     const response = await apiClient.get<
       { data?: Record<string, unknown>[] | { results?: Record<string, unknown>[] } } | Record<string, unknown>[]
     >(`/api/v1/modules/courses/${courseUuid}/modules/`);
-
-    console.log(`[curriculumService] HTTP ${response.status} response for course ${courseUuid}`);
 
     let rawData: Record<string, unknown>[] = [];
     const resData = response.data as any;
@@ -42,31 +43,90 @@ export const curriculumService = {
       rawData = resData.results;
     }
 
-    const modulesList: CourseModule[] = rawData.map((m: Record<string, unknown>, idx: number) => ({
-      uuid: String(m.id || m.uuid || ''),
-      courseUuid: String(m.course || m.course_id || courseUuid),
-      title: String(m.title || ''),
-      description: String(m.description || ''),
-      status: m.is_active === false ? 'draft' : 'published',
-      sortOrder: typeof m.order_index === 'number' ? m.order_index : idx + 1,
-      durationMinutes: typeof m.duration_minutes === 'number' ? m.duration_minutes : 0,
-      isCollapsed: false,
-      unlockRule: 'immediate',
-      createdAt: String(m.created_at || new Date().toISOString()),
-      updatedAt: String(m.updated_at || new Date().toISOString()),
-    })).filter((m) => Boolean(m.uuid));
+    const modulesList: CourseModule[] = [];
+    const allFetchedLessons: CourseLesson[] = [];
+
+    rawData.forEach((m: Record<string, unknown>, idx: number) => {
+      const moduleUuid = String(m.id || m.uuid || '');
+      if (!moduleUuid) return;
+
+      modulesList.push({
+        uuid: moduleUuid,
+        courseUuid: String(m.course || m.course_id || courseUuid),
+        title: String(m.title || ''),
+        description: String(m.description || ''),
+        status: m.is_active === false ? 'draft' : 'published',
+        sortOrder: typeof m.order_index === 'number' ? m.order_index : idx + 1,
+        durationMinutes: typeof m.duration_minutes === 'number' ? m.duration_minutes : 0,
+        isCollapsed: false,
+        unlockRule: 'immediate',
+        createdAt: String(m.created_at || new Date().toISOString()),
+        updatedAt: String(m.updated_at || new Date().toISOString()),
+      });
+
+      if (Array.isArray(m.lessons)) {
+        (m.lessons as Record<string, any>[]).forEach((l: Record<string, any>, lIdx: number) => {
+          const lessonUuid = String(l.id || l.uuid || '');
+          if (!lessonUuid) return;
+
+          const rawExternalUrl = String(l.external_url || l.externalUrl || '');
+          const rawVideoUrl = String(l.video_url || l.videoUrl || '');
+          const rawAudioUrl = String(l.audio_url || l.audioUrl || '');
+          const primaryMedia = l.primary_media || null;
+          const mediaFiles = l.media_files || [];
+          const mediaFileUrl = primaryMedia?.url || primaryMedia?.file || mediaFiles[0]?.media_file?.url || '';
+
+          const rawQCount = typeof l.question_count === 'number' ? l.question_count : (l.quiz?.question_count || l.quiz?.questions?.length || 0);
+
+          allFetchedLessons.push({
+            uuid: lessonUuid,
+            courseUuid,
+            moduleUuid,
+            title: String(l.title || ''),
+            description: String(l.description || ''),
+            type: String(l.lesson_type || l.type || 'video').toLowerCase() as any,
+            status: l.is_active === false ? 'draft' : 'published',
+            sortOrder: typeof l.order_index === 'number' ? l.order_index : lIdx + 1,
+            durationMinutes: typeof l.duration_minutes === 'number' ? l.duration_minutes : 0,
+            isDemo: Boolean(l.is_demo),
+            allowDownload: Boolean(l.allow_download),
+            external_url: rawExternalUrl,
+            video_url: rawVideoUrl,
+            audio_url: rawAudioUrl,
+            primary_media: primaryMedia,
+            media_files: mediaFiles,
+            question_count: rawQCount,
+            content: {
+              externalUrl: rawExternalUrl || rawAudioUrl || rawVideoUrl,
+              audioUrl: rawAudioUrl || rawExternalUrl || mediaFileUrl,
+              videoUrl: rawVideoUrl || rawExternalUrl || mediaFileUrl,
+              mediaUrl: mediaFileUrl || rawExternalUrl || rawAudioUrl || rawVideoUrl,
+              mediaFile: primaryMedia,
+              mediaFileId: primaryMedia?.id || null,
+              resources: l.resources || [],
+              questions: l.quiz?.questions || [],
+            },
+            subsections: [],
+            createdAt: String(l.created_at || new Date().toISOString()),
+            updatedAt: String(l.updated_at || new Date().toISOString()),
+          });
+        });
+      }
+    });
 
     modulesList.sort((a, b) => a.sortOrder - b.sortOrder);
-
-    console.log(`[curriculumService] Parsed ${modulesList.length} modules for course ${courseUuid}`);
-    if (modulesList.length > 0) {
-      console.log(`[curriculumService] First module: ID=${modulesList[0].uuid}, Title="${modulesList[0].title}"`);
-    }
 
     // Single source of truth update
     const currentModules = useCurriculumStore.getState().modules;
     const otherModules = currentModules.filter((m) => m.courseUuid !== courseUuid);
     useCurriculumStore.getState().setModules([...otherModules, ...modulesList]);
+
+    if (allFetchedLessons.length > 0) {
+      const currentLessons = useCurriculumStore.getState().lessons;
+      const fetchedLessonUuids = new Set(allFetchedLessons.map((l) => l.uuid));
+      const otherLessons = currentLessons.filter((l) => !fetchedLessonUuids.has(l.uuid));
+      useCurriculumStore.getState().setLessons([...otherLessons, ...allFetchedLessons]);
+    }
 
     return modulesList;
   },
@@ -109,8 +169,18 @@ export const curriculumService = {
   },
 
   async deleteModule(moduleUuid: string, courseUuid: string): Promise<void> {
-    await apiClient.delete(`/api/v1/modules/courses/${courseUuid}/modules/${moduleUuid}/`);
-    useCurriculumStore.getState().deleteModule(moduleUuid);
+    try {
+      await apiClient.delete(`/api/v1/modules/courses/${courseUuid}/modules/${moduleUuid}/`);
+      useCurriculumStore.getState().deleteModule(moduleUuid);
+    } catch (err: any) {
+      const status = err?.response?.status || err?.status;
+      if (status === 404) {
+        console.warn(`[curriculumService] Module ${moduleUuid} returned 404 on delete. Reconciling store state.`);
+        useCurriculumStore.getState().deleteModule(moduleUuid);
+        return;
+      }
+      throw err;
+    }
   },
 
   duplicateModule: (moduleUuid: string): CourseModule | null => {
@@ -138,20 +208,73 @@ export const curriculumService = {
     moduleUuid: string,
     data: CreateLessonInput
   ): Promise<CourseLesson> {
-    const mediaFileId = (data as any)?.content?.mediaFileId || (data as any)?.content?.mediaFile?.id || (data as any)?.media_file_id || null;
+    if (!isValidCourseId(courseUuid) || !isValidModuleUuid(moduleUuid)) {
+      throw new Error(`Invalid courseId (${courseUuid}) or moduleUuid (${moduleUuid})`);
+    }
 
-    const response = await apiClient.post<{ data: Record<string, unknown> } | Record<string, unknown>>(
-      `/api/v1/lessons/modules/${moduleUuid}/lessons/`,
-      {
-        title: data.title,
-        lesson_type: data.type.toUpperCase(),
-        description: data.description || '',
-        duration_minutes: data.durationMinutes || 0,
-        is_demo: data.isDemo || false,
-        allow_download: data.allowDownload || false,
-        media_file_id: mediaFileId,
+    const content = (data as any)?.content || {};
+    const mediaFileId = content.mediaFileId || content.mediaFile?.id || (data as any)?.media_file_id || (data as any)?.media_id || null;
+    const sourceMode = String(content.sourceMode || (data as any)?.content_source || (mediaFileId ? 'UPLOAD' : 'URL')).toUpperCase();
+
+    let externalUrl = '';
+    if (sourceMode === 'URL' || !mediaFileId) {
+      externalUrl = content.externalUrl || content.mediaUrl || (data as any)?.external_url || '';
+    }
+
+    const backendLessonType = toBackendLessonType(data.type);
+    const textContent = content.textContent || content.body || '';
+
+    const payload: Record<string, any> = {
+      title: data.title,
+      lesson_type: backendLessonType,
+      content_source: sourceMode.toLowerCase(),
+      description: data.description || '',
+      duration_minutes: data.durationMinutes || 0,
+      is_demo: data.isDemo || false,
+      allow_download: data.allowDownload || false,
+    };
+
+    if (externalUrl) {
+      payload.external_url = externalUrl;
+    }
+    if (textContent) {
+      payload.content = textContent;
+    }
+    if (backendLessonType === 'QUIZ' || data.type === 'quiz') {
+      payload.content = content.quizPayload || content.quiz || content;
+    }
+    if (backendLessonType === 'ASSIGNMENT' || backendLessonType === 'PROJECT' || data.type === 'assignment' || data.type === 'project') {
+      payload.content = content.assignmentPayload || content.assignment || content;
+    }
+    if (mediaFileId) {
+      payload.media_file_id = mediaFileId;
+    }
+
+    const rawResources = Array.isArray(content.resources)
+      ? content.resources
+      : Array.isArray((data as any).resources)
+      ? (data as any).resources
+      : [];
+
+    if (rawResources.length > 0) {
+      payload.resources = rawResources;
+    }
+
+    console.log('[lesson-create] payload', payload);
+
+    let response: any;
+    try {
+      response = await apiClient.post<{ data: Record<string, unknown> } | Record<string, unknown>>(
+        `/api/v1/lessons/modules/${moduleUuid}/lessons/`,
+        payload
+      );
+    } catch (err: any) {
+      const fieldErrors = err?.data?.data?.fields || err?.data?.fields || err?.response?.data?.data?.fields || err?.response?.data?.fields;
+      if (fieldErrors) {
+        console.error('[lessonService] Create lesson validation failed:', fieldErrors);
       }
-    );
+      throw err;
+    }
     const backendData = (response.data as { data?: Record<string, unknown> })?.data || (response.data as Record<string, unknown>);
     const realId = String(backendData.id || backendData.uuid || '');
 
@@ -162,40 +285,71 @@ export const curriculumService = {
     const created = useCurriculumStore.getState().addLesson(courseUuid, moduleUuid, {
       ...data,
       id: realId,
-      video_url: backendData.video_url || (data as any)?.content?.videoUrl,
+      uuid: realId,
+      video_url: backendData.video_url || content.videoUrl,
       media_files: backendData.media_files || [],
+      question_count: backendData.question_count || (backendData.quiz as any)?.questions?.length || 0,
+      quiz: backendData.quiz || null,
     } as any);
 
     if (created && created.uuid !== realId) {
       created.uuid = realId;
       useCurriculumStore.getState().updateLesson(created.uuid, {
         id: realId,
-        video_url: backendData.video_url || (data as any)?.content?.videoUrl,
+        uuid: realId,
+        video_url: backendData.video_url || content.videoUrl,
+        question_count: backendData.question_count || (backendData.quiz as any)?.questions?.length || 0,
+        quiz: backendData.quiz || null,
       } as any);
     }
     return created;
   },
 
-  updateLesson: (lessonUuid: string, data: UpdateLessonInput): void => {
+  async updateLesson(lessonUuid: string, data: UpdateLessonInput): Promise<void> {
     useCurriculumStore.getState().updateLesson(lessonUuid, data);
-    const mediaFileId = (data as any)?.content?.mediaFileId || (data as any)?.content?.mediaFile?.id || (data as any)?.media_file_id || null;
+    const content = (data as any)?.content || {};
+    const mediaFileId = content.mediaFileId || content.mediaFile?.id || (data as any)?.media_file_id || null;
+    const externalUrl = content.externalUrl || content.videoUrl || content.audioUrl || content.documentUrl || content.imageUrl || content.mediaUrl || '';
+    const textContent = content.textContent || content.body || '';
 
-    apiClient
-      .patch(`/api/v1/lessons/${lessonUuid}/`, {
-        title: data.title,
-        description: data.description,
-        duration_minutes: data.durationMinutes,
-        is_demo: data.isDemo,
-        allow_download: data.allowDownload,
-        media_file_id: mediaFileId,
-      })
-      .then((res) => {
-        const updatedBackend = res.data?.data || res.data;
-        if (updatedBackend?.video_url) {
-          useCurriculumStore.getState().updateLesson(lessonUuid, { video_url: updatedBackend.video_url } as any);
-        }
-      })
-      .catch((err) => console.warn('Failed to sync updated lesson with backend API:', err));
+    const payload: Record<string, any> = {
+      title: data.title,
+      description: data.description,
+      duration_minutes: data.durationMinutes,
+      is_demo: data.isDemo,
+      allow_download: data.allowDownload,
+      external_url: externalUrl,
+      media_file_id: mediaFileId,
+    };
+
+    if (content.quizPayload || content.quiz || (data as any).quizPayload) {
+      payload.content = content.quizPayload || content.quiz || (data as any).quizPayload;
+    } else if (content.assignmentPayload || content.assignment || (data as any).assignmentPayload) {
+      payload.content = content.assignmentPayload || content.assignment || (data as any).assignmentPayload;
+    } else if (textContent) {
+      payload.content = textContent;
+    }
+
+    const rawResources = Array.isArray(content.resources)
+      ? content.resources
+      : Array.isArray((data as any).resources)
+      ? (data as any).resources
+      : undefined;
+
+    if (rawResources !== undefined) {
+      payload.resources = rawResources;
+    }
+
+    const res = await apiClient.patch(`/api/v1/lessons/${lessonUuid}/`, payload);
+
+    const updatedBackend = res.data?.data || res.data;
+    if (updatedBackend) {
+      useCurriculumStore.getState().updateLesson(lessonUuid, {
+        video_url: updatedBackend.video_url,
+        question_count: updatedBackend.question_count || (updatedBackend.quiz as any)?.questions?.length || 0,
+        quiz: updatedBackend.quiz || null,
+      } as any);
+    }
   },
 
   async deleteLesson(lessonUuid: string): Promise<void> {

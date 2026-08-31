@@ -36,7 +36,8 @@ export function isNavItemActive(href: string, pathname: string): boolean {
   if (href === "/assignments") return pathname.startsWith("/assignments");
   if (href === "/quizzes") return pathname.startsWith("/quizzes");
   if (href === "/certificates") return pathname.startsWith("/certificates");
-  if (href === "/discussions") return pathname.startsWith("/discussions");
+  if (href === "/discussions/personal") return pathname.startsWith("/discussions/personal");
+  if (href === "/discussions/community") return pathname.startsWith("/discussions/community");
   if (href === "/announcements") return pathname.startsWith("/announcements");
   if (href === "/live-classroom") return pathname.startsWith("/live-classroom");
   if (href === "/reports") return pathname.startsWith("/reports");

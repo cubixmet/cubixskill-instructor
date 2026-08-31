@@ -4,9 +4,9 @@ import { useAuth } from "../features/auth/hooks/useAuth";
 import { Spinner } from "../components/ui/Spinner";
 
 export const PublicRoute: React.FC = () => {
-  const { isAuthenticated, isInitializing } = useAuth();
+  const { isAuthenticated, isInitializing, authStatus } = useAuth();
 
-  if (isInitializing) {
+  if (isInitializing || authStatus === "checking") {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center space-y-3">
         <Spinner size="lg" />
@@ -15,7 +15,7 @@ export const PublicRoute: React.FC = () => {
     );
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated || authStatus === "authenticated") {
     return <Navigate to="/dashboard" replace />;
   }
 

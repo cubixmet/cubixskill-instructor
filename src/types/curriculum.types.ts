@@ -88,6 +88,10 @@ export interface LessonContent {
   maxScore?: number;
   submissionType?: 'file' | 'text' | 'both';
   questions?: Record<string, unknown>[];
+  quizPayload?: CreateQuizInput;
+  quiz?: Record<string, any>;
+  assignmentPayload?: CreateAssignmentInput;
+  assignment?: Record<string, any>;
 }
 
 export interface CourseLessonSubsection {
@@ -120,6 +124,11 @@ export interface CourseLesson {
   durationMinutes: number;
   isDemo: boolean;
   allowDownload?: boolean;
+  external_url?: string;
+  video_url?: string;
+  audio_url?: string;
+  primary_media?: Record<string, any> | null;
+  media_files?: Record<string, any>[];
   unlockRule?: UnlockRule;
   unlockDate?: string;
   unlockAfterDays?: number;
@@ -136,10 +145,64 @@ export type CreateModuleInput = Omit<
 
 export type UpdateModuleInput = Partial<CreateModuleInput>;
 
-export type CreateLessonInput = Omit<
-  CourseLesson,
-  'uuid' | 'courseUuid' | 'moduleUuid' | 'sortOrder' | 'createdAt' | 'updatedAt'
->;
+export interface CreateQuizOptionInput {
+  option_text: string;
+  is_correct: boolean;
+}
+
+export interface CreateQuizQuestionInput {
+  questionText: string;
+  question_type: string;
+  points?: number;
+  explanation?: string;
+  answer_text?: string;
+  options?: CreateQuizOptionInput[];
+}
+
+export interface CreateQuizInput {
+  title: string;
+  instructions?: string;
+  passingScore?: number;
+  timeLimitMinutes?: number | null;
+  maxAttempts?: number | null;
+  shuffleQuestions?: boolean;
+  showResult?: boolean;
+  questions: CreateQuizQuestionInput[];
+}
+
+export interface CreateAssignmentAssetInput {
+  media_file_id: string;
+  title?: string;
+  asset_type?: string;
+  description?: string;
+}
+
+export interface CreateAssignmentInput {
+  title?: string;
+  instructions: string;
+  due_date?: string | null;
+  dueDate?: string | null;
+  max_marks?: number;
+  maxScore?: number;
+  allow_text_submission?: boolean;
+  allow_file_submission?: boolean;
+  allow_url_submission?: boolean;
+  assets?: CreateAssignmentAssetInput[];
+}
+
+export interface CreateLessonInput {
+  title: string;
+  type: LessonType;
+  description?: string;
+  status?: ContentStatus;
+  durationMinutes?: number;
+  isDemo?: boolean;
+  allowDownload?: boolean;
+  external_url?: string;
+  content?: LessonContent;
+  quizPayload?: CreateQuizInput;
+  assignmentPayload?: CreateAssignmentInput;
+}
 
 export type UpdateLessonInput = Partial<CreateLessonInput>;
 

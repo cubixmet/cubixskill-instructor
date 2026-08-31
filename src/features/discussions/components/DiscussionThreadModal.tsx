@@ -33,13 +33,7 @@ export interface DiscussionThreadModalProps {
   isInstructor?: boolean;
 }
 
-const MENTIONABLE_USERS = [
-  { name: 'Dr. Vikramaditya Rao', role: 'Instructor', tag: '@Instructor' },
-  { name: 'Aarav Sharma', role: 'Student', tag: '@Student' },
-  { name: 'Priya Patel', role: 'Student', tag: '@Student' },
-  { name: 'Rohan Mehta', role: 'Student', tag: '@Student' },
-  { name: 'Kavita Sundaram', role: 'Student', tag: '@Student' },
-];
+const MENTIONABLE_USERS: Array<{ name: string; role: string; tag: string }> = [];
 
 export const DiscussionThreadModal: React.FC<DiscussionThreadModalProps> = ({
   isOpen,

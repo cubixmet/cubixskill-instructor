@@ -8,9 +8,13 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
 let refreshPromise: Promise<boolean> | null = null;
 
 export const setupInterceptors = (client: AxiosInstance) => {
-  // Request Interceptor: Ensure request passes through without attaching manual Authorization tokens
+  // Request Interceptor: Ensure FormData requests automatically generate boundary headers
   client.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
+      if (config.data instanceof FormData && config.headers) {
+        delete config.headers['Content-Type'];
+        delete config.headers['content-type'];
+      }
       return config;
     },
     (error) => Promise.reject(parseApiError(error))
@@ -22,7 +26,7 @@ export const setupInterceptors = (client: AxiosInstance) => {
     async (error) => {
       const originalRequest = error.config;
 
-      // Do not attempt refresh on auth endpoints (login, logout, refresh, password reset)
+      // Do not attempt refresh on login/logout/refresh/password reset auth endpoints
       const requestUrl = originalRequest?.url || "";
       const isAuthBypassRoute =
         requestUrl.includes(API_ENDPOINTS.AUTH.LOGIN) ||
@@ -44,14 +48,14 @@ export const setupInterceptors = (client: AxiosInstance) => {
             try {
               console.debug("API 401 encountered, refreshing session cookie...");
               const refreshUrl = `${API_BASE_URL}${API_ENDPOINTS.AUTH.REFRESH}`;
-              await axios.post(refreshUrl, {}, { withCredentials: true });
+              await axios.post(refreshUrl, {}, {
+                withCredentials: true,
+                headers: { "X-Portal": "instructor" }
+              });
               console.debug("Session cookie refresh succeeded");
               return true;
             } catch (refreshErr) {
               tokenStorage.clearTokens();
-              if (window.location.pathname !== "/login") {
-                window.location.href = "/login";
-              }
               throw refreshErr;
             } finally {
               refreshPromise = null;

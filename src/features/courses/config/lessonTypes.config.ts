@@ -87,15 +87,66 @@ export const LESSON_TYPES_CONFIG: LessonTypeMeta[] = [
 
 export const normalizeLessonType = (rawType: string): LessonType => {
   const t = (rawType || '').toLowerCase().trim();
-  if (t === 'video' || t === 'embed' || t === 'external_url') return 'video';
+  if (t === 'video' || t === 'embed') return 'video';
   if (t === 'audio') return 'audio';
   if (t === 'pdf' || t === 'document' || t === 'doc' || t === 'rich-document' || t === 'download') return 'document';
-  if (t === 'text') return 'text';
+  if (t === 'text' || t === 'rich_text' || t === 'article') return 'text';
   if (t === 'image') return 'image';
   if (t === 'quiz') return 'quiz';
   if (t === 'assignment' || t === 'manual-assignment') return 'assignment';
   if (t === 'project') return 'project';
-  return 'video'; // Safe default
+  if (t === 'url' || t === 'external_url') return 'video';
+  return 'video'; // Safe fallback
+};
+
+export const toBackendLessonType = (type: string): string => {
+  const normalized = normalizeLessonType(type);
+  switch (normalized) {
+    case 'video':
+      return 'VIDEO';
+    case 'audio':
+      return 'AUDIO';
+    case 'document':
+      return 'DOCUMENT';
+    case 'image':
+      return 'IMAGE';
+    case 'text':
+      return 'RICH_TEXT';
+    case 'quiz':
+      return 'QUIZ';
+    case 'assignment':
+      return 'ASSIGNMENT';
+    case 'project':
+      return 'PROJECT';
+    default:
+      return 'VIDEO';
+  }
+};
+
+export const fromBackendLessonType = (backendType: string): LessonType => {
+  const t = (backendType || '').toUpperCase().trim();
+  switch (t) {
+    case 'VIDEO':
+    case 'URL':
+      return 'video';
+    case 'AUDIO':
+      return 'audio';
+    case 'DOCUMENT':
+      return 'document';
+    case 'IMAGE':
+      return 'image';
+    case 'RICH_TEXT':
+    case 'TEXT':
+      return 'text';
+    case 'QUIZ':
+      return 'quiz';
+    case 'ASSIGNMENT':
+      return 'assignment';
+    case 'PROJECT':
+      return 'project';
+    default:
+      return 'video';
+  }
 };
 
 export const getLessonTypeMeta = (type: string): LessonTypeMeta => {
@@ -104,3 +155,4 @@ export const getLessonTypeMeta = (type: string): LessonTypeMeta => {
     LESSON_TYPES_CONFIG.find((c) => c.id === normalized) || LESSON_TYPES_CONFIG[0]
   );
 };
+

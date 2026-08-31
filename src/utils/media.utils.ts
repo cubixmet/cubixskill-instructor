@@ -14,15 +14,19 @@ export const API_BASE_URL = origin;
  */
 export function resolveMediaUrl(urlPath?: string | null): string {
   if (!urlPath) return '';
-  if (
-    urlPath.startsWith('http://') ||
-    urlPath.startsWith('https://') ||
-    urlPath.startsWith('blob:') ||
-    urlPath.startsWith('data:')
-  ) {
-    return urlPath;
+  let clean = urlPath.trim();
+  if (clean.includes('testserver')) {
+    clean = clean.replace(/^https?:\/\/testserver/i, '');
   }
-  const cleanPath = urlPath.startsWith('/') ? urlPath : `/${urlPath}`;
+  if (
+    clean.startsWith('http://') ||
+    clean.startsWith('https://') ||
+    clean.startsWith('blob:') ||
+    clean.startsWith('data:')
+  ) {
+    return clean;
+  }
+  const cleanPath = clean.startsWith('/') ? clean : `/${clean}`;
   return `${origin}${cleanPath}`;
 }
 
@@ -36,4 +40,41 @@ export function formatBytes(bytes: number, decimals: number = 1): string {
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
+/**
+ * Formats a creation/upload date string into '25 Aug 2026' style.
+ * Returns '-' if the input date value is missing or invalid.
+ */
+export function formatMediaDate(value?: string | null): string {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
+}
+
+/**
+ * Formats a creation/upload date string into '25 Aug 2026, 1:51 PM' style.
+ * Returns '-' if the input date value is missing or invalid.
+ */
+export function formatMediaDateTime(value?: string | null): string {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date);
 }

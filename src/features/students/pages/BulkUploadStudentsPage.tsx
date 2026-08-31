@@ -36,9 +36,27 @@ export interface ParsedCsvRow {
   errorMessage?: string;
 }
 
+import { apiClient } from '../../../api/client';
+
+export interface ParsedCsvRow {
+  rowNumber: number;
+  name: string;
+  email: string;
+  phone: string;
+  studentCode?: string;
+  studentUserId?: string;
+  studentCreated?: boolean;
+  enrollmentCreated?: boolean;
+  activationEmailSent?: boolean;
+  status: 'valid' | 'invalid' | 'duplicate';
+  errorMessage?: string;
+}
+
 export const BulkUploadStudentsPage: React.FC = () => {
   const navigate = useNavigate();
   const { courseUuid } = useParams<{ courseUuid?: string }>();
+  const [selectedCourseUuid, setSelectedCourseUuid] = useState<string>(courseUuid || '');
+  const [availableCourses, setAvailableCourses] = useState<Array<{ id: string; title: string }>>([]);
 
   // Stepper State: 1 Template, 2 Upload, 3 Review, 4 Import Completed
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -51,14 +69,21 @@ export const BulkUploadStudentsPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Parsed Rows State
-  const [parsedRows, setParsedRows] = useState<ParsedCsvRow[]>([
-    { rowNumber: 1, name: 'Sam Wilson', email: 'sam.wilson@example.com', phone: '+91 98111 22233', status: 'valid' },
-    { rowNumber: 2, name: 'Aarav Patel', email: 'aarav.patel@gmail.com', phone: '+91 98765 43210', status: 'valid' },
-    { rowNumber: 3, name: 'Dev Kumar', email: 'dev.k@example.com', phone: '+91 97222 33344', status: 'valid' },
-    { rowNumber: 4, name: 'Neha Sharma', email: 'neha.s@domain.com', phone: '+91 99888 77665', status: 'valid' },
-    { rowNumber: 5, name: 'Bad Format', email: 'invalid-email-format', phone: '123', status: 'invalid', errorMessage: 'Email is required and must be valid' },
-    { rowNumber: 6, name: 'Priya Roy', email: 'priya.roy@tech.io', phone: '+91 91234 56789', status: 'duplicate', errorMessage: 'Duplicate student — skipped to prevent double enrollment' },
-  ]);
+  const [parsedRows, setParsedRows] = useState<ParsedCsvRow[]>([]);
+
+  useEffect(() => {
+    if (!courseUuid) {
+      apiClient.get('/api/v1/courses/').then((res) => {
+        const raw = (res.data as any)?.data || res.data;
+        const list = Array.isArray(raw) ? raw : (raw as any)?.results || [];
+        const formatted = list.map((c: any) => ({ id: String(c.id || c.uuid), title: String(c.title || 'Untitled Course') }));
+        setAvailableCourses(formatted);
+        if (formatted.length > 0 && !selectedCourseUuid) {
+          setSelectedCourseUuid(formatted[0].id);
+        }
+      }).catch((err) => console.warn('Failed to load courses for bulk upload:', err));
+    }
+  }, [courseUuid]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -194,8 +219,9 @@ export const BulkUploadStudentsPage: React.FC = () => {
   const handleConfirmImport = async () => {
     if (isImporting) return;
 
-    if (!courseUuid) {
-      setErrorMsg('Course is missing from the route.');
+    const targetCourseId = courseUuid || selectedCourseUuid;
+    if (!targetCourseId) {
+      setErrorMsg('Please select a course to enroll these students into.');
       return;
     }
 
@@ -210,7 +236,7 @@ export const BulkUploadStudentsPage: React.FC = () => {
       }));
 
       const res = await studentsService.bulkUploadStudents({
-        course_id: courseUuid,
+        course_id: targetCourseId,
         rows: rowsToUpload,
       });
 
@@ -257,45 +283,45 @@ export const BulkUploadStudentsPage: React.FC = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="w-full min-w-0 max-w-[960px] mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-5 text-left font-sans pb-32 md:pb-12"
+      className="w-full min-w-0 max-w-[960px] mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-5 text-left font-sans pb-32 md:pb-12 bg-[var(--page-background)] text-[var(--text-primary)]"
     >
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 px-4 py-3 bg-[#0F172A] dark:bg-[#1E293B] text-white text-xs font-semibold rounded-2xl shadow-xl flex items-center gap-2.5 border border-[#334155]">
-          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="fixed top-4 right-4 z-50 px-4 py-3 bg-[var(--surface-secondary)] dark:bg-[#1E293B] text-[var(--text-primary)] dark:text-white text-xs font-semibold rounded-2xl shadow-xl flex items-center gap-2.5 border border-[var(--border)] dark:border-[#334155]">
+          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
           <span>{toast}</span>
         </div>
       )}
 
       {/* BREADCRUMB / BACK NAVIGATION */}
-      <nav className="flex items-center gap-1.5 text-xs text-[#64748B] dark:text-[#94A3B8]">
+      <nav className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] dark:text-[#94A3B8]">
         <Link
           to={backLink}
-          className="hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors flex items-center gap-1 font-medium"
+          className="hover:text-[var(--brand-primary)] transition-colors flex items-center gap-1 font-medium text-[var(--text-secondary)] dark:text-[#CBD5E1]"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Course Students</span>
         </Link>
-        <span className="text-slate-300 dark:text-[#334155]">/</span>
-        <span className="text-[#0F172A] dark:text-[#CBD5E1] font-semibold truncate">Bulk Upload</span>
+        <span className="text-[var(--border)] dark:text-[#334155]">/</span>
+        <span className="text-[var(--text-primary)] dark:text-[#F8FAFC] font-semibold truncate">Bulk Upload</span>
       </nav>
 
       {/* PAGE HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E2E8F0] dark:border-[#263244] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border)] dark:border-[#263244] pb-4">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
             onClick={handleStepBack}
-            className="p-2 text-[#0F172A] dark:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl cursor-pointer transition-colors shrink-0 border border-[#E2E8F0] dark:border-[#334155]"
+            className="p-2 text-[var(--text-primary)] dark:text-[#F8FAFC] hover:bg-[var(--surface-hover)] dark:hover:bg-[#172033] rounded-xl cursor-pointer transition-colors shrink-0 border border-[var(--border)] dark:border-[#334155]"
             title="Go back"
           >
-            <ArrowLeft className="w-4 h-4 text-[#0F172A] dark:text-[#F8FAFC]" />
+            <ArrowLeft className="w-4 h-4 text-[var(--text-primary)] dark:text-[#F8FAFC]" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-lg sm:text-2xl font-semibold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
+            <h1 className="text-lg sm:text-2xl font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC] tracking-tight">
               Bulk Upload Students
             </h1>
-            <p className="text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] font-normal mt-0.5 truncate">
+            <p className="text-xs sm:text-sm text-[var(--text-muted)] dark:text-[#94A3B8] font-normal mt-0.5 truncate">
               Upload multiple student records at once using CSV or XLSX format.
             </p>
           </div>
@@ -305,7 +331,7 @@ export const BulkUploadStudentsPage: React.FC = () => {
           <Link to={backLink}>
             <button
               type="button"
-              className="bg-white dark:bg-[#111827] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC] text-xs font-semibold h-9 px-3.5 rounded-xl transition-colors cursor-pointer"
+              className="bg-[var(--surface-secondary)] dark:bg-[#111827] border border-[var(--border)] dark:border-[#334155] text-[var(--text-secondary)] dark:text-[#CBD5E1] hover:bg-[var(--surface-hover)] dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC] text-xs font-semibold h-9 px-3.5 rounded-xl transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -314,9 +340,9 @@ export const BulkUploadStudentsPage: React.FC = () => {
       </div>
 
       {errorMsg && (
-        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-rose-800 dark:text-rose-300 text-xs font-medium flex items-center justify-between gap-2">
+        <div className="p-3.5 rounded-xl bg-rose-50/80 dark:bg-[rgba(239,68,68,0.08)] border border-rose-200 dark:border-[rgba(248,113,113,0.22)] text-rose-800 dark:text-[#FCA5A5] text-xs font-medium flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 dark:text-[#F87171]" />
             <span>{errorMsg}</span>
           </div>
           <button type="button" onClick={() => setErrorMsg(null)} className="hover:opacity-75 cursor-pointer">
@@ -326,7 +352,7 @@ export const BulkUploadStudentsPage: React.FC = () => {
       )}
 
       {/* 4-STEP WIZARD BAR */}
-      <div className="bg-white dark:bg-[#111827] p-3 sm:p-4 rounded-2xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs">
+      <div className="bg-[var(--surface)] dark:bg-[#111827] p-3 sm:p-4 rounded-2xl border border-[var(--border)] dark:border-[#263244] shadow-2xs">
         <div className="grid grid-cols-4 gap-1 text-center">
           {[
             { num: 1, label: 'Template' },
@@ -344,8 +370,8 @@ export const BulkUploadStudentsPage: React.FC = () => {
                     isDone
                       ? 'bg-emerald-600 text-white'
                       : isActive
-                      ? 'bg-[#2563EB] text-white shadow-xs'
-                      : 'bg-slate-100 dark:bg-[#172033] text-slate-400 dark:text-[#64748B]'
+                      ? 'bg-[var(--brand-primary)] text-[var(--brand-primary-foreground)] shadow-xs'
+                      : 'bg-[var(--surface-elevated)] dark:bg-[#172033] text-[var(--text-muted)] dark:text-[#64748B]'
                   }`}
                 >
                   {isDone ? <Check className="w-4 h-4" /> : s.num}
@@ -353,10 +379,10 @@ export const BulkUploadStudentsPage: React.FC = () => {
                 <span
                   className={`text-[11px] sm:text-xs block font-semibold truncate ${
                     isActive
-                      ? 'text-[#2563EB] dark:text-[#60A5FA]'
+                      ? 'text-[var(--brand-primary)]'
                       : isDone
                       ? 'text-emerald-600 dark:text-[#6EE7B7]'
-                      : 'text-[#64748B] dark:text-[#94A3B8]'
+                      : 'text-[var(--text-muted)] dark:text-[#94A3B8]'
                   }`}
                 >
                   {s.label}
@@ -369,37 +395,37 @@ export const BulkUploadStudentsPage: React.FC = () => {
 
       {/* STEP 1: INSTRUCTIONS & DOWNLOAD TEMPLATE */}
       {currentStep === 1 && (
-        <Card className="space-y-5 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl p-4 sm:p-6 shadow-2xs">
+        <Card className="space-y-5 bg-[var(--surface)] dark:bg-[#111827] border border-[var(--border)] dark:border-[#263244] rounded-2xl p-4 sm:p-6 shadow-2xs">
           <div className="flex items-start gap-3.5">
-            <div className="p-3 bg-blue-50 dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] rounded-xl shrink-0 border border-blue-100 dark:border-[#263244]">
+            <div className="p-3 bg-[color-mix(in_srgb,var(--brand-primary)_12%,var(--surface-secondary))] dark:bg-[#172033] text-[var(--brand-primary)] rounded-xl shrink-0 border border-[var(--border)] dark:border-[#263244]">
               <FileSpreadsheet className="w-6 h-6" />
             </div>
             <div className="space-y-1.5 min-w-0">
-              <h2 className="text-sm sm:text-base font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
+              <h2 className="text-sm sm:text-base font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC]">
                 CSV / XLSX File Requirements
               </h2>
-              <p className="text-xs sm:text-sm text-[#475569] dark:text-[#CBD5E1] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)] dark:text-[#CBD5E1] leading-relaxed">
                 Download the official template to structure your student records correctly. Ensure all column headers match the template format.
               </p>
             </div>
           </div>
 
-          <div className="bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#263244] rounded-xl p-3.5 space-y-2.5">
-            <div className="flex items-center gap-2 text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
-              <HelpCircle className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
+          <div className="bg-[var(--surface-secondary)] dark:bg-[#0F172A] border border-[var(--border)] dark:border-[#263244] rounded-xl p-3.5 space-y-2.5">
+            <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC]">
+              <HelpCircle className="w-4 h-4 text-[var(--brand-primary)]" />
               <span>Required Columns Format:</span>
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-mono">
               {['Name', 'Email', 'Phone'].map((col) => (
                 <code
                   key={col}
-                  className="bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#F8FAFC] px-2 py-1 rounded-md border border-[#E2E8F0] dark:border-[#334155]"
+                  className="bg-[var(--surface)] dark:bg-[#172033] text-[var(--text-primary)] dark:text-[#F8FAFC] px-2 py-1 rounded-md border border-[var(--border)] dark:border-[#334155]"
                 >
                   {col}
                 </code>
               ))}
             </div>
-            <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">
+            <p className="text-[11px] text-[var(--text-muted)] dark:text-[#94A3B8]">
               Note: Email addresses must be valid and unique for successful enrollment.
             </p>
           </div>
@@ -408,45 +434,46 @@ export const BulkUploadStudentsPage: React.FC = () => {
             <button
               type="button"
               onClick={handleDownloadTemplate}
-              className="bg-white dark:bg-[#172033] border border-[#2563EB] dark:border-[#3B82F6] text-[#2563EB] dark:text-[#60A5FA] font-medium text-xs sm:text-sm h-10 px-4 rounded-xl hover:bg-blue-50 dark:hover:bg-[rgba(37,99,235,0.12)] dark:hover:text-[#93C5FD] transition-colors w-full sm:w-auto flex items-center justify-center gap-2 cursor-pointer"
+              className="bg-[var(--surface-secondary)] dark:bg-[#172033] border border-[var(--border)] dark:border-[#3B82F6] text-[var(--text-secondary)] dark:text-[#60A5FA] font-medium text-xs sm:text-sm h-10 px-4 rounded-xl hover:bg-[var(--surface-hover)] dark:hover:bg-[rgba(37,99,235,0.12)] hover:border-[var(--brand-primary)] transition-colors w-full sm:w-auto flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4 stroke-current" />
               <span>Download CSV Template</span>
             </button>
-            <Button
+            <button
+              type="button"
               onClick={() => setCurrentStep(2)}
-              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-xs sm:text-sm h-10 px-5 w-full sm:w-auto shadow-xs"
+              className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-medium text-xs sm:text-sm h-10 px-5 rounded-xl transition-colors w-full sm:w-auto shadow-xs cursor-pointer"
             >
               Next: Upload File →
-            </Button>
+            </button>
           </div>
         </Card>
       )}
 
       {/* STEP 2: CSV UPLOAD / DROPZONE */}
       {currentStep === 2 && (
-        <Card className="space-y-5 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl p-4 sm:p-6 shadow-2xs">
+        <Card className="space-y-5 bg-[var(--surface)] dark:bg-[#111827] border border-[var(--border)] dark:border-[#263244] rounded-2xl p-4 sm:p-6 shadow-2xs">
           <div className="space-y-1">
-            <h2 className="text-sm sm:text-base font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
+            <h2 className="text-sm sm:text-base font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC]">
               Upload Student Spreadsheet
             </h2>
-            <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
+            <p className="text-xs text-[var(--text-muted)] dark:text-[#94A3B8]">
               Select or drop your prepared .csv or .xlsx file (max file size 10MB)
             </p>
           </div>
 
           {file ? (
             /* SELECTED FILE CARD */
-            <div className="bg-slate-50 dark:bg-[#172033] border border-[#E2E8F0] dark:border-[#334155] p-4 rounded-xl flex items-center justify-between gap-3 transition-colors">
+            <div className="bg-[var(--surface-secondary)] dark:bg-[#172033] border border-[var(--border)] dark:border-[#334155] p-4 rounded-xl flex items-center justify-between gap-3 transition-colors">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="p-2.5 bg-blue-100/60 dark:bg-[#0F172A] text-[#2563EB] dark:text-[#60A5FA] rounded-lg shrink-0">
+                <div className="p-2.5 bg-[color-mix(in_srgb,var(--brand-primary)_12%,transparent)] dark:bg-[#0F172A] text-[var(--brand-primary)] rounded-lg shrink-0">
                   <FileSpreadsheet className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-xs sm:text-sm font-medium text-[#0F172A] dark:text-[#F8FAFC] block truncate">
+                  <span className="text-xs sm:text-sm font-medium text-[var(--text-primary)] dark:text-[#F8FAFC] block truncate">
                     {file.name}
                   </span>
-                  <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] block">
+                  <span className="text-[11px] text-[var(--text-muted)] dark:text-[#94A3B8] block">
                     {(file.size / 1024).toFixed(1)} KB • CSV File
                   </span>
                 </div>
@@ -469,10 +496,10 @@ export const BulkUploadStudentsPage: React.FC = () => {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`bg-[#F8FAFC] dark:bg-[#0F172A] border-2 border-dashed ${
+              className={`bg-[var(--surface-secondary)] dark:bg-[#0F172A] border-2 border-dashed ${
                 isDragging
-                  ? 'bg-[#172033] border-[#3B82F6]'
-                  : 'border-[#CBD5E1] dark:border-[#475569] hover:bg-slate-100 dark:hover:bg-[#172033] hover:border-[#2563EB] dark:hover:border-[#3B82F6]'
+                  ? 'bg-[color-mix(in_srgb,var(--brand-primary)_6%,var(--surface-secondary))] border-[var(--brand-primary)]'
+                  : 'border-[var(--input-border)] dark:border-[#475569] hover:bg-[var(--surface-hover)] dark:hover:bg-[#172033] hover:border-[var(--brand-primary)]'
               } p-8 sm:p-10 rounded-2xl text-center block cursor-pointer transition-all space-y-3`}
             >
               <input
@@ -482,14 +509,14 @@ export const BulkUploadStudentsPage: React.FC = () => {
                 className="hidden"
                 id="csv-file-input"
               />
-              <div className="w-12 h-12 mx-auto rounded-2xl bg-blue-50 dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center border border-blue-100 dark:border-[#263244]">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-[color-mix(in_srgb,var(--brand-primary)_12%,transparent)] dark:bg-[#172033] text-[var(--brand-primary)] flex items-center justify-center border border-[var(--border)] dark:border-[#263244]">
                 <Upload className="w-6 h-6" />
               </div>
               <div className="space-y-1">
-                <strong className="text-xs sm:text-sm font-medium text-[#0F172A] dark:text-[#F8FAFC] block">
+                <strong className="text-xs sm:text-sm font-medium text-[var(--text-primary)] dark:text-[#F8FAFC] block">
                   Click to browse or drag & drop CSV file
                 </strong>
-                <span className="text-xs text-[#64748B] dark:text-[#94A3B8] block">
+                <span className="text-xs text-[var(--text-muted)] dark:text-[#94A3B8] block">
                   Supports UTF-8 encoded .csv and .xlsx files up to 10MB
                 </span>
               </div>
@@ -497,8 +524,8 @@ export const BulkUploadStudentsPage: React.FC = () => {
           )}
 
           {isValidating && (
-            <div className="p-3.5 bg-[#0F172A]/5 dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] rounded-xl flex items-center gap-2.5 text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
-              <RefreshCw className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA] animate-spin shrink-0" />
+            <div className="p-3.5 bg-[var(--surface-secondary)] dark:bg-[#0F172A] border border-[var(--border)] dark:border-[#334155] rounded-xl flex items-center gap-2.5 text-xs font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC]">
+              <RefreshCw className="w-4 h-4 text-[var(--brand-primary)] animate-spin shrink-0" />
               <span>Validating columns and row records...</span>
             </div>
           )}
@@ -507,17 +534,18 @@ export const BulkUploadStudentsPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setCurrentStep(1)}
-              className="bg-white dark:bg-[#111827] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC] text-xs font-semibold h-10 px-4 rounded-xl transition-colors cursor-pointer w-full sm:w-auto"
+              className="bg-[var(--surface-secondary)] dark:bg-[#111827] border border-[var(--border)] dark:border-[#334155] text-[var(--text-secondary)] dark:text-[#CBD5E1] hover:bg-[var(--surface-hover)] dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC] text-xs font-semibold h-10 px-4 rounded-xl transition-colors cursor-pointer w-full sm:w-auto"
             >
               ← Back to Template
             </button>
             {file && !isValidating && (
-              <Button
+              <button
+                type="button"
                 onClick={() => setCurrentStep(3)}
-                className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-xs sm:text-sm h-10 px-5 w-full sm:w-auto shadow-xs"
+                className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-medium text-xs sm:text-sm h-10 px-5 rounded-xl transition-colors w-full sm:w-auto shadow-xs cursor-pointer"
               >
                 Proceed to Review →
-              </Button>
+              </button>
             )}
           </div>
         </Card>
@@ -528,29 +556,29 @@ export const BulkUploadStudentsPage: React.FC = () => {
         <div className="space-y-5">
           {/* IMPORT SUMMARY STAT CARDS */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <div className="p-3 bg-white dark:bg-[#0F172A] rounded-xl border border-[#E2E8F0] dark:border-[#334155] text-center space-y-1 shadow-2xs">
-              <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] block font-medium">Total Rows</span>
-              <strong className="text-sm sm:text-lg font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
+            <div className="p-3 bg-[var(--surface)] dark:bg-[#0F172A] rounded-xl border border-[var(--border)] dark:border-[#334155] text-center space-y-1 shadow-2xs">
+              <span className="text-[11px] text-[var(--text-muted)] dark:text-[#94A3B8] block font-medium">Total Rows</span>
+              <strong className="text-sm sm:text-lg font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC]">
                 {parsedRows.length}
               </strong>
             </div>
 
-            <div className="p-3 bg-white dark:bg-[#0F172A] rounded-xl border border-[#E2E8F0] dark:border-[#334155] text-center space-y-1 shadow-2xs">
-              <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] block font-medium">Valid</span>
+            <div className="p-3 bg-[var(--surface)] dark:bg-[#0F172A] rounded-xl border border-[var(--border)] dark:border-[#334155] text-center space-y-1 shadow-2xs">
+              <span className="text-[11px] text-[var(--text-muted)] dark:text-[#94A3B8] block font-medium">Valid</span>
               <strong className="text-sm sm:text-lg font-semibold text-emerald-600 dark:text-[#6EE7B7]">
                 {validRows.length}
               </strong>
             </div>
 
-            <div className="p-3 bg-white dark:bg-[#0F172A] rounded-xl border border-[#E2E8F0] dark:border-[#334155] text-center space-y-1 shadow-2xs">
-              <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] block font-medium">Errors</span>
+            <div className="p-3 bg-[var(--surface)] dark:bg-[#0F172A] rounded-xl border border-[var(--border)] dark:border-[#334155] text-center space-y-1 shadow-2xs">
+              <span className="text-[11px] text-[var(--text-muted)] dark:text-[#94A3B8] block font-medium">Errors</span>
               <strong className="text-sm sm:text-lg font-semibold text-rose-600 dark:text-[#FCA5A5]">
                 {invalidRows.length}
               </strong>
             </div>
 
-            <div className="p-3 bg-white dark:bg-[#0F172A] rounded-xl border border-[#E2E8F0] dark:border-[#334155] text-center space-y-1 shadow-2xs">
-              <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] block font-medium">Duplicates</span>
+            <div className="p-3 bg-[var(--surface)] dark:bg-[#0F172A] rounded-xl border border-[var(--border)] dark:border-[#334155] text-center space-y-1 shadow-2xs">
+              <span className="text-[11px] text-[var(--text-muted)] dark:text-[#94A3B8] block font-medium">Duplicates</span>
               <strong className="text-sm sm:text-lg font-semibold text-amber-600 dark:text-[#FCD34D]">
                 {duplicateRows.length}
               </strong>
@@ -561,7 +589,7 @@ export const BulkUploadStudentsPage: React.FC = () => {
           {invalidRows.length > 0 && (
             <div className="p-4 bg-rose-50/70 dark:bg-[rgba(239,68,68,0.06)] border border-rose-200 dark:border-[rgba(248,113,113,0.20)] rounded-2xl space-y-1.5">
               <div className="flex items-center gap-2 text-rose-700 dark:text-[#FCA5A5] font-semibold text-xs sm:text-sm">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 dark:text-[#F87171]" />
                 <span>{invalidRows.length} invalid row(s) detected</span>
               </div>
               <p className="text-xs text-rose-600 dark:text-[#FECACA]">
@@ -571,7 +599,7 @@ export const BulkUploadStudentsPage: React.FC = () => {
           )}
 
           {/* FILTER REVIEW TABS */}
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
             {[
               { id: 'all', label: `All (${parsedRows.length})` },
               { id: 'valid', label: `Valid (${validRows.length})` },
@@ -584,8 +612,8 @@ export const BulkUploadStudentsPage: React.FC = () => {
                 onClick={() => setReviewFilter(tab.id as 'all' | 'valid' | 'invalid' | 'duplicate')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap cursor-pointer transition-all ${
                   reviewFilter === tab.id
-                    ? 'bg-[#2563EB] text-white shadow-2xs'
-                    : 'bg-white dark:bg-[#111827] text-[#64748B] dark:text-[#94A3B8] hover:bg-slate-100 dark:hover:bg-[#172033] border border-[#E2E8F0] dark:border-[#334155]'
+                    ? 'bg-[var(--brand-primary)] text-[var(--brand-primary-foreground)] shadow-2xs'
+                    : 'bg-[var(--surface)] dark:bg-[#111827] text-[var(--text-secondary)] dark:text-[#94A3B8] hover:bg-[var(--surface-hover)] dark:hover:bg-[#172033] border border-[var(--border)] dark:border-[#334155]'
                 }`}
               >
                 {tab.label}
@@ -594,8 +622,8 @@ export const BulkUploadStudentsPage: React.FC = () => {
           </div>
 
           {/* ROW REVIEW CONTAINER */}
-          <div className="bg-white dark:bg-[#111827] rounded-2xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs p-3.5 sm:p-5 space-y-3">
-            <h3 className="text-xs font-semibold text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">
+          <div className="bg-[var(--surface)] dark:bg-[#111827] rounded-2xl border border-[var(--border)] dark:border-[#263244] shadow-2xs p-3.5 sm:p-5 space-y-3">
+            <h3 className="text-xs font-semibold text-[var(--text-muted)] dark:text-[#94A3B8] uppercase tracking-wider">
               Student Records Review ({filteredReviewRows.length})
             </h3>
 
@@ -613,32 +641,25 @@ export const BulkUploadStudentsPage: React.FC = () => {
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-bold text-[#64748B] dark:text-[#94A3B8]">
+                    <span className="text-[11px] font-bold text-[var(--text-muted)] dark:text-[#94A3B8]">
                       Row #{row.rowNumber}
                     </span>
                     <Badge
                       variant={row.status === 'valid' ? 'success' : row.status === 'invalid' ? 'error' : 'warning'}
                       size="sm"
-                      className={
-                        row.status === 'valid'
-                          ? 'dark:bg-[rgba(16,185,129,0.12)] dark:text-[#6EE7B7] dark:border-[rgba(52,211,153,0.22)]'
-                          : row.status === 'invalid'
-                          ? 'dark:bg-[rgba(239,68,68,0.12)] dark:text-[#FCA5A5] dark:border-[rgba(248,113,113,0.22)]'
-                          : 'dark:bg-[rgba(245,158,11,0.12)] dark:text-[#FCD34D] dark:border-[rgba(251,191,36,0.22)]'
-                      }
                     >
                       {row.status}
                     </Badge>
                   </div>
 
                   <div>
-                    <strong className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] block">
+                    <strong className="text-xs font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC] block">
                       {row.name}
                     </strong>
-                    <span className="text-[11px] font-normal text-[#64748B] dark:text-[#CBD5E1] block truncate">
+                    <span className="text-[11px] font-normal text-[var(--text-secondary)] dark:text-[#CBD5E1] block truncate overflow-wrap-anywhere">
                       {row.email}
                     </span>
-                    <span className="text-[11px] text-[#94A3B8] dark:text-[#94A3B8] block mt-0.5">
+                    <span className="text-[11px] text-[var(--text-muted)] dark:text-[#94A3B8] block mt-0.5">
                       Phone: {row.phone}
                     </span>
                   </div>
@@ -658,10 +679,10 @@ export const BulkUploadStudentsPage: React.FC = () => {
             </div>
 
             {/* DESKTOP TABLE VIEW (>=768px) */}
-            <div className="hidden md:block w-full min-w-0 max-w-full overflow-x-auto scrollbar-hide border border-[#E2E8F0] dark:border-[#263244] rounded-xl">
-              <table className="w-full text-left text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC]">
+            <div className="hidden md:block w-full min-w-0 max-w-full overflow-x-auto no-scrollbar border border-[var(--border)] dark:border-[#263244] rounded-xl">
+              <table className="w-full text-left text-xs font-normal text-[var(--text-primary)] dark:text-[#F8FAFC]">
                 <thead>
-                  <tr className="bg-[#F8FAFC] dark:bg-[#172033] border-b border-[#E2E8F0] dark:border-[#263244] text-[#64748B] dark:text-[#94A3B8] text-[11px] uppercase font-semibold">
+                  <tr className="bg-[var(--surface-secondary)] dark:bg-[#172033] border-b border-[var(--border)] dark:border-[#263244] text-[var(--text-secondary)] dark:text-[#94A3B8] text-[11px] uppercase font-semibold">
                     <th className="py-3 px-4">Row #</th>
                     <th className="py-3 px-4">Student ID</th>
                     <th className="py-3 px-4">Name</th>
@@ -671,35 +692,28 @@ export const BulkUploadStudentsPage: React.FC = () => {
                     <th className="py-3 px-4">Details</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E2E8F0] dark:divide-[#263244]">
+                <tbody className="divide-y divide-[var(--border)] dark:divide-[#263244]">
                   {filteredReviewRows.map((row) => (
                     <tr
                       key={row.rowNumber}
-                      className="bg-white dark:bg-[#111827] hover:bg-slate-50 dark:hover:bg-[#172033] transition-colors"
+                      className="bg-[var(--surface)] dark:bg-[#111827] hover:bg-[var(--surface-hover)] dark:hover:bg-[#172033] transition-colors"
                     >
-                      <td className="py-3 px-4 font-semibold text-[#64748B] dark:text-[#94A3B8]">
+                      <td className="py-3 px-4 font-semibold text-[var(--text-muted)] dark:text-[#94A3B8]">
                         #{row.rowNumber}
                       </td>
-                      <td className="py-3 px-4 font-mono text-[11px] text-[#2563EB] dark:text-[#60A5FA] font-medium">
+                      <td className="py-3 px-4 font-mono text-[11px] text-[var(--brand-primary)] font-medium">
                         {row.studentCode || '— (Auto-assigned)'}
                       </td>
-                      <td className="py-3 px-4 font-medium text-[#0F172A] dark:text-[#F8FAFC]">
+                      <td className="py-3 px-4 font-medium text-[var(--text-primary)] dark:text-[#F8FAFC]">
                         {row.name}
                       </td>
-                      <td className="py-3 px-4 text-[#475569] dark:text-[#CBD5E1]">
+                      <td className="py-3 px-4 text-[var(--text-secondary)] dark:text-[#CBD5E1] overflow-wrap-anywhere">
                         {row.email}
                       </td>
                       <td className="py-3 px-4">
                         <Badge
                           variant={row.status === 'valid' ? 'success' : row.status === 'invalid' ? 'error' : 'warning'}
                           size="sm"
-                          className={
-                            row.status === 'valid'
-                              ? 'dark:bg-[rgba(16,185,129,0.08)] dark:text-[#6EE7B7] dark:border-[rgba(52,211,153,0.22)]'
-                              : row.status === 'invalid'
-                              ? 'dark:bg-[rgba(239,68,68,0.08)] dark:text-[#FCA5A5] dark:border-[rgba(248,113,113,0.22)]'
-                              : 'dark:bg-[rgba(245,158,11,0.08)] dark:text-[#FCD34D] dark:border-[rgba(251,191,36,0.22)]'
-                          }
                         >
                           {row.status === 'valid' ? 'Enrolled' : row.status}
                         </Badge>
@@ -710,7 +724,7 @@ export const BulkUploadStudentsPage: React.FC = () => {
                             <MailCheck className="w-3.5 h-3.5" /> Sent
                           </span>
                         ) : (
-                          <span className="text-slate-400 dark:text-[#64748B]">—</span>
+                          <span className="text-[var(--text-muted)] dark:text-[#64748B]">—</span>
                         )}
                       </td>
                       <td className="py-3 px-4 text-xs font-medium">
@@ -733,33 +747,35 @@ export const BulkUploadStudentsPage: React.FC = () => {
 
       {/* FOOTER ACTIONS / CONFIRMATION */}
       {currentStep >= 3 && (
-        <div className="sticky bottom-4 z-20 w-full bg-white/95 dark:bg-[#111827]/95 backdrop-blur-md border border-[#E2E8F0] dark:border-[#334155] p-3.5 sm:p-4 shadow-lg rounded-2xl transition-all">
+        <div className="sticky bottom-4 z-20 w-full bg-[var(--surface)]/95 dark:bg-[#111827]/95 backdrop-blur-md border border-[var(--border)] dark:border-[#334155] p-3.5 sm:p-4 shadow-lg rounded-2xl transition-all">
           <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:justify-end items-center">
             {currentStep === 4 ? (
-              <Button
+              <button
+                type="button"
                 onClick={() => navigate(backLink)}
-                className="w-full sm:w-auto min-h-[42px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-xs sm:text-sm px-6 cursor-pointer shadow-[0_4px_12px_rgba(37,99,235,0.12)]"
+                className="w-full sm:w-auto min-h-[42px] bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-medium text-xs sm:text-sm px-6 rounded-xl cursor-pointer transition-colors shadow-xs"
               >
                 Done — View Course Students →
-              </Button>
+              </button>
             ) : (
               <>
                 <button
                   type="button"
                   onClick={() => setCurrentStep(2)}
-                  className="w-full sm:w-auto min-h-[42px] bg-white dark:bg-[#111827] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC] font-semibold text-xs sm:text-sm px-4 rounded-xl transition-colors cursor-pointer"
+                  className="w-full sm:w-auto min-h-[42px] bg-[var(--surface-secondary)] dark:bg-[#111827] border border-[var(--border)] dark:border-[#334155] text-[var(--text-secondary)] dark:text-[#CBD5E1] hover:bg-[var(--surface-hover)] dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC] font-semibold text-xs sm:text-sm px-4 rounded-xl transition-colors cursor-pointer"
                 >
                   ← Back to File Selection
                 </button>
 
-                <Button
+                <button
+                  type="button"
                   onClick={handleConfirmImport}
                   disabled={isImporting || validRows.length === 0}
-                  leftIcon={isImporting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
-                  className="w-full sm:w-auto min-h-[42px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-xs sm:text-sm px-6 cursor-pointer shadow-[0_4px_12px_rgba(37,99,235,0.12)] disabled:bg-[#E2E8F0] dark:disabled:bg-[#334155] disabled:text-[#94A3B8] dark:disabled:text-[#64748B]"
+                  className="w-full sm:w-auto min-h-[42px] bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-medium text-xs sm:text-sm px-6 rounded-xl cursor-pointer transition-colors shadow-xs disabled:bg-[var(--surface-secondary)] dark:disabled:bg-[#334155] disabled:border disabled:border-[var(--border)] disabled:text-[var(--text-muted)] dark:disabled:text-[#64748B] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {isImporting ? 'Importing Students...' : `Import ${validRows.length} Valid Students`}
-                </Button>
+                  {isImporting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+                  <span>{isImporting ? 'Importing Students...' : `Import ${validRows.length} Valid Students`}</span>
+                </button>
               </>
             )}
           </div>

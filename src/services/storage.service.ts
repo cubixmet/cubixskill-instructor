@@ -75,6 +75,7 @@ export interface MediaFileApiItem {
   media_type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT' | 'OTHER';
   status: string;
   adaptive_streaming_enabled?: boolean;
+  processing_mode?: 'hls' | 'direct';
   processing_status?: 'UPLOADED' | 'QUEUED' | 'PROCESSING' | 'READY' | 'FAILED';
   processing_progress?: number;
   processing_error?: string;
@@ -88,6 +89,7 @@ export interface MediaFileApiItem {
   renditions?: VideoRenditionItem[];
   created_at: string;
   updated_at?: string;
+  uploaded_at?: string;
   uploaded_by_uuid?: string;
   usage_count: number;
 }
@@ -238,19 +240,25 @@ export const storageService = {
 
   async uploadFile(
     file: File,
-    options?: { adaptive_streaming_enabled?: boolean; onProgress?: (pct: number) => void }
+    options?: { course_uuid?: string; lesson_uuid?: string; adaptive_streaming_enabled?: boolean; hls_enabled?: boolean; onProgress?: (pct: number) => void }
   ): Promise<MediaFileApiItem> {
     const formData = new FormData();
     formData.append('file', file);
 
+    if (options?.course_uuid) {
+      formData.append('course_uuid', options.course_uuid);
+    }
+    if (options?.lesson_uuid) {
+      formData.append('lesson_uuid', options.lesson_uuid);
+    }
     if (options?.adaptive_streaming_enabled !== undefined) {
       formData.append('adaptive_streaming_enabled', String(options.adaptive_streaming_enabled));
     }
+    if (options?.hls_enabled !== undefined) {
+      formData.append('hls_enabled', options.hls_enabled ? 'true' : 'false');
+    }
 
     const response = await apiClient.post('/api/v1/storage/upload/', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total && options?.onProgress) {
           const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -274,6 +282,11 @@ export const storageService = {
 
   async retryProcessing(id: string): Promise<MediaFileApiItem> {
     const response = await apiClient.post(`/api/v1/storage/files/${id}/retry-processing/`);
+    return response.data?.data || response.data;
+  },
+
+  async convertHls(id: string): Promise<MediaFileApiItem> {
+    const response = await apiClient.post(`/api/v1/storage/files/${id}/convert-hls/`);
     return response.data?.data || response.data;
   },
 

@@ -60,6 +60,12 @@ export const SettingsPage: React.FC = () => {
   const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
   const [timeFormat, setTimeFormat] = useState('12h');
 
+  // Video Processing & Chat Settings State
+  const [hlsVideoEnabled, setHlsVideoEnabled] = useState<boolean>(true);
+  const [personalChatFileUploadEnabled, setPersonalChatFileUploadEnabled] = useState<boolean>(true);
+  const [isSavingHls, setIsSavingHls] = useState<boolean>(false);
+  const [isSavingChatUpload, setIsSavingChatUpload] = useState<boolean>(false);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
@@ -73,9 +79,10 @@ export const SettingsPage: React.FC = () => {
         setIsLoading(true);
         setErrorMessage(null);
 
-        const [userData, academyData] = await Promise.all([
+        const [userData, academyData, settingsData] = await Promise.all([
           authService.getCurrentUser().catch(() => null),
           authService.getAcademyProfile().catch(() => null),
+          authService.getAcademySettings().catch(() => null),
         ]);
 
         if (isMounted) {
@@ -99,6 +106,18 @@ export const SettingsPage: React.FC = () => {
             if (academyData.logo_url) {
               setAcademyLogoUrl(academyData.logo_url);
             }
+            if (typeof academyData.hls_video_enabled === 'boolean') {
+              setHlsVideoEnabled(academyData.hls_video_enabled);
+            }
+          }
+
+          if (settingsData) {
+            if (typeof settingsData.hls_video_enabled === 'boolean') {
+              setHlsVideoEnabled(settingsData.hls_video_enabled);
+            }
+            if (typeof settingsData.personal_chat_file_upload_enabled === 'boolean') {
+              setPersonalChatFileUploadEnabled(settingsData.personal_chat_file_upload_enabled);
+            }
           }
         }
       } catch (err: any) {
@@ -114,6 +133,36 @@ export const SettingsPage: React.FC = () => {
     loadData();
     return () => { isMounted = false; };
   }, []);
+
+  const handleToggleHls = async (nextVal: boolean) => {
+    const prevVal = hlsVideoEnabled;
+    setHlsVideoEnabled(nextVal);
+    try {
+      setIsSavingHls(true);
+      await authService.updateAcademySettings({ hls_video_enabled: nextVal });
+      showToast(`HLS Video Processing turned ${nextVal ? 'ON' : 'OFF'}.`);
+    } catch {
+      setHlsVideoEnabled(prevVal);
+      setErrorMessage('Failed to update video settings.');
+    } finally {
+      setIsSavingHls(false);
+    }
+  };
+
+  const handleTogglePersonalChatFileUpload = async (nextVal: boolean) => {
+    const prevVal = personalChatFileUploadEnabled;
+    setPersonalChatFileUploadEnabled(nextVal);
+    try {
+      setIsSavingChatUpload(true);
+      await authService.updateAcademySettings({ personal_chat_file_upload_enabled: nextVal });
+      showToast(`Personal Chat File Upload turned ${nextVal ? 'ON' : 'OFF'}.`);
+    } catch {
+      setPersonalChatFileUploadEnabled(prevVal);
+      setErrorMessage('Failed to update Personal Chat file upload setting.');
+    } finally {
+      setIsSavingChatUpload(false);
+    }
+  };
 
   // Save Profile Handler
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -503,8 +552,88 @@ export const SettingsPage: React.FC = () => {
                   <option value="12h">12-hour (e.g. 02:30 PM)</option>
                   <option value="24h">24-hour (e.g. 14:30)</option>
                 </select>
+            </div>
+          </div>
+
+          {/* VIDEO PROCESSING & STREAMING SETTINGS */}
+          <div className="bg-white dark:bg-[#111827] rounded-2xl border border-[#E2E8F0] dark:border-[#263244] p-5 shadow-2xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Video Processing</h3>
+                  {hlsVideoEnabled ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
+                      HLS ON
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                      HLS OFF (Direct MP4)
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[#64748B] dark:text-[#94A3B8] font-normal leading-relaxed max-w-xl">
+                  {hlsVideoEnabled
+                    ? 'Convert newly uploaded academy videos to HLS for reliable browser and mobile streaming.'
+                    : 'Videos will be stored and played directly without HLS conversion.'}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0 pt-1 sm:pt-0">
+                <span className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1]">
+                  HLS Video Upload + Streaming
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={hlsVideoEnabled}
+                    disabled={isSavingHls}
+                    onChange={(e) => handleToggleHls(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-12 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]" />
+                </label>
               </div>
             </div>
+          </div>
+
+          {/* PERSONAL CHAT FILE UPLOADS SETTING */}
+          <div className="bg-white dark:bg-[#111827] rounded-2xl border border-[#E2E8F0] dark:border-[#263244] p-5 shadow-2xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Personal Chat File Upload</h3>
+                  {personalChatFileUploadEnabled ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
+                      ON
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                      OFF
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[#64748B] dark:text-[#94A3B8] font-normal leading-relaxed max-w-xl">
+                  Allow files and attachments to be sent in personal chat.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0 pt-1 sm:pt-0">
+                <span className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1]">
+                  File Uploads
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={personalChatFileUploadEnabled}
+                    disabled={isSavingChatUpload}
+                    onChange={(e) => handleTogglePersonalChatFileUpload(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-12 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]" />
+                </label>
+              </div>
+            </div>
+          </div>
           </div>
 
           <div className="flex justify-end pt-2">

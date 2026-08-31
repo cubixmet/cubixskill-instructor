@@ -20,15 +20,30 @@ const RESERVED_COURSE_SEGMENTS = new Set([
   "reports",
   "settings",
   "fees",
+  "lessons",
+  "select-type",
+  "modules",
 ]);
 
-export function isValidUuid(value: string): boolean {
+export function isValidUuid(value: unknown): boolean {
   if (!value || typeof value !== 'string') return false;
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(value.trim());
 }
 
 export function isValidCourseId(value: unknown): value is string {
+  if (value == null) return false;
+  const id = String(value).trim();
+  if (!id) return false;
+
+  const normalized = id.toLowerCase();
+  if (RESERVED_COURSE_SEGMENTS.has(normalized)) {
+    return false;
+  }
+  return isValidUuid(id);
+}
+
+export function isValidModuleUuid(value: unknown): value is string {
   if (value == null) return false;
   const id = String(value).trim();
   if (!id) return false;

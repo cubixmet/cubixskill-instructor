@@ -121,31 +121,61 @@ export const generateCertificateImage = async (
     ctx.fillStyle = el.fontColor || '#0F172A';
     ctx.textBaseline = 'middle';
 
-    const maxFontSize = el.preferredFontSize || el.fontSize || 36;
-    const minFontSize = el.minimumFontSize || 14;
+    const pad = el.padding || { top: 6, right: 10, bottom: 6, left: 10 };
+    const availW = Math.max(1, elW - (pad.left + pad.right));
+    const availH = Math.max(1, elH - (pad.top + pad.bottom));
 
-    let fontSize = Math.min(maxFontSize, Math.floor(elH * 0.85));
-    ctx.font = `${el.fontWeight || '600'} ${fontSize}px ${el.fontFamily || 'Inter'}, sans-serif`;
+    const maxFontSize = el.preferredFontSize || el.fontSize || 32;
+    const minFontSize = Math.min(maxFontSize, el.minimumFontSize || 18);
 
-    // Scale font size down dynamically if text exceeds container width
-    const textWidth = ctx.measureText(text).width;
-    if (textWidth > elW && textWidth > 0) {
-      fontSize = Math.max(minFontSize, Math.floor(fontSize * (elW / textWidth)));
-      ctx.font = `${el.fontWeight || '600'} ${fontSize}px ${el.fontFamily || 'Inter'}, sans-serif`;
+    // Calculate binary search fit
+    let low = minFontSize;
+    let high = maxFontSize;
+    let bestFit = low;
+
+    const fontFamily = el.fontFamily || 'Inter';
+    const fontWeight = el.fontWeight || '600';
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      ctx.font = `${fontWeight} ${mid}px "${fontFamily}", sans-serif`;
+      const w = ctx.measureText(text).width;
+      const h = mid * 1.1;
+
+      if (w <= availW && h <= availH) {
+        bestFit = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
     }
 
-    let textX = elX + elW / 2;
+    const fittedFontSize = Math.min(maxFontSize, Math.max(minFontSize, bestFit));
+
+    ctx.save();
+    ctx.globalAlpha = el.opacity ?? 1;
+    ctx.fillStyle = el.fontColor || '#0F172A';
+    ctx.textBaseline = 'middle';
+
+    // Hard safety clipping path around inner container box
+    ctx.beginPath();
+    ctx.rect(elX + pad.left, elY + pad.top, availW, availH);
+    ctx.clip();
+
+    ctx.font = `${fontWeight} ${fittedFontSize}px "${fontFamily}", sans-serif`;
+
+    let textX = elX + pad.left + availW / 2;
     if (el.textAlign === 'left') {
-      textX = elX;
+      textX = elX + pad.left;
       ctx.textAlign = 'left';
     } else if (el.textAlign === 'right') {
-      textX = elX + elW;
+      textX = elX + elW - pad.right;
       ctx.textAlign = 'right';
     } else {
       ctx.textAlign = 'center';
     }
 
-    ctx.fillText(text, textX, elY + elH / 2);
+    ctx.fillText(text, textX, elY + pad.top + availH / 2);
     ctx.restore();
   }
 
