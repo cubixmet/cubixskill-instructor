@@ -113,6 +113,7 @@ export const CertificateBuilderPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { templateId, courseId: routeCourseId } = useParams<{ templateId?: string; courseId?: string }>();
+  const isEditMode = Boolean(templateId);
 
   const auth = useAuthStore();
   const academyName = auth.academy?.name || (auth.user as any)?.academy_name || 'CubixSkill Academy';
@@ -134,6 +135,9 @@ export const CertificateBuilderPage: React.FC = () => {
     isError: isTemplateError,
     error: templateError,
   } = useCertificateTemplateDetail(templateId);
+
+  // Single-hydration ref guard to prevent re-hydration resets when background queries update
+  const hydratedTemplateRef = useRef<string | null>(null);
 
   // Step Control (Step 1: Course & Dynamic Fields Selection, Step 2: Visual Designer)
   const [step, setStep] = useState<1 | 2>(templateId ? 2 : 1);
@@ -550,9 +554,40 @@ export const CertificateBuilderPage: React.FC = () => {
       .finally(() => setIsLoadingFields(false));
   }, [selectedCourseId]);
 
-  // Load existing template if editing
+  // Reset state when entering /certificates/new (no templateId)
   useEffect(() => {
-    if (templateDetail) {
+    if (!templateId) {
+      hydratedTemplateRef.current = null;
+      setTemplateName('Custom Course Completion Certificate');
+      setDescription('');
+      setPageSize('A4');
+      setOrientation('LANDSCAPE');
+      setCustomWidth(undefined);
+      setCustomHeight(undefined);
+      setCustomUnit('MM');
+      setBackgroundImageUrl('');
+      setBackgroundAssetId(null);
+      setElements([]);
+      setSelectedElementId(null);
+      setSelectedFieldKeys([
+        'student.full_name',
+        'course.title',
+        'certificate.number',
+        'certificate.issue_date',
+      ]);
+      setStep(1);
+    }
+  }, [templateId]);
+
+  // Load existing template if editing (Hydrate EXACTLY ONCE per template identity)
+  useEffect(() => {
+    if (templateDetail && templateId) {
+      const templateIdentity = templateDetail.id || templateId;
+      if (hydratedTemplateRef.current === templateIdentity) {
+        return;
+      }
+      hydratedTemplateRef.current = templateIdentity;
+
       const deserialized = deserializeCertificateTemplate(templateDetail);
       setTemplateName(deserialized.templateName);
       setDescription(deserialized.description);
@@ -568,6 +603,7 @@ export const CertificateBuilderPage: React.FC = () => {
       if (deserialized.selectedCourseId) {
         setSelectedCourseId(deserialized.selectedCourseId);
       }
+      setStep(2);
 
       // Pre-load custom fonts into DOM BEFORE setting elements
       (async () => {
@@ -590,10 +626,12 @@ export const CertificateBuilderPage: React.FC = () => {
 
         setElements(deserialized.elements);
         const keys = deserialized.elements.map((el) => el.binding).filter(Boolean);
-        setSelectedFieldKeys(Array.from(new Set(keys)));
+        if (keys.length > 0) {
+          setSelectedFieldKeys(Array.from(new Set(keys)));
+        }
       })();
     }
-  }, [templateDetail, queriedFonts]);
+  }, [templateDetail, templateId, queriedFonts]);
 
   // Keyboard navigation & movement shortcuts
   useEffect(() => {
@@ -1253,22 +1291,24 @@ export const CertificateBuilderPage: React.FC = () => {
         availableFonts,
       });
 
-      if (templateId) {
+      const targetId = templateDetail?.id || templateId;
+      if (isEditMode && targetId) {
         // EDIT FLOW: PATCH existing template UUID
-        await certificatesService.updateTemplate(templateId, payload);
+        await certificatesService.updateTemplate(targetId, payload);
         if (selectedCourseId) {
           try {
-            await certificatesService.assignCourseToTemplate(templateId, selectedCourseId);
+            await certificatesService.assignCourseToTemplate(targetId, selectedCourseId);
           } catch (courseErr: any) {
             showToast(`Template updated, but course assignment failed: ${courseErr?.message || 'Unknown error'}`);
           }
         }
         queryClient.invalidateQueries({ queryKey: certificateKeys.templates() });
-        queryClient.invalidateQueries({ queryKey: certificateKeys.template(templateId) });
+        queryClient.invalidateQueries({ queryKey: certificateKeys.template(targetId) });
         queryClient.invalidateQueries({ queryKey: certificateKeys.summary() });
         showToast('Certificate template updated.', 'success');
+        navigate('/certificates');
       } else {
-        // CREATE FLOW: POST template -> assign course -> invalidate -> navigate
+        // CREATE FLOW: POST template -> assign course -> invalidate -> navigate to /certificates
         const created = await certificatesService.createTemplate(payload);
         const createdUuid = created.id;
 
@@ -1283,7 +1323,7 @@ export const CertificateBuilderPage: React.FC = () => {
         queryClient.invalidateQueries({ queryKey: certificateKeys.templates() });
         queryClient.invalidateQueries({ queryKey: certificateKeys.summary() });
         showToast('Certificate template saved.', 'success');
-        navigate('/certificates');
+        navigate('/certificates', { replace: true });
       }
     } catch (err: any) {
       const respData = err?.response?.data;
@@ -1434,7 +1474,7 @@ export const CertificateBuilderPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => (step === 2 && !templateId ? setStep(1) : navigate('/certificates'))}
+              onClick={() => (step === 2 && !activeSlug ? setStep(1) : navigate('/certificates'))}
               className="p-2 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer shrink-0 transition-colors"
               aria-label="Back to Certificates"
             >

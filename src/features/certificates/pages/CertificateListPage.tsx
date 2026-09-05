@@ -17,7 +17,6 @@ import {
   FileCheck,
   Layout,
   Copy,
-  Edit3,
   Pencil,
   BookOpen,
   Layers,
@@ -32,7 +31,7 @@ import {
   type CertificateData,
   type CertificateTemplateData,
 } from '../../../services/certificates.service';
-import { authStore } from '../../../store/auth.store';
+import { useAuthStore } from '../../../store/auth.store';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useCertificateCourses,
@@ -45,10 +44,10 @@ import {
 export const CertificateListPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const authState = authStore.getState();
-  const user = authState.user;
-  const userRole = (user?.role || 'instructor') as string;
-  const canManageCertificates = userRole === 'admin' || userRole === 'instructor';
+  const auth = useAuthStore();
+  const user = auth.user;
+  const userRole = String(user?.role || 'instructor').toLowerCase();
+  const canManageCertificates = !userRole || userRole.includes('admin') || userRole.includes('instructor') || userRole.includes('staff');
 
   // Tabs: 'issued' | 'templates'
   const [activeTab, setActiveTab] = useState<'issued' | 'templates'>('issued');
@@ -292,7 +291,7 @@ export const CertificateListPage: React.FC = () => {
                 onClick={() => navigate('/certificates/new')}
                 className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold h-9 sm:h-10 cursor-pointer shadow-xs shadow-[#2563EB]/25"
               >
-                Create Template
+                New Certificate
               </Button>
             </div>
           )}

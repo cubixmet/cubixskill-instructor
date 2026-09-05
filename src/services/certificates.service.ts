@@ -30,6 +30,7 @@ export interface CertificateSummaryData {
 export interface CertificateTemplateData {
   id: string;
   name: string;
+  slug?: string;
   description?: string;
   template_data: any;
   orientation?: 'LANDSCAPE' | 'PORTRAIT';
@@ -133,6 +134,13 @@ export const certificatesService = {
       `/api/v1/certificates/certificate-templates/${id}/`
     );
     return response.data?.data || (response.data as unknown as CertificateTemplateData);
+  },
+
+  async getTemplateBySlug(slug: string): Promise<CertificateTemplateData> {
+    const response = await apiClient.get<BackendApiResponse<CertificateTemplateData> | CertificateTemplateData>(
+      `/api/v1/certificates/certificate-templates/by-slug/${encodeURIComponent(slug)}/`
+    );
+    return (response.data as any)?.data || (response.data as CertificateTemplateData);
   },
 
   async createTemplate(payload: Partial<CertificateTemplateData>): Promise<CertificateTemplateData> {

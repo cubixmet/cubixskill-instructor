@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coursesService } from '../../../services/courses.service';
-import { certificatesService, CertificateTemplateData } from '../../../services/certificates.service';
+import { certificatesService } from '../../../services/certificates.service';
 import { fetchCertificateFonts } from '../utils/fontRegistry';
 import { useAuthStore } from '../../../store/auth.store';
 
@@ -11,6 +11,7 @@ export const certificateKeys = {
   bindings: (courseId?: string) => [...certificateKeys.all, 'bindings', courseId || 'all'] as const,
   templates: (academyId?: string | null) => [...certificateKeys.all, 'templates', academyId ?? 'current-academy'] as const,
   template: (id: string) => [...certificateKeys.templates(), id] as const,
+  templateBySlug: (slug: string) => [...certificateKeys.templates(), 'by-slug', slug] as const,
   summary: (academyId?: string | null) => [...certificateKeys.all, 'summary', academyId ?? 'current-academy'] as const,
   list: (filters: Record<string, any>) => [...certificateKeys.all, 'list', filters] as const,
 };
@@ -80,6 +81,17 @@ export function useCertificateTemplateDetail(id?: string) {
     queryKey: certificateKeys.template(id || ''),
     queryFn: () => certificatesService.getTemplate(id!),
     enabled: canFetch && Boolean(id),
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useCertificateTemplateBySlug(slug?: string) {
+  const { canFetch } = useReactiveAuth();
+
+  return useQuery({
+    queryKey: certificateKeys.templateBySlug(slug || ''),
+    queryFn: () => certificatesService.getTemplateBySlug(slug!),
+    enabled: canFetch && Boolean(slug),
     staleTime: 2 * 60 * 1000,
   });
 }
