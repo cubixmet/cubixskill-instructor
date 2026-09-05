@@ -17,7 +17,7 @@ export const useCommunityDiscussionsSocket = (enabled: boolean = true) => {
   const [connectionState, setConnectionState] = useState<SocketConnectionState>('disconnected');
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef<number>(0);
-  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimerRef = useRef<any>(null);
   const processedEventIdsRef = useRef<Set<string>>(new Set());
   const isIntentionalCloseRef = useRef<boolean>(false);
   const hasConnectedOnceRef = useRef<boolean>(false);

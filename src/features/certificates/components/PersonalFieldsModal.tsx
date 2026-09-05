@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, X, Type, FileText, CheckCircle2 } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
+import { certificatesService } from '../../../services/certificates.service';
 
 interface PersonalFieldsModalProps {
   isOpen: boolean;
@@ -58,7 +58,16 @@ export const PersonalFieldsModal: React.FC<PersonalFieldsModalProps> = ({
       setError(null);
       onClose();
     } catch (err: any) {
-      setError(err?.response?.data?.detail || err.message || 'Failed to create personal custom field.');
+      const respData = err?.response?.data;
+      const errorMsg =
+        respData?.detail ||
+        respData?.message ||
+        respData?.key?.[0] ||
+        respData?.label?.[0] ||
+        (typeof respData === 'object' ? Object.values(respData).flat().join(' ') : null) ||
+        err?.message ||
+        'Unable to add personal detail field.';
+      setError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -128,11 +137,11 @@ export const PersonalFieldsModal: React.FC<PersonalFieldsModalProps> = ({
         </div>
 
         <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-[#263244]">
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" size="sm">
-            Add Personal Field
+          <Button type="submit" variant="primary" size="sm" disabled={isSubmitting}>
+            {isSubmitting ? 'Adding...' : 'Add Personal Field'}
           </Button>
         </div>
       </form>

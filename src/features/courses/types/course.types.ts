@@ -6,6 +6,8 @@ export interface MediaFile {
   id: string;
   file?: string;
   url?: string;
+  file_url?: string;
+  stored_filename?: string;
   relative_path?: string;
   original_filename?: string;
   mime_type?: string;

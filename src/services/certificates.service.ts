@@ -36,7 +36,9 @@ export interface CertificateTemplateData {
   page_size?: 'A4' | 'LETTER' | 'CUSTOM';
   custom_width?: number;
   custom_height?: number;
+  custom_unit?: 'MM' | 'CM' | 'INCH';
   background_media?: any;
+  background_media_url?: string;
   show_student_photo?: boolean;
   student_photo_shape?: string;
   is_default?: boolean;

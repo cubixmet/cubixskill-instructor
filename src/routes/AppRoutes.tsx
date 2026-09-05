@@ -244,7 +244,7 @@ export const AppRoutes: React.FC = () => {
             {/* 3. Certificate Builder */}
             <Route path="/certificates" element={<CertificateListPage />} />
             <Route path="/certificates/new" element={<CertificateBuilderPage />} />
-            <Route path="/certificates/:id/edit" element={<CertificateBuilderPage />} />
+            <Route path="/certificates/:templateId/edit" element={<CertificateBuilderPage />} />
             <Route path="/certificates/:id/issue" element={<CertificateDetailPage />} />
 
             {/* 4. Coupons Management */}

@@ -2,102 +2,106 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coursesService } from '../../../services/courses.service';
 import { certificatesService, CertificateTemplateData } from '../../../services/certificates.service';
 import { fetchCertificateFonts } from '../utils/fontRegistry';
-import { authStore } from '../../../store/auth.store';
+import { useAuthStore } from '../../../store/auth.store';
 
 export const certificateKeys = {
   all: ['certificates'] as const,
-  courses: () => [...certificateKeys.all, 'courses'] as const,
-  fonts: () => [...certificateKeys.all, 'fonts'] as const,
+  courses: (academyId?: string | null) => [...certificateKeys.all, 'courses', academyId ?? 'current-academy'] as const,
+  fonts: (academyId?: string | null) => [...certificateKeys.all, 'fonts', academyId ?? 'current-academy'] as const,
   bindings: (courseId?: string) => [...certificateKeys.all, 'bindings', courseId || 'all'] as const,
-  templates: () => [...certificateKeys.all, 'templates'] as const,
+  templates: (academyId?: string | null) => [...certificateKeys.all, 'templates', academyId ?? 'current-academy'] as const,
   template: (id: string) => [...certificateKeys.templates(), id] as const,
-  summary: () => [...certificateKeys.all, 'summary'] as const,
+  summary: (academyId?: string | null) => [...certificateKeys.all, 'summary', academyId ?? 'current-academy'] as const,
   list: (filters: Record<string, any>) => [...certificateKeys.all, 'list', filters] as const,
 };
 
+function useReactiveAuth() {
+  const { isAuthenticated, authStatus, isInitializing, academy } = useAuthStore();
+  const academyId = (academy as any)?.id ?? (academy as any)?.uuid ?? null;
+  const canFetch =
+    isAuthenticated === true &&
+    authStatus === 'authenticated' &&
+    isInitializing === false;
+
+  return { isAuthenticated, authStatus, isInitializing, academy, academyId, canFetch };
+}
+
 export function useCertificateCourses() {
-  const authState = authStore.getState();
-  const isAuthenticated = Boolean(authState.accessToken);
+  const { academyId, canFetch } = useReactiveAuth();
 
   return useQuery({
-    queryKey: certificateKeys.courses(),
+    queryKey: certificateKeys.courses(academyId),
     queryFn: async () => {
       const res = await coursesService.listCourses({ page_size: 100 });
       return Array.isArray(res) ? res : res?.results || [];
     },
-    enabled: isAuthenticated,
+    enabled: canFetch,
     staleTime: 5 * 60 * 1000,
   });
 }
 
 export function useCertificateFonts() {
-  const authState = authStore.getState();
-  const isAuthenticated = Boolean(authState.accessToken);
+  const { academyId, canFetch } = useReactiveAuth();
 
   return useQuery({
-    queryKey: certificateKeys.fonts(),
+    queryKey: certificateKeys.fonts(academyId),
     queryFn: () => fetchCertificateFonts(),
-    enabled: isAuthenticated,
+    enabled: canFetch,
     staleTime: 5 * 60 * 1000,
   });
 }
 
 export function useCertificateBindings(courseId?: string) {
-  const authState = authStore.getState();
-  const isAuthenticated = Boolean(authState.accessToken);
+  const { canFetch } = useReactiveAuth();
 
   return useQuery({
     queryKey: certificateKeys.bindings(courseId),
     queryFn: () => certificatesService.getTemplateBindings(courseId),
-    enabled: isAuthenticated && Boolean(courseId),
+    enabled: canFetch && Boolean(courseId),
     staleTime: 5 * 60 * 1000,
   });
 }
 
 export function useCertificateTemplates() {
-  const authState = authStore.getState();
-  const isAuthenticated = Boolean(authState.accessToken);
+  const { academyId, canFetch } = useReactiveAuth();
 
   return useQuery({
-    queryKey: certificateKeys.templates(),
+    queryKey: certificateKeys.templates(academyId),
     queryFn: () => certificatesService.listTemplates(),
-    enabled: isAuthenticated,
+    enabled: canFetch,
     staleTime: 2 * 60 * 1000,
   });
 }
 
 export function useCertificateTemplateDetail(id?: string) {
-  const authState = authStore.getState();
-  const isAuthenticated = Boolean(authState.accessToken);
+  const { canFetch } = useReactiveAuth();
 
   return useQuery({
     queryKey: certificateKeys.template(id || ''),
     queryFn: () => certificatesService.getTemplate(id!),
-    enabled: isAuthenticated && Boolean(id),
+    enabled: canFetch && Boolean(id),
     staleTime: 2 * 60 * 1000,
   });
 }
 
 export function useCertificateSummary() {
-  const authState = authStore.getState();
-  const isAuthenticated = Boolean(authState.accessToken);
+  const { academyId, canFetch } = useReactiveAuth();
 
   return useQuery({
-    queryKey: certificateKeys.summary(),
+    queryKey: certificateKeys.summary(academyId),
     queryFn: () => certificatesService.getSummary(),
-    enabled: isAuthenticated,
+    enabled: canFetch,
     staleTime: 2 * 60 * 1000,
   });
 }
 
 export function useCertificateList(filters: Record<string, any>) {
-  const authState = authStore.getState();
-  const isAuthenticated = Boolean(authState.accessToken);
+  const { canFetch } = useReactiveAuth();
 
   return useQuery({
     queryKey: certificateKeys.list(filters),
     queryFn: () => certificatesService.listCertificates(filters),
-    enabled: isAuthenticated,
+    enabled: canFetch,
     staleTime: 1 * 60 * 1000,
   });
 }
@@ -108,8 +112,7 @@ export function useDeleteCertificateTemplate() {
   return useMutation({
     mutationFn: (templateId: string) => certificatesService.deleteTemplate(templateId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: certificateKeys.templates() });
-      queryClient.invalidateQueries({ queryKey: certificateKeys.summary() });
+      queryClient.invalidateQueries({ queryKey: certificateKeys.all });
     },
   });
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Award,
@@ -18,8 +18,8 @@ import {
   Layout,
   Copy,
   Edit3,
+  Pencil,
   BookOpen,
-  Send,
   Layers,
   Trash2,
 } from 'lucide-react';
@@ -30,11 +30,9 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import {
   certificatesService,
   type CertificateData,
-  type CertificateSummaryData,
   type CertificateTemplateData,
 } from '../../../services/certificates.service';
-import { coursesService } from '../../../services/courses.service';
-import type { CourseListItem } from '../../../features/courses/types/course.types';
+import { authStore } from '../../../store/auth.store';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useCertificateCourses,
@@ -86,6 +84,7 @@ export const CertificateListPage: React.FC = () => {
     isLoading,
     isError,
     error: listQueryError,
+    refetch: refetchCertificates,
   } = useCertificateList(listParams);
 
   const certificates: CertificateData[] = React.useMemo(() => {
@@ -483,7 +482,7 @@ export const CertificateListPage: React.FC = () => {
                 <h3 className="text-sm font-semibold text-rose-900 dark:text-rose-200">Unable to Load Certificates</h3>
                 <p className="text-xs text-rose-700 dark:text-rose-300 mt-1">{errorMessage}</p>
               </div>
-              <Button variant="outline" size="sm" onClick={fetchCertificates} className="border-rose-300 text-rose-700">
+              <Button variant="outline" size="sm" onClick={() => refetchCertificates()} className="border-rose-300 text-rose-700">
                 Retry
               </Button>
             </div>
@@ -676,24 +675,25 @@ export const CertificateListPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-[#E2E8F0] dark:border-[#263244] flex items-center justify-between gap-2">
+                  <div className="pt-3 border-t border-[#E2E8F0] dark:border-[#263244] flex flex-wrap items-center justify-between gap-2">
                     <Button
+                      type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => navigate(`/certificates/${tmpl.id}/edit`)}
-                      leftIcon={<Edit3 className="w-3.5 h-3.5" />}
-                      className="text-xs font-semibold h-8"
+                      leftIcon={<Pencil className="w-4 h-4" />}
+                      className="text-xs font-semibold h-8 shrink-0 border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
                     >
-                      Edit Designer
+                      Edit
                     </Button>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5 flex-wrap shrink-0">
                       <button
                         type="button"
                         onClick={() => handleDuplicateTemplate(tmpl.id)}
                         title="Duplicate Template"
                         aria-label="Duplicate certificate template"
-                        className="p-1.5 text-slate-500 hover:text-slate-900 dark:text-[#94A3B8] dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-[#172033] cursor-pointer"
+                        className="p-1.5 text-slate-500 hover:text-slate-900 dark:text-[#94A3B8] dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-[#172033] cursor-pointer transition-colors shrink-0"
                       >
                         <Copy className="w-4 h-4" />
                       </button>
@@ -703,7 +703,7 @@ export const CertificateListPage: React.FC = () => {
                         onClick={() => handlePublishTemplate(tmpl.id)}
                         title="Publish New Version"
                         aria-label="Publish new template version"
-                        className="p-1.5 text-[#2563EB] hover:text-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-[#172033] cursor-pointer"
+                        className="p-1.5 text-[#2563EB] hover:text-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-[#172033] cursor-pointer transition-colors shrink-0"
                       >
                         <Layers className="w-4 h-4" />
                       </button>
@@ -716,7 +716,7 @@ export const CertificateListPage: React.FC = () => {
                         }}
                         title="Assign to Course"
                         aria-label="Assign template to course"
-                        className="p-1.5 text-emerald-600 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 dark:hover:bg-[#064e3b]/30 cursor-pointer"
+                        className="p-1.5 text-emerald-600 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 dark:hover:bg-[#064e3b]/30 cursor-pointer transition-colors shrink-0"
                       >
                         <BookOpen className="w-4 h-4" />
                       </button>
@@ -727,9 +727,9 @@ export const CertificateListPage: React.FC = () => {
                           setTemplateToDelete(tmpl);
                           setDeleteModalOpen(true);
                         }}
-                        title="Delete Template"
+                        title="Delete template"
                         aria-label="Delete certificate template"
-                        className="p-1.5 text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                        className="p-1.5 text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer transition-colors shrink-0 bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/40"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

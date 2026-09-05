@@ -23,18 +23,15 @@ import {
   Upload,
   ArrowUp,
   ArrowDown,
-  Maximize2,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import {
   certificatesService,
-  type CertificateTemplateData,
   type CertificateBinding,
 } from '../../../services/certificates.service';
 import { coursesService } from '../../../services/courses.service';
-import type { CourseListItem } from '../../courses/types/course.types';
-import { authStore } from '../../../store/auth.store';
+import { useAuthStore } from '../../../store/auth.store';
 import { PersonalFieldsModal } from '../components/PersonalFieldsModal';
 import { measureTextAsync, getSampleTextForField } from '../utils/textMeasurement';
 import { AutoFitTextContainer } from '../components/AutoFitTextContainer';
@@ -49,8 +46,13 @@ import { UploadFontModal } from '../components/UploadFontModal';
 import {
   useCertificateCourses,
   useCertificateFonts,
+  useCertificateTemplateDetail,
   certificateKeys,
 } from '../hooks/useCertificateQueries';
+import {
+  serializeCertificateTemplate,
+  deserializeCertificateTemplate,
+} from '../utils/certificateSerialization';
 
 export interface CanvasElement {
   id: string;
@@ -75,7 +77,11 @@ export interface CanvasElement {
   overflow?: 'ellipsis' | 'clip';
   font_weight?: string;
   fontWeight?: string;
+  font_style?: string;
+  fontStyle?: string;
   fontKey?: string;
+  font_key?: string;
+  multiline?: boolean;
   font_family?: string;
   fontFamily?: string;
   font_id?: string;
@@ -85,12 +91,20 @@ export interface CanvasElement {
   line_height?: number;
   lineHeight?: number;
   text_align?: 'left' | 'center' | 'right';
+  textAlign?: 'left' | 'center' | 'right';
   color?: string;
+  fontColor?: string;
+  rotation?: number;
+  opacity?: number;
+  is_locked?: boolean;
+  is_visible?: boolean;
   prefix?: string;
   suffix?: string;
   z_index?: number;
   image_url?: string;
   static_text?: string;
+  asset_id?: string | null;
+  assetId?: string | null;
   padding?: { top: number; right: number; bottom: number; left: number };
   fit?: 'contain' | 'cover';
 }
@@ -100,16 +114,32 @@ export const CertificateBuilderPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { templateId, courseId: routeCourseId } = useParams<{ templateId?: string; courseId?: string }>();
 
-  const authState = authStore.getState();
-  const academyName = authState.academy?.name || (authState.user as any)?.academy_name || 'CubixSkill Academy';
+  const auth = useAuthStore();
+  const academyName = auth.academy?.name || (auth.user as any)?.academy_name || 'CubixSkill Academy';
+
+  // Load queries at top level in fixed hook order
+  const {
+    data: queriedCourses = [],
+    isLoading: isLoadingCoursesQuery,
+    isError: isCoursesError,
+    error: coursesError,
+    refetch: refetchCourses,
+  } = useCertificateCourses();
+
+  const { data: queriedFonts = FALLBACK_SYSTEM_FONTS } = useCertificateFonts();
+
+  const {
+    data: templateDetail,
+    isLoading: isLoadingTemplate,
+    isError: isTemplateError,
+    error: templateError,
+  } = useCertificateTemplateDetail(templateId);
 
   // Step Control (Step 1: Course & Dynamic Fields Selection, Step 2: Visual Designer)
   const [step, setStep] = useState<1 | 2>(templateId ? 2 : 1);
 
   // Course State
-  const [courses, setCourses] = useState<CourseListItem[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string>(routeCourseId || '');
-  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
 
   // Dynamic Fields Discovery State
   const [availableBindings, setAvailableBindings] = useState<CertificateBinding[]>([]);
@@ -127,7 +157,11 @@ export const CertificateBuilderPage: React.FC = () => {
   const [description, setDescription] = useState<string>('');
   const [pageSize, setPageSize] = useState<'A4' | 'LETTER' | 'CUSTOM'>('A4');
   const [orientation, setOrientation] = useState<'LANDSCAPE' | 'PORTRAIT'>('LANDSCAPE');
+  const [customWidth, setCustomWidth] = useState<number | undefined>(undefined);
+  const [customHeight, setCustomHeight] = useState<number | undefined>(undefined);
+  const [customUnit, setCustomUnit] = useState<'MM' | 'CM' | 'INCH'>('MM');
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string>('');
+  const [backgroundAssetId, setBackgroundAssetId] = useState<string | null>(null);
 
   // Canvas Elements (Starts BLANK as required by product spec)
   const [elements, setElements] = useState<CanvasElement[]>([]);
@@ -170,7 +204,7 @@ export const CertificateBuilderPage: React.FC = () => {
   const [availableFonts, setAvailableFonts] = useState<CertificateFontItem[]>(FALLBACK_SYSTEM_FONTS);
   const [isUploadFontModalOpen, setIsUploadFontModalOpen] = useState(false);
 
-  const { data: queriedFonts = FALLBACK_SYSTEM_FONTS } = useCertificateFonts();
+
 
   useEffect(() => {
     if (queriedFonts && queriedFonts.length > 0) {
@@ -183,7 +217,7 @@ export const CertificateBuilderPage: React.FC = () => {
     setTimeout(() => setToastState(null), 3500);
   };
 
-  const [canvasRenderScale, setCanvasRenderScale] = useState(1);
+  const [_canvasRenderScale, setCanvasRenderScale] = useState(1);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -470,7 +504,7 @@ export const CertificateBuilderPage: React.FC = () => {
       return;
     }
 
-    setToastMsg('Uploading font...');
+    showToast('Uploading font...', 'info');
     try {
       const rawName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
       const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
@@ -487,18 +521,17 @@ export const CertificateBuilderPage: React.FC = () => {
     }
   };
 
-
-  // Load available Courses via React Query
-  const { data: queriedCourses = [], isLoading: isLoadingCoursesQuery } = useCertificateCourses();
+  const courses = React.useMemo(() => {
+    return Array.isArray(queriedCourses)
+      ? queriedCourses
+      : (queriedCourses as any)?.results ?? [];
+  }, [queriedCourses]);
 
   useEffect(() => {
-    if (queriedCourses.length > 0) {
-      setCourses(queriedCourses);
-      if (!selectedCourseId) {
-        setSelectedCourseId(queriedCourses[0].id);
-      }
+    if (courses.length > 0 && !selectedCourseId) {
+      setSelectedCourseId(courses[0].id);
     }
-  }, [queriedCourses, selectedCourseId]);
+  }, [courses, selectedCourseId]);
 
   // Fetch available fields whenever selectedCourseId changes
   useEffect(() => {
@@ -519,118 +552,48 @@ export const CertificateBuilderPage: React.FC = () => {
 
   // Load existing template if editing
   useEffect(() => {
-    if (templateId) {
-      certificatesService
-        .getTemplate(templateId)
-        .then(async (tmpl) => {
-          if (tmpl) {
-            setTemplateName(tmpl.name ?? 'Custom Course Completion Certificate');
-            setDescription(tmpl.description ?? '');
-            if (tmpl.page_size) setPageSize(tmpl.page_size);
-            if (tmpl.orientation) setOrientation(tmpl.orientation);
+    if (templateDetail) {
+      const deserialized = deserializeCertificateTemplate(templateDetail);
+      setTemplateName(deserialized.templateName);
+      setDescription(deserialized.description);
+      setPageSize(deserialized.pageSize);
+      setOrientation(deserialized.orientation);
+      setCustomWidth(deserialized.customWidth);
+      setCustomHeight(deserialized.customHeight);
+      if (deserialized.customUnit) {
+        setCustomUnit(deserialized.customUnit);
+      }
+      setBackgroundImageUrl(deserialized.backgroundImageUrl);
+      setBackgroundAssetId(deserialized.backgroundAssetId ?? null);
+      if (deserialized.selectedCourseId) {
+        setSelectedCourseId(deserialized.selectedCourseId);
+      }
 
-            const rawBg =
-              tmpl.template_data?.background_image_url ??
-              tmpl.background_media_url ??
-              tmpl.background_media?.file_url ??
-              tmpl.background_media?.relative_path ??
-              tmpl.background_media?.stored_filename ??
-              '';
-
-            if (rawBg) {
-              const formattedBg = rawBg.startsWith('/media/') || rawBg.startsWith('http')
-                ? rawBg
-                : `/media/${rawBg.lstrip ? rawBg.lstrip('/') : rawBg.replace(/^\/+/, '')}`;
-              setBackgroundImageUrl(formattedBg);
-            }
-
-            if (tmpl.template_data && Array.isArray(tmpl.template_data.elements)) {
-              const loadedElements: CanvasElement[] = tmpl.template_data.elements.map((el: any) => {
-                const fontVal = el.fontSize ?? el.font_size ?? el.maxFontSize ?? el.max_font_size ?? 16;
-                const maxFontVal = el.maxFontSize ?? el.max_font_size ?? fontVal;
-                const minFontVal = el.minFontSize ?? el.min_font_size ?? 1;
-                const autoFitVal = el.autoFit ?? el.auto_fit ?? true;
-                const allowGrowVal = el.allowGrow ?? el.allow_grow ?? false;
-
-                return {
-                  ...el,
-                  id: el.id,
-                  type: el.type,
-                  binding: el.binding,
-                  label: el.label,
-                  x: el.x ?? 0.5,
-                  y: el.y ?? 0.5,
-                  width: el.width ?? 0.2,
-                  height: el.height ?? 0.05,
-                  fontSize: fontVal,
-                  font_size: fontVal,
-                  maxFontSize: maxFontVal,
-                  max_font_size: maxFontVal,
-                  minFontSize: minFontVal,
-                  min_font_size: minFontVal,
-                  autoFit: autoFitVal,
-                  auto_fit: autoFitVal,
-                  allowGrow: allowGrowVal,
-                  allow_grow: allowGrowVal,
-                  fontFamily: el.font_family ?? el.fontFamily ?? 'Inter',
-                  font_family: el.font_family ?? el.fontFamily ?? 'Inter',
-                  fontId: el.font_id ?? el.fontId,
-                  font_id: el.font_id ?? el.fontId,
-                  fontKey: el.fontKey ?? el.font_key,
-                  font_key: el.fontKey ?? el.font_key,
-                  fontWeight: el.font_weight ?? el.fontWeight ?? '600',
-                  font_weight: el.font_weight ?? el.fontWeight ?? '600',
-                  fontStyle: el.font_style ?? el.fontStyle ?? 'normal',
-                  font_style: el.font_style ?? el.fontStyle ?? 'normal',
-                  textAlign: el.text_align ?? el.textAlign ?? 'center',
-                  text_align: el.text_align ?? el.textAlign ?? 'center',
-                  color: el.color ?? '#0F172A',
-                  letterSpacing: el.letterSpacing ?? el.letter_spacing ?? 0,
-                  letter_spacing: el.letter_spacing ?? el.letterSpacing ?? 0,
-                  lineHeight: el.lineHeight ?? el.line_height ?? 1,
-                  line_height: el.line_height ?? el.lineHeight ?? 1,
-                  padding: el.padding ?? { top: 1, right: 2, bottom: 1, left: 2 },
-                  rotation: el.rotation ?? 0,
-                  opacity: el.opacity ?? 1,
-                  z_index: el.z_index ?? 1,
-                  is_locked: el.is_locked ?? false,
-                  is_visible: el.is_visible ?? true,
-                  static_text: el.static_text,
-                  image_url: el.image_url,
-                  asset_id: el.asset_id,
-                  fit: el.fit ?? 'contain',
-                };
-              });
-
-              // Pre-load custom fonts into DOM BEFORE setting elements
-              try {
-                const fontsToSearch = queriedFonts && queriedFonts.length > 0 ? queriedFonts : await fetchCertificateFonts();
-                for (const el of loadedElements) {
-                  const fontId = el.fontId ?? el.font_id;
-                  const fontKey = el.fontKey ?? el.font_key;
-                  if (fontId || fontKey) {
-                    const match = fontsToSearch.find((f) => f.id === fontId || f.key === fontKey);
-                    if (match) {
-                      await loadFontFaceIntoDOM(match);
-                    }
-                  }
-                }
-                if (typeof document !== 'undefined' && document.fonts) {
-                  await document.fonts.ready;
-                }
-              } catch (_) {}
-
-              setElements(loadedElements);
-              const keys = loadedElements.map((el) => el.binding).filter(Boolean);
-              setSelectedFieldKeys(Array.from(new Set(keys)));
+      // Pre-load custom fonts into DOM BEFORE setting elements
+      (async () => {
+        try {
+          const fontsToSearch = queriedFonts && queriedFonts.length > 0 ? queriedFonts : await fetchCertificateFonts();
+          for (const el of deserialized.elements) {
+            const fontId = el.fontId ?? el.font_id;
+            const fontKey = el.fontKey ?? el.font_key;
+            if (fontId || fontKey) {
+              const match = fontsToSearch.find((f) => String(f.id) === String(fontId) || f.key === fontKey);
+              if (match) {
+                await loadFontFaceIntoDOM(match);
+              }
             }
           }
-        })
-        .catch((err) => {
-          showToast(err?.message || 'Failed to load certificate template.');
-        });
+          if (typeof document !== 'undefined' && document.fonts) {
+            await document.fonts.ready;
+          }
+        } catch (_) {}
+
+        setElements(deserialized.elements);
+        const keys = deserialized.elements.map((el) => el.binding).filter(Boolean);
+        setSelectedFieldKeys(Array.from(new Set(keys)));
+      })();
     }
-  }, [templateId, queriedFonts]);
+  }, [templateDetail, queriedFonts]);
 
   // Keyboard navigation & movement shortcuts
   useEffect(() => {
@@ -781,7 +744,7 @@ export const CertificateBuilderPage: React.FC = () => {
       font_family: defaultFontObj?.family || 'Inter',
       text_align: 'center',
       color: '#0F172A',
-      padding: tightPadding,
+      padding: DEFAULT_TEXT_PADDING,
       z_index: elements.length + 1,
     };
 
@@ -797,13 +760,15 @@ export const CertificateBuilderPage: React.FC = () => {
     showToast('Uploading image asset...', 'info');
     try {
       const media = await coursesService.uploadMedia(file);
-      const url = media.relative_path
-        ? (media.relative_path.startsWith('/media/') || media.relative_path.startsWith('http')
-            ? media.relative_path
-            : `/media/${media.relative_path}`)
-        : media.stored_filename
-        ? `/media/${media.stored_filename}`
-        : media.file_url || '';
+      const url =
+        media.url ||
+        media.relative_path ||
+        media.file_url ||
+        (media.stored_filename ? `/media/${media.stored_filename}` : '');
+
+      if (!media.id || !url) {
+        throw new Error('Upload completed but backend did not return a valid media id/url.');
+      }
 
       const newEl: CanvasElement = {
         id: `el-${Date.now()}`,
@@ -811,6 +776,8 @@ export const CertificateBuilderPage: React.FC = () => {
         label: 'Academy Stamp / Image',
         type: 'image',
         image_url: url,
+        asset_id: media.id,
+        assetId: media.id,
         x: 0.5,
         y: 0.75,
         width: 0.15,
@@ -822,7 +789,7 @@ export const CertificateBuilderPage: React.FC = () => {
       setSelectedElementId(newEl.id);
       showToast('Image element uploaded and added to stage.', 'success');
     } catch (err: any) {
-      showToast(err?.message || 'Failed to upload image asset.');
+      showToast(err?.message || 'Failed to upload image asset.', 'error');
     }
   };
 
@@ -834,32 +801,92 @@ export const CertificateBuilderPage: React.FC = () => {
     showToast('Uploading background image...', 'info');
     try {
       const media = await coursesService.uploadMedia(file);
-      const url = media.relative_path
-        ? (media.relative_path.startsWith('/media/') || media.relative_path.startsWith('http')
-            ? media.relative_path
-            : `/media/${media.relative_path}`)
-        : media.stored_filename
-        ? `/media/${media.stored_filename}`
-        : media.file_url || '';
+      const url =
+        media.url ||
+        media.relative_path ||
+        media.file_url ||
+        (media.stored_filename ? `/media/${media.stored_filename}` : '');
+
+      if (!media.id || !url) {
+        throw new Error('Upload completed but backend did not return a valid media id/url.');
+      }
 
       setBackgroundImageUrl(url);
+      setBackgroundAssetId(media.id);
       showToast('Certificate background image uploaded successfully.', 'success');
     } catch (err: any) {
-      showToast(err?.message || 'Failed to upload background image.');
+      showToast(err?.message || 'Failed to upload background image.', 'error');
     }
   };
 
-  const handlePersonalFieldCreated = (field: { key: string; label: string; field_type: string }) => {
+  const handlePersonalFieldCreated = async (field: {
+    key: string;
+    label: string;
+    field_type: string;
+  }) => {
     const newKey = `student.custom.${field.key}`;
+
     const newBinding: CertificateBinding = {
       key: newKey,
       label: `Student ${field.label}`,
       group: 'Personal Details (Custom Student Fields)',
       type: 'text',
     };
-    setAvailableBindings((prev) => [...prev, newBinding]);
-    setSelectedFieldKeys((prev) => [...prev, newKey]);
-    showToast(`Personal field '${field.label}' created.`);
+
+    // Optimistically show the field immediately.
+    setAvailableBindings((prev) => {
+      if (prev.some((item) => item.key === newKey)) {
+        return prev;
+      }
+
+      return [...prev, newBinding];
+    });
+
+    // Automatically select the new field.
+    setSelectedFieldKeys((prev) => {
+      if (prev.includes(newKey)) {
+        return prev;
+      }
+
+      return [...prev, newKey];
+    });
+
+    // Invalidate certificate-related server cache.
+    await queryClient.invalidateQueries({
+      queryKey: certificateKeys.all,
+    });
+
+    // Re-sync canonical bindings from backend.
+    if (selectedCourseId) {
+      try {
+        const bindings =
+          await certificatesService.getTemplateBindings(selectedCourseId);
+
+        setAvailableBindings(bindings);
+
+        if (bindings.some((item) => item.key === newKey)) {
+          setSelectedFieldKeys((prev) =>
+            prev.includes(newKey)
+              ? prev
+              : [...prev, newKey]
+          );
+        }
+      } catch (err: any) {
+        showToast(
+          err?.response?.data?.message ||
+            err?.message ||
+            'Personal field was created, but fields could not be refreshed.',
+          'error'
+        );
+
+        return;
+      }
+    }
+
+    showToast(
+      `Personal field '${field.label}' created.`,
+      'success'
+    );
   };
 
   const updateSelectedElement = (updates: Partial<CanvasElement>) => {
@@ -1204,99 +1231,79 @@ export const CertificateBuilderPage: React.FC = () => {
 
   const handleSaveTemplate = async () => {
     if (isSaving) return;
+    if (!templateName.trim()) {
+      showToast('Template name is required.', 'error');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const payload: Partial<CertificateTemplateData> = {
-        name: templateName,
+      const payload = serializeCertificateTemplate({
+        templateName,
         description,
-        page_size: pageSize,
+        pageSize,
         orientation,
-        template_data: {
-          elements: elements.map((el) => {
-            const fontObj = availableFonts.find(
-              (f) => f.key === el.fontKey || f.family === el.font_family || f.id === el.fontId || f.id === el.font_id
-            );
-            const runtimeFamily =
-              (fontObj?.source === 'ACADEMY' ? `cubix-font-${fontObj.id}` : el.font_family ?? el.fontFamily ?? fontObj?.family) ??
-              'Inter';
-
-            const fontVal = el.fontSize ?? el.font_size ?? 16;
-            const fontIdVal = el.font_id ?? el.fontId ?? fontObj?.id ?? null;
-            const fontKeyVal = el.fontKey ?? el.font_key ?? fontObj?.key ?? 'inter';
-
-            return {
-              ...el,
-              id: el.id,
-              type: el.type,
-              binding: el.binding,
-              label: el.label,
-              x: el.x ?? 0.5,
-              y: el.y ?? 0.5,
-              width: el.width ?? 0.2,
-              height: el.height ?? 0.05,
-              fontSize: fontVal,
-              font_size: fontVal,
-              maxFontSize: el.maxFontSize ?? el.max_font_size ?? fontVal,
-              max_font_size: el.max_font_size ?? el.maxFontSize ?? fontVal,
-              minFontSize: el.minFontSize ?? el.min_font_size ?? 1,
-              min_font_size: el.min_font_size ?? el.minFontSize ?? 1,
-              fontId: fontIdVal,
-              font_id: fontIdVal,
-              fontKey: fontKeyVal,
-              font_key: fontKeyVal,
-              fontFamily: runtimeFamily,
-              font_family: runtimeFamily,
-              fontWeight: el.fontWeight ?? el.font_weight ?? '600',
-              font_weight: el.font_weight ?? el.fontWeight ?? '600',
-              fontStyle: el.fontStyle ?? el.font_style ?? 'normal',
-              font_style: el.font_style ?? el.fontStyle ?? 'normal',
-              textAlign: el.textAlign ?? el.text_align ?? 'center',
-              text_align: el.text_align ?? el.textAlign ?? 'center',
-              color: el.color ?? '#0F172A',
-              letterSpacing: el.letterSpacing ?? el.letter_spacing ?? 0,
-              letter_spacing: el.letter_spacing ?? el.letterSpacing ?? 0,
-              lineHeight: el.lineHeight ?? el.line_height ?? 1,
-              line_height: el.line_height ?? el.lineHeight ?? 1,
-              padding: el.padding ?? { top: 1, right: 2, bottom: 1, left: 2 },
-              rotation: el.rotation ?? 0,
-              opacity: el.opacity ?? 1,
-              z_index: el.z_index ?? 1,
-              is_locked: el.is_locked ?? false,
-              is_visible: el.is_visible ?? true,
-              static_text: el.static_text,
-              image_url: el.image_url,
-              asset_id: (el as any).asset_id ?? null,
-              fit: el.fit ?? 'contain',
-            };
-          }),
-          canvas: { width: 1600, height: 1131 },
-          background_image_url: backgroundImageUrl,
-        },
-      };
+        customWidth,
+        customHeight,
+        customUnit,
+        backgroundImageUrl,
+        backgroundAssetId,
+        elements,
+        selectedCourseId,
+        availableFonts,
+      });
 
       if (templateId) {
+        // EDIT FLOW: PATCH existing template UUID
         await certificatesService.updateTemplate(templateId, payload);
         if (selectedCourseId) {
           try {
             await certificatesService.assignCourseToTemplate(templateId, selectedCourseId);
-          } catch (_) {}
+          } catch (courseErr: any) {
+            showToast(`Template updated, but course assignment failed: ${courseErr?.message || 'Unknown error'}`);
+          }
         }
         queryClient.invalidateQueries({ queryKey: certificateKeys.templates() });
         queryClient.invalidateQueries({ queryKey: certificateKeys.template(templateId) });
-        showToast('Certificate template updated successfully.', 'success');
+        queryClient.invalidateQueries({ queryKey: certificateKeys.summary() });
+        showToast('Certificate template updated.', 'success');
       } else {
+        // CREATE FLOW: POST template -> assign course -> invalidate -> navigate
         const created = await certificatesService.createTemplate(payload);
-        showToast('Certificate template created successfully.', 'success');
-        if (selectedCourseId && created?.id) {
+        const createdUuid = created.id;
+
+        if (selectedCourseId && createdUuid) {
           try {
-            await certificatesService.assignCourseToTemplate(created.id, selectedCourseId);
-          } catch (_) {}
+            await certificatesService.assignCourseToTemplate(createdUuid, selectedCourseId);
+          } catch (courseErr: any) {
+            showToast(`Template created, but course assignment failed: ${courseErr?.message || 'Unknown error'}`);
+          }
         }
+
         queryClient.invalidateQueries({ queryKey: certificateKeys.templates() });
+        queryClient.invalidateQueries({ queryKey: certificateKeys.summary() });
+        showToast('Certificate template saved.', 'success');
         navigate('/certificates');
       }
     } catch (err: any) {
-      showToast(err?.message || 'Failed to save template.');
+      const respData = err?.response?.data;
+      let errorMsg = 'Failed to save certificate template.';
+      if (typeof respData === 'string') {
+        errorMsg = respData;
+      } else if (respData && typeof respData === 'object') {
+        if (respData.detail) {
+          errorMsg = respData.detail;
+        } else if (respData.message) {
+          errorMsg = respData.message;
+        } else {
+          errorMsg = Object.entries(respData)
+            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+            .join(' | ');
+        }
+      } else if (err?.message) {
+        errorMsg = err.message;
+      }
+      showToast(errorMsg, 'error');
     } finally {
       setIsSaving(false);
     }
@@ -1344,6 +1351,42 @@ export const CertificateBuilderPage: React.FC = () => {
   );
 
   const systemGroups = Array.from(new Set(nonPersonalBindings.map((b) => b.group)));
+
+  // Designer Left Sidebar showing ONLY selected bindings
+  if (templateId && isLoadingTemplate) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[450px] w-full space-y-3 font-sans">
+        <Loader2 className="w-8 h-8 text-[#2563EB] animate-spin" />
+        <p className="text-xs font-semibold text-[#64748B] dark:text-[#94A3B8]">Loading certificate template...</p>
+      </div>
+    );
+  }
+
+  if (templateId && isTemplateError) {
+    const status = (templateError as any)?.response?.status;
+    const isForbidden = status === 403;
+    return (
+      <div className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] p-8 rounded-[16px] max-w-lg mx-auto my-12 text-center space-y-4 font-sans">
+        <AlertCircle className="w-10 h-10 text-rose-600 mx-auto" />
+        <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC]">
+          {isForbidden ? 'Permission Denied' : 'Certificate Template Not Found'}
+        </h3>
+        <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
+          {isForbidden
+            ? 'You do not have access permission to edit this certificate template.'
+            : 'The requested certificate template could not be found or has been deleted.'}
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/certificates')}
+          className="mt-2 text-xs font-semibold cursor-pointer"
+        >
+          Back to Certificates
+        </Button>
+      </div>
+    );
+  }
 
   // Designer Left Sidebar showing ONLY selected bindings
   const designerSelectedBindings = availableBindings.filter((b) =>
@@ -1413,7 +1456,7 @@ export const CertificateBuilderPage: React.FC = () => {
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">
                 {step === 1
-                  ? 'Select Course & Pick Dynamic Fields — Choose the information source for automatic certificate generation.'
+                  ? 'Select Course & Pick Dynamic Fields â€” Choose the information source for automatic certificate generation.'
                   : 'Design and configure your certificate template.'}
               </p>
             </div>
@@ -1455,12 +1498,18 @@ export const CertificateBuilderPage: React.FC = () => {
                 <Button
                   variant="primary"
                   size="sm"
-                  disabled={isSaving}
+                  disabled={isSaving || !templateName.trim()}
                   onClick={handleSaveTemplate}
                   leftIcon={<Save className="w-4 h-4 text-white" />}
                   className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium h-10 px-4 rounded-xl cursor-pointer shadow-xs inline-flex items-center justify-center gap-2 whitespace-nowrap"
                 >
-                  {isSaving ? 'Saving...' : 'Save Template'}
+                  {isSaving
+                    ? templateId
+                      ? 'Updating...'
+                      : 'Saving...'
+                    : templateId
+                    ? 'Update Certificate'
+                    : 'Save Certificate'}
                 </Button>
               </>
             )}
@@ -1479,10 +1528,43 @@ export const CertificateBuilderPage: React.FC = () => {
               </h3>
             </div>
 
-            {isLoadingCourses ? (
-              <div className="flex items-center gap-2 text-xs text-slate-500 py-4">
+            {isLoadingCoursesQuery ? (
+              <div className="flex items-center justify-center gap-2 text-xs text-slate-500 py-8">
                 <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
                 <span>Loading available courses...</span>
+              </div>
+            ) : isCoursesError ? (
+              <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs text-rose-800 dark:text-rose-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>
+                    {coursesError instanceof Error ? coursesError.message : 'Unable to load available courses.'}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetchCourses()}
+                  className="text-xs font-semibold h-8 shrink-0"
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : courses.length === 0 ? (
+              <div className="p-6 bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-center space-y-3">
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  No courses are available yet. Create a course first before building a certificate template.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/courses/create')}
+                  className="text-xs font-semibold"
+                >
+                  Create Course
+                </Button>
               </div>
             ) : (
               <div className="space-y-4">
@@ -1496,7 +1578,7 @@ export const CertificateBuilderPage: React.FC = () => {
                       onChange={(e) => setSelectedCourseId(e.target.value)}
                       className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 cursor-pointer"
                     >
-                      {courses.map((c) => (
+                      {courses.map((c: any) => (
                         <option key={c.id} value={c.id}>
                           {c.title}
                         </option>
@@ -1522,8 +1604,8 @@ export const CertificateBuilderPage: React.FC = () => {
                       onChange={(e) => setPageSize(e.target.value as any)}
                       className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 cursor-pointer"
                     >
-                      <option value="A4">A4 (Standard 210 × 297 mm)</option>
-                      <option value="LETTER">US Letter (8.5 × 11 in)</option>
+                      <option value="A4">A4 (Standard 210 Ã— 297 mm)</option>
+                      <option value="LETTER">US Letter (8.5 Ã— 11 in)</option>
                       <option value="CUSTOM">Custom Dimensions</option>
                     </select>
                   </div>
@@ -1687,7 +1769,7 @@ export const CertificateBuilderPage: React.FC = () => {
       {/* STEP 2: VISUAL DESIGNER */}
       {step === 2 && (
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)] gap-5 lg:gap-6 items-start">
-          {/* LEFT COLUMN — TOOLBAR, FIELD LIBRARY & PROPERTIES */}
+          {/* LEFT COLUMN â€” TOOLBAR, FIELD LIBRARY & PROPERTIES */}
           <div className="space-y-4 w-full">
             <Card className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-2xs space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-1.5">
@@ -2291,7 +2373,7 @@ export const CertificateBuilderPage: React.FC = () => {
             </Card>
           </div>
 
-          {/* RIGHT COLUMN — CANVAS PREVIEW */}
+          {/* RIGHT COLUMN â€” CANVAS PREVIEW */}
           <div className="w-full flex items-start justify-center">
             <div className="w-full max-w-[900px]">
               <Card className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-5 rounded-2xl shadow-2xs space-y-3">
@@ -2300,7 +2382,7 @@ export const CertificateBuilderPage: React.FC = () => {
                     {isPreview ? 'Live Sample Preview' : 'Interactive Canvas'}
                   </span>
                   <span className="px-2 py-0.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-mono font-medium rounded-md border border-slate-200 dark:border-slate-700">
-                    1600 × 1131 px
+                    1600 Ã— 1131 px
                   </span>
                 </div>
 
@@ -2449,3 +2531,4 @@ export const CertificateBuilderPage: React.FC = () => {
     </div>
   );
 };
+
