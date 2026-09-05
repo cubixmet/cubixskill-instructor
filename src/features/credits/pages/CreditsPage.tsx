@@ -262,37 +262,68 @@ export const CreditsPage: React.FC = () => {
         </div>
       )}
 
-      {/* 3. USAGE THIS MONTH SECTION */}
-      <Card padding="md" className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl space-y-3 shadow-2xs p-4">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2">
-          <div className="flex items-center gap-2">
-            <PieChart className="w-4 h-4 text-[#2563EB]" />
-            <h2 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
-              Usage This Month
-            </h2>
+      {/* 3. THIS MONTH ESTIMATED USAGE & STORAGE BREAKDOWN (SECTION N & P) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Estimated Monthly Feature Usage */}
+        <Card padding="md" className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl space-y-3 shadow-2xs p-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2">
+            <div className="flex items-center gap-2">
+              <PieChart className="w-4 h-4 text-[#2563EB]" />
+              <h2 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
+                This Month Estimated Usage
+              </h2>
+            </div>
+            <span className="text-xs font-semibold text-[#2563EB]">
+              Est. Total: {Math.floor(Number(summary?.this_month_estimated_total || 0)).toLocaleString()} Credits
+            </span>
           </div>
-          <span className="text-[11px] text-slate-500 font-normal">Aggregated service consumption</span>
-        </div>
 
-        {isUsageLoading ? (
-          <div className="py-4 text-center text-xs text-slate-400 font-normal">Loading usage breakdown...</div>
-        ) : usageItems.length === 0 ? (
-          <div className="py-6 text-center text-xs text-slate-500 font-normal">No credit usage recorded this month.</div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-            {usageItems.map((item) => (
-              <div key={item.source_type} className="p-3 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#263244] rounded-xl space-y-1">
-                <div className="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
-                  {item.label}
+          <div className="space-y-2 text-xs">
+            {summary?.estimated_breakdown && summary.estimated_breakdown.length > 0 ? (
+              summary.estimated_breakdown.map((item) => (
+                <div key={item.code} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#263244] rounded-xl">
+                  <div>
+                    <span className="text-slate-900 dark:text-white font-medium block">{item.name}</span>
+                    <span className="text-[10px] text-slate-500">{item.detail}</span>
+                  </div>
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {Math.floor(Number(item.credits)).toLocaleString()} Credits
+                  </span>
                 </div>
-                <p className="text-slate-900 dark:text-white font-semibold text-base">
-                  {Math.floor(Number(item.credits_used)).toLocaleString()} Credits
-                </p>
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="py-4 text-center text-xs text-slate-500 font-normal">Loading estimated breakdown...</div>
+            )}
           </div>
-        )}
-      </Card>
+        </Card>
+
+        {/* Storage Breakdown Summary */}
+        <Card padding="md" className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl space-y-3 shadow-2xs p-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2">
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-amber-600" />
+              <h2 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
+                Storage Metered Breakdown
+              </h2>
+            </div>
+            <span className="text-xs font-semibold text-amber-600">
+              Est. Charge: {Math.floor(Number(summary?.storage_breakdown?.estimated_storage_charge || 0)).toLocaleString()} Credits
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="p-2.5 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#263244] rounded-xl">
+              <span className="text-slate-500 text-[10px] block">Current Storage</span>
+              <span className="font-semibold text-slate-900 dark:text-white">{summary?.storage_breakdown?.current_storage_gb || '0.00'} GB</span>
+            </div>
+
+            <div className="p-2.5 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#263244] rounded-xl">
+              <span className="text-slate-500 text-[10px] block">Billing Interval</span>
+              <span className="font-semibold text-indigo-600">{summary?.storage_breakdown?.billing_interval_label || '12 Hours'}</span>
+            </div>
+          </div>
+        </Card>
+      </div>
 
       {/* 4. CREDIT HISTORY & TRANSACTIONS SECTION */}
       <div className="space-y-3">

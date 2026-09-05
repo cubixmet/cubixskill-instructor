@@ -1,20 +1,5 @@
 import { certificatesService } from '../../../services/certificates.service';
 
-/**
- * Fetches available certificate fonts from backend API
- */
-export async function fetchCertificateFonts(): Promise<CertificateFontItem[]> {
-  try {
-    const results = await certificatesService.listFonts();
-    if (Array.isArray(results) && results.length > 0) {
-      return results;
-    }
-  } catch (_err) {
-    // Fallback to static system registry if backend unauthenticated or offline
-  }
-  return FALLBACK_SYSTEM_FONTS;
-}
-
 export interface CertificateFontItem {
   id: string;
   key: string;
@@ -28,14 +13,25 @@ export interface CertificateFontItem {
   is_certificate_safe: boolean;
 }
 
-export const FALLBACK_SYSTEM_FONTS: CertificateFontItem[] = [
+const BACKEND_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+
+export function resolveFontUrl(rawUrl?: string): string {
+  if (!rawUrl) return '';
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://') || rawUrl.startsWith('data:')) {
+    return rawUrl;
+  }
+  const cleanPath = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
+  return `${BACKEND_BASE_URL}${cleanPath}`;
+}
+
+export const SYSTEM_FONTS: CertificateFontItem[] = [
   {
     id: 'f-inter',
     key: 'inter',
     name: 'Inter',
     family: 'Inter',
     source: 'SYSTEM',
-    file_url: 'https://fonts.gstatic.com/s/inter/v13/UcCO3Fwb07KITCgUn8g74g.woff2',
+    file_url: 'google_font:Inter:400,500,600,700,800',
     font_weight_variants: ['400', '500', '600', '700', '800'],
     is_active: true,
     is_certificate_safe: true,
@@ -46,7 +42,7 @@ export const FALLBACK_SYSTEM_FONTS: CertificateFontItem[] = [
     name: 'Roboto',
     family: 'Roboto',
     source: 'SYSTEM',
-    file_url: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2',
+    file_url: 'google_font:Roboto:300,400,500,700',
     font_weight_variants: ['300', '400', '500', '700'],
     is_active: true,
     is_certificate_safe: true,
@@ -57,7 +53,7 @@ export const FALLBACK_SYSTEM_FONTS: CertificateFontItem[] = [
     name: 'Open Sans',
     family: 'Open Sans',
     source: 'SYSTEM',
-    file_url: 'https://fonts.gstatic.com/s/opensans/v35/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsjZ0B4gaVQUwaEQbjB_sA.woff2',
+    file_url: 'google_font:Open+Sans:400,600,700',
     font_weight_variants: ['400', '600', '700'],
     is_active: true,
     is_certificate_safe: true,
@@ -68,7 +64,7 @@ export const FALLBACK_SYSTEM_FONTS: CertificateFontItem[] = [
     name: 'Lato',
     family: 'Lato',
     source: 'SYSTEM',
-    file_url: 'https://fonts.gstatic.com/s/lato/v24/S6uyw4BMUTPHjx4wXiWtFCc.woff2',
+    file_url: 'google_font:Lato:300,400,700',
     font_weight_variants: ['300', '400', '700'],
     is_active: true,
     is_certificate_safe: true,
@@ -79,7 +75,7 @@ export const FALLBACK_SYSTEM_FONTS: CertificateFontItem[] = [
     name: 'Montserrat',
     family: 'Montserrat',
     source: 'SYSTEM',
-    file_url: 'https://fonts.gstatic.com/s/montserrat/v25/JTUHjIg1_i6t8kCHKm453WzAwr40suA.woff2',
+    file_url: 'google_font:Montserrat:400,500,600,700,800',
     font_weight_variants: ['400', '500', '600', '700', '800'],
     is_active: true,
     is_certificate_safe: true,
@@ -90,7 +86,7 @@ export const FALLBACK_SYSTEM_FONTS: CertificateFontItem[] = [
     name: 'Merriweather',
     family: 'Merriweather',
     source: 'SYSTEM',
-    file_url: 'https://fonts.gstatic.com/s/merriweather/v30/u-440qyqiXiFoYHpQa86YlIz2os.woff2',
+    file_url: 'google_font:Merriweather:300,400,700',
     font_weight_variants: ['300', '400', '700'],
     is_active: true,
     is_certificate_safe: true,
@@ -101,7 +97,7 @@ export const FALLBACK_SYSTEM_FONTS: CertificateFontItem[] = [
     name: 'Playfair Display',
     family: 'Playfair Display',
     source: 'SYSTEM',
-    file_url: 'https://fonts.gstatic.com/s/playfairdisplay/v30/nuFvD-vYSZviVYUb_RJ3ijvryePtLCAAGWQ.woff2',
+    file_url: 'google_font:Playfair+Display:400,600,700,800',
     font_weight_variants: ['400', '600', '700', '800'],
     is_active: true,
     is_certificate_safe: true,
@@ -112,51 +108,138 @@ export const FALLBACK_SYSTEM_FONTS: CertificateFontItem[] = [
     name: 'Cinzel',
     family: 'Cinzel',
     source: 'SYSTEM',
-    file_url: 'https://fonts.gstatic.com/s/cinzel/v19/8vLdf2_mCio6ioHY0955H6Q.woff2',
+    file_url: 'google_font:Cinzel:400,600,700,800',
     font_weight_variants: ['400', '600', '700', '800'],
     is_active: true,
     is_certificate_safe: true,
   },
 ];
 
-const loadedFontFaces = new Set<string>();
+export const FALLBACK_SYSTEM_FONTS = SYSTEM_FONTS;
 
 /**
- * Dynamically loads a web font face into the DOM using @font-face injection
+ * Fetches available certificate fonts from backend API and deduplicates by id/key
  */
-export async function loadFontFaceIntoDOM(font: CertificateFontItem): Promise<boolean> {
-  if (typeof window === 'undefined' || !font.file_url) return false;
+export async function fetchCertificateFonts(): Promise<CertificateFontItem[]> {
+  const fontMap = new Map<string, CertificateFontItem>();
 
-  const fontId = `${font.key}_${font.file_url}`;
-  if (loadedFontFaces.has(fontId)) {
-    return true;
-  }
+  // Always seed system fonts
+  SYSTEM_FONTS.forEach((f) => fontMap.set(f.id, f));
 
   try {
-    const styleId = `font-face-${font.key}`;
-    if (!document.getElementById(styleId)) {
-      const styleEl = document.createElement('style');
-      styleEl.id = styleId;
-      styleEl.textContent = `
-        @font-face {
-          font-family: '${font.family}';
-          src: url('${font.file_url}') format('woff2'), url('${font.file_url}') format('truetype');
-          font-weight: normal;
-          font-style: normal;
-          font-display: swap;
+    const results = await certificatesService.listFonts();
+    if (Array.isArray(results)) {
+      results.forEach((item: any) => {
+        if (!item || !item.id) return;
+        const fontObj: CertificateFontItem = {
+          id: String(item.id),
+          key: item.key || item.id,
+          name: item.name || item.family || 'Custom Font',
+          family: item.family || item.name || 'Custom Font',
+          source: item.source || 'ACADEMY',
+          user_rights_confirmed: item.user_rights_confirmed,
+          file_url: item.file_url,
+          font_weight_variants: item.font_weight_variants || ['400', '700'],
+          is_active: item.is_active ?? true,
+          is_certificate_safe: item.is_certificate_safe ?? true,
+        };
+
+        // For system fonts from backend, normalize file_url if stale
+        if (fontObj.source === 'SYSTEM') {
+          const matched = SYSTEM_FONTS.find((sf) => sf.key === fontObj.key || sf.family.toLowerCase() === fontObj.family.toLowerCase());
+          if (matched) {
+            fontObj.file_url = matched.file_url;
+            fontMap.set(matched.id, fontObj);
+            return;
+          }
         }
-      `;
-      document.head.appendChild(styleEl);
+        fontMap.set(fontObj.id, fontObj);
+      });
     }
-
-    if (document.fonts) {
-      await document.fonts.ready;
-    }
-
-    loadedFontFaces.add(fontId);
-    return true;
-  } catch (err) {
-    console.warn(`[FontRegistry] Failed to load font face ${font.name}:`, err);
-    return false;
+  } catch (_err) {
+    // Fallback to static system fonts if API call fails
   }
+
+  return Array.from(fontMap.values());
 }
+
+const loadedFontFaces = new Map<string, Promise<boolean>>();
+const loadedGoogleFonts = new Set<string>();
+
+/**
+ * Dynamically loads a web font face into the DOM using FontFace API or Google Fonts API
+ */
+export async function loadFontFaceIntoDOM(font: CertificateFontItem): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+
+  // Case A: Google Fonts / System Fonts
+  if (font.file_url?.startsWith('google_font:') || font.source === 'SYSTEM') {
+    const familyName = font.family || font.name;
+    if (loadedGoogleFonts.has(familyName)) return true;
+
+    try {
+      const linkId = `google-font-${font.key || familyName.toLowerCase().replace(/\s+/g, '-')}`;
+      if (!document.getElementById(linkId)) {
+        const encodedFamily = encodeURIComponent(familyName);
+        const link = document.createElement('link');
+        link.id = linkId;
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${encodedFamily}:wght@300;400;500;600;700;800&display=swap`;
+        document.head.appendChild(link);
+      }
+      if (document.fonts) {
+        await document.fonts.ready;
+      }
+      loadedGoogleFonts.add(familyName);
+      return true;
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  // Case B: Uploaded Custom Fonts
+  const absoluteUrl = resolveFontUrl(font.file_url);
+  if (!absoluteUrl) return false;
+
+  const cacheKey = `${font.id || font.key}_${absoluteUrl}`;
+  if (loadedFontFaces.has(cacheKey)) {
+    return loadedFontFaces.get(cacheKey)!;
+  }
+
+  const loadPromise = (async () => {
+    try {
+      // Validate content type / binary before FontFace registration
+      const response = await fetch(absoluteUrl, { method: 'GET' });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} loading font file`);
+      }
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('text/html') || contentType.includes('application/json')) {
+        throw new Error('Received non-font binary response');
+      }
+
+      const fontArrayBuffer = await response.arrayBuffer();
+
+      if (typeof FontFace !== 'undefined' && document.fonts) {
+        const runtimeFamily = font.source === 'ACADEMY' ? `cubix-font-${font.id}` : font.family;
+        const fontFace = new FontFace(runtimeFamily, fontArrayBuffer, {
+          weight: font.font_weight_variants?.[0] || 'normal',
+          style: 'normal',
+        });
+        const loadedFace = await fontFace.load();
+        document.fonts.add(loadedFace);
+        await document.fonts.ready;
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.warn(`[FontRegistry] Failed to load font ${font.name}:`, err);
+      return false;
+    }
+  })();
+
+  loadedFontFaces.set(cacheKey, loadPromise);
+  return loadPromise;
+}
+
+

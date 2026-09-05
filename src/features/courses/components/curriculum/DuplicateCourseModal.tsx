@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Copy, BookOpen, AlertCircle, Loader2 } from 'lucide-react';
 import { Modal } from '../../../../components/ui/Modal';
 import { Button } from '../../../../components/ui/Button';
+import { CourseThumbnailImage } from '../../../../components/courses/CourseThumbnailImage';
 import type { CourseDetails } from '../../types/course.types';
 
 export interface DuplicateCourseModalProps {
@@ -50,17 +51,13 @@ export const DuplicateCourseModal: React.FC<DuplicateCourseModalProps> = ({
       <form onSubmit={handleSubmit} className="space-y-4 text-left font-sans">
         {/* Source Course Information Header */}
         <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3">
-          {course.thumbnailUrl ? (
-            <img
-              src={course.thumbnailUrl}
+          <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-200 shrink-0">
+            <CourseThumbnailImage
+              src={course.thumbnailUrl || (course as any).thumbnail}
               alt={course.title}
-              className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
+              iconClassName="w-6 h-6"
             />
-          ) : (
-            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center font-bold text-sm shrink-0">
-              <BookOpen className="w-6 h-6" />
-            </div>
-          )}
+          </div>
           <div className="min-w-0 flex-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
               Source Course

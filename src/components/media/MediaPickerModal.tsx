@@ -106,12 +106,12 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
       setUploading(true);
       setUploadError(null);
       setUploadProgress(10);
-      const newAsset = await storageService.uploadFile(selectedFile, (pct) => {
-        setUploadProgress(Math.max(10, pct));
+      const newAsset = await storageService.uploadFile(selectedFile, {
+        onProgress: (pct) => setUploadProgress(Math.max(10, pct)),
       });
       handleSelectAsset(newAsset);
     } catch (err: any) {
-      setUploadError(err?.response?.data?.message || 'Upload failed. Please try again.');
+      setUploadError(err?.message || err?.response?.data?.message || 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
     }

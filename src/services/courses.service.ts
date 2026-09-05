@@ -11,7 +11,43 @@ import type {
   CourseCategory,
   CourseModule,
   MediaFile,
+  CoursePublishReadiness,
 } from "../features/courses/types/course.types";
+
+import { resolveMediaUrl } from "../utils/media.utils";
+
+function normalizeCourseMedia<T extends Record<string, any>>(course: T): T {
+  if (!course) return course;
+  const copy = { ...course };
+
+  if (copy.thumbnail) {
+    if (typeof copy.thumbnail === 'object') {
+      copy.thumbnail = {
+        ...copy.thumbnail,
+        url: resolveMediaUrl(copy.thumbnail),
+      };
+    } else if (typeof copy.thumbnail === 'string') {
+      copy.thumbnail_url = resolveMediaUrl(copy.thumbnail);
+    }
+  }
+  if (copy.thumbnail_url) {
+    copy.thumbnail_url = resolveMediaUrl(copy.thumbnail_url);
+  }
+  if (copy.promo_video) {
+    if (typeof copy.promo_video === 'object') {
+      copy.promo_video = {
+        ...copy.promo_video,
+        url: resolveMediaUrl(copy.promo_video),
+      };
+    } else if (typeof copy.promo_video === 'string') {
+      copy.promo_video_url = resolveMediaUrl(copy.promo_video);
+    }
+  }
+  if (copy.promo_video_url) {
+    copy.promo_video_url = resolveMediaUrl(copy.promo_video_url);
+  }
+  return copy;
+}
 
 export const coursesService = {
   async listCourses(params?: {
@@ -27,6 +63,15 @@ export const coursesService = {
       { params }
     );
     const data = (response.data as any)?.data || response.data;
+    if (Array.isArray(data)) {
+      return data.map((item) => normalizeCourseMedia(item));
+    }
+    if (data && Array.isArray(data.results)) {
+      return {
+        ...data,
+        results: data.results.map((item: any) => normalizeCourseMedia(item)),
+      };
+    }
     return data;
   },
 
@@ -38,7 +83,8 @@ export const coursesService = {
     const response = await apiClient.get<BackendApiResponse<CourseDetail>>(
       API_ENDPOINTS.COURSES.DETAIL(validId)
     );
-    return response.data?.data || (response.data as unknown as CourseDetail);
+    const data = response.data?.data || (response.data as unknown as CourseDetail);
+    return normalizeCourseMedia(data);
   },
 
   async createCourse(payload: CreateCoursePayload): Promise<CourseDetail> {
@@ -46,7 +92,8 @@ export const coursesService = {
       API_ENDPOINTS.COURSES.LIST,
       payload
     );
-    return response.data?.data || (response.data as unknown as CourseDetail);
+    const data = response.data?.data || (response.data as unknown as CourseDetail);
+    return normalizeCourseMedia(data);
   },
 
   async updateCourse(id: string, payload: UpdateCoursePayload): Promise<CourseDetail> {
@@ -58,7 +105,8 @@ export const coursesService = {
       API_ENDPOINTS.COURSES.DETAIL(validId),
       payload
     );
-    return response.data?.data || (response.data as unknown as CourseDetail);
+    const data = response.data?.data || (response.data as unknown as CourseDetail);
+    return normalizeCourseMedia(data);
   },
 
   async patchCourse(id: string, payload: UpdateCoursePayload): Promise<CourseDetail> {
@@ -70,7 +118,8 @@ export const coursesService = {
       API_ENDPOINTS.COURSES.DETAIL(validId),
       payload
     );
-    return response.data?.data || (response.data as unknown as CourseDetail);
+    const data = response.data?.data || (response.data as unknown as CourseDetail);
+    return normalizeCourseMedia(data);
   },
 
   async deleteCourse(id: string): Promise<void> {
@@ -85,7 +134,8 @@ export const coursesService = {
     const response = await apiClient.post<BackendApiResponse<CourseDetail>>(
       `/api/v1/courses/courses/${validId}/publish/`
     );
-    return response.data?.data || (response.data as unknown as CourseDetail);
+    const data = response.data?.data || (response.data as unknown as CourseDetail);
+    return normalizeCourseMedia(data);
   },
 
   async archiveCourse(id: string): Promise<CourseDetail> {
@@ -94,7 +144,8 @@ export const coursesService = {
     const response = await apiClient.post<BackendApiResponse<CourseDetail>>(
       `/api/v1/courses/courses/${validId}/archive/`
     );
-    return response.data?.data || (response.data as unknown as CourseDetail);
+    const data = response.data?.data || (response.data as unknown as CourseDetail);
+    return normalizeCourseMedia(data);
   },
 
   async duplicateCourse(id: string): Promise<CourseDetail> {
@@ -103,7 +154,8 @@ export const coursesService = {
     const response = await apiClient.post<BackendApiResponse<CourseDetail>>(
       `/api/v1/courses/courses/${validId}/duplicate/`
     );
-    return response.data?.data || (response.data as unknown as CourseDetail);
+    const data = response.data?.data || (response.data as unknown as CourseDetail);
+    return normalizeCourseMedia(data);
   },
 
   async listCategories(search?: string): Promise<CourseCategory[]> {
@@ -181,6 +233,20 @@ export const coursesService = {
       "/api/v1/storage/upload/",
       formData
     );
-    return response.data?.data || (response.data as unknown as MediaFile);
+    const data = response.data?.data || (response.data as unknown as MediaFile);
+    if (data) {
+      if (data.url) data.url = resolveMediaUrl(data.url);
+      if (data.relative_path) data.relative_path = resolveMediaUrl(data.relative_path);
+    }
+    return data;
+  },
+
+  async getPublishReadiness(id: string): Promise<CoursePublishReadiness> {
+    const validId = normalizeCourseId(id);
+    if (!validId) throw new Error("Invalid course ID provided.");
+    const response = await apiClient.get<BackendApiResponse<CoursePublishReadiness> | CoursePublishReadiness>(
+      `/api/v1/courses/courses/${validId}/publish-readiness/`
+    );
+    return (response.data as any)?.data || response.data;
   },
 };

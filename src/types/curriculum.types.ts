@@ -58,6 +58,8 @@ export interface LessonResourceAttachment {
 export interface LessonContent {
   videoSource?: string;
   videoUrl?: string;
+  audioUrl?: string;
+  streamUrl?: string;
   videoDeliveryMode?: 'standard' | 'adaptive';
   mediaUrl?: string;
   fileUrl?: string;
@@ -113,6 +115,7 @@ export interface CourseLessonSubsection {
 }
 
 export interface CourseLesson {
+  id?: string;
   uuid: string;
   courseUuid: string;
   moduleUuid: string;
@@ -123,16 +126,22 @@ export interface CourseLesson {
   sortOrder: number;
   durationMinutes: number;
   isDemo: boolean;
+  is_locked?: boolean;
+  isLocked?: boolean;
   allowDownload?: boolean;
   external_url?: string;
   video_url?: string;
   audio_url?: string;
+  stream_url?: string;
   primary_media?: Record<string, any> | null;
   media_files?: Record<string, any>[];
+  question_count?: number;
+  quiz?: Record<string, any> | null;
   unlockRule?: UnlockRule;
   unlockDate?: string;
   unlockAfterDays?: number;
   content: LessonContent;
+  resources?: LessonResourceAttachment[];
   subsections?: CourseLessonSubsection[];
   createdAt: string;
   updatedAt: string;
@@ -197,6 +206,8 @@ export interface CreateLessonInput {
   status?: ContentStatus;
   durationMinutes?: number;
   isDemo?: boolean;
+  is_locked?: boolean;
+  isLocked?: boolean;
   allowDownload?: boolean;
   external_url?: string;
   content?: LessonContent;

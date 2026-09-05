@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { certificatesService } from '../../../services/certificates.service';
 import { CertificateFontItem } from '../utils/fontRegistry';
+import { certificateKeys } from '../hooks/useCertificateQueries';
 
 interface UploadFontModalProps {
   isOpen: boolean;
@@ -9,6 +11,7 @@ interface UploadFontModalProps {
 }
 
 export const UploadFontModal: React.FC<UploadFontModalProps> = ({ isOpen, onClose, onFontUploaded }) => {
+  const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [userRightsConfirmed, setUserRightsConfirmed] = useState(false);
@@ -53,6 +56,7 @@ export const UploadFontModal: React.FC<UploadFontModalProps> = ({ isOpen, onClos
       formData.append('user_rights_confirmed', 'true');
 
       const res = await certificatesService.uploadFont(formData);
+      queryClient.invalidateQueries({ queryKey: certificateKeys.fonts() });
       onFontUploaded(res);
       onClose();
     } catch (err: any) {

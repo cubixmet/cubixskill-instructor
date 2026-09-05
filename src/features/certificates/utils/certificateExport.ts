@@ -125,8 +125,8 @@ export const generateCertificateImage = async (
     const availW = Math.max(1, elW - (pad.left + pad.right));
     const availH = Math.max(1, elH - (pad.top + pad.bottom));
 
-    const maxFontSize = el.preferredFontSize || el.fontSize || 32;
-    const minFontSize = Math.min(maxFontSize, el.minimumFontSize || 18);
+    const maxFontSize = Math.min(150, Math.max(1, el.fontSize ?? el.font_size ?? el.maxFontSize ?? el.max_font_size ?? el.preferredFontSize ?? 56));
+    const minFontSize = Math.min(maxFontSize, Math.max(1, el.minFontSize ?? el.min_font_size ?? el.minimumFontSize ?? 1));
 
     // Calculate binary search fit
     let low = minFontSize;

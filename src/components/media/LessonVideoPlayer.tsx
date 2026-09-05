@@ -40,8 +40,8 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
   const [mediaError, setMediaError] = useState<string | null>(null);
 
   const processingStatus = media?.processing_status || 'READY';
-  const rawStreamPath = media?.stream_url || streamUrl || '';
-  const rawVideoPath = media?.url || videoUrl || '';
+  const rawStreamPath = streamUrl || media?.stream_url || '';
+  const rawVideoPath = videoUrl || media?.url || '';
 
   const resolvedStreamUrl = resolveMediaUrl(rawStreamPath);
   const resolvedVideoUrl = resolveMediaUrl(rawVideoPath);
@@ -59,7 +59,7 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
 
     const isAdaptiveOn = media ? (media.adaptive_streaming_enabled !== false && media.processing_mode === 'hls') : true;
     const hlsSource = (isAdaptiveOn && processingStatus !== 'FAILED') ? (resolvedStreamUrl || (resolvedVideoUrl.endsWith('.m3u8') ? resolvedVideoUrl : '')) : '';
-    const mp4Source = resolvedVideoUrl;
+    const mp4Source = resolvedVideoUrl && !resolvedVideoUrl.endsWith('.m3u8') ? resolvedVideoUrl : '';
 
     if (hlsSource && Hls.isSupported()) {
       if (hlsRef.current) {
@@ -76,29 +76,49 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+        setMediaError(null);
         const parsedQualities = data.levels.map((lvl, idx) => ({
           index: idx,
           height: lvl.height,
-          label: `${lvl.height}p`
+          label: lvl.height ? `${lvl.height}p` : `Level ${idx + 1}`
         })).sort((a, b) => b.height - a.height);
 
         setQualities(parsedQualities);
       });
 
       hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
-        if (hls.currentLevel === -1) {
+        if (hls.autoLevelEnabled) {
           setCurrentQuality(-1);
+        } else {
+          setCurrentQuality(data.level);
         }
       });
 
       hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data.fatal) {
-          console.warn('HLS Fatal Error, falling back to original video source:', data);
-          if (mp4Source) {
-            video.src = mp4Source;
-          } else {
-            setMediaError('Streaming manifest error.');
-          }
+        console.error('[LessonVideoPlayer] HLS error', {
+          type: data.type,
+          details: data.details,
+          fatal: data.fatal,
+          url: hlsSource,
+        });
+
+        if (!data.fatal) return;
+
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR:
+            hls.startLoad();
+            break;
+          case Hls.ErrorTypes.MEDIA_ERROR:
+            hls.recoverMediaError();
+            break;
+          default:
+            if (mp4Source) {
+              video.src = mp4Source;
+            } else {
+              setMediaError('Unable to play this HLS video stream.');
+            }
+            hls.destroy();
+            break;
         }
       });
 
@@ -118,12 +138,23 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
   }, [resolvedStreamUrl, resolvedVideoUrl, processingStatus]);
 
   const handleQualityChange = (levelIndex: number) => {
-    setCurrentQuality(levelIndex);
+    const hls = hlsRef.current;
+    if (!hls) return;
+
     setShowQualityMenu(false);
 
-    if (hlsRef.current) {
-      hlsRef.current.currentLevel = levelIndex;
+    if (levelIndex === -1) {
+      // Restore Adaptive Bitrate
+      hls.loadLevel = -1;
+      hls.nextLoadLevel = -1;
+      setCurrentQuality(-1);
+      return;
     }
+
+    // Lock future fragment loading to selected quality
+    hls.loadLevel = levelIndex;
+    hls.nextLoadLevel = levelIndex;
+    setCurrentQuality(levelIndex);
   };
 
   const togglePlay = () => {

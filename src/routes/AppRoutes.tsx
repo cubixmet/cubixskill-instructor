@@ -25,6 +25,7 @@ import { NotFoundPage } from '../pages/NotFoundPage';
 // Lazy-Loaded Feature Modules (Code-Splitting)
 const CreditsPage = lazy(() => import('../features/credits/pages/CreditsPage').then(m => ({ default: m.CreditsPage })));
 const BuyCreditsPage = lazy(() => import('../features/credits/pages/BuyCreditsPage').then(m => ({ default: m.BuyCreditsPage })));
+const StorageBillingPage = lazy(() => import('../features/credits/pages/StorageBillingPage').then(m => ({ default: m.StorageBillingPage })));
 const MediaPage = lazy(() => import('../features/media/pages/MediaPage').then(m => ({ default: m.MediaPage })));
 
 const CourseListPage = lazy(() => import('../features/courses/pages/CourseListPage').then(m => ({ default: m.CourseListPage })));
@@ -281,6 +282,8 @@ export const AppRoutes: React.FC = () => {
             <Route path="/credits/buy" element={<BuyCreditsPage />} />
             <Route path="/credits/history" element={<CreditsPage />} />
             <Route path="/credits/usage" element={<CreditsPage />} />
+            <Route path="/credits/storage" element={<StorageBillingPage />} />
+            <Route path="/storage/billing" element={<StorageBillingPage />} />
 
             {/* 10. Global Fees */}
             <Route path="/fees" element={<GlobalFeesPage />} />

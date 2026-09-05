@@ -117,13 +117,13 @@ export const PersonalChatStudentPage: React.FC = () => {
 
   // Handle incoming realtime socket messages
   const handleIncomingSocketMessage = useCallback((newMsg: any) => {
-    if (!newMsg || !newMsg.id) return;
-    const msgId = String(newMsg.id);
+    if (!newMsg || (!newMsg.id && !newMsg.uuid && !newMsg.message_id)) return;
+    const normalized = normalizeChatMessage(newMsg);
 
     setMessages((prev) => {
-      if (prev.some((m) => String(m.id) === msgId)) return prev;
-      const updated = [...prev, newMsg].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      if (prev.some((m) => String(m.id) === normalized.id)) return prev;
+      const updated = [...prev, normalized].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
       return updated;
     });
@@ -194,8 +194,9 @@ export const PersonalChatStudentPage: React.FC = () => {
       // 3. Load existing messages and sort chronologically (oldest -> newest)
       if (resolvedRoom?.id) {
         const msgs = await discussionService.listChatMessages(resolvedRoom.id);
-        const sorted = [...msgs].sort(
-          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        const normalized = msgs.map(normalizeChatMessage);
+        const sorted = [...normalized].sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
         setMessages(sorted);
         // Mark read via WebSocket if connected
@@ -248,9 +249,9 @@ export const PersonalChatStudentPage: React.FC = () => {
 
   // Group messages chronologically with date separators
   const groupedMessages = useMemo(() => {
-    const groups: { dateLabel: string; msgs: any[] }[] = [];
+    const groups: { dateLabel: string; msgs: NormalizedChatMessage[] }[] = [];
     messages.forEach((msg) => {
-      const label = formatDateSeparator(msg.created_at);
+      const label = formatDateSeparator(msg.createdAt);
       const lastGroup = groups[groups.length - 1];
       if (lastGroup && lastGroup.dateLabel === label) {
         lastGroup.msgs.push(msg);
@@ -318,31 +319,39 @@ export const PersonalChatStudentPage: React.FC = () => {
     const contentToSend = messageContent.trim();
     const mediaIdsToSend = uploadedMediaId ? [uploadedMediaId] : [];
 
-    setMessageContent('');
-    setSelectedFile(null);
-    setUploadedMediaId(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
-
     try {
-      const sentViaWs = sendWsMessage(contentToSend, mediaIdsToSend);
+      const sentViaWs = sendWsMessage({
+        content: contentToSend,
+        messageType: 'TEXT',
+        mediaFileIds: mediaIdsToSend,
+      });
+
       if (!sentViaWs) {
         const createdMsg = await discussionService.sendChatMessage(room.id, contentToSend, mediaIdsToSend);
+        const normalized = normalizeChatMessage(createdMsg);
         setMessages((prev) => {
-          if (prev.some((m) => String(m.id) === String(createdMsg.id))) return prev;
-          const updated = [...prev, createdMsg].sort(
-            (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          if (prev.some((m) => String(m.id) === normalized.id)) return prev;
+          const updated = [...prev, normalized].sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           );
           return updated;
         });
       }
+
+      setMessageContent('');
+      setSelectedFile(null);
+      setUploadedMediaId(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (textareaRef.current) textareaRef.current.style.height = 'auto';
+
       scrollToBottom('smooth');
     } catch (err: any) {
-      // Restore on failure
       setMessageContent(contentToSend);
       if (err?.response?.data?.code === 'CHAT_FILE_UPLOAD_DISABLED' || err?.response?.status === 403) {
         setUploadError('File uploads are disabled by your Academy.');
         setFileUploadEnabled(false);
+      } else {
+        setUploadError(err?.response?.data?.detail || err?.message || 'Failed to send message.');
       }
     } finally {
       setSending(false);
@@ -513,9 +522,17 @@ export const PersonalChatStudentPage: React.FC = () => {
               </div>
 
               {/* Messages in Date Group */}
-              {group.msgs.map((rawMsg) => {
-                const msg: NormalizedChatMessage = normalizeChatMessage(rawMsg);
-                const isMine = Boolean(currentUserId && msg.senderId && msg.senderId === currentUserId);
+              {group.msgs.map((msg) => {
+                const isMine = Boolean(currentUserId) && Boolean(msg.senderId) && String(msg.senderId) === String(currentUserId);
+
+                if (import.meta.env.DEV) {
+                  console.debug('[PersonalChat Message Identity]', {
+                    messageId: msg.id,
+                    senderId: msg.senderId,
+                    currentUserId,
+                    isMine,
+                  });
+                }
 
                 const formattedTime = formatMessageTime(msg.createdAt);
 
@@ -533,10 +550,10 @@ export const PersonalChatStudentPage: React.FC = () => {
                     >
                       {msg.attachments && msg.attachments.length > 0 && (
                         <div className="mb-1.5 space-y-1">
-                          {msg.attachments.map((att: any) => (
+                          {msg.attachments.map((att: any, attIdx: number) => (
                             <a
-                              key={att.id}
-                              href={att.media_url}
+                              key={att.id || att.media_file_id || attIdx}
+                              href={att.media_url || att.url}
                               target="_blank"
                               rel="noopener noreferrer"
                               className={`flex items-center gap-2 p-2 rounded-xl text-xs font-medium transition-colors ${
@@ -546,7 +563,7 @@ export const PersonalChatStudentPage: React.FC = () => {
                               }`}
                             >
                               <FileText className="w-4 h-4 shrink-0" />
-                              <span className="truncate flex-1">{att.original_name || 'Attachment'}</span>
+                              <span className="truncate flex-1">{att.original_name || att.name || 'Attachment'}</span>
                               <Download className="w-3.5 h-3.5 shrink-0 opacity-80" />
                             </a>
                           ))}
@@ -555,7 +572,7 @@ export const PersonalChatStudentPage: React.FC = () => {
                       {msg.content && <p className="whitespace-pre-line leading-relaxed break-words">{msg.content}</p>}
                     </div>
 
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500 px-1 font-normal">
+                    <span className={`text-[10px] text-slate-400 dark:text-slate-500 px-1 font-normal ${isMine ? 'text-right' : 'text-left'}`}>
                       {formattedTime}
                     </span>
                   </div>

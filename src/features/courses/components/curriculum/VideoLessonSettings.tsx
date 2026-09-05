@@ -12,6 +12,29 @@ interface VideoLessonSettingsProps {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
+export const extractYouTubeVideoId = (url: string): string => {
+  if (!url) return '';
+  const cleanUrl = url.trim();
+
+  // Raw 11-character video ID
+  if (/^[a-zA-Z0-9_-]{11}$/.test(cleanUrl)) {
+    return cleanUrl;
+  }
+
+  const ytMatch = cleanUrl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i);
+  if (ytMatch && ytMatch[1]) {
+    return ytMatch[1];
+  }
+
+  const genericMatch = cleanUrl.match(/(?:v=|v\/|vi\/|embed\/)([a-zA-Z0-9_-]{11})/i);
+  if (genericMatch && genericMatch[1]) {
+    return genericMatch[1];
+  }
+
+  return '';
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
 export const parseEmbedVideoUrl = (url: string) => {
   if (!url) return null;
   const cleanUrl = url.trim();
@@ -35,13 +58,12 @@ export const parseEmbedVideoUrl = (url: string) => {
   const targetUrl = iframeSrcMatch ? iframeSrcMatch[1] : cleanUrl;
   const lowerTarget = targetUrl.toLowerCase();
 
-  if (lowerTarget.includes('youtube.com') || lowerTarget.includes('youtu.be')) {
-    let videoId = '';
-    const ytMatch = targetUrl.match(/(?:embed\/|v=|v\/|vi\/|youtu\.be\/|\/embed\/)([a-zA-Z0-9_-]{11})/);
-    if (ytMatch && ytMatch[1]) videoId = ytMatch[1];
+  const youtubeId = extractYouTubeVideoId(targetUrl);
+  if (youtubeId || lowerTarget.includes('youtube.com') || lowerTarget.includes('youtu.be')) {
     return {
       provider: 'YouTube',
-      embedUrl: videoId ? `https://www.youtube.com/embed/${videoId}` : targetUrl,
+      videoId: youtubeId,
+      embedUrl: youtubeId ? `https://www.youtube.com/embed/${youtubeId}` : targetUrl,
     };
   }
 
@@ -50,6 +72,7 @@ export const parseEmbedVideoUrl = (url: string) => {
     const videoId = vimeoMatch ? vimeoMatch[1] : '';
     return {
       provider: 'Vimeo',
+      videoId,
       embedUrl: videoId ? `https://player.vimeo.com/video/${videoId}` : targetUrl,
     };
   }
@@ -57,6 +80,7 @@ export const parseEmbedVideoUrl = (url: string) => {
   if (lowerTarget.includes('wistia.')) {
     return {
       provider: 'Wistia',
+      videoId: '',
       embedUrl: targetUrl,
     };
   }

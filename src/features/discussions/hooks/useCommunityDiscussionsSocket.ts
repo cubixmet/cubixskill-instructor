@@ -84,7 +84,7 @@ export const useCommunityDiscussionsSocket = (enabled: boolean = true) => {
     setConnectionState(reconnectAttemptsRef.current > 0 ? 'reconnecting' : 'connecting');
 
     try {
-      const wsUrl = getWebSocketUrl('/ws/discussions/community/');
+      const wsUrl = getWebSocketUrl('/ws/discussions/community/?portal=instructor');
       const ws = new WebSocket(wsUrl);
       socketRef.current = ws;
 

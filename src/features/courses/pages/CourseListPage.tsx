@@ -6,28 +6,26 @@ import {
   MoreVertical,
   CheckCircle2,
   Archive,
-  Edit3,
   Copy,
   Trash2,
   RefreshCw,
   AlertTriangle,
-  SlidersHorizontal,
-  GraduationCap,
   Folder,
+  Info,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
-import { Modal } from "../../../components/ui/Modal";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { ViewToggle, ViewMode } from "../../../components/ui/ViewToggle";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { DeleteCourseModal } from "../components/settings/DeleteCourseModal";
+import { DraftCourseDetailsModal } from "../components/DraftCourseDetailsModal";
+import { CourseThumbnailImage } from "../../../components/courses/CourseThumbnailImage";
 import { coursesService } from "../../../services/courses.service";
 import { useAuthStore } from "../../../store/auth.store";
 import type {
   CourseListItem,
-  CourseCategory,
-  CourseStatus,
+  CourseCategory
 } from "../types/course.types";
 
 export const CourseListPage: React.FC = () => {
@@ -62,7 +60,10 @@ export const CourseListPage: React.FC = () => {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CourseListItem | null>(null);
-  const [deleteConfirmTitle, setDeleteConfirmTitle] = useState("");
+
+  // Draft Details Modal State
+  const [selectedDraftCourse, setSelectedDraftCourse] = useState<CourseListItem | null>(null);
+  const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -150,7 +151,7 @@ export const CourseListPage: React.FC = () => {
     setActionLoadingId(course.id);
     setActiveMenuId(null);
     try {
-      const dup = await coursesService.duplicateCourse(course.id);
+      await coursesService.duplicateCourse(course.id);
       showToast(`Course "${course.title}" duplicated!`);
       await fetchCoursesAndCategories();
     } catch (err: any) {
@@ -167,7 +168,6 @@ export const CourseListPage: React.FC = () => {
       await coursesService.deleteCourse(deleteTarget.id);
       showToast(`Course "${deleteTarget.title}" deleted.`);
       setDeleteTarget(null);
-      setDeleteConfirmTitle("");
       await fetchCoursesAndCategories();
     } catch (err: any) {
       showToast(err?.response?.data?.message || "Failed to delete course.");
@@ -355,13 +355,11 @@ export const CourseListPage: React.FC = () => {
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-12 h-9 rounded-lg bg-slate-100 dark:bg-[#172033] overflow-hidden shrink-0 border border-slate-200 dark:border-[#263244]">
-                          {course.thumbnail?.url ? (
-                            <img src={course.thumbnail.url} alt={course.title} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-blue-600 dark:text-[#60A5FA]">
-                              <BookOpen className="w-4 h-4" />
-                            </div>
-                          )}
+                          <CourseThumbnailImage
+                            src={course.thumbnail}
+                            alt={course.title}
+                            iconClassName="w-4 h-4"
+                          />
                         </div>
                         <div className="min-w-0">
                           <Link to={`/courses/${course.id}/curriculum`} className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors truncate block">
@@ -374,15 +372,30 @@ export const CourseListPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
-                        course.status === "PUBLISHED"
-                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
-                          : course.status === "ARCHIVED"
-                          ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700"
-                          : "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
-                      }`}>
-                        {course.status}
-                      </span>
+                      {course.status === "DRAFT" ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedDraftCourse(course);
+                            setIsDraftModalOpen(true);
+                          }}
+                          className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-500 hover:bg-amber-600 text-white shadow-xs inline-flex items-center gap-1 cursor-pointer transition-all hover:scale-105"
+                          title="Click to view Draft Setup Details & Publish Readiness"
+                        >
+                          <span>DRAFT</span>
+                          <Info className="w-3 h-3" />
+                        </button>
+                      ) : (
+                        <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
+                          course.status === "PUBLISHED"
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
+                            : course.status === "ARCHIVED"
+                            ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700"
+                            : "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+                        }`}>
+                          {course.status}
+                        </span>
+                      )}
                     </td>
                     <td className="py-3.5 px-4 font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
                       {course.is_free ? "FREE" : `${course.currency} ${Number(course.price).toLocaleString()}`}
@@ -413,31 +426,38 @@ export const CourseListPage: React.FC = () => {
                 <div className="space-y-3">
                   {/* Thumbnail / Header */}
                   <div className="relative h-44 w-full bg-slate-100 dark:bg-[#172033] overflow-hidden rounded-t-xl">
-                    {course.thumbnail?.url ? (
-                      <img
-                        src={course.thumbnail.url}
-                        alt={course.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-tr from-blue-50 to-sky-100 dark:from-[#172033] dark:to-[#1E293B] text-blue-600 dark:text-[#60A5FA]">
-                        <BookOpen className="w-10 h-10 mb-1" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 dark:text-[#60A5FA]">No Cover Media</span>
-                      </div>
-                    )}
+                    <CourseThumbnailImage
+                      src={course.thumbnail}
+                      alt={course.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
 
                     <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                      <span
-                        className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shadow-xs ${
-                          course.status === "PUBLISHED"
-                            ? "bg-emerald-500 text-white"
-                            : course.status === "ARCHIVED"
-                            ? "bg-slate-700 text-white"
-                            : "bg-amber-500 text-white"
-                        }`}
-                      >
-                        {course.status}
-                      </span>
+                      {course.status === "DRAFT" ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDraftCourse(course);
+                            setIsDraftModalOpen(true);
+                          }}
+                          className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-500 hover:bg-amber-600 text-white shadow-xs inline-flex items-center gap-1 cursor-pointer transition-all hover:scale-105"
+                          title="Click to view Draft Setup Details & Publish Readiness"
+                        >
+                          <span>DRAFT</span>
+                          <Info className="w-3 h-3" />
+                        </button>
+                      ) : (
+                        <span
+                          className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shadow-xs ${
+                            course.status === "PUBLISHED"
+                              ? "bg-emerald-500 text-white"
+                              : "bg-slate-700 text-white"
+                          }`}
+                        >
+                          {course.status}
+                        </span>
+                      )}
                       {course.category_name && (
                         <span className="text-[10px] font-bold bg-white/90 dark:bg-[#111827]/90 backdrop-blur-xs text-slate-800 dark:text-slate-200 px-2 py-0.5 rounded-md shadow-xs border border-transparent dark:border-[#263244]">
                           {course.category_name}
@@ -496,14 +516,27 @@ export const CourseListPage: React.FC = () => {
                     {activeMenuId === course.id && (
                       <div className="absolute right-0 bottom-10 w-44 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#334155] rounded-xl shadow-xl z-30 p-1 space-y-0.5 text-xs text-left">
                         {can("courses.edit") && course.status === "DRAFT" && (
-                          <button
-                            type="button"
-                            disabled={isActionBusy}
-                            onClick={() => handlePublish(course)}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-400 rounded-lg cursor-pointer font-medium"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Publish
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveMenuId(null);
+                                setSelectedDraftCourse(course);
+                                setIsDraftModalOpen(true);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg cursor-pointer font-semibold"
+                            >
+                              <Info className="w-3.5 h-3.5" /> Draft Details
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isActionBusy}
+                              onClick={() => handlePublish(course)}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-400 rounded-lg cursor-pointer font-medium"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Publish
+                            </button>
+                          </>
                         )}
 
                         {can("courses.edit") && course.status === "PUBLISHED" && (
@@ -551,41 +584,22 @@ export const CourseListPage: React.FC = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {deleteTarget && (
-        <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Confirm Delete Course">
-          <div className="space-y-4 text-left">
-            <p className="text-xs text-slate-600">
-              Are you sure you want to delete <strong className="text-slate-900">"{deleteTarget.title}"</strong>? This operation cannot be undone.
-            </p>
-            <div>
-              <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                Type the course title to confirm:
-              </label>
-              <input
-                type="text"
-                value={deleteConfirmTitle}
-                onChange={(e) => setDeleteConfirmTitle(e.target.value)}
-                placeholder={deleteTarget.title}
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setDeleteTarget(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                disabled={deleteConfirmTitle !== deleteTarget.title || actionLoadingId === deleteTarget.id}
-                onClick={handleDelete}
-              >
-                Delete Course
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {/* GitHub-style Course Delete Confirmation Modal */}
+      <DeleteCourseModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        courseTitle={deleteTarget?.title || ""}
+        onConfirmDelete={handleDelete}
+        isDeleting={actionLoadingId === deleteTarget?.id}
+      />
+
+      {/* Draft Course Details & Publish Readiness Modal */}
+      <DraftCourseDetailsModal
+        isOpen={isDraftModalOpen}
+        onClose={() => setIsDraftModalOpen(false)}
+        course={selectedDraftCourse}
+        onStatusUpdated={fetchCoursesAndCategories}
+      />
     </div>
   );
 };

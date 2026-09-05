@@ -16,9 +16,26 @@ import { AudioPlayer } from '../../../../components/ui/AudioPlayer';
 import { LessonVideoPlayer } from '../../../../components/media/LessonVideoPlayer';
 import { resolveMediaUrl } from '../../../../utils/media.utils';
 
-interface LessonContentPreviewProps {
-  lesson: CourseLesson;
+interface StableIframeEmbedProps {
+  embedUrl: string;
+  title: string;
 }
+
+export const StableIframeEmbed: React.FC<StableIframeEmbedProps> = React.memo(({ embedUrl, title }) => {
+  return (
+    <div className="w-full space-y-1.5 overflow-hidden">
+      <div className="aspect-video w-full max-w-full max-h-72 sm:max-h-80 bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center relative">
+        <iframe
+          src={embedUrl}
+          title={`Preview ${title}`}
+          className="w-full h-full border-0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    </div>
+  );
+});
 
 export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
   lesson,
@@ -41,10 +58,14 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
       anyLesson?.primary_media?.url ||
       '';
 
-    const streamManifest = anyLesson?.primary_media?.stream_manifest_key || anyLesson?.stream_manifest_key || anyLesson?.primary_media?.stream_url || anyLesson?.stream_url;
+    const streamUrl =
+      anyLesson?.stream_url ||
+      anyLesson?.primary_media?.stream_url ||
+      content?.streamUrl ||
+      '';
     const parsedEmbed = parseEmbedVideoUrl(rawUrl);
 
-    if (!rawUrl.trim() && !streamManifest) {
+    if (!rawUrl.trim() && !streamUrl.trim()) {
       return (
         <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-400 text-xs font-medium">
           No video attached to this lesson.
@@ -53,19 +74,7 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
     }
 
     if (parsedEmbed) {
-      return (
-        <div className="w-full space-y-1.5 overflow-hidden">
-          <div className="aspect-video w-full max-w-full max-h-72 sm:max-h-80 bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center relative">
-            <iframe
-              src={parsedEmbed.embedUrl}
-              title={`Preview ${lesson.title}`}
-              className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        </div>
-      );
+      return <StableIframeEmbed embedUrl={parsedEmbed.embedUrl} title={lesson.title} />;
     }
 
     return (
@@ -73,7 +82,7 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
         <LessonVideoPlayer
           media={anyLesson?.primary_media}
           videoUrl={rawUrl}
-          streamUrl={streamManifest}
+          streamUrl={streamUrl}
           title={lesson.title}
         />
       </div>
@@ -286,7 +295,7 @@ export const LessonContentPreview: React.FC<LessonContentPreviewProps> = ({
     const instructions = content?.instructions || (lesson as any)?.assignment?.instructions || '';
     const maxScore = (lesson as any)?.assignment?.max_marks ?? content?.maxScore ?? 100;
     const subType = (lesson as any)?.assignment?.allow_file_submission
-      ? (lesson as any)?.assignment?.allow_text_submission ? 'file + text' : 'file'
+      ? (lesson as any)?.assignment?.allow_text_submission ? 'file  text' : 'file'
       : (lesson as any)?.assignment?.allow_text_submission ? 'text' : (content?.submissionType || 'file');
 
     return (

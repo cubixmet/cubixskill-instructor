@@ -105,6 +105,7 @@ export interface ConfigureFeePayload {
 export interface CollectFeePaymentPayload {
   amount: number;
   payment_date?: string;
+  collection_mode?: string;
   payment_method: string;
   reference_number?: string;
   target_installment_id?: string;
@@ -118,6 +119,7 @@ export interface CourseFeeConfigurationData {
   course_id: string;
   plan_type?: string;
   total_fee?: number;
+  canonical_course_price?: number;
   currency?: string;
   number_of_installments?: number;
   start_date?: string;

@@ -6,6 +6,7 @@ export interface MediaFile {
   id: string;
   file?: string;
   url?: string;
+  relative_path?: string;
   original_filename?: string;
   mime_type?: string;
   size_bytes?: number;
@@ -106,6 +107,7 @@ export interface CreateCoursePayload {
   currency?: string;
   is_free?: boolean;
   visibility?: CourseVisibility;
+  status?: CourseStatus;
   demo_enabled?: boolean;
   demo_duration_days?: number;
   certificate_enabled?: boolean;
@@ -113,3 +115,24 @@ export interface CreateCoursePayload {
 
 
 export type UpdateCoursePayload = Partial<CreateCoursePayload>;
+
+export interface PublishReadinessItem {
+  key: string;
+  label: string;
+  required: boolean;
+  complete: boolean;
+  count?: number;
+  status?: string;
+  value_text?: string;
+}
+
+export interface CoursePublishReadiness {
+  course_id: string;
+  status: CourseStatus;
+  ready_to_publish: boolean;
+  module_count: number;
+  lesson_count: number;
+  processing_count: number;
+  remaining_required_count: number;
+  items: PublishReadinessItem[];
+}

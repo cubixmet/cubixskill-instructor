@@ -59,7 +59,7 @@ export const createDefaultQuestion = (): BuilderQuestion => {
   };
 };
 
-export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
+export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = React.memo(({
   questions,
   onChange,
   errors = {},
@@ -592,4 +592,4 @@ export const QuizQuestionBuilder: React.FC<QuizQuestionBuilderProps> = ({
       )}
     </div>
   );
-};
+});

@@ -1,23 +1,62 @@
-let origin = 'http://localhost:8000';
-try {
-  const rawBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-  origin = new URL(rawBase).origin;
-} catch {
-  origin = 'http://localhost:8000';
-}
-
-export const API_BASE_URL = origin;
+export type MediaLike =
+  | string
+  | {
+      url?: string | null;
+      media_url?: string | null;
+      file_url?: string | null;
+      relative_path?: string | null;
+      file?: string | null;
+    }
+  | null
+  | undefined;
 
 /**
- * Resolves relative backend media paths into absolute URLs.
- * Always resolves against backend origin (http://localhost:8000), never Vite origin (http://localhost:5173).
+ * Derives the canonical backend origin (e.g. http://localhost:8000) from environment.
+ * Never appends /api/v1 to media static routes.
  */
-export function resolveMediaUrl(urlPath?: string | null): string {
-  if (!urlPath) return '';
-  let clean = urlPath.trim();
+export function getBackendOrigin(): string {
+  const rawBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  try {
+    const parsed = new URL(rawBase);
+    return parsed.origin;
+  } catch {
+    return 'http://localhost:8000';
+  }
+}
+
+export const API_BASE_URL = getBackendOrigin();
+
+/**
+ * Resolves any backend relative media path into a valid, browser-accessible absolute URL.
+ * Handles strings, MediaFile objects, relative paths (/media/...), and already-absolute URLs.
+ */
+export function resolveMediaUrl(value?: MediaLike): string {
+  if (!value) return '';
+
+  let rawPath: string | null | undefined = null;
+
+  if (typeof value === 'string') {
+    rawPath = value;
+  } else if (typeof value === 'object') {
+    rawPath =
+      value.url ||
+      value.media_url ||
+      value.file_url ||
+      value.relative_path ||
+      (typeof value.file === 'string' ? value.file : null);
+  }
+
+  if (!rawPath) return '';
+
+  let clean = rawPath.trim();
+  if (!clean) return '';
+
+  // Clean Django testserver mock host if present
   if (clean.includes('testserver')) {
     clean = clean.replace(/^https?:\/\/testserver/i, '');
   }
+
+  // Already absolute or local blob/data URL
   if (
     clean.startsWith('http://') ||
     clean.startsWith('https://') ||
@@ -26,6 +65,8 @@ export function resolveMediaUrl(urlPath?: string | null): string {
   ) {
     return clean;
   }
+
+  const origin = getBackendOrigin();
   const cleanPath = clean.startsWith('/') ? clean : `/${clean}`;
   return `${origin}${cleanPath}`;
 }

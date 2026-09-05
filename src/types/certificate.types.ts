@@ -46,26 +46,44 @@ export type PlaceholderKey =
 
 export interface CanvasElement {
   id: string;
-  type: 'text' | 'image' | 'qr_code' | 'signature' | 'logo' | 'placeholder' | 'dynamic_field';
+  type: 'text' | 'image' | 'qr_code' | 'signature' | 'logo' | 'placeholder' | 'dynamic_field' | 'static_text';
   label: string;
   fieldKey?: string; // Stable field identifier e.g. 'student.full_name'
   placeholderKey?: PlaceholderKey;
+  binding?: string;
+  static_text?: string;
   text?: string;
   imageUrl?: string;
   x: number; // percentage (0-100) relative to canvas width
   y: number; // percentage (0-100) relative to canvas height
   width: number; // percentage (0-100) relative to canvas width
   height: number; // percentage (0-100) relative to canvas height
-  fontFamily: string;
-  fontSize: number; // preferred font size in px
+  fontFamily?: string;
+  font_family?: string;
+  fontKey?: string;
+  fontSize?: number; // preferred font size in px
+  font_size?: number;
   preferredFontSize?: number;
   minimumFontSize?: number;
-  fontWeight: '400' | '500' | '600' | '700' | '800';
-  fontColor: string;
-  textAlign: 'left' | 'center' | 'right';
-  opacity: number;
+  minFontSize?: number;
+  min_font_size?: number;
+  maxFontSize?: number;
+  max_font_size?: number;
+  autoFit?: boolean;
+  auto_fit?: boolean;
+  allowGrow?: boolean;
+  allow_grow?: boolean;
+  fontWeight?: string;
+  font_weight?: string;
+  fontColor?: string;
+  color?: string;
+  textAlign?: 'left' | 'center' | 'right';
+  text_align?: 'left' | 'center' | 'right';
+  padding?: { top: number; right: number; bottom: number; left: number };
+  opacity?: number;
   zIndex?: number;
-  isLocked: boolean;
+  z_index?: number;
+  isLocked?: boolean;
 }
 
 export interface AutoIssueConditions {

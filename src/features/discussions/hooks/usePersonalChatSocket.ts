@@ -11,6 +11,25 @@ export interface ChatMessageEvent {
   user_name?: string;
 }
 
+export interface SendPersonalChatMessageInput {
+  content: string;
+  messageType?: string;
+  replyToId?: string | null;
+  mediaFileIds?: string[];
+  clientRequestId?: string;
+}
+
+export interface SendMessageFunction {
+  (input: SendPersonalChatMessageInput): boolean;
+  (
+    content: string,
+    messageType?: string,
+    replyToId?: string,
+    mediaFileIds?: string[],
+    clientRequestId?: string
+  ): boolean;
+}
+
 export const usePersonalChatSocket = (
   roomId: string | null | undefined,
   onNewMessage?: (msg: any) => void
@@ -19,7 +38,7 @@ export const usePersonalChatSocket = (
   const [connectionState, setConnectionState] = useState<PersonalSocketConnectionState>('disconnected');
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef<number>(0);
-  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const processedMessageIdsRef = useRef<Set<string>>(new Set());
   const isIntentionalCloseRef = useRef<boolean>(false);
   const hasConnectedOnceRef = useRef<boolean>(false);
@@ -71,7 +90,7 @@ export const usePersonalChatSocket = (
     setConnectionState(reconnectAttemptsRef.current > 0 ? 'reconnecting' : 'connecting');
 
     try {
-      const wsUrl = getWebSocketUrl(`/ws/chat/${roomId}/`);
+      const wsUrl = getWebSocketUrl(`/ws/chat/${roomId}/?portal=instructor`);
       const ws = new WebSocket(wsUrl);
       socketRef.current = ws;
 
@@ -138,28 +157,56 @@ export const usePersonalChatSocket = (
     };
   }, [roomId, connect]);
 
-  const sendMessage = useCallback(
+  const sendMessage: SendMessageFunction = useCallback(
     (
-      content: string,
+      inputOrContent: SendPersonalChatMessageInput | string,
       messageType: string = 'TEXT',
       replyToId?: string,
       mediaFileIds: string[] = [],
       clientRequestId?: string
-    ) => {
-      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-        socketRef.current.send(
-          JSON.stringify({
-            type: 'message.send',
-            client_request_id: clientRequestId || String(Date.now()),
-            content,
-            message_type: messageType,
-            reply_to_id: replyToId || null,
-            media_file_ids: mediaFileIds,
-          })
-        );
-        return true;
+    ): boolean => {
+      const socket = socketRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        return false;
       }
-      return false;
+
+      let content = '';
+      let type = 'TEXT';
+      let replyTo: string | null = null;
+      let mediaIds: string[] = [];
+      let reqId: string | undefined = undefined;
+
+      if (typeof inputOrContent === 'string') {
+        content = inputOrContent || '';
+        type = messageType || 'TEXT';
+        replyTo = replyToId || null;
+        mediaIds = mediaFileIds || [];
+        reqId = clientRequestId;
+      } else if (inputOrContent && typeof inputOrContent === 'object') {
+        content = inputOrContent.content || '';
+        type = inputOrContent.messageType || 'TEXT';
+        replyTo = inputOrContent.replyToId || null;
+        mediaIds = inputOrContent.mediaFileIds || [];
+        reqId = inputOrContent.clientRequestId;
+      }
+
+      const finalReqId =
+        reqId ||
+        (typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : String(Date.now()));
+
+      socket.send(
+        JSON.stringify({
+          type: 'message.send',
+          client_request_id: finalReqId,
+          content,
+          message_type: type,
+          reply_to_id: replyTo,
+          media_file_ids: mediaIds,
+        })
+      );
+      return true;
     },
     []
   );

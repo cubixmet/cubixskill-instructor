@@ -141,7 +141,7 @@ export function calculateAutoFontSize(options: FitTextOptions): FitTextResult {
     fontFamily = 'Inter',
     fontWeight = '600',
     fontStyle = 'normal',
-    maxFontSize = 32,
+    maxFontSize = 150,
     minFontSize = 1,
     lineHeight = 1.0,
     letterSpacing = 0,
@@ -152,8 +152,8 @@ export function calculateAutoFontSize(options: FitTextOptions): FitTextResult {
   const availableWidth = Math.max(1, width - (pad.left + pad.right));
   const availableHeight = Math.max(1, height - (pad.top + pad.bottom));
 
-  const ceilingMax = maxFontSize && maxFontSize > 0 ? maxFontSize : 32;
-  const floorMin = minFontSize && minFontSize > 0 ? minFontSize : 1;
+  const ceilingMax = maxFontSize && maxFontSize > 0 ? Math.min(150, Math.max(1, maxFontSize)) : 150;
+  const floorMin = minFontSize && minFontSize >= 1 ? Math.min(ceilingMax, Math.max(1, minFontSize)) : 1;
 
   if (!text || text.trim().length === 0 || availableWidth <= 0 || availableHeight <= 0) {
     return {
@@ -215,6 +215,86 @@ export function calculateAutoFontSize(options: FitTextOptions): FitTextResult {
     isOverflowing,
     measuredWidth: lastMeasuredW || finalCheck.measuredWidth,
     measuredHeight: lastMeasuredH || finalCheck.measuredHeight,
+  };
+}
+
+/**
+ * Calculates largest font size for a given target width (independent of height).
+ */
+export function calculateFontSizeForWidth(options: {
+  text: string;
+  targetWidthPx: number;
+  fontFamily?: string;
+  fontWeight?: string | number;
+  fontStyle?: string;
+  letterSpacing?: number;
+  lineHeight?: number;
+  padding?: Partial<PaddingConfig> | number;
+  minFontSize?: number;
+  maxFontSize?: number;
+}): { fontSize: number; measuredWidthPx: number; measuredHeightPx: number } {
+  const {
+    text,
+    targetWidthPx,
+    fontFamily = 'Inter',
+    fontWeight = '600',
+    fontStyle = 'normal',
+    letterSpacing = 0,
+    lineHeight = 1.0,
+    padding,
+    minFontSize = 1,
+    maxFontSize = 150,
+  } = options;
+
+  const pad = normalizePadding(padding);
+  const availableWidth = Math.max(1, targetWidthPx - (pad.left + pad.right));
+  const ctx = getCanvasContext();
+
+  const ceilingMax = Math.min(150, Math.max(1, maxFontSize));
+  const floorMin = Math.min(ceilingMax, Math.max(1, minFontSize));
+
+  if (!text || text.trim().length === 0 || !ctx || availableWidth <= 0) {
+    return { fontSize: ceilingMax, measuredWidthPx: targetWidthPx, measuredHeightPx: ceilingMax * lineHeight };
+  }
+
+  let low = Math.floor(floorMin * 2); // 0.5px precision steps
+  let high = Math.floor(ceilingMax * 2);
+  let bestFitHalves = low;
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const candidateSize = mid / 2;
+    ctx.font = `${fontStyle} ${fontWeight} ${candidateSize}px "${fontFamily}", sans-serif`;
+    const metrics = ctx.measureText(text);
+    const textW = metrics.width + (text.length > 1 ? (text.length - 1) * letterSpacing : 0);
+
+    if (textW <= availableWidth) {
+      bestFitHalves = mid;
+      low = mid + 1; // Try larger
+    } else {
+      high = mid - 1; // Try smaller
+    }
+  }
+
+  const bestFontSize = bestFitHalves / 2;
+  const finalFontSize = Math.min(ceilingMax, Math.max(floorMin, bestFontSize));
+
+  ctx.font = `${fontStyle} ${fontWeight} ${finalFontSize}px "${fontFamily}", sans-serif`;
+  const finalMetrics = ctx.measureText(text);
+  const textWidthPx = finalMetrics.width + (text.length > 1 ? (text.length - 1) * letterSpacing : 0);
+  let glyphHeightPx = 0;
+  if (typeof finalMetrics.actualBoundingBoxAscent === 'number' && typeof finalMetrics.actualBoundingBoxDescent === 'number') {
+    const asc = Math.abs(finalMetrics.actualBoundingBoxAscent);
+    const dsc = Math.abs(finalMetrics.actualBoundingBoxDescent);
+    if (asc + dsc > 0) glyphHeightPx = asc + dsc;
+  }
+  const nominalHeight = finalFontSize * lineHeight;
+  const textHeightPx = Math.max(nominalHeight, glyphHeightPx);
+
+  return {
+    fontSize: finalFontSize,
+    measuredWidthPx: Math.ceil(textWidthPx + pad.left + pad.right),
+    measuredHeightPx: Math.ceil(textHeightPx + pad.top + pad.bottom),
   };
 }
 

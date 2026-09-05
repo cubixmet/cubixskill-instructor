@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Files,
@@ -6,9 +6,12 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
-  Calendar,
   Link2,
   Plus,
+  Upload,
+  Loader2,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import { authService } from '../../../../services/auth.service';
 import { Button } from '../../../../components/ui/Button';
@@ -147,6 +150,9 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
   const [title, setTitle] = useState(lesson?.title || '');
   const [description, setDescription] = useState(lesson?.description || '');
   const [isDemo, setIsDemo] = useState(lesson?.isDemo || false);
+  const [isLocked, setIsLocked] = useState(
+    Boolean((lesson as any)?.is_locked ?? lesson?.isLocked ?? false)
+  );
   const [allowDownload, setAllowDownload] = useState(
     lesson?.allowDownload ?? lesson?.content?.allowDownload ?? lesson?.content?.downloadable ?? false
   );
@@ -295,7 +301,10 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
 
 
   // Helpers
-  const parsedEmbed = type === 'video' && mediaSource === 'URL' ? parseEmbedVideoUrl(mediaUrl) : null;
+  const parsedEmbed = useMemo(
+    () => (type === 'video' && mediaSource === 'URL' ? parseEmbedVideoUrl(mediaUrl) : null),
+    [type, mediaSource, mediaUrl]
+  );
   const attachedResources = lesson?.content?.resources || [];
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -586,7 +595,9 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
         type,
         status: lesson?.status || 'published',
         durationMinutes,
-        isDemo: showFreeDemoOption ? isDemo : false,
+        isDemo: Boolean(isDemo),
+        is_locked: Boolean(isLocked),
+        isLocked: Boolean(isLocked),
         allowDownload: effectiveAllowDownload,
         content: contentPayload,
       });
@@ -805,27 +816,34 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                   backgroundColor: 'var(--surface-secondary)',
                   borderColor: 'var(--border)',
                 }}
-                className="p-3 border rounded-xl flex items-center justify-between"
+                className="p-3 border rounded-xl space-y-1.5"
               >
-                <div>
-                  <span style={{ color: 'var(--text-secondary)' }} className="text-[11px] font-semibold block">Free Demo / Trial</span>
-                  <span style={{ color: 'var(--text-muted)' }} className="text-[10px]">Trial preview for non-enrolled</span>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)' }} className="text-[11px] font-semibold block">Free Demo / Public Preview</span>
+                    <span style={{ color: 'var(--text-muted)' }} className="text-[10px]">Allow public visitors to preview this lesson</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={isDemo}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      setIsDemo(enabled);
+                      if (enabled) {
+                        setMediaSource('UPLOAD');
+                        setMediaUrl('');
+                        setUrlError('');
+                      }
+                    }}
+                    style={{ accentColor: 'var(--brand-primary)' }}
+                    className="w-4 h-4 rounded cursor-pointer"
+                  />
                 </div>
-                <input
-                  type="checkbox"
-                  checked={isDemo}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setIsDemo(enabled);
-                    if (enabled) {
-                      setMediaSource('UPLOAD');
-                      setMediaUrl('');
-                      setUrlError('');
-                    }
-                  }}
-                  style={{ accentColor: 'var(--brand-primary)' }}
-                  className="w-4 h-4 rounded cursor-pointer"
-                />
+                {isDemo && (
+                  <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium pt-1 border-t border-slate-200 dark:border-[#263244]">
+                    ℹ️ Public preview duration will be automatically calculated (first 5 mins for videos &gt; 5 mins, 50% for shorter videos).
+                  </p>
+                )}
               </div>
             )}
 
@@ -851,6 +869,44 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                 />
               </div>
             )}
+
+            {/* Field: Lesson Access Lock Control */}
+            <div
+              style={{
+                backgroundColor: 'var(--surface-secondary)',
+                borderColor: 'var(--border)',
+              }}
+              className="p-3 border rounded-xl flex items-center justify-between"
+            >
+              <div>
+                <span style={{ color: 'var(--text-secondary)' }} className="text-[11px] font-semibold block">Lesson Access (Manual Lock)</span>
+                <span style={{ color: 'var(--text-muted)' }} className="text-[10px]">
+                  {isLocked ? 'Lesson is locked' : 'Lesson is unlocked and freely accessible'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsLocked(!isLocked)}
+                style={{
+                  backgroundColor: isLocked ? 'rgba(234, 179, 8, 0.1)' : 'color-mix(in srgb, var(--brand-primary) 10%, transparent)',
+                  borderColor: isLocked ? 'rgba(234, 179, 8, 0.3)' : 'var(--border)',
+                  color: isLocked ? '#d97706' : 'var(--brand-primary)',
+                }}
+                className="h-8 px-3 border rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                {isLocked ? (
+                  <>
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Locked</span>
+                  </>
+                ) : (
+                  <>
+                    <Unlock className="w-3.5 h-3.5" />
+                    <span>Unlocked</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1307,7 +1363,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                   >
                     <option value="file">File Upload Only</option>
                     <option value="text">Text Response Only</option>
-                    <option value="both">File Upload + Text Response</option>
+                    <option value="both">File Upload  Text Response</option>
                   </select>
                 </div>
               </div>

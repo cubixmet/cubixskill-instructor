@@ -1,5 +1,48 @@
 import apiClient from '../api/client';
 
+export interface EstimatedUsageItem {
+  code: string;
+  name: string;
+  detail: string;
+  credits: string;
+  quantity: number;
+  unit: string;
+}
+
+export interface StorageBreakdownSummary {
+  current_storage_bytes: number;
+  current_storage_gb: string;
+  monthly_average_bytes: number;
+  monthly_average_gb: string;
+  free_storage_bytes: number;
+  free_storage_gb: string;
+  billable_storage_gb: string;
+  credit_rate_per_gb: string;
+  estimated_storage_charge: string;
+}
+
+export interface MonthlyInvoiceLineItem {
+  id: string;
+  item_type: string;
+  feature_code: string;
+  description: string;
+  quantity: string;
+  unit: string;
+  rate: string;
+  credits: string;
+}
+
+export interface MonthlyInvoiceRecord {
+  id: string;
+  billing_period: string;
+  billing_period_label: string;
+  total_credits: string;
+  status: string;
+  generated_at: string;
+  finalized_at: string;
+  line_items: MonthlyInvoiceLineItem[];
+}
+
 export interface CreditSummaryData {
   balance: string;
   currency_unit: string;
@@ -11,6 +54,9 @@ export interface CreditSummaryData {
   email_usage_credits_this_month: string;
   is_low_balance: boolean;
   low_balance_threshold: string;
+  this_month_estimated_total?: string;
+  estimated_breakdown?: EstimatedUsageItem[];
+  storage_breakdown?: StorageBreakdownSummary;
   rates?: Record<string, { name: string; billing_type: string; unit_size: string; credit_cost: string }>;
 }
 
@@ -34,6 +80,33 @@ export interface CreditUsageItem {
   source_type: string;
   label: string;
   credits_used: string;
+}
+
+export interface CreditUsagePreviewResponse {
+  billable: boolean;
+  billing_type: 'PER_DAY' | string;
+  daily_credit_cost: string;
+  current_balance: string;
+  current_daily_usage: string;
+  additional_daily_cost: string;
+  projected_daily_usage: string;
+  estimated_days_remaining: number | null;
+  first_charge: string;
+  next_charge_date: string;
+  has_enough_credits: boolean;
+  already_active?: boolean;
+}
+
+export interface CreditActivateUsageResponse {
+  success: boolean;
+  already_charged: boolean;
+  subscription_id: string;
+  resource_type: string;
+  resource_id: string;
+  billing_type: string;
+  daily_credit_cost: string;
+  wallet_balance: string;
+  next_charge_date?: string;
 }
 
 export interface CreditPurchaseRateItem {
@@ -109,6 +182,24 @@ export const creditService = {
     return res.data;
   },
 
+  async getUsagePreview(payload: {
+    resource_type: string;
+    resource_id: string;
+    course_id?: string;
+  }): Promise<CreditUsagePreviewResponse> {
+    const res = await apiClient.post('/api/v1/credits/usage-preview/', payload);
+    return res.data?.data || res.data;
+  },
+
+  async activateUsage(payload: {
+    resource_type: string;
+    resource_id: string;
+    course_id?: string;
+  }): Promise<CreditActivateUsageResponse> {
+    const res = await apiClient.post('/api/v1/credits/activate-usage/', payload);
+    return res.data?.data || res.data;
+  },
+
   async getPurchaseRates(): Promise<CreditPurchaseRateItem[]> {
     const res = await apiClient.get('/api/v1/credits/purchase-rates/');
     const data = res.data;
@@ -171,4 +262,12 @@ export const creditService = {
     });
     return res.data?.purchase || res.data;
   },
+
+  async getMonthlyInvoices(): Promise<MonthlyInvoiceRecord[]> {
+    const res = await apiClient.get('/api/v1/credits/monthly/invoices/');
+    const data = res.data;
+    if (Array.isArray(data)) return data;
+    return data.results || [];
+  },
 };
+

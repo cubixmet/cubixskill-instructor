@@ -139,15 +139,15 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
 
   // 1. WebSocket Hook Integration for Active Room (Deduplicated & Stable)
   const handleIncomingSocketMessage = useCallback((newMsg: any) => {
-    if (!newMsg || !newMsg.id) return;
-    const msgId = String(newMsg.id);
+    if (!newMsg || (!newMsg.id && !newMsg.uuid && !newMsg.message_id)) return;
+    const normalized = normalizeChatMessage(newMsg);
 
     setMessages((prev) => {
-      if (prev.some((m) => String(m.id) === msgId)) {
+      if (prev.some((m) => String(m.id) === normalized.id)) {
         return prev;
       }
-      const updated = [...prev, newMsg].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      const updated = [...prev, normalized].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
       return updated;
     });
@@ -261,8 +261,9 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
     setMessagesError(null);
     try {
       const msgs = await discussionService.listChatMessages(roomId);
-      const sorted = [...msgs].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      const normalized = msgs.map(normalizeChatMessage);
+      const sorted = [...normalized].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
       setMessages(sorted);
       // Mark read
@@ -270,7 +271,7 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
       // Scroll to bottom immediately upon initial load
       setTimeout(() => scrollToBottom('auto'), 50);
     } catch {
-      setMessagesError("Failed to load chat messages.");
+      setMessagesError('Failed to load message history.');
     } finally {
       setIsLoadingMessages(false);
     }
@@ -331,9 +332,9 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
 
   // Group messages chronologically with date separators
   const groupedMessages = useMemo(() => {
-    const groups: { dateLabel: string; msgs: any[] }[] = [];
+    const groups: { dateLabel: string; msgs: NormalizedChatMessage[] }[] = [];
     messages.forEach((msg) => {
-      const label = formatDateSeparator(msg.created_at);
+      const label = formatDateSeparator(msg.createdAt);
       const lastGroup = groups[groups.length - 1];
       if (lastGroup && lastGroup.dateLabel === label) {
         lastGroup.msgs.push(msg);
@@ -682,9 +683,17 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                       </div>
 
                       {/* Messages in Date Group */}
-                      {group.msgs.map((rawMsg) => {
-                        const msg: NormalizedChatMessage = normalizeChatMessage(rawMsg);
-                        const isMine = Boolean(currentUserId && msg.senderId && msg.senderId === currentUserId);
+                      {group.msgs.map((msg) => {
+                        const isMine = Boolean(currentUserId) && Boolean(msg.senderId) && String(msg.senderId) === String(currentUserId);
+
+                        if (import.meta.env.DEV) {
+                          console.debug('[PersonalChat Message Identity]', {
+                            messageId: msg.id,
+                            senderId: msg.senderId,
+                            currentUserId,
+                            isMine,
+                          });
+                        }
 
                         const formattedTime = formatMessageTime(msg.createdAt);
 
@@ -703,7 +712,7 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                               <p className="whitespace-pre-wrap leading-relaxed overflow-wrap-anywhere">{msg.content}</p>
                             </div>
 
-                            <span className="text-[10px] text-slate-400 dark:text-slate-500 px-1 font-normal">
+                            <span className={`text-[10px] text-slate-400 dark:text-slate-500 px-1 font-normal ${isMine ? 'text-right' : 'text-left'}`}>
                               {formattedTime}
                             </span>
                           </div>

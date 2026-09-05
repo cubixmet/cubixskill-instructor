@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Upload,
   Search,
@@ -23,6 +24,12 @@ import {
   ChevronRight,
   Clock,
   FileSpreadsheet,
+  Calendar,
+  Layers,
+  Activity,
+  CreditCard,
+  X,
+  Info,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -38,9 +45,13 @@ import {
   StorageMonthlyBillingStatement,
   MediaUsageReference,
   PreUploadEstimateResponse,
+  StorageSummaryDashboard,
+  StorageMeterLogItem,
+  StorageSettlementItem,
 } from '../../../services/storage.service';
 import { resolveMediaUrl, formatBytes, formatMediaDate, formatMediaDateTime } from '../../../utils/media.utils';
 import { UploadEstimateModal } from '../../../components/media/UploadEstimateModal';
+import { LessonVideoPlayer } from '../../../components/media/LessonVideoPlayer';
 
 interface UploadQueueItem {
   id: string;
@@ -51,26 +62,60 @@ interface UploadQueueItem {
   adaptive_streaming_enabled?: boolean;
 }
 
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 export const MediaPage: React.FC = () => {
-  // Real State
+  const navigate = useNavigate();
+  const currentNow = new Date();
+
+  // Media Library State
   const [mediaAssets, setMediaAssets] = useState<MediaFileApiItem[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
-  const [storageUsage, setStorageUsage] = useState<StorageUsageSummary | null>(null);
-  const [periodUsage, setPeriodUsage] = useState<StorageCurrentPeriodUsage | null>(null);
-  const [billingStatements, setBillingStatements] = useState<StorageMonthlyBillingStatement[]>([]);
-  const [isBillingModalOpen, setIsBillingModalOpen] = useState<boolean>(false);
-
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters & Controls
-  const [search, setSearch] = useState<string>('');
+  // Search Debounce & Filters
+  const [searchInput, setSearchInput] = useState<string>('');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [unusedOnly, setUnusedOnly] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>('-created_at');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState<number>(1);
   const pageSize = 12;
+
+  // Storage Summary State
+  const [summaryData, setSummaryData] = useState<StorageSummaryDashboard | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState<boolean>(true);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  // Storage Meter Logs State
+  const [meterLogs, setMeterLogs] = useState<StorageMeterLogItem[]>([]);
+  const [meterLogsCount, setMeterLogsCount] = useState<number>(0);
+  const [meterLogsPage, setMeterLogsPage] = useState<number>(1);
+  const [meterLogsMonth, setMeterLogsMonth] = useState<number>(currentNow.getMonth() + 1);
+  const [meterLogsYear, setMeterLogsYear] = useState<number>(currentNow.getFullYear());
+  const [meterLogsLoading, setMeterLogsLoading] = useState<boolean>(true);
+  const [meterLogsError, setMeterLogsError] = useState<string | null>(null);
+
+  // Storage Settlement History State
+  const [settlements, setSettlements] = useState<StorageSettlementItem[]>([]);
+  const [settlementsCount, setSettlementsCount] = useState<number>(0);
+  const [settlementsPeriodLabel, setSettlementsPeriodLabel] = useState<string>('');
+  const [settlementsCreditsDebited, setSettlementsCreditsDebited] = useState<string>('0.0000');
+  const [settlementsPage, setSettlementsPage] = useState<number>(1);
+  const [settlementsMonth, setSettlementsMonth] = useState<number>(currentNow.getMonth() + 1);
+  const [settlementsYear, setSettlementsYear] = useState<number>(currentNow.getFullYear());
+  const [settlementsLoading, setSettlementsLoading] = useState<boolean>(true);
+  const [settlementsError, setSettlementsError] = useState<string | null>(null);
+
+  const [selectedSettlementDetail, setSelectedSettlementDetail] = useState<StorageSettlementItem | null>(null);
+
+  // Drag & Drop
+  const [isDragging, setIsDragging] = useState<boolean>(false);
 
   // Modals & Sliders
   const [activeMenuAssetId, setActiveMenuAssetId] = useState<string | null>(null);
@@ -100,13 +145,22 @@ export const MediaPage: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  // Search Debounce Effect (350ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   // Fetch Media List
   const fetchMedia = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const res = await storageService.getMediaFiles({
-        search,
+        search: debouncedSearch,
         media_type: selectedCategory,
         ordering: sortBy,
         unused_only: unusedOnly,
@@ -120,45 +174,133 @@ export const MediaPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [search, selectedCategory, sortBy, unusedOnly, page]);
+  }, [debouncedSearch, selectedCategory, sortBy, unusedOnly, page]);
 
-  // Fetch Storage Usage & Billing Period
-  const fetchStorageUsage = useCallback(async () => {
+  // Fetch Storage Summary
+  const fetchSummary = useCallback(async () => {
     try {
-      const summary = await storageService.getStorageUsage();
-      setStorageUsage(summary);
-    } catch (err) {
-      console.warn('Failed to load storage usage summary:', err);
-    }
-    try {
-      const pUsage = await storageService.getCurrentPeriodUsage();
-      setPeriodUsage(pUsage);
-    } catch (err) {
-      console.warn('Failed to load period usage:', err);
+      setSummaryLoading(true);
+      setSummaryError(null);
+      const res = await storageService.getSummaryDashboard();
+      setSummaryData(res);
+    } catch (err: any) {
+      setSummaryError(err?.response?.data?.message || 'Unable to load storage usage summary.');
+    } finally {
+      setSummaryLoading(false);
     }
   }, []);
 
-  const fetchBillingStatements = async () => {
+  // Fetch Storage Meter Logs
+  const fetchMeterLogs = useCallback(async () => {
     try {
-      const stmts = await storageService.getMonthlyBillings();
-      setBillingStatements(stmts);
-    } catch (err) {
-      console.warn('Failed to load billing statements:', err);
+      setMeterLogsLoading(true);
+      setMeterLogsError(null);
+      const res = await storageService.getMeterLogs({
+        page: meterLogsPage,
+        page_size: 25,
+        month: meterLogsMonth,
+        year: meterLogsYear,
+      });
+      setMeterLogs(res.results);
+      setMeterLogsCount(res.count);
+    } catch (err: any) {
+      setMeterLogsError(err?.response?.data?.message || 'Unable to load storage usage logs.');
+    } finally {
+      setMeterLogsLoading(false);
     }
-  };
+  }, [meterLogsPage, meterLogsMonth, meterLogsYear]);
+
+  const [settlementsStorageBilled, setSettlementsStorageBilled] = useState<string>('0.0000');
+  const [settlementsCreditsPaid, setSettlementsCreditsPaid] = useState<string>('0.0000');
+  const [settlementsOutstanding, setSettlementsOutstanding] = useState<string>('0.0000');
+
+  // Fetch Storage Settlement History
+  const fetchSettlements = useCallback(async () => {
+    try {
+      setSettlementsLoading(true);
+      setSettlementsError(null);
+      const res = await storageService.getSettlements({
+        page: settlementsPage,
+        page_size: 25,
+        month: settlementsMonth,
+        year: settlementsYear,
+      });
+      setSettlements(res.results);
+      setSettlementsCount(res.count);
+      setSettlementsPeriodLabel(res.period_label);
+      setSettlementsCreditsDebited(res.credits_debited);
+      setSettlementsStorageBilled(res.storage_billed || '0.0000');
+      setSettlementsCreditsPaid(res.credits_paid || res.credits_debited || '0.0000');
+      setSettlementsOutstanding(res.outstanding || '0.0000');
+    } catch (err: any) {
+      setSettlementsError(err?.response?.data?.message || 'Unable to load storage credit settlements.');
+    } finally {
+      setSettlementsLoading(false);
+    }
+  }, [settlementsPage, settlementsMonth, settlementsYear]);
 
   useEffect(() => {
     fetchMedia();
   }, [fetchMedia]);
 
   useEffect(() => {
-    fetchStorageUsage();
-  }, [fetchStorageUsage]);
+    fetchSummary();
+    const interval = setInterval(() => {
+      fetchSummary();
+      fetchMeterLogs();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [fetchSummary, fetchMeterLogs]);
+
+  useEffect(() => {
+    fetchMeterLogs();
+  }, [fetchMeterLogs]);
+
+  useEffect(() => {
+    fetchSettlements();
+  }, [fetchSettlements]);
+
+  // Refetch summary & meter logs after upload / delete sync
+  const refreshAllStorageData = () => {
+    fetchMedia();
+    fetchSummary();
+    fetchMeterLogs();
+    fetchSettlements();
+  };
+
+  // Polling for in-progress video transcoding tasks
+  useEffect(() => {
+    const hasProcessingVideos = mediaAssets.some(
+      (asset) =>
+        asset.media_type === 'VIDEO' &&
+        (asset.processing_status === 'PROCESSING' || asset.processing_status === 'QUEUED')
+    );
+
+    if (!hasProcessingVideos) return;
+
+    const interval = setInterval(() => {
+      fetchMedia();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [mediaAssets, fetchMedia]);
+
+  // Polling for 10_SECONDS DEBUG mode
+  useEffect(() => {
+    const intervalStr = summaryData?.metering_interval || summaryData?.billing_interval;
+    if (intervalStr !== '10_SECONDS') return;
+
+    const interval = setInterval(() => {
+      fetchSummary();
+      fetchMeterLogs();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [summaryData, fetchSummary, fetchMeterLogs]);
 
   // Handle Search Input Change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-    setPage(1);
+    setSearchInput(e.target.value);
   };
 
   // Open Detail Panel & Fetch References
@@ -186,7 +328,7 @@ export const MediaPage: React.FC = () => {
       if (detailAsset?.id === asset.id) {
         setDetailAsset(updated);
       }
-      fetchMedia();
+      refreshAllStorageData();
     } catch (err: any) {
       showToast(err?.response?.data?.message || 'Failed to queue HLS conversion.');
     }
@@ -233,8 +375,7 @@ export const MediaPage: React.FC = () => {
       if (detailAsset?.id === deleteTarget.id) {
         setDetailAsset(null);
       }
-      fetchMedia();
-      fetchStorageUsage();
+      refreshAllStorageData();
     } catch (err: any) {
       showToast(err?.response?.data?.message || 'Failed to delete media asset.');
     } finally {
@@ -274,161 +415,203 @@ export const MediaPage: React.FC = () => {
             };
             videoElement.onerror = () => res(false);
           });
-        } catch {
-          // Fallback if client metadata fails
+        } catch (e) {
+          console.warn('Failed to extract client metadata:', e);
         }
       }
 
-      const est = await storageService.estimateUpload({
+      const res = await storageService.estimateUpload({
         filename: firstFile.name,
         file_size_bytes: firstFile.size,
         mime_type: firstFile.type,
         duration_seconds: durationSeconds,
         width,
         height,
-        adaptive_streaming_enabled: isAdaptiveOn
+        adaptive_streaming_enabled: isAdaptiveOn,
       });
-      setEstimateData(est);
+
+      setEstimateData(res);
     } catch (err) {
-      console.warn('Failed to calculate pre-upload estimate:', err);
-      showToast('Unable to calculate storage estimate. Uploading directly...');
-      handleConfirmUploadFiles(files, isAdaptiveOn);
-      setEstimateModalOpen(false);
+      console.warn('Failed to fetch pre-upload cost estimate:', err);
     } finally {
       setEstimating(false);
     }
   };
 
-  // File Upload Handlers
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const files = Array.from(e.target.files);
-
+  const handleSelectFilesForUpload = (files: File[]) => {
+    if (!files || files.length === 0) return;
     setPendingUploadFiles(files);
-    setEstimateData(null);
-    setAdaptiveStreamingEnabled(true);
     setEstimateModalOpen(true);
-
-    await fetchEstimate(files, true);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    fetchEstimate(files, adaptiveStreamingEnabled);
   };
 
-  const handleToggleAdaptiveStreaming = async (enabled: boolean) => {
+  const handleToggleAdaptiveStreaming = (enabled: boolean) => {
     setAdaptiveStreamingEnabled(enabled);
     if (pendingUploadFiles.length > 0) {
-      await fetchEstimate(pendingUploadFiles, enabled);
+      fetchEstimate(pendingUploadFiles, enabled);
     }
   };
 
-  const handleConfirmUploadFiles = (files: File[], isAdaptiveOn: boolean = adaptiveStreamingEnabled) => {
-    const newItems: UploadQueueItem[] = files.map((file) => ({
-      id: `${file.name}-${Date.now()}-${Math.random()}`,
-      file,
-      progress: 0,
-      status: 'QUEUED',
-      adaptive_streaming_enabled: isAdaptiveOn,
-    }));
-    setUploadQueue((prev) => [...prev, ...newItems]);
-    setIsUploadModalOpen(true);
+  const handleConfirmUploadFiles = (files: File[]) => {
     setEstimateModalOpen(false);
     setPendingUploadFiles([]);
     setEstimateData(null);
+
+    const newQueue: UploadQueueItem[] = files.map((file) => ({
+      id: Math.random().toString(36).substring(2, 9),
+      file,
+      progress: 0,
+      status: 'QUEUED',
+      adaptive_streaming_enabled: adaptiveStreamingEnabled,
+    }));
+
+    setUploadQueue((prev) => [...prev, ...newQueue]);
+    setIsUploadModalOpen(true);
+
+    newQueue.forEach((qItem) => processUploadQueueItem(qItem));
   };
 
-  // Process Upload Queue sequentially
-  useEffect(() => {
-    const processQueue = async () => {
-      const pendingIndex = uploadQueue.findIndex((item) => item.status === 'QUEUED');
-      if (pendingIndex === -1) return;
+  const processUploadQueueItem = async (item: UploadQueueItem) => {
+    setUploadQueue((prev) =>
+      prev.map((q) => (q.id === item.id ? { ...q, status: 'UPLOADING', progress: 10 } : q))
+    );
 
-      const currentItem = uploadQueue[pendingIndex];
-
-      setUploadQueue((prev) =>
-        prev.map((item, idx) => (idx === pendingIndex ? { ...item, status: 'UPLOADING', progress: 5 } : item))
+    try {
+      await storageService.uploadFile(
+        item.file,
+        {
+          adaptive_streaming_enabled: item.adaptive_streaming_enabled ?? true,
+        },
+        (progress) => {
+          setUploadQueue((prev) =>
+            prev.map((q) => (q.id === item.id ? { ...q, progress } : q))
+          );
+        }
       );
 
-      try {
-        await storageService.uploadFile(currentItem.file, {
-          adaptive_streaming_enabled: currentItem.adaptive_streaming_enabled,
-          onProgress: (pct) => {
-            setUploadQueue((prev) =>
-              prev.map((item, idx) => (idx === pendingIndex ? { ...item, progress: Math.max(5, pct) } : item))
-            );
-          }
-        });
-
-        setUploadQueue((prev) =>
-          prev.map((item, idx) => (idx === pendingIndex ? { ...item, status: 'COMPLETE', progress: 100 } : item))
-        );
-
-        showToast(`Uploaded "${currentItem.file.name}" successfully!`);
-        fetchMedia();
-        fetchStorageUsage();
-      } catch (err: any) {
-        const errorMsg = err?.response?.data?.message || err?.message || 'Upload failed.';
-        setUploadQueue((prev) =>
-          prev.map((item, idx) => (idx === pendingIndex ? { ...item, status: 'FAILED', error: errorMsg } : item))
-        );
-      }
-    };
-
-    processQueue();
-  }, [uploadQueue, fetchMedia, fetchStorageUsage]);
-
-  const copyToClipboard = (text: string, label: string = 'URL') => {
-    navigator.clipboard.writeText(text);
-    showToast(`Copied ${label} to clipboard!`);
+      setUploadQueue((prev) =>
+        prev.map((q) => (q.id === item.id ? { ...q, status: 'COMPLETE', progress: 100 } : q))
+      );
+      showToast(`Uploaded "${item.file.name}" successfully.`);
+      refreshAllStorageData();
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.message || 'Upload failed.';
+      setUploadQueue((prev) =>
+        prev.map((q) => (q.id === item.id ? { ...q, status: 'FAILED', error: errMsg } : q))
+      );
+      showToast(`Upload failed for "${item.file.name}".`);
+    }
   };
 
-  const getFormatIcon = (mime: string, _name: string, typeStr: string) => {
-    const t = (typeStr || '').toUpperCase();
-    const m = (mime || '').toLowerCase();
-    if (t === 'VIDEO' || m.includes('video')) return <FileVideo className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />;
-    if (t === 'AUDIO' || m.includes('audio')) return <FileAudio className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />;
-    if (t === 'IMAGE' || m.includes('image')) return <ImageIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />;
-    if (t === 'DOCUMENT' || m.includes('pdf') || m.includes('doc')) return <FileText className="w-4 h-4 text-amber-600 dark:text-amber-400" />;
-    return <FileCode className="w-4 h-4 text-slate-600 dark:text-[#94A3B8]" />;
+  // Drag and Drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+  const handleDragLeave = () => setIsDragging(false);
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files);
+      handleSelectFilesForUpload(files);
+    }
   };
 
-  const totalPages = Math.ceil(totalCount / pageSize) || 1;
-  const usedBytes = storageUsage?.used_bytes || 0;
+  // Helper Date Formatters
+  const formatDateTimeStr = (isoStr?: string | null): string => {
+    if (!isoStr) return 'N/A';
+    try {
+      const d = new Date(isoStr);
+      return d.toLocaleString('en-US', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return isoStr;
+    }
+  };
+
+  const formatDateOnlyStr = (isoStr?: string | null): string => {
+    if (!isoStr) return 'N/A';
+    try {
+      const d = new Date(isoStr);
+      return d.toLocaleDateString('en-US', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return isoStr;
+    }
+  };
+
+  const formatTimeOnlyStr = (isoStr?: string | null): string => {
+    if (!isoStr) return 'N/A';
+    try {
+      const d = new Date(isoStr);
+      return d.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return isoStr;
+    }
+  };
+
+  // Available Years for filter dropdown
+  const availableYearsList = [
+    currentNow.getFullYear(),
+    currentNow.getFullYear() - 1,
+    currentNow.getFullYear() - 2,
+    currentNow.getFullYear() - 3,
+  ];
 
   return (
-    <div className="space-y-4 sm:space-y-6 text-left font-sans pb-24 sm:pb-16 px-2.5 sm:px-6 max-w-7xl mx-auto w-full max-w-full overflow-x-hidden min-w-0">
-      {/* Toast Alert */}
+    <div
+      className="space-y-4 sm:space-y-6 p-3 sm:p-6 max-w-7xl mx-auto font-sans text-slate-900 dark:text-[#F8FAFC]"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-4 right-4 z-50 px-4 py-3 bg-slate-900 dark:bg-[#1E293B] text-white dark:text-[#F8FAFC] text-xs font-medium rounded-2xl shadow-2xl border border-slate-800 dark:border-[#334155] flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 dark:bg-slate-800 text-white text-xs px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 border border-slate-700 animate-in fade-in slide-in-from-bottom-3 duration-200">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Hidden File Input */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileSelect}
-        multiple
-        className="hidden"
-      />
+      {/* Drag and drop overlay indicator */}
+      {isDragging && (
+        <div className="fixed inset-0 z-40 bg-blue-600/20 backdrop-blur-xs border-4 border-dashed border-blue-600 flex items-center justify-center pointer-events-none">
+          <div className="bg-white dark:bg-[#0F172A] p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-3">
+            <Upload className="w-12 h-12 text-blue-600 animate-bounce" />
+            <h3 className="text-base font-semibold text-slate-900 dark:text-[#F8FAFC]">Drop files to upload to Media Library</h3>
+          </div>
+        </div>
+      )}
 
-      {/* Header */}
-      <Card padding="md" className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] shadow-2xs w-full max-w-full min-w-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex items-center gap-2 flex-wrap min-w-0">
-              <h1 className="text-base sm:text-xl font-semibold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
-                Academy Media Library
+      {/* 1. MEDIA LIBRARY HEADER + ACTION BUTTONS */}
+      <Card className="p-4 sm:p-5 bg-white dark:bg-[#111827] border-slate-200 dark:border-[#263244] shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-[#F8FAFC]">
+                Media Library & Storage
               </h1>
-              <Badge variant="info" size="sm" className="font-medium shrink-0 text-[10px]">
-                {totalCount} Assets
+              <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-[#60A5FA] border-blue-200 dark:border-blue-900/50">
+                Backend Authoritative
               </Badge>
             </div>
-            <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal leading-relaxed">
-              Centralized local asset storage. Upload once and reference seamlessly across your courses and lessons.
+            <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
+              Manage physical media assets, view real-time storage metering, and inspect monthly credit settlement logs.
             </p>
           </div>
 
@@ -436,94 +619,245 @@ export const MediaPage: React.FC = () => {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => {
-                fetchBillingStatements();
-                setIsBillingModalOpen(true);
-              }}
-              className="h-[38px] min-h-[38px] border-slate-200 dark:border-[#334155] text-slate-700 dark:text-[#CBD5E1] flex items-center gap-1.5"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
-              <span>Billing History</span>
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                fetchMedia();
-                fetchStorageUsage();
-              }}
+              onClick={refreshAllStorageData}
               className="h-[38px] min-h-[38px] border-slate-200 dark:border-[#334155] text-slate-700 dark:text-[#CBD5E1]"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              <span>Refresh</span>
             </Button>
             <Button
               size="sm"
               onClick={() => fileInputRef.current?.click()}
-              className="h-[38px] min-h-[38px] bg-[#2563EB] text-white font-medium text-xs px-3.5 sm:px-4 rounded-xl hover:bg-[#1D4ED8] shrink-0 flex items-center justify-center gap-1.5 shadow-2xs"
+              className="h-[38px] min-h-[38px] bg-[#2563EB] text-white font-medium text-xs px-4 rounded-xl hover:bg-[#1D4ED8] shrink-0 flex items-center justify-center gap-1.5 shadow-2xs"
               leftIcon={<Upload className="w-4 h-4" />}
             >
               Upload Media
             </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  handleSelectFilesForUpload(Array.from(e.target.files));
+                }
+              }}
+            />
           </div>
         </div>
       </Card>
 
-      {/* Simplified Storage & Monthly Metering Card */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-        {/* Real Storage Used */}
-        <div className="p-3.5 sm:p-4 bg-blue-50/70 dark:bg-[#0F172A] border border-blue-200/80 dark:border-[#334155] rounded-2xl flex items-center justify-between text-xs text-blue-900 dark:text-[#CBD5E1]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-600/10 dark:bg-blue-500/20 flex items-center justify-center text-[#2563EB] dark:text-[#60A5FA]">
-              <HardDrive className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8]">Current Media Storage</div>
-              <span className="font-semibold text-sm text-blue-950 dark:text-[#F8FAFC]">
-                Storage Used: {storageUsage?.used_display || formatBytes(usedBytes)}
-              </span>
-            </div>
-          </div>
-          <span className="text-[11px] font-normal text-blue-800 dark:text-[#94A3B8]">
-            {storageUsage?.total_files_count || totalCount} Active Files
-          </span>
+      {/* 2. STORAGE USAGE SUMMARY (4-COLUMN RESPONSIVE CARDS) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
+            <HardDrive className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span>Storage Usage</span>
+          </h2>
+          {summaryData?.billing_enabled === false && (
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-900/50">
+              Storage billing is currently disabled
+            </span>
+          )}
         </div>
 
-        {/* This Month Event-Driven Usage & Estimated Billing */}
-        <div className="p-3.5 sm:p-4 bg-indigo-50/70 dark:bg-[#0F172A] border border-indigo-200/80 dark:border-[#334155] rounded-2xl flex items-center justify-between text-xs text-indigo-900 dark:text-[#CBD5E1]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-600/10 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-              <Clock className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8]">
-                Storage Billing — {periodUsage?.billing_period || 'This Month'}
+        {/* Prominent Outstanding Storage Warning Banner */}
+        {(summaryData?.has_outstanding_storage_balance || Number(summaryData?.outstanding_storage_credits || 0) > 0) && (
+          <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs mb-3">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-xl text-amber-800 dark:text-amber-300 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
               </div>
-              <span className="font-semibold text-sm text-indigo-950 dark:text-[#F8FAFC]">
-                Usage: {periodUsage?.gb_days || '0.00'} GB-days &bull; Est. Credits: {periodUsage?.estimated_credits || '0.00'}
+              <div className="space-y-0.5">
+                <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                  ⚠ Storage Credits Outstanding
+                </h4>
+                <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                  <strong className="font-semibold">{summaryData?.outstanding_storage_credits || '0.0000'} Credits</strong> are pending from previous storage settlements.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => navigate('/credits/buy')}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs px-4 py-2 rounded-xl shrink-0 border-none shadow-2xs"
+            >
+              Add Credits
+            </Button>
+          </div>
+        )}
+
+        {summaryLoading ? (
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="p-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl animate-pulse space-y-2">
+                <div className="h-3 bg-slate-200 dark:bg-[#1E293B] rounded w-24"></div>
+                <div className="h-6 bg-slate-200 dark:bg-[#1E293B] rounded w-16"></div>
+              </div>
+            ))}
+          </div>
+        ) : summaryError ? (
+          <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-2xl flex items-center justify-between text-xs text-rose-800 dark:text-rose-300">
+            <span>Unable to load storage usage. {summaryError}</span>
+            <Button size="xs" variant="outline" onClick={fetchSummary}>Retry</Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            {/* Card 1: Current Storage */}
+            <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl shadow-2xs">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] uppercase tracking-wider block mb-1">
+                Current Storage
+              </span>
+              <div className="text-lg sm:text-xl font-bold text-slate-900 dark:text-[#F8FAFC]">
+                {summaryData?.current_storage_gb || '0.00'} GB
+              </div>
+              <span className="text-[11px] text-slate-400 dark:text-[#64748B] block mt-0.5">
+                {formatBytes(summaryData?.current_storage_bytes || 0)}
+              </span>
+            </div>
+
+            {/* Card 2: Current Cycle Credits */}
+            <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl shadow-2xs">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] uppercase tracking-wider block mb-1">
+                Current Cycle Credits
+              </span>
+              <div className="text-lg sm:text-xl font-bold text-[#2563EB] dark:text-[#60A5FA]">
+                {summaryData?.current_cycle_accumulated_credits || '0.0000'} Credits
+              </div>
+              <span className="text-[11px] text-slate-400 dark:text-[#64748B] block mt-0.5">
+                Open cycle accumulation
+              </span>
+            </div>
+
+            {/* Card 3: Meter Records */}
+            <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl shadow-2xs">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] uppercase tracking-wider block mb-1">
+                Meter Records
+              </span>
+              <div className="text-lg sm:text-xl font-bold text-slate-900 dark:text-[#F8FAFC]">
+                {summaryData?.current_cycle_meter_count || 0}
+              </div>
+              <span className="text-[11px] text-slate-400 dark:text-[#64748B] block mt-0.5">
+                Current cycle logs
+              </span>
+            </div>
+
+            {/* Card 4: Outstanding Storage Credits */}
+            <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl shadow-2xs">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] uppercase tracking-wider block mb-1">
+                Outstanding Storage Credits
+              </span>
+              <div className={`text-lg sm:text-xl font-bold ${Number(summaryData?.outstanding_storage_credits || 0) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-[#F8FAFC]'}`}>
+                {summaryData?.outstanding_storage_credits || '0.0000'} Credits
+              </div>
+              <span className="text-[11px] text-slate-400 dark:text-[#64748B] block mt-0.5">
+                Unpaid storage debt
+              </span>
+            </div>
+
+            {/* Card 5: Next Settlement */}
+            <div className="p-3.5 sm:p-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl shadow-2xs">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] uppercase tracking-wider block mb-1">
+                Next Settlement
+              </span>
+              <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-[#F8FAFC]">
+                {formatDateTimeStr(summaryData?.next_settlement_at || summaryData?.next_credit_debit_at)}
+              </div>
+              <span className="text-[11px] text-slate-400 dark:text-[#64748B] block mt-0.5">
+                Scheduled monthly debit
               </span>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              fetchBillingStatements();
-              setIsBillingModalOpen(true);
-            }}
-            className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-          >
-            Statements &rarr;
-          </button>
-        </div>
+        )}
       </div>
 
-      {/* Toolbar: Search, Filters, View Modes */}
+      {/* 3. CURRENT BILLING CYCLE CARD */}
+      <Card className="p-4 sm:p-5 bg-slate-50/70 dark:bg-[#0F172A] border-slate-200 dark:border-[#263244] shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="space-y-0.5">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
+              <Activity className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Current Storage Billing Cycle</span>
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
+              Usage is metered at intervals and accumulated into the active cycle before single monthly settlement debit.
+            </p>
+          </div>
+          {summaryData?.metering_interval_label && (
+            <Badge variant="outline" className="w-fit border-indigo-200 dark:border-indigo-900/50 text-indigo-700 dark:text-indigo-300">
+              {summaryData.metering_interval_label}
+            </Badge>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs pt-1">
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] block mb-0.5">Metering Interval</span>
+            <strong className="text-slate-900 dark:text-[#F8FAFC] font-medium">
+              {summaryData?.metering_interval_label || summaryData?.billing_interval_label || '6 Hours'}
+            </strong>
+          </div>
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] block mb-0.5">Credit Rate</span>
+            <strong className="text-slate-900 dark:text-[#F8FAFC] font-medium">
+              {summaryData?.credit_rate_per_gb || '2.0000'} Credits / GB / Interval
+            </strong>
+          </div>
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] block mb-0.5">Meter Records</span>
+            <strong className="text-slate-900 dark:text-[#F8FAFC] font-medium">
+              {summaryData?.current_cycle_meter_count || 0}
+            </strong>
+          </div>
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] block mb-0.5">Accumulated Credits</span>
+            <strong className="text-[#2563EB] dark:text-[#60A5FA] font-semibold">
+              {summaryData?.current_cycle_accumulated_credits || '0.0000'} Credits
+            </strong>
+          </div>
+
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] block mb-0.5">Last Metered</span>
+            <span className="text-slate-700 dark:text-[#CBD5E1]">
+              {formatDateTimeStr(summaryData?.last_metered_at || summaryData?.last_billed_at)}
+            </span>
+          </div>
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] block mb-0.5">Next Meter</span>
+            <span className="text-slate-700 dark:text-[#CBD5E1]">
+              {formatDateTimeStr(summaryData?.next_meter_at || summaryData?.next_billing_at)}
+            </span>
+          </div>
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] block mb-0.5">Previous Settlement</span>
+            <span className="text-slate-700 dark:text-[#CBD5E1]">
+              {formatDateTimeStr(summaryData?.previous_settlement_at || summaryData?.last_successful_debit_at)}
+            </span>
+          </div>
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] block mb-0.5">Next Settlement</span>
+            <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+              {formatDateTimeStr(summaryData?.next_settlement_at || summaryData?.next_credit_debit_at)}
+            </span>
+          </div>
+        </div>
+
+        <div className="p-3 bg-blue-50/80 dark:bg-[#111827] border border-blue-200/80 dark:border-blue-900/40 rounded-xl flex items-start gap-2.5 text-xs text-blue-900 dark:text-blue-200">
+          <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            <strong>Important:</strong> Accumulated Credits are NOT yet deducted from your Academy credit balance. They are accumulated safely and debited only once on your configured monthly settlement day/time.
+          </p>
+        </div>
+      </Card>
+
+      {/* 4. MEDIA TOOLBAR & CATEGORY FILTERS */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] p-3.5 rounded-2xl shadow-2xs font-sans text-xs">
-        {/* Search */}
+        {/* Search Input with Debounce */}
         <div className="w-full md:w-72">
           <Input
-            placeholder="Search files by name..."
-            value={search}
+            placeholder="Search media files..."
+            value={searchInput}
             onChange={handleSearchChange}
             leftIcon={<Search className="w-4 h-4 text-slate-400 dark:text-[#64748B]" />}
             className="font-normal bg-white dark:bg-[#0F172A] border-slate-200 dark:border-[#334155] text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B]"
@@ -539,6 +873,7 @@ export const MediaPage: React.FC = () => {
               { id: 'VIDEO', label: 'Videos' },
               { id: 'AUDIO', label: 'Audio' },
               { id: 'DOCUMENT', label: 'Documents' },
+              { id: 'PDF', label: 'PDFs' },
             ].map((cat) => (
               <button
                 key={cat.id}
@@ -583,36 +918,32 @@ export const MediaPage: React.FC = () => {
             >
               <option value="-created_at">Newest First</option>
               <option value="created_at">Oldest First</option>
-              <option value="original_filename">Name (A-Z)</option>
-              <option value="-original_filename">Name (Z-A)</option>
-              <option value="-size_bytes">Size (Largest)</option>
-              <option value="size_bytes">Size (Smallest)</option>
+              <option value="-size_bytes">Largest Size</option>
+              <option value="size_bytes">Smallest Size</option>
             </select>
           </div>
 
-          {/* Grid vs List View Toggle */}
-          <div className="flex items-center gap-1 border-l border-slate-200 dark:border-[#334155] pl-2">
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-slate-100 dark:bg-[#0F172A] p-0.5 rounded-lg border border-slate-200 dark:border-[#334155]">
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-lg transition-all ${
+              className={`p-1.5 rounded-md transition-all ${
                 viewMode === 'grid'
-                  ? 'bg-[#2563EB] text-white shadow-2xs'
-                  : 'text-slate-400 hover:text-slate-700 dark:text-[#94A3B8] hover:bg-slate-100 dark:hover:bg-[#172033]'
+                  ? 'bg-white dark:bg-[#1E293B] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs'
+                  : 'text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
               }`}
-              title="Grid View"
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-lg transition-all ${
+              className={`p-1.5 rounded-md transition-all ${
                 viewMode === 'list'
-                  ? 'bg-[#2563EB] text-white shadow-2xs'
-                  : 'text-slate-400 hover:text-slate-700 dark:text-[#94A3B8] hover:bg-slate-100 dark:hover:bg-[#172033]'
+                  ? 'bg-white dark:bg-[#1E293B] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs'
+                  : 'text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
               }`}
-              title="List View"
             >
               <ListIcon className="w-4 h-4" />
             </button>
@@ -620,241 +951,436 @@ export const MediaPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* 5. MEDIA ASSETS GRID / LIST */}
       {loading ? (
-        <div className="p-12 text-center text-slate-500 dark:text-[#94A3B8] font-medium text-xs space-y-2">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#2563EB]" />
-          <p>Loading Academy Media Library...</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="h-64 bg-slate-100 dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl animate-pulse"></div>
+          ))}
         </div>
       ) : error ? (
-        <Card padding="lg" className="bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50 text-center space-y-3">
-          <AlertTriangle className="w-8 h-8 text-rose-600 dark:text-rose-400 mx-auto" />
-          <p className="text-xs text-rose-800 dark:text-rose-300 font-medium">{error}</p>
-          <Button size="sm" onClick={fetchMedia} className="bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs">
-            Retry Loading
-          </Button>
+        <Card className="p-8 text-center bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50 space-y-3">
+          <AlertTriangle className="w-8 h-8 text-rose-500 mx-auto" />
+          <p className="text-xs text-rose-900 dark:text-rose-300 font-medium">{error}</p>
+          <Button size="sm" variant="outline" onClick={fetchMedia}>Retry</Button>
         </Card>
       ) : mediaAssets.length === 0 ? (
         <EmptyState
           icon={HardDrive}
-          title="No media files yet."
-          description="Upload images, videos, PDFs, and audio files to store in your central Media Library and reuse across your Academy."
+          title="No media assets found"
+          description={debouncedSearch ? 'No media items match your search query.' : 'Upload your first image, video, audio, or PDF document.'}
           actionLabel="Upload Media"
           onAction={() => fileInputRef.current?.click()}
-          actionIcon={<Upload className="w-4 h-4" />}
         />
       ) : viewMode === 'grid' ? (
-        /* GRID VIEW */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 w-full min-w-0">
-          {mediaAssets.map((asset) => {
-            const resolvedUrl = resolveMediaUrl(asset.url);
-            const isMenuOpen = activeMenuAssetId === asset.id;
-            const displayName = asset.display_name || asset.original_filename;
-
-            return (
-              <Card
-                key={asset.id}
-                padding="sm"
-                className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] space-y-3 font-sans text-xs hover:border-blue-300 dark:hover:border-blue-500/40 dark:hover:bg-[#172033] transition-all shadow-2xs rounded-2xl p-3 flex flex-col justify-between min-w-0 w-full"
-              >
-                <div className="space-y-2.5 min-w-0">
-                  {/* Viewport */}
-                  {asset.media_type === 'IMAGE' ? (
-                    <div
-                      onClick={() => handleOpenDetail(asset)}
-                      className="relative w-full aspect-video rounded-xl bg-slate-100 dark:bg-[#0F172A] overflow-hidden border border-slate-200 dark:border-[#263244] cursor-pointer group"
-                    >
-                      <img
-                        src={resolvedUrl}
-                        alt={displayName}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  ) : asset.media_type === 'VIDEO' ? (
-                    <div
-                      onClick={() => handleOpenDetail(asset)}
-                      className="relative w-full aspect-video rounded-xl bg-slate-900 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] flex items-center justify-center text-white cursor-pointer group"
-                    >
-                      <FileVideo className="w-8 h-8 text-[#2563EB] dark:text-[#60A5FA] opacity-90 group-hover:scale-110 transition-transform" />
-                      <span className="absolute bottom-2 right-2 text-[10px] font-medium bg-black/70 px-1.5 py-0.5 rounded text-white">
-                        Video
-                      </span>
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => handleOpenDetail(asset)}
-                      className="w-full h-20 bg-slate-50 dark:bg-[#0F172A] rounded-xl border border-slate-200 dark:border-[#334155] flex items-center justify-center gap-2 text-slate-600 dark:text-[#94A3B8] cursor-pointer hover:bg-slate-100 dark:hover:bg-[#172033]"
-                    >
-                      {getFormatIcon(asset.mime_type, asset.original_filename, asset.media_type)}
-                      <span className="text-xs font-medium uppercase">{asset.media_type}</span>
-                    </div>
-                  )}
-
-                  {/* Asset Header Info */}
-                  <div className="flex items-start justify-between gap-2 min-w-0">
-                    <div className="min-w-0 flex-1 space-y-0.5" onClick={() => handleOpenDetail(asset)}>
-                      <h3
-                        className="font-medium text-slate-900 dark:text-[#F8FAFC] text-xs sm:text-sm leading-snug line-clamp-2 break-words hover:text-[#2563EB] cursor-pointer"
-                        title={displayName}
-                      >
-                        {displayName}
-                      </h3>
-
-                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-[#94A3B8] font-normal flex-wrap">
-                        <Badge variant="neutral" size="sm" className="capitalize text-[10px] py-0 font-medium">
-                          {asset.media_type}
-                        </Badge>
-                        <span>•</span>
-                        <span className="text-slate-700 dark:text-[#CBD5E1]">{formatBytes(asset.size_bytes)}</span>
-                      </div>
-                    </div>
-
-                    {/* Menu Button */}
-                    <div className="relative shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setActiveMenuAssetId(isMenuOpen ? null : asset.id)}
-                        className="p-1 rounded-lg text-slate-400 dark:text-[#94A3B8] hover:text-slate-700 dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] cursor-pointer"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-
-                      {isMenuOpen && (
-                        <div className="absolute right-0 mt-1 w-44 bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-[#334155] shadow-xl p-1 z-20 text-left space-y-0.5 animate-in fade-in slide-in-from-top-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleOpenDetail(asset);
-                              setActiveMenuAssetId(null);
-                            }}
-                            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-lg text-left"
-                          >
-                            <Eye className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
-                            <span>Preview &amp; Details</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              copyToClipboard(resolvedUrl, 'Media URL');
-                              setActiveMenuAssetId(null);
-                            }}
-                            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-lg text-left"
-                          >
-                            <Copy className="w-3.5 h-3.5 text-slate-500" />
-                            <span>Copy URL</span>
-                          </button>
-
-                          <a
-                            href={resolvedUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download={asset.original_filename}
-                            onClick={() => setActiveMenuAssetId(null)}
-                            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-lg text-left"
-                          >
-                            <Download className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Download</span>
-                          </a>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteClick(asset)}
-                            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-rose-600 dark:text-[#F87171] hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg text-left"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-rose-600 dark:text-[#F87171]" />
-                            <span>Delete</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {mediaAssets.map((asset) => (
+            <Card
+              key={asset.id}
+              className="group overflow-hidden bg-white dark:bg-[#111827] border-slate-200 dark:border-[#263244] hover:border-blue-400 dark:hover:border-blue-600 transition-all rounded-2xl flex flex-col justify-between"
+            >
+              {/* Preview Thumbnail */}
+              <div className="relative h-36 bg-slate-100 dark:bg-[#0F172A] overflow-hidden flex items-center justify-center">
+                {asset.media_type === 'IMAGE' ? (
+                  <img
+                    src={resolveMediaUrl(asset.url)}
+                    alt={asset.display_name || asset.original_filename}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : asset.media_type === 'VIDEO' ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-white p-2">
+                    <FileVideo className="w-8 h-8 text-blue-400 mb-1" />
+                    <span className="text-[10px] text-slate-300">{asset.duration_seconds ? `${Math.round(asset.duration_seconds)}s` : 'Video'}</span>
+                    {asset.adaptive_streaming_enabled && (
+                      <Badge variant="secondary" className="absolute top-2 left-2 bg-blue-600/90 text-white text-[9px] px-1.5 py-0.5">
+                        HLS
+                      </Badge>
+                    )}
                   </div>
+                ) : asset.media_type === 'AUDIO' ? (
+                  <div className="flex flex-col items-center justify-center text-indigo-500">
+                    <FileAudio className="w-10 h-10" />
+                    <span className="text-[10px] text-slate-500 dark:text-[#94A3B8] mt-1">Audio Track</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-slate-400 dark:text-[#64748B]">
+                    <FileText className="w-10 h-10" />
+                    <span className="text-[10px] text-slate-500 dark:text-[#94A3B8] mt-1">{asset.file_extension?.toUpperCase() || 'Doc'}</span>
+                  </div>
+                )}
+
+                {/* Hover overlay action buttons */}
+                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <Button size="xs" variant="secondary" onClick={() => handleOpenDetail(asset)} className="bg-white text-slate-900 hover:bg-slate-100">
+                    <Eye className="w-3.5 h-3.5 mr-1" /> Preview
+                  </Button>
+                  <Button size="xs" variant="destructive" onClick={() => handleDeleteClick(asset)}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Asset Info Footer */}
+              <div className="p-3 space-y-1.5 text-left">
+                <div className="flex items-start justify-between gap-1.5">
+                  <h3
+                    onClick={() => handleOpenDetail(asset)}
+                    className="font-medium text-xs text-slate-900 dark:text-[#F8FAFC] truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    title={asset.display_name || asset.original_filename}
+                  >
+                    {asset.display_name || asset.original_filename}
+                  </h3>
                 </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-[#263244] text-[10.5px] font-normal text-slate-500 dark:text-[#94A3B8]">
-                  <span>{asset.file_extension ? `.${asset.file_extension}` : asset.mime_type}</span>
-                  <span>{formatMediaDate(asset.uploaded_at || asset.created_at)}</span>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-[#94A3B8]">
+                  <span>{formatBytes(asset.total_storage_bytes || asset.size_bytes)}</span>
+                  <span>{formatDateOnlyStr(asset.created_at)}</span>
                 </div>
-              </Card>
-            );
-          })}
+              </div>
+            </Card>
+          ))}
         </div>
       ) : (
-        /* LIST VIEW */
-        <Card padding="none" className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] overflow-hidden rounded-2xl shadow-2xs">
-          <div className="overflow-x-auto w-full">
-            <table className="w-full text-left font-sans text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-[#0F172A] border-b border-slate-200 dark:border-[#263244] text-slate-500 dark:text-[#94A3B8] font-semibold text-[11px] uppercase tracking-wider">
-                  <th className="py-3 px-4">Name</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Size</th>
-                  <th className="py-3 px-4">Uploaded</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+        /* List View */
+        <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl overflow-hidden shadow-2xs">
+          <table className="w-full text-left text-xs font-sans">
+            <thead className="bg-slate-50 dark:bg-[#0F172A] border-b border-slate-200 dark:border-[#263244] text-slate-500 dark:text-[#94A3B8] font-medium text-[11px] uppercase tracking-wider">
+              <tr>
+                <th className="p-3 pl-4">Asset</th>
+                <th className="p-3">Type</th>
+                <th className="p-3">Size</th>
+                <th className="p-3">Uploaded</th>
+                <th className="p-3 text-right pr-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-[#263244]">
+              {mediaAssets.map((asset) => (
+                <tr key={asset.id} className="hover:bg-slate-50/80 dark:hover:bg-[#172033] transition-colors">
+                  <td className="p-3 pl-4 font-medium text-slate-900 dark:text-[#F8FAFC]">
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleOpenDetail(asset)}>
+                      {asset.media_type === 'IMAGE' ? (
+                        <ImageIcon className="w-4 h-4 text-emerald-500 shrink-0" />
+                      ) : asset.media_type === 'VIDEO' ? (
+                        <FileVideo className="w-4 h-4 text-blue-500 shrink-0" />
+                      ) : asset.media_type === 'AUDIO' ? (
+                        <FileAudio className="w-4 h-4 text-indigo-500 shrink-0" />
+                      ) : (
+                        <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                      )}
+                      <span className="truncate max-w-xs">{asset.display_name || asset.original_filename}</span>
+                    </div>
+                  </td>
+                  <td className="p-3 text-slate-500 dark:text-[#94A3B8]">{asset.media_type}</td>
+                  <td className="p-3 text-slate-500 dark:text-[#94A3B8]">{formatBytes(asset.total_storage_bytes || asset.size_bytes)}</td>
+                  <td className="p-3 text-slate-500 dark:text-[#94A3B8]">{formatDateOnlyStr(asset.created_at)}</td>
+                  <td className="p-3 text-right pr-4 space-x-1">
+                    <Button size="xs" variant="ghost" onClick={() => handleOpenDetail(asset)}>
+                      <Eye className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button size="xs" variant="ghost" onClick={() => handleDeleteClick(asset)} className="text-rose-600 hover:text-rose-700 hover:bg-rose-50">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Pagination Bar */}
+      {totalCount > pageSize && (
+        <div className="flex items-center justify-between pt-2 text-xs text-slate-500 dark:text-[#94A3B8]">
+          <span>
+            Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, totalCount)} of {totalCount} assets
+          </span>
+          <div className="flex items-center gap-1">
+            <Button
+              size="xs"
+              variant="outline"
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Previous
+            </Button>
+            <span className="px-2 font-medium text-slate-700 dark:text-[#CBD5E1]">
+              Page {page} of {Math.ceil(totalCount / pageSize)}
+            </span>
+            <Button
+              size="xs"
+              variant="outline"
+              disabled={page * pageSize >= totalCount}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* 6. STORAGE USAGE LOGS SECTION */}
+      <Card className="p-4 sm:p-5 bg-white dark:bg-[#111827] border-slate-200 dark:border-[#263244] shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
+              <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>Storage Usage Logs</span>
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
+              Immutable record of storage occupied and interval credits calculated.
+            </p>
+          </div>
+
+          {/* Month / Year Filter */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-500 dark:text-[#94A3B8]">Month:</span>
+              <select
+                value={meterLogsMonth}
+                onChange={(e) => {
+                  setMeterLogsMonth(Number(e.target.value));
+                  setMeterLogsPage(1);
+                }}
+                className="h-8 px-2 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-lg text-xs font-medium text-slate-700 dark:text-[#F8FAFC]"
+              >
+                {MONTH_NAMES.map((name, idx) => (
+                  <option key={idx + 1} value={idx + 1}>{name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-500 dark:text-[#94A3B8]">Year:</span>
+              <select
+                value={meterLogsYear}
+                onChange={(e) => {
+                  setMeterLogsYear(Number(e.target.value));
+                  setMeterLogsPage(1);
+                }}
+                className="h-8 px-2 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-lg text-xs font-medium text-slate-700 dark:text-[#F8FAFC]"
+              >
+                {availableYearsList.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {meterLogsLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-10 bg-slate-100 dark:bg-[#0F172A] rounded-xl animate-pulse"></div>
+            ))}
+          </div>
+        ) : meterLogsError ? (
+          <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-xl flex items-center justify-between text-xs text-rose-800 dark:text-rose-300">
+            <span>{meterLogsError}</span>
+            <Button size="xs" variant="outline" onClick={fetchMeterLogs}>Retry</Button>
+          </div>
+        ) : meterLogs.length === 0 ? (
+          <div className="py-8 text-center text-xs text-slate-500 dark:text-[#94A3B8]">
+            No storage usage has been metered yet.
+          </div>
+        ) : (
+          <div className="overflow-x-auto border border-slate-200 dark:border-[#263244] rounded-xl">
+            <table className="w-full text-left text-xs font-sans">
+              <thead className="bg-slate-50 dark:bg-[#0F172A] border-b border-slate-200 dark:border-[#263244] text-slate-500 dark:text-[#94A3B8] font-medium text-[11px] uppercase tracking-wider">
+                <tr>
+                  <th className="p-3 pl-4">Metered At</th>
+                  <th className="p-3">Storage Used</th>
+                  <th className="p-3">Rate / GB</th>
+                  <th className="p-3 text-right pr-4">Calculated Credits</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-[#263244]">
-                {mediaAssets.map((asset) => {
-                  const resolvedUrl = resolveMediaUrl(asset.url);
-                  const displayName = asset.display_name || asset.original_filename;
+              <tbody className="divide-y divide-slate-200 dark:divide-[#263244]">
+                {meterLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-slate-50/80 dark:hover:bg-[#172033] transition-colors">
+                    <td className="p-3 pl-4 text-slate-900 dark:text-[#F8FAFC] font-medium">
+                      {formatDateTimeStr(log.metered_at)}
+                    </td>
+                    <td className="p-3 text-slate-700 dark:text-[#CBD5E1]">
+                      {log.used_gb} GB ({formatBytes(log.used_bytes)})
+                    </td>
+                    <td className="p-3 text-slate-700 dark:text-[#CBD5E1]">
+                      {log.credit_rate_per_gb}
+                    </td>
+                    <td className="p-3 text-right pr-4 font-semibold text-[#2563EB] dark:text-[#60A5FA]">
+                      {log.calculated_credits} Credits
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination bar */}
+        {meterLogsCount > 25 && (
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#94A3B8] pt-1">
+            <span>Total {meterLogsCount} meter records</span>
+            <div className="flex items-center gap-1">
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={meterLogsPage === 1}
+                onClick={() => setMeterLogsPage((p) => p - 1)}
+              >
+                Previous
+              </Button>
+              <span className="px-2 font-medium">Page {meterLogsPage}</span>
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={meterLogsPage * 25 >= meterLogsCount}
+                onClick={() => setMeterLogsPage((p) => p + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* 7. STORAGE CREDIT SETTLEMENT HISTORY SECTION */}
+      <Card className="p-4 sm:p-5 bg-white dark:bg-[#111827] border-slate-200 dark:border-[#263244] shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Storage Credit Settlement History</span>
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
+              Authoritative ledger record of successful monthly storage credit debits.
+            </p>
+          </div>
+
+          {/* Month / Year Filter */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-500 dark:text-[#94A3B8]">Month:</span>
+              <select
+                value={settlementsMonth}
+                onChange={(e) => {
+                  setSettlementsMonth(Number(e.target.value));
+                  setSettlementsPage(1);
+                }}
+                className="h-8 px-2 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-lg text-xs font-medium text-slate-700 dark:text-[#F8FAFC]"
+              >
+                {MONTH_NAMES.map((name, idx) => (
+                  <option key={idx + 1} value={idx + 1}>{name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-500 dark:text-[#94A3B8]">Year:</span>
+              <select
+                value={settlementsYear}
+                onChange={(e) => {
+                  setSettlementsYear(Number(e.target.value));
+                  setSettlementsPage(1);
+                }}
+                className="h-8 px-2 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-lg text-xs font-medium text-slate-700 dark:text-[#F8FAFC]"
+              >
+                {availableYearsList.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Selected Period Summary Header */}
+        <div className="p-3 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#263244] rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] uppercase block">Selected Period</span>
+            <strong className="text-slate-900 dark:text-[#F8FAFC] font-semibold">
+              {settlementsPeriodLabel || `${MONTH_NAMES[settlementsMonth - 1]} ${settlementsYear}`}
+            </strong>
+          </div>
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] uppercase block">Storage Billed</span>
+            <strong className="text-slate-900 dark:text-[#F8FAFC] font-semibold">{settlementsStorageBilled} Credits</strong>
+          </div>
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] uppercase block">Credits Paid</span>
+            <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">
+              {settlementsCreditsPaid} Credits
+            </strong>
+          </div>
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] uppercase block">Outstanding</span>
+            <strong className="text-amber-600 dark:text-amber-400 font-semibold">
+              {settlementsOutstanding} Credits
+            </strong>
+          </div>
+        </div>
+
+        {settlementsLoading ? (
+          <div className="space-y-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-10 bg-slate-100 dark:bg-[#0F172A] rounded-xl animate-pulse"></div>
+            ))}
+          </div>
+        ) : settlementsError ? (
+          <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-xl flex items-center justify-between text-xs text-rose-800 dark:text-rose-300">
+            <span>{settlementsError}</span>
+            <Button size="xs" variant="outline" onClick={fetchSettlements}>Retry</Button>
+          </div>
+        ) : settlements.length === 0 ? (
+          <div className="py-8 text-center text-xs text-slate-500 dark:text-[#94A3B8]">
+            No storage credit settlements for this period.
+          </div>
+        ) : (
+          <div className="overflow-x-auto border border-slate-200 dark:border-[#263244] rounded-xl">
+            <table className="w-full text-left text-xs font-sans">
+              <thead className="bg-slate-50 dark:bg-[#0F172A] border-b border-slate-200 dark:border-[#263244] text-slate-500 dark:text-[#94A3B8] font-medium text-[11px] uppercase tracking-wider">
+                <tr>
+                  <th className="p-3 pl-4">Settlement Date</th>
+                  <th className="p-3">Bill</th>
+                  <th className="p-3">Paid</th>
+                  <th className="p-3">Outstanding</th>
+                  <th className="p-3 text-right pr-4">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-[#263244]">
+                {settlements.map((s) => {
+                  const statusLabel = s.settlement_status || (s.status === 'DEBITED' ? 'PAID' : s.status);
+                  const isPaid = statusLabel === 'PAID';
+                  const isPartial = statusLabel === 'PARTIALLY_PAID';
 
                   return (
-                    <tr key={asset.id} className="hover:bg-slate-50/80 dark:hover:bg-[#172033] transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          {getFormatIcon(asset.mime_type, asset.original_filename, asset.media_type)}
-                          <div className="min-w-0">
-                            <p
-                              onClick={() => handleOpenDetail(asset)}
-                              className="font-medium text-slate-900 dark:text-[#F8FAFC] hover:text-[#2563EB] cursor-pointer truncate max-w-xs sm:max-w-md"
-                              title={displayName}
-                            >
-                              {displayName}
-                            </p>
-                            <p className="text-[10.5px] text-slate-400 dark:text-[#64748B] truncate">{asset.original_filename}</p>
-                          </div>
-                        </div>
+                    <tr
+                      key={s.id}
+                      onClick={() => setSelectedSettlementDetail(s)}
+                      className="hover:bg-slate-50/80 dark:hover:bg-[#172033] transition-colors cursor-pointer"
+                    >
+                      <td className="p-3 pl-4 font-medium text-slate-900 dark:text-[#F8FAFC]">
+                        {formatDateTimeStr(s.settled_at || s.debited_at || s.created_at)}
                       </td>
-                      <td className="py-3 px-4">
-                        <Badge variant="neutral" size="sm" className="capitalize text-[10px]">
-                          {asset.media_type}
-                        </Badge>
+                      <td className="p-3 text-slate-700 dark:text-[#CBD5E1] font-medium">
+                        {s.storage_billed || s.original_amount || s.accumulated_credits} Credits
                       </td>
-                      <td className="py-3 px-4 text-slate-700 dark:text-[#CBD5E1]">{formatBytes(asset.size_bytes)}</td>
-                      <td className="py-3 px-4 text-slate-500 dark:text-[#94A3B8]">
-                        {formatMediaDate(asset.uploaded_at || asset.created_at)}
+                      <td className="p-3 text-emerald-600 dark:text-emerald-400 font-semibold">
+                        {s.credits_paid || s.paid_amount || s.credits_debited} Credits
                       </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenDetail(asset)}
-                            className="p-1.5 rounded-lg text-slate-500 dark:text-[#94A3B8] hover:text-[#2563EB] hover:bg-slate-100 dark:hover:bg-[#172033]"
-                            title="Preview & Details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => copyToClipboard(resolvedUrl, 'URL')}
-                            className="p-1.5 rounded-lg text-slate-500 dark:text-[#94A3B8] hover:text-[#2563EB] hover:bg-slate-100 dark:hover:bg-[#172033]"
-                            title="Copy URL"
-                          >
-                            <Copy className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteClick(asset)}
-                            className="p-1.5 rounded-lg text-rose-600 dark:text-[#F87171] hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                            title="Delete File"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                      <td className="p-3 text-amber-600 dark:text-amber-400 font-semibold">
+                        {s.outstanding || s.outstanding_amount || '0.0000'} Credits
+                      </td>
+                      <td className="p-3 text-right pr-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${
+                          isPaid
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                            : isPartial
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                            : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                        }`}>
+                          {isPaid ? 'Paid' : isPartial ? 'Partially Paid' : 'Unpaid'}
+                        </span>
                       </td>
                     </tr>
                   );
@@ -862,247 +1388,202 @@ export const MediaPage: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </Card>
-      )}
+        )}
 
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-[#263244] text-xs text-slate-600 dark:text-[#CBD5E1]">
-          <span>
-            Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)} of {totalCount} assets
-          </span>
-
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="h-8.5 px-3 border-slate-200 dark:border-[#334155]"
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" /> Prev
-            </Button>
-            <span className="font-semibold text-slate-900 dark:text-[#F8FAFC]">
-              Page {page} of {totalPages}
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="h-8.5 px-3 border-slate-200 dark:border-[#334155]"
-            >
-              Next <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
+        {/* Pagination Bar */}
+        {settlementsCount > 25 && (
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#94A3B8] pt-1">
+            <span>Total {settlementsCount} settlement records</span>
+            <div className="flex items-center gap-1">
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={settlementsPage === 1}
+                onClick={() => setSettlementsPage((p) => p - 1)}
+              >
+                Previous
+              </Button>
+              <span className="px-2 font-medium">Page {settlementsPage}</span>
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={settlementsPage * 25 >= settlementsCount}
+                onClick={() => setSettlementsPage((p) => p + 1)}
+              >
+                Next
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Card>
 
-      {/* STORAGE BILLING HISTORY MODAL */}
+      {/* SETTLEMENT DETAIL MODAL */}
       <Modal
-        isOpen={isBillingModalOpen}
-        onClose={() => setIsBillingModalOpen(false)}
-        title="Monthly Storage Billing Statements"
+        isOpen={Boolean(selectedSettlementDetail)}
+        onClose={() => setSelectedSettlementDetail(null)}
+        title="Storage Settlement Details"
       >
-        <div className="space-y-4 text-xs font-sans text-left">
-          <p className="text-slate-600 dark:text-[#CBD5E1] font-normal">
-            Storage billing is calculated time-weighted based on actual stored bytes over time. Deducting credits monthly.
-          </p>
-
-          <div className="max-h-72 overflow-y-auto space-y-2 border border-slate-200 dark:border-[#334155] rounded-xl p-3 bg-slate-50 dark:bg-[#0F172A]">
-            {billingStatements.length > 0 ? (
-              billingStatements.map((stmt) => (
-                <div key={stmt.id} className="p-3 bg-white dark:bg-[#111827] rounded-lg border border-slate-200 dark:border-[#263244] space-y-1">
-                  <div className="flex items-center justify-between font-semibold text-slate-900 dark:text-[#F8FAFC]">
-                    <span>Statement Month: {stmt.billing_period}</span>
-                    <Badge variant={stmt.status === 'CHARGED' ? 'success' : stmt.status === 'INSUFFICIENT_CREDITS' ? 'warning' : 'neutral'} size="sm">
-                      {stmt.status}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-[#CBD5E1] pt-1">
-                    <div>Usage: <strong>{stmt.billable_units_gb_month} GB-month</strong></div>
-                    <div>Charged: <strong>{stmt.credits_charged} Credits</strong></div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-slate-500 dark:text-[#94A3B8] text-[11px] text-center py-4">
-                No past billing statements recorded yet.
-              </p>
-            )}
-          </div>
-
-          <div className="flex items-center justify-end pt-3 border-t border-slate-200 dark:border-[#263244]">
-            <Button size="sm" onClick={() => setIsBillingModalOpen(false)} className="bg-[#2563EB] text-white">
-              Close
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* MULTI-FILE UPLOAD PROGRESS MODAL */}
-      <Modal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-        title="Upload Media Files"
-      >
-        <div className="space-y-4 text-xs font-sans text-left">
-          <p className="text-slate-600 dark:text-[#CBD5E1] font-normal">
-            Real multipart upload to local storage. Files are saved atomically into your Academy Media Library.
-          </p>
-
-          <div className="max-h-60 overflow-y-auto space-y-2 border border-slate-200 dark:border-[#334155] rounded-xl p-3 bg-slate-50 dark:bg-[#0F172A]">
-            {uploadQueue.map((item) => (
-              <div key={item.id} className="p-2.5 bg-white dark:bg-[#111827] rounded-lg border border-slate-200 dark:border-[#263244] space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-slate-900 dark:text-[#F8FAFC] truncate max-w-xs" title={item.file.name}>
-                    {item.file.name} ({formatBytes(item.file.size)})
-                  </span>
-                  <span className="text-[11px] font-semibold">
-                    {item.status === 'COMPLETE' ? (
-                      <span className="text-emerald-600 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Complete
-                      </span>
-                    ) : item.status === 'FAILED' ? (
-                      <span className="text-rose-600 flex items-center gap-1">
-                        <AlertTriangle className="w-3.5 h-3.5" /> Failed
-                      </span>
-                    ) : item.status === 'UPLOADING' ? (
-                      <span className="text-blue-600">{item.progress}%</span>
-                    ) : (
-                      <span className="text-slate-400">Queued</span>
-                    )}
-                  </span>
-                </div>
-
-                {/* Progress bar */}
-                <div className="w-full h-1.5 bg-slate-100 dark:bg-[#1E293B] rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-300 ${
-                      item.status === 'COMPLETE'
-                        ? 'bg-emerald-500'
-                        : item.status === 'FAILED'
-                        ? 'bg-rose-500'
-                        : 'bg-[#2563EB]'
-                    }`}
-                    style={{ width: `${item.progress}%` }}
-                  />
-                </div>
-
-                {item.error && <p className="text-[11px] text-rose-600 font-normal">{item.error}</p>}
+        {selectedSettlementDetail && (
+          <div className="space-y-4 text-xs font-sans text-left">
+            <div className="p-3.5 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-[#94A3B8]">Usage Period:</span>
+                <strong className="text-slate-900 dark:text-[#F8FAFC]">
+                  {formatDateOnlyStr(selectedSettlementDetail.cycle_start_at)} &rarr; {formatDateOnlyStr(selectedSettlementDetail.cycle_end_at || selectedSettlementDetail.debited_at)}
+                </strong>
               </div>
-            ))}
-          </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-[#94A3B8]">Meter Records Included:</span>
+                <strong className="text-slate-900 dark:text-[#F8FAFC]">{selectedSettlementDetail.meter_record_count}</strong>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-[#94A3B8]">Credits Debited:</span>
+                <strong className="text-rose-600 dark:text-rose-400 font-semibold">
+                  -{selectedSettlementDetail.accumulated_credits} Credits
+                </strong>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-[#94A3B8]">Actual Debit Date:</span>
+                <span className="text-slate-900 dark:text-[#F8FAFC]">{formatDateOnlyStr(selectedSettlementDetail.debited_at)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-[#94A3B8]">Actual Debit Time:</span>
+                <span className="text-slate-900 dark:text-[#F8FAFC]">{formatTimeOnlyStr(selectedSettlementDetail.debited_at)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-[#94A3B8]">Settlement Status:</span>
+                <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                  {selectedSettlementDetail.status}
+                </Badge>
+              </div>
+            </div>
 
-          <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-[#263244]">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              className="border-slate-300 dark:border-[#334155] text-slate-700 dark:text-[#CBD5E1]"
-            >
-              + Add More Files
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => setIsUploadModalOpen(false)}
-              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white"
-            >
-              Done
-            </Button>
+            <div className="flex items-center justify-end pt-2">
+              <Button size="sm" variant="outline" onClick={() => setSelectedSettlementDetail(null)}>
+                Close
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </Modal>
 
-      {/* ASSET DETAIL & PREVIEW MODAL */}
+      {/* MEDIA ASSET PREVIEW & EDIT DRAWER / MODAL */}
       <Modal
         isOpen={Boolean(detailAsset)}
         onClose={() => setDetailAsset(null)}
-        title={detailAsset?.display_name || detailAsset?.original_filename || 'Media Detail'}
+        title="Media Asset Details"
       >
         {detailAsset && (
           <div className="space-y-4 text-xs font-sans text-left">
-            {/* Preview Box */}
-            <div className="w-full bg-[#0F172A] border border-[#334155] rounded-xl overflow-hidden flex items-center justify-center p-2 min-h-48">
-              {detailAsset.media_type === 'IMAGE' ? (
-                <img
-                  src={resolveMediaUrl(detailAsset.url)}
-                  alt={detailAsset.display_name}
-                  className="max-h-72 object-contain rounded-lg"
-                />
-              ) : detailAsset.media_type === 'VIDEO' ? (
-                <video controls className="w-full max-h-72 rounded-lg" src={resolveMediaUrl(detailAsset.url)}>
-                  Your browser does not support HTML video.
-                </video>
-              ) : detailAsset.media_type === 'AUDIO' ? (
-                <div className="w-full p-4 space-y-2 text-center">
-                  <FileAudio className="w-10 h-10 text-indigo-400 mx-auto" />
-                  <audio controls className="w-full h-10" src={resolveMediaUrl(detailAsset.url)}>
-                    Your browser does not support HTML audio.
-                  </audio>
-                </div>
-              ) : (
-                <div className="p-8 text-center space-y-2 text-slate-300">
-                  {getFormatIcon(detailAsset.mime_type, detailAsset.original_filename, detailAsset.media_type)}
-                  <p className="font-semibold text-white">{detailAsset.original_filename}</p>
-                  <p className="text-slate-400">{formatBytes(detailAsset.size_bytes)} &bull; {detailAsset.mime_type}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Editable Display Name */}
-            <div className="p-3 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl space-y-2">
-              <label className="block font-medium text-slate-700 dark:text-[#CBD5E1]">Display Name</label>
+            {/* Display Name Edit Input */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-slate-500 dark:text-[#94A3B8] uppercase">
+                Display Name
+              </label>
               <div className="flex items-center gap-2">
                 <Input
                   value={editingDisplayName}
                   onChange={(e) => setEditingDisplayName(e.target.value)}
-                  className="h-9 text-xs font-normal bg-white dark:bg-[#111827]"
+                  placeholder="Enter display name"
+                  className="bg-white dark:bg-[#0F172A] border-slate-200 dark:border-[#334155]"
                 />
                 <Button
-                  size="sm"
+                  size="xs"
                   disabled={savingDisplayName || !editingDisplayName.trim()}
                   onClick={handleSaveDisplayName}
-                  className="h-9 bg-[#2563EB] text-white shrink-0"
+                  className="bg-[#2563EB] text-white shrink-0"
                 >
                   {savingDisplayName ? 'Saving...' : 'Save'}
                 </Button>
               </div>
             </div>
 
-            {/* Metadata Table */}
-            <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-[#CBD5E1] p-3 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl">
-              <div><strong>Original File:</strong> {detailAsset.original_filename}</div>
-              <div><strong>MIME Type:</strong> {detailAsset.mime_type}</div>
-              <div><strong>Size:</strong> {formatBytes(detailAsset.size_bytes)}</div>
-              <div><strong>Storage Key:</strong> {detailAsset.storage_key}</div>
-              <div className="col-span-2"><strong>Uploaded Date:</strong> {formatMediaDateTime(detailAsset.uploaded_at || detailAsset.created_at)}</div>
+            {/* Media Player / Preview */}
+            <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-[#334155] bg-slate-900">
+              {detailAsset.media_type === 'VIDEO' ? (
+                <LessonVideoPlayer
+                  hlsManifestUrl={resolveMediaUrl(detailAsset.stream_url)}
+                  fallbackMp4Url={resolveMediaUrl(detailAsset.url)}
+                  title={detailAsset.display_name || detailAsset.original_filename}
+                />
+              ) : detailAsset.media_type === 'IMAGE' ? (
+                <img
+                  src={resolveMediaUrl(detailAsset.url)}
+                  alt={detailAsset.display_name || detailAsset.original_filename}
+                  className="w-full max-h-80 object-contain mx-auto"
+                />
+              ) : detailAsset.media_type === 'AUDIO' ? (
+                <div className="p-6 text-center text-white space-y-3">
+                  <FileAudio className="w-12 h-12 text-indigo-400 mx-auto" />
+                  <audio controls src={resolveMediaUrl(detailAsset.url)} className="w-full mt-2" />
+                </div>
+              ) : (
+                <div className="p-6 text-center text-white space-y-3">
+                  <FileText className="w-12 h-12 text-blue-400 mx-auto" />
+                  <iframe
+                    src={resolveMediaUrl(detailAsset.url)}
+                    className="w-full h-64 border-0 rounded-lg bg-white"
+                    title="PDF Preview"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Technical Metadata */}
+            <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl text-[11px]">
+              <div>
+                <span className="text-slate-500 dark:text-[#94A3B8]">Original Filename:</span>
+                <p className="font-medium text-slate-900 dark:text-[#F8FAFC] truncate" title={detailAsset.original_filename}>
+                  {detailAsset.original_filename}
+                </p>
+              </div>
+              <div>
+                <span className="text-slate-500 dark:text-[#94A3B8]">Total Storage:</span>
+                <p className="font-medium text-slate-900 dark:text-[#F8FAFC]">
+                  {formatBytes(detailAsset.total_storage_bytes || detailAsset.size_bytes)}
+                </p>
+              </div>
+              <div>
+                <span className="text-slate-500 dark:text-[#94A3B8]">MIME Type:</span>
+                <p className="font-medium text-slate-900 dark:text-[#F8FAFC]">{detailAsset.mime_type}</p>
+              </div>
+              <div>
+                <span className="text-slate-500 dark:text-[#94A3B8]">Uploaded Date:</span>
+                <p className="font-medium text-slate-900 dark:text-[#F8FAFC]">{formatDateTimeStr(detailAsset.created_at)}</p>
+              </div>
+
+              {/* HLS Video Status & Action */}
               {detailAsset.media_type === 'VIDEO' && (
-                <div className="col-span-2 pt-1.5 border-t border-slate-200 dark:border-[#334155] space-y-1.5">
+                <div className="col-span-2 pt-2 border-t border-slate-200 dark:border-[#263244]">
                   <div className="flex items-center justify-between">
-                    <span><strong>Streaming Mode:</strong></span>
-                    {detailAsset.processing_mode === 'hls' ? (
-                      <span className="text-indigo-600 font-bold flex items-center gap-1">
-                        {detailAsset.processing_status === 'PROCESSING' || detailAsset.processing_status === 'QUEUED'
-                          ? 'Transcoding HLS...'
-                          : detailAsset.processing_status === 'FAILED'
-                          ? 'HLS Failed (Fallback MP4)'
-                          : 'HLS Stream Ready'}
-                      </span>
-                    ) : (
-                      <span className="text-slate-500 font-medium">Direct MP4 Playback</span>
-                    )}
-                  </div>
-                  {detailAsset.processing_mode === 'direct' && (
-                    <div className="flex justify-end pt-1">
+                    <div>
+                      <span className="text-slate-500 dark:text-[#94A3B8]">HLS Adaptive Streaming:</span>
+                      <p className="font-semibold text-[#2563EB] dark:text-[#60A5FA]">
+                        {detailAsset.adaptive_streaming_enabled ? 'Enabled' : 'Disabled'}
+                      </p>
+                    </div>
+                    {!detailAsset.stream_manifest_key && (
                       <Button
                         size="xs"
                         variant="outline"
                         onClick={() => handleConvertHls(detailAsset)}
-                        className="text-[10.5px] border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                        className="text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-800"
                       >
-                        ⚡ Convert to HLS
+                        Convert to HLS
                       </Button>
+                    )}
+                  </div>
+
+                  {detailAsset.renditions && detailAsset.renditions.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      <span className="text-[10px] font-semibold text-slate-500 dark:text-[#94A3B8] uppercase">Quality Renditions</span>
+                      <div className="flex flex-wrap gap-1">
+                        {detailAsset.renditions.map((ren, idx) => (
+                          <Badge key={idx} variant="secondary" className="text-[10px] bg-slate-200 dark:bg-[#1E293B] text-slate-800 dark:text-[#CBD5E1]">
+                            {ren.quality_label} ({ren.width}x{ren.height}) - {formatBytes(ren.size_bytes)}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1145,7 +1626,10 @@ export const MediaPage: React.FC = () => {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => copyToClipboard(resolveMediaUrl(detailAsset.url), 'Media URL')}
+                  onClick={() => {
+                    navigator.clipboard.writeText(resolveMediaUrl(detailAsset.url));
+                    showToast('Media URL copied to clipboard.');
+                  }}
                   className="h-9 border-slate-300 dark:border-[#334155] text-slate-700 dark:text-[#CBD5E1]"
                 >
                   <Copy className="w-3.5 h-3.5 mr-1" /> Copy URL
@@ -1173,7 +1657,7 @@ export const MediaPage: React.FC = () => {
         )}
       </Modal>
 
-      {/* DELETE SAFETY CONFIRMATION MODAL */}
+      {/* DELETE CONFIRMATION MODAL */}
       <Modal
         isOpen={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}

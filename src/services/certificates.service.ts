@@ -149,6 +149,11 @@ export const certificatesService = {
     return response.data?.data || (response.data as unknown as CertificateTemplateData);
   },
 
+  async deleteTemplate(id: string): Promise<any> {
+    const response = await apiClient.delete(`/api/v1/certificates/certificate-templates/${id}/`);
+    return response.data;
+  },
+
   async publishTemplate(id: string): Promise<{ message: string; version_number: number }> {
     const response = await apiClient.post<{ message: string; version_number: number }>(
       `/api/v1/certificates/certificate-templates/${id}/publish/`

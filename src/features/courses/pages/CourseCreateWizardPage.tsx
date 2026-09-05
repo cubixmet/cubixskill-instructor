@@ -167,7 +167,7 @@ export const CourseCreateWizardPage: React.FC = () => {
         if (existing.thumbnail) {
           setThumbnailMode("UPLOAD");
           setThumbnailMediaId(existing.thumbnail.id);
-          setThumbnailPreviewUrl(resolveMediaUrl(existing.thumbnail.url));
+          setThumbnailPreviewUrl(resolveMediaUrl(existing.thumbnail));
         } else if (existing.thumbnail_url) {
           setThumbnailMode("URL");
           setCustomThumbnailUrl(existing.thumbnail_url);
@@ -177,7 +177,7 @@ export const CourseCreateWizardPage: React.FC = () => {
         if (existing.promo_video) {
           setPromoVideoMode("UPLOAD");
           setPromoVideoMediaId(existing.promo_video.id);
-          setPromoVideoPreviewUrl(resolveMediaUrl(existing.promo_video.url));
+          setPromoVideoPreviewUrl(resolveMediaUrl(existing.promo_video));
         } else if (existing.promo_video_url) {
           setPromoVideoMode("URL");
           setCustomPromoVideoUrl(existing.promo_video_url);

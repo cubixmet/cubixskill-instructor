@@ -29,7 +29,7 @@ export interface AutoFitTextContainerProps {
 
 export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
   text = '',
-  maxFontSize = 32,
+  maxFontSize = 150,
   minFontSize = 1,
   fontFamily = 'Inter',
   fontWeight = '600',
@@ -58,94 +58,70 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
   const pad = normalizePadding(padding);
 
   const calculateFit = useCallback(() => {
+    if (!text || text.trim().length === 0) {
+      setFittedFontSize(16);
+      setIsOverflowing(false);
+      return;
+    }
+
+    const exactEditorFontSize = Math.min(150, Math.max(1, Number(maxFontSize ?? 16)));
+    if (isEditorMode) {
+      setFittedFontSize(exactEditorFontSize);
+      setIsOverflowing(false);
+      if (onFitCalculated) {
+        onFitCalculated(exactEditorFontSize, false);
+      }
+      return;
+    }
+
     const container = containerRef.current;
-    const textSpan = textRef.current;
-    if (!container || !text) return;
+    if (!container) return;
 
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
+    const rect = container.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
 
-    if (containerWidth <= 0 || containerHeight <= 0) return;
+    if (width <= 0 || height <= 0) return;
 
-    const fitResult = calculateAutoFontSize({
+    const result = calculateAutoFontSize({
       text,
-      width: containerWidth,
-      height: containerHeight,
+      width,
+      height,
       padding: pad,
       fontFamily,
       fontWeight,
       fontStyle,
-      maxFontSize: maxFontSize || 32,
-      minFontSize: minFontSize || 1,
+      maxFontSize: maxFontSize ?? 150,
+      minFontSize: minFontSize ?? 1,
       lineHeight,
       letterSpacing,
       multiline,
     });
 
-    let finalFontSize = fitResult.renderedFontSize;
-    let overflowDetected = fitResult.isOverflowing;
-
-    if (textSpan) {
-      const availableWidth = Math.max(1, containerWidth - (pad.left + pad.right));
-      const availableHeight = Math.max(1, containerHeight - (pad.top + pad.bottom));
-
-      textSpan.style.fontSize = `${finalFontSize}px`;
-      const domOverflow = textSpan.scrollWidth > availableWidth || textSpan.scrollHeight > availableHeight;
-
-      if (domOverflow && finalFontSize > (minFontSize || 1)) {
-        let domSize = finalFontSize;
-        const minAllowed = minFontSize || 1;
-        while (domSize > minAllowed) {
-          domSize -= 0.5;
-          textSpan.style.fontSize = `${domSize}px`;
-          if (textSpan.scrollWidth <= availableWidth && textSpan.scrollHeight <= availableHeight) {
-            break;
-          }
-        }
-        finalFontSize = Math.max(minAllowed, domSize);
-        overflowDetected = (textSpan.scrollWidth > availableWidth || textSpan.scrollHeight > availableHeight) && finalFontSize <= minAllowed;
-      }
-    }
-
-    setFittedFontSize(finalFontSize);
-    setIsOverflowing(overflowDetected);
+    setFittedFontSize(result.renderedFontSize);
+    setIsOverflowing(result.isOverflowing);
 
     if (onFitCalculated) {
-      onFitCalculated(finalFontSize, overflowDetected);
+      onFitCalculated(result.renderedFontSize, result.isOverflowing);
     }
   }, [
+    text,
     maxFontSize,
     minFontSize,
-    text,
     fontFamily,
     fontWeight,
     fontStyle,
-    letterSpacing,
     lineHeight,
+    letterSpacing,
     multiline,
-    pad.left,
-    pad.right,
-    pad.top,
-    pad.bottom,
+    pad,
+    isEditorMode,
     onFitCalculated,
   ]);
 
   useLayoutEffect(() => {
     calculateFit();
-  }, [
-    calculateFit,
-    text,
-    maxFontSize,
-    minFontSize,
-    fontFamily,
-    fontWeight,
-    fontStyle,
-    letterSpacing,
-    lineHeight,
-    multiline,
-    style?.width,
-    style?.height,
-  ]);
+  }, [calculateFit]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -156,17 +132,8 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
     });
 
     observer.observe(container);
-
-    if (document.fonts) {
-      document.fonts.ready.then(() => {
-        calculateFit();
-      });
-    }
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [calculateFit, text, maxFontSize, minFontSize]);
+    return () => observer.disconnect();
+  }, [calculateFit]);
 
   const justifyContent =
     textAlign === 'left' ? 'flex-start' : textAlign === 'right' ? 'flex-end' : 'center';
@@ -178,7 +145,7 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
       ref={containerRef}
       onClick={onClick}
       onMouseDown={onMouseDown}
-      className={`relative overflow-hidden flex items-center ${className}`}
+      className={`relative flex items-center ${isEditorMode ? 'overflow-visible' : 'overflow-hidden'} ${className}`}
       style={{
         justifyContent,
         opacity,
@@ -204,9 +171,9 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
             textDecoration: isUnderline ? 'underline' : 'none',
             letterSpacing: `${letterSpacing}px`,
             lineHeight: lineHeight || 1.0,
-            maxWidth: '100%',
-            maxHeight: '100%',
-            overflow: 'hidden',
+            maxWidth: isEditorMode ? 'none' : '100%',
+            maxHeight: isEditorMode ? 'none' : '100%',
+            overflow: isEditorMode ? 'visible' : 'hidden',
             textOverflow: 'clip',
           }}
         >
@@ -214,14 +181,6 @@ export const AutoFitTextContainer: React.FC<AutoFitTextContainerProps> = ({
         </span>
       )}
 
-      {isEditorMode && isOverflowing && (
-        <div
-          title="Text does not fit at the minimum font size. Increase the container size."
-          className="absolute top-0 right-0 text-[8px] font-bold px-1.5 py-0.5 rounded pointer-events-none whitespace-nowrap bg-amber-500 text-white z-40 shadow-xs"
-        >
-          Text does not fit at minimum font size
-        </div>
-      )}
       {children}
     </div>
   );

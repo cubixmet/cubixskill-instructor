@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
-  Award,
   ArrowLeft,
   CheckCircle2,
   Layers,
@@ -36,8 +36,9 @@ import { coursesService } from '../../../services/courses.service';
 import type { CourseListItem } from '../../courses/types/course.types';
 import { authStore } from '../../../store/auth.store';
 import { PersonalFieldsModal } from '../components/PersonalFieldsModal';
-import { calculateTextInitialSize, measureTextAsync, getSampleTextForField } from '../utils/textMeasurement';
+import { measureTextAsync, getSampleTextForField } from '../utils/textMeasurement';
 import { AutoFitTextContainer } from '../components/AutoFitTextContainer';
+import { calculateAutoFontSize, calculateFontSizeForWidth, DEFAULT_TEXT_PADDING } from '../utils/textFit';
 import {
   fetchCertificateFonts,
   loadFontFaceIntoDOM,
@@ -45,6 +46,11 @@ import {
   type CertificateFontItem,
 } from '../utils/fontRegistry';
 import { UploadFontModal } from '../components/UploadFontModal';
+import {
+  useCertificateCourses,
+  useCertificateFonts,
+  certificateKeys,
+} from '../hooks/useCertificateQueries';
 
 export interface CanvasElement {
   id: string;
@@ -56,15 +62,28 @@ export interface CanvasElement {
   width: number; // percentage 0 to 1
   height: number; // percentage 0 to 1
   font_size?: number;
+  fontSize?: number;
   max_font_size?: number;
+  maxFontSize?: number;
   min_font_size?: number;
+  minFontSize?: number;
   last_fitted_font_size?: number;
   auto_fit?: boolean;
+  autoFit?: boolean;
   allow_grow?: boolean;
+  allowGrow?: boolean;
   overflow?: 'ellipsis' | 'clip';
   font_weight?: string;
+  fontWeight?: string;
   fontKey?: string;
   font_family?: string;
+  fontFamily?: string;
+  font_id?: string;
+  fontId?: string;
+  letter_spacing?: number;
+  letterSpacing?: number;
+  line_height?: number;
+  lineHeight?: number;
   text_align?: 'left' | 'center' | 'right';
   color?: string;
   prefix?: string;
@@ -78,6 +97,7 @@ export interface CanvasElement {
 
 export const CertificateBuilderPage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { templateId, courseId: routeCourseId } = useParams<{ templateId?: string; courseId?: string }>();
 
   const authState = authStore.getState();
@@ -112,22 +132,78 @@ export const CertificateBuilderPage: React.FC = () => {
   // Canvas Elements (Starts BLANK as required by product spec)
   const [elements, setElements] = useState<CanvasElement[]>([]);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+
+  const selectedElement = elements.find((e) => e.id === selectedElementId);
+
+  // Local state for numeric inputs (Width, Height, Font Size)
+  const [widthInput, setWidthInput] = useState<string>('');
+  const [heightInput, setHeightInput] = useState<string>('');
+  const [fontSizeInput, setFontSizeInput] = useState<string>('');
+  const selectedElementIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (selectedElement) {
+      setWidthInput(String(Math.round((selectedElement.width || 0.2) * 1600)));
+      setHeightInput(String(Math.round((selectedElement.height || 0.05) * 1131)));
+      const configuredSize = selectedElement.fontSize ?? selectedElement.font_size ?? selectedElement.maxFontSize ?? selectedElement.max_font_size ?? 56;
+      if (selectedElementIdRef.current !== selectedElement.id) {
+        selectedElementIdRef.current = selectedElement.id;
+        setFontSizeInput(String(configuredSize));
+      }
+    } else {
+      selectedElementIdRef.current = null;
+      setWidthInput('');
+      setHeightInput('');
+      setFontSizeInput('');
+    }
+  }, [
+    selectedElement?.id,
+    selectedElement?.width,
+    selectedElement?.height,
+  ]);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isPreview, setIsPreview] = useState<boolean>(false);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [toastState, setToastState] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [isPersonalModalOpen, setIsPersonalModalOpen] = useState(false);
 
   // Font Registry & License State
   const [availableFonts, setAvailableFonts] = useState<CertificateFontItem[]>(FALLBACK_SYSTEM_FONTS);
   const [isUploadFontModalOpen, setIsUploadFontModalOpen] = useState(false);
-  const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
-  const [selectedLicenseFont, setSelectedLicenseFont] = useState<CertificateFontItem | null>(null);
+
+  const { data: queriedFonts = FALLBACK_SYSTEM_FONTS } = useCertificateFonts();
 
   useEffect(() => {
-    fetchCertificateFonts().then((fonts) => {
-      setAvailableFonts(fonts);
-      fonts.forEach((f) => loadFontFaceIntoDOM(f));
-    });
+    if (queriedFonts && queriedFonts.length > 0) {
+      setAvailableFonts(queriedFonts);
+    }
+  }, [queriedFonts]);
+
+  const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'error') => {
+    setToastState({ message: msg, type });
+    setTimeout(() => setToastState(null), 3500);
+  };
+
+  const [canvasRenderScale, setCanvasRenderScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const updateScale = () => {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+
+      const nextScale = Math.min(rect.width / 1600, rect.height / 1131);
+      if (Number.isFinite(nextScale) && nextScale > 0) {
+        setCanvasRenderScale(nextScale);
+      }
+    };
+
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(canvas);
+
+    return () => observer.disconnect();
   }, []);
 
   // Move & Resize Drag State
@@ -145,27 +221,284 @@ export const CertificateBuilderPage: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const imageFileInputRef = useRef<HTMLInputElement>(null);
   const bgFileInputRef = useRef<HTMLInputElement>(null);
+  const fontFileInputRef = useRef<HTMLInputElement>(null);
 
-  const showToast = (msg: string) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 3500);
+  const handleFontUploaded = async (fontObj: CertificateFontItem) => {
+    showToast('Loading uploaded font...', 'info');
+    try {
+      const loaded = await loadFontFaceIntoDOM(fontObj);
+      if (loaded && typeof document !== 'undefined' && document.fonts) {
+        try {
+          await document.fonts.load(`16px "${fontObj.family}"`);
+          await document.fonts.ready;
+        } catch (_e) {}
+      }
+      if (!loaded) {
+        showToast('Unable to load uploaded font.', 'error');
+        return;
+      }
+      showToast('Font ready', 'success');
+
+      setAvailableFonts((prev) => {
+        if (prev.some((f) => f.id === fontObj.id || f.key === fontObj.key)) {
+          return prev.map((f) => (f.id === fontObj.id || f.key === fontObj.key ? fontObj : f));
+        }
+        return [...prev, fontObj];
+      });
+
+      const runtimeFamily = fontObj.source === 'ACADEMY' ? `cubix-font-${fontObj.id}` : fontObj.family;
+
+      if (selectedElementId) {
+        const widthPx = (selectedElement?.width || 0.2) * 1600;
+        const heightPx = (selectedElement?.height || 0.05) * 1131;
+
+        const fitRes = calculateAutoFontSize({
+          text: resolveSampleValue(selectedElement),
+          width: widthPx,
+          height: heightPx,
+          padding: selectedElement.padding || DEFAULT_TEXT_PADDING,
+          fontFamily: runtimeFamily,
+          fontWeight: selectedElement.font_weight || selectedElement.fontWeight || '600',
+          fontStyle: selectedElement.font_style || selectedElement.fontStyle || 'normal',
+          maxFontSize: 150,
+          minFontSize: 1,
+          lineHeight: selectedElement.line_height || 1.0,
+          letterSpacing: selectedElement.letter_spacing || 0,
+          multiline: selectedElement.multiline || false,
+        });
+
+        const fittedFont = Math.round(Math.min(150, Math.max(1, fitRes.renderedFontSize)));
+
+        updateSelectedElement({
+          fontKey: fontObj.key,
+          font_family: runtimeFamily,
+          fontFamily: runtimeFamily,
+          font_id: fontObj.id,
+          fontId: fontObj.id,
+          fontSize: fittedFont,
+          font_size: fittedFont,
+          maxFontSize: fittedFont,
+          max_font_size: fittedFont,
+        });
+        setFontSizeInput(String(fittedFont));
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Unable to load uploaded font.', 'error');
+    }
   };
 
-  // Load available Courses on mount
+  const resizeTextElementToContent = async (
+    el: CanvasElement,
+    options?: {
+      fontSize?: number;
+      fontObj?: CertificateFontItem;
+      text?: string;
+    }
+  ) => {
+    if (el.type === 'image') return;
+
+    const fontSize = Math.min(
+      150,
+      Math.max(
+        1,
+        options?.fontSize ??
+          el.fontSize ??
+          el.font_size ??
+          16
+      )
+    );
+
+    const fontObj =
+      options?.fontObj ??
+      availableFonts.find(
+        (f) =>
+          f.key === el.fontKey ||
+          f.id === el.fontId ||
+          f.id === el.font_id ||
+          f.family === el.font_family
+      );
+
+    if (fontObj) {
+      const loaded = await loadFontFaceIntoDOM(fontObj);
+
+      if (!loaded) {
+        throw new Error('Unable to load selected font.');
+      }
+    }
+
+    // IMPORTANT:
+    // Academy fonts are registered under cubix-font-UUID.
+    // Measure using THAT SAME runtime family.
+    const runtimeFamily =
+      fontObj?.source === 'ACADEMY'
+        ? `cubix-font-${fontObj.id}`
+        : fontObj?.family ||
+          el.font_family ||
+          el.fontFamily ||
+          'Inter';
+
+    const renderedText =
+      options?.text ??
+      resolveSampleValue(el);
+
+    if (document.fonts) {
+      try {
+        await document.fonts.load(
+          `${el.font_style || el.fontStyle || 'normal'} ${
+            el.font_weight || el.fontWeight || '600'
+          } ${fontSize}px "${runtimeFamily}"`,
+          renderedText
+        );
+
+        await document.fonts.ready;
+      } catch {
+        // loadFontFaceIntoDOM already handles registered font state
+      }
+    }
+
+    const canvas = canvasRef.current;
+    const rect = canvas ? canvas.getBoundingClientRect() : null;
+    const canvasWidth = rect && rect.width > 0 ? rect.width : 1600;
+    const canvasHeight = rect && rect.height > 0 ? rect.height : 1131;
+
+    const measured = await measureTextAsync({
+      text: renderedText,
+      fontSize,
+      fontFamily: runtimeFamily,
+      fontWeight: el.font_weight || el.fontWeight || '600',
+      fontStyle: el.font_style || el.fontStyle || 'normal',
+      letterSpacing: el.letter_spacing || 0,
+      lineHeight: el.line_height || 1,
+      padding: el.padding || {
+        top: 1,
+        right: 2,
+        bottom: 1,
+        left: 2,
+      },
+      canvasWidth,
+      canvasHeight,
+    });
+
+    // Calculate container ratios from displayed canvas dimensions
+    const width = Math.max(1 / canvasWidth, measured.widthPx / canvasWidth);
+    const height = Math.max(1 / canvasHeight, measured.heightPx / canvasHeight);
+
+    return {
+      width,
+      height,
+      fontSize,
+      runtimeFamily,
+      fontObj,
+    };
+  };
+
+  const handleFontSizeChange = async (
+    targetFontSize: number,
+    targetElement?: CanvasElement
+  ) => {
+    const el = targetElement || selectedElement;
+    if (!el || el.type === 'image') return;
+
+    try {
+      const result = await resizeTextElementToContent(el, {
+        fontSize: targetFontSize,
+      });
+
+      if (!result) return;
+
+      updateSelectedElement({
+        fontSize: result.fontSize,
+        font_size: result.fontSize,
+        maxFontSize: result.fontSize,
+        max_font_size: result.fontSize,
+
+        width: result.width,
+        height: result.height,
+
+        font_family: result.runtimeFamily,
+        fontFamily: result.runtimeFamily,
+      });
+
+      setFontSizeInput(String(result.fontSize));
+      setWidthInput(String(Math.round(result.width * 1600)));
+      setHeightInput(String(Math.round(result.height * 1131)));
+
+      // IMPORTANT:
+      // x and y are CENTER coordinates.
+      // Never change x/y here.
+    } catch (error: any) {
+      showToast(
+        error?.message || 'Unable to resize text element.',
+        'error'
+      );
+    }
+  };
+
+  const handleTextContentChange = async (value: string) => {
+    if (!selectedElement) return;
+
+    const nextElement: CanvasElement = {
+      ...selectedElement,
+      static_text: value,
+    };
+
+    const result = await resizeTextElementToContent(nextElement, {
+      text: value,
+    });
+
+    if (!result) return;
+
+    updateSelectedElement({
+      static_text: value,
+      width: result.width,
+      height: result.height,
+    });
+
+    setWidthInput(String(Math.round(result.width * 1600)));
+    setHeightInput(String(Math.round(result.height * 1131)));
+  };
+
+  const handleDirectFontFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const validExtensions = ['ttf', 'otf', 'woff', 'woff2'];
+    if (!ext || !validExtensions.includes(ext)) {
+      showToast('Invalid font file format. Supported formats: .ttf, .otf, .woff, .woff2.');
+      return;
+    }
+
+    setToastMsg('Uploading font...');
+    try {
+      const rawName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+      const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+
+      const formData = new FormData();
+      formData.append('font_file', file);
+      formData.append('display_name', displayName);
+      formData.append('user_rights_confirmed', 'true');
+
+      const uploaded = await certificatesService.uploadFont(formData);
+      await handleFontUploaded(uploaded);
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || err?.message || 'Failed to upload font.');
+    }
+  };
+
+
+  // Load available Courses via React Query
+  const { data: queriedCourses = [], isLoading: isLoadingCoursesQuery } = useCertificateCourses();
+
   useEffect(() => {
-    setIsLoadingCourses(true);
-    coursesService
-      .listCourses({ page_size: 100 })
-      .then((res: any) => {
-        const list = Array.isArray(res) ? res : res?.results || [];
-        setCourses(list);
-        if (!selectedCourseId && list.length > 0) {
-          setSelectedCourseId(list[0].id);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setIsLoadingCourses(false));
-  }, []);
+    if (queriedCourses.length > 0) {
+      setCourses(queriedCourses);
+      if (!selectedCourseId) {
+        setSelectedCourseId(queriedCourses[0].id);
+      }
+    }
+  }, [queriedCourses, selectedCourseId]);
 
   // Fetch available fields whenever selectedCourseId changes
   useEffect(() => {
@@ -189,23 +522,115 @@ export const CertificateBuilderPage: React.FC = () => {
     if (templateId) {
       certificatesService
         .getTemplate(templateId)
-        .then((tmpl) => {
+        .then(async (tmpl) => {
           if (tmpl) {
-            setTemplateName(tmpl.name);
-            setDescription(tmpl.description || '');
-            if (tmpl.template_data && Array.isArray(tmpl.template_data.elements)) {
-              setElements(tmpl.template_data.elements);
-              const keys = tmpl.template_data.elements.map((el: CanvasElement) => el.binding);
-              setSelectedFieldKeys(Array.from(new Set(keys)));
+            setTemplateName(tmpl.name ?? 'Custom Course Completion Certificate');
+            setDescription(tmpl.description ?? '');
+            if (tmpl.page_size) setPageSize(tmpl.page_size);
+            if (tmpl.orientation) setOrientation(tmpl.orientation);
+
+            const rawBg =
+              tmpl.template_data?.background_image_url ??
+              tmpl.background_media_url ??
+              tmpl.background_media?.file_url ??
+              tmpl.background_media?.relative_path ??
+              tmpl.background_media?.stored_filename ??
+              '';
+
+            if (rawBg) {
+              const formattedBg = rawBg.startsWith('/media/') || rawBg.startsWith('http')
+                ? rawBg
+                : `/media/${rawBg.lstrip ? rawBg.lstrip('/') : rawBg.replace(/^\/+/, '')}`;
+              setBackgroundImageUrl(formattedBg);
             }
-            if (tmpl.background_media?.stored_filename || tmpl.background_media?.relative_path) {
-              setBackgroundImageUrl(tmpl.background_media.stored_filename || tmpl.background_media.relative_path);
+
+            if (tmpl.template_data && Array.isArray(tmpl.template_data.elements)) {
+              const loadedElements: CanvasElement[] = tmpl.template_data.elements.map((el: any) => {
+                const fontVal = el.fontSize ?? el.font_size ?? el.maxFontSize ?? el.max_font_size ?? 16;
+                const maxFontVal = el.maxFontSize ?? el.max_font_size ?? fontVal;
+                const minFontVal = el.minFontSize ?? el.min_font_size ?? 1;
+                const autoFitVal = el.autoFit ?? el.auto_fit ?? true;
+                const allowGrowVal = el.allowGrow ?? el.allow_grow ?? false;
+
+                return {
+                  ...el,
+                  id: el.id,
+                  type: el.type,
+                  binding: el.binding,
+                  label: el.label,
+                  x: el.x ?? 0.5,
+                  y: el.y ?? 0.5,
+                  width: el.width ?? 0.2,
+                  height: el.height ?? 0.05,
+                  fontSize: fontVal,
+                  font_size: fontVal,
+                  maxFontSize: maxFontVal,
+                  max_font_size: maxFontVal,
+                  minFontSize: minFontVal,
+                  min_font_size: minFontVal,
+                  autoFit: autoFitVal,
+                  auto_fit: autoFitVal,
+                  allowGrow: allowGrowVal,
+                  allow_grow: allowGrowVal,
+                  fontFamily: el.font_family ?? el.fontFamily ?? 'Inter',
+                  font_family: el.font_family ?? el.fontFamily ?? 'Inter',
+                  fontId: el.font_id ?? el.fontId,
+                  font_id: el.font_id ?? el.fontId,
+                  fontKey: el.fontKey ?? el.font_key,
+                  font_key: el.fontKey ?? el.font_key,
+                  fontWeight: el.font_weight ?? el.fontWeight ?? '600',
+                  font_weight: el.font_weight ?? el.fontWeight ?? '600',
+                  fontStyle: el.font_style ?? el.fontStyle ?? 'normal',
+                  font_style: el.font_style ?? el.fontStyle ?? 'normal',
+                  textAlign: el.text_align ?? el.textAlign ?? 'center',
+                  text_align: el.text_align ?? el.textAlign ?? 'center',
+                  color: el.color ?? '#0F172A',
+                  letterSpacing: el.letterSpacing ?? el.letter_spacing ?? 0,
+                  letter_spacing: el.letter_spacing ?? el.letterSpacing ?? 0,
+                  lineHeight: el.lineHeight ?? el.line_height ?? 1,
+                  line_height: el.line_height ?? el.lineHeight ?? 1,
+                  padding: el.padding ?? { top: 1, right: 2, bottom: 1, left: 2 },
+                  rotation: el.rotation ?? 0,
+                  opacity: el.opacity ?? 1,
+                  z_index: el.z_index ?? 1,
+                  is_locked: el.is_locked ?? false,
+                  is_visible: el.is_visible ?? true,
+                  static_text: el.static_text,
+                  image_url: el.image_url,
+                  asset_id: el.asset_id,
+                  fit: el.fit ?? 'contain',
+                };
+              });
+
+              // Pre-load custom fonts into DOM BEFORE setting elements
+              try {
+                const fontsToSearch = queriedFonts && queriedFonts.length > 0 ? queriedFonts : await fetchCertificateFonts();
+                for (const el of loadedElements) {
+                  const fontId = el.fontId ?? el.font_id;
+                  const fontKey = el.fontKey ?? el.font_key;
+                  if (fontId || fontKey) {
+                    const match = fontsToSearch.find((f) => f.id === fontId || f.key === fontKey);
+                    if (match) {
+                      await loadFontFaceIntoDOM(match);
+                    }
+                  }
+                }
+                if (typeof document !== 'undefined' && document.fonts) {
+                  await document.fonts.ready;
+                }
+              } catch (_) {}
+
+              setElements(loadedElements);
+              const keys = loadedElements.map((el) => el.binding).filter(Boolean);
+              setSelectedFieldKeys(Array.from(new Set(keys)));
             }
           }
         })
-        .catch(() => {});
+        .catch((err) => {
+          showToast(err?.message || 'Failed to load certificate template.');
+        });
     }
-  }, [templateId]);
+  }, [templateId, queriedFonts]);
 
   // Keyboard navigation & movement shortcuts
   useEffect(() => {
@@ -238,8 +663,6 @@ export const CertificateBuilderPage: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedElementId, elements]);
 
-  const selectedElement = elements.find((e) => e.id === selectedElementId);
-
   const toggleFieldSelection = (key: string) => {
     setSelectedFieldKeys((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
@@ -251,50 +674,55 @@ export const CertificateBuilderPage: React.FC = () => {
     const sampleText = getSampleTextForField(binding.key, binding.label);
 
     // 2. Resolve selected font FIRST & load font into DOM
-    const defaultFontKey = 'inter';
-    const defaultFontObj = availableFonts.find(f => f.key === defaultFontKey) || availableFonts[0];
-    if (defaultFontObj) {
-      await loadFontFaceIntoDOM(defaultFontObj);
-    }
-
-    // 3. Measure real text using loaded font metrics + tight padding
-    const tightPadding = { top: 1, right: 2, bottom: 1, left: 2 };
-    const measured = await measureTextAsync({
-      text: sampleText,
-      fontSize: 16,
-      fontFamily: defaultFontObj?.family || 'Inter',
-      fontWeight: '600',
-      padding: tightPadding,
-      canvasWidth: 1600,
-      canvasHeight: 1131,
-    });
-
-    const width = parseFloat((measured.widthPercent / 100).toFixed(4));
-    const height = parseFloat((measured.heightPercent / 100).toFixed(4));
-    const nextY = parseFloat((0.25 + ((elements.length * 0.1) % 0.45)).toFixed(2));
-
-    // 4. Development assertions / guards
-    if (width <= 0 || height <= 0 || !Number.isFinite(width) || !Number.isFinite(height)) {
-      return;
-    }
-
-    const newEl: CanvasElement = {
+    const defaultFontObj = availableFonts[0] || FALLBACK_SYSTEM_FONTS[0];
+    const draftEl: CanvasElement = {
       id: `el-${Date.now()}`,
       binding: binding.key,
       label: binding.label,
       type: binding.type,
       x: 0.5,
-      y: nextY,
-      width,
-      height,
+      y: 0.5,
+      width: 0.2,
+      height: 0.05,
+      fontSize: 16,
       font_size: 16,
-      min_font_size: 1,
       font_weight: '600',
       fontKey: defaultFontObj?.key || 'inter',
       font_family: defaultFontObj?.family || 'Inter',
+      padding: { top: 1, right: 2, bottom: 1, left: 2 },
+    };
+
+    const result = await resizeTextElementToContent(draftEl, {
+      fontSize: 16,
+      fontObj: defaultFontObj,
+      text: sampleText,
+    });
+
+    if (!result) return;
+    const nextY = parseFloat((0.25 + ((elements.length * 0.1) % 0.45)).toFixed(2));
+
+    const newEl: CanvasElement = {
+      ...draftEl,
+      y: nextY,
+      width: result.width,
+      height: result.height,
+      font_size: 16,
+      fontSize: 16,
+      min_font_size: 1,
+      minFontSize: 1,
+      max_font_size: 16,
+      maxFontSize: 16,
+      auto_fit: true,
+      autoFit: true,
+      allow_grow: false,
+      allowGrow: false,
+      font_weight: '600',
+      fontKey: defaultFontObj?.key || 'inter',
+      font_family: result.runtimeFamily,
+      fontFamily: result.runtimeFamily,
       text_align: 'center',
       color: '#0F172A',
-      padding: tightPadding,
+      padding: { top: 1, right: 2, bottom: 1, left: 2 },
       z_index: elements.length + 1,
     };
 
@@ -304,44 +732,50 @@ export const CertificateBuilderPage: React.FC = () => {
 
   const addStaticTextElement = async () => {
     const textLabel = 'Certificate of Completion';
+    const defaultFontObj = availableFonts[0] || FALLBACK_SYSTEM_FONTS[0];
 
-    const defaultFontKey = 'inter';
-    const defaultFontObj = availableFonts.find(f => f.key === defaultFontKey) || availableFonts[0];
-    if (defaultFontObj) {
-      await loadFontFaceIntoDOM(defaultFontObj);
-    }
-
-    const tightPadding = { top: 1, right: 2, bottom: 1, left: 2 };
-    const measured = await measureTextAsync({
-      text: textLabel,
-      fontSize: 16,
-      fontFamily: defaultFontObj?.family || 'Inter',
-      fontWeight: '700',
-      padding: tightPadding,
-      canvasWidth: 1600,
-      canvasHeight: 1131,
-    });
-
-    const width = parseFloat((measured.widthPercent / 100).toFixed(4));
-    const height = parseFloat((measured.heightPercent / 100).toFixed(4));
-    const nextY = parseFloat((0.25 + ((elements.length * 0.1) % 0.45)).toFixed(2));
-
-    if (width <= 0 || height <= 0 || !Number.isFinite(width) || !Number.isFinite(height)) {
-      return;
-    }
-
-    const newEl: CanvasElement = {
+    const draftEl: CanvasElement = {
       id: `el-${Date.now()}`,
       binding: 'static_text',
       label: 'Static Heading',
       type: 'static_text',
       static_text: textLabel,
       x: 0.5,
-      y: nextY,
-      width,
-      height,
+      y: 0.5,
+      width: 0.2,
+      height: 0.05,
+      fontSize: 16,
       font_size: 16,
+      font_weight: '700',
+      fontKey: defaultFontObj?.key || 'inter',
+      font_family: defaultFontObj?.family || 'Inter',
+      padding: { top: 1, right: 2, bottom: 1, left: 2 },
+    };
+
+    const result = await resizeTextElementToContent(draftEl, {
+      fontSize: 16,
+      fontObj: defaultFontObj,
+      text: textLabel,
+    });
+
+    if (!result) return;
+    const nextY = parseFloat((0.25 + ((elements.length * 0.1) % 0.45)).toFixed(2));
+
+    const newEl: CanvasElement = {
+      ...draftEl,
+      y: nextY,
+      width: result.width,
+      height: result.height,
+      font_size: 16,
+      fontSize: 16,
       min_font_size: 1,
+      minFontSize: 1,
+      max_font_size: 16,
+      maxFontSize: 16,
+      auto_fit: true,
+      autoFit: true,
+      allow_grow: false,
+      allowGrow: false,
       font_weight: '700',
       fontKey: defaultFontObj?.key || 'inter',
       font_family: defaultFontObj?.family || 'Inter',
@@ -355,13 +789,22 @@ export const CertificateBuilderPage: React.FC = () => {
     setSelectedElementId(newEl.id);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const url = event.target?.result as string;
+    showToast('Uploading image asset...', 'info');
+    try {
+      const media = await coursesService.uploadMedia(file);
+      const url = media.relative_path
+        ? (media.relative_path.startsWith('/media/') || media.relative_path.startsWith('http')
+            ? media.relative_path
+            : `/media/${media.relative_path}`)
+        : media.stored_filename
+        ? `/media/${media.stored_filename}`
+        : media.file_url || '';
+
       const newEl: CanvasElement = {
         id: `el-${Date.now()}`,
         binding: 'custom_image',
@@ -377,21 +820,33 @@ export const CertificateBuilderPage: React.FC = () => {
       };
       setElements((prev) => [...prev, newEl]);
       setSelectedElementId(newEl.id);
-      showToast('Image element added to canvas.');
-    };
-    reader.readAsDataURL(file);
+      showToast('Image element uploaded and added to stage.', 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to upload image asset.');
+    }
   };
 
-  const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBackgroundUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setBackgroundImageUrl(event.target?.result as string);
-      showToast('Certificate background image updated.');
-    };
-    reader.readAsDataURL(file);
+    showToast('Uploading background image...', 'info');
+    try {
+      const media = await coursesService.uploadMedia(file);
+      const url = media.relative_path
+        ? (media.relative_path.startsWith('/media/') || media.relative_path.startsWith('http')
+            ? media.relative_path
+            : `/media/${media.relative_path}`)
+        : media.stored_filename
+        ? `/media/${media.stored_filename}`
+        : media.file_url || '';
+
+      setBackgroundImageUrl(url);
+      showToast('Certificate background image uploaded successfully.', 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to upload background image.');
+    }
   };
 
   const handlePersonalFieldCreated = (field: { key: string; label: string; field_type: string }) => {
@@ -407,39 +862,30 @@ export const CertificateBuilderPage: React.FC = () => {
     showToast(`Personal field '${field.label}' created.`);
   };
 
-  const updateSelectedElement = async (updates: Partial<CanvasElement>) => {
+  const updateSelectedElement = (updates: Partial<CanvasElement>) => {
     if (!selectedElementId) return;
 
-    const curEl = elements.find((el) => el.id === selectedElementId);
-    let extraUpdates: Partial<CanvasElement> = {};
-
-    if (curEl && typeof updates.font_size === 'number' && updates.font_size !== curEl.font_size) {
-      const newFontSize = updates.font_size;
-      const sampleText = resolveSampleValue(curEl);
-      const fontObj = availableFonts.find((f) => f.key === curEl.fontKey || f.family === curEl.font_family);
-      const tightPadding = curEl.padding || { top: 1, right: 2, bottom: 1, left: 2 };
-
-      const measured = await measureTextAsync({
-        text: sampleText,
-        fontSize: newFontSize,
-        fontFamily: fontObj?.family || curEl.font_family || 'Inter',
-        fontWeight: curEl.font_weight || '600',
-        padding: tightPadding,
-        canvasWidth: 1600,
-        canvasHeight: 1131,
-      });
-
-      const newWidth = parseFloat((measured.widthPercent / 100).toFixed(4));
-      const newHeight = parseFloat((measured.heightPercent / 100).toFixed(4));
-
-      if (newWidth > 0 && newHeight > 0) {
-        extraUpdates.width = newWidth;
-        extraUpdates.height = newHeight;
-      }
-    }
-
     setElements((prev) =>
-      prev.map((el) => (el.id === selectedElementId ? { ...el, ...updates, ...extraUpdates } : el))
+      prev.map((el) => {
+        if (el.id !== selectedElementId) return el;
+        const fontVal = updates.font_size ?? updates.fontSize;
+        const maxFontVal = updates.max_font_size ?? updates.maxFontSize;
+        const familyVal = updates.font_family ?? updates.fontFamily;
+        const idVal = updates.font_id ?? updates.fontId;
+        const weightVal = updates.font_weight ?? updates.fontWeight;
+        const styleVal = updates.font_style ?? updates.fontStyle;
+
+        return {
+          ...el,
+          ...updates,
+          ...(fontVal !== undefined ? { font_size: fontVal, fontSize: fontVal } : {}),
+          ...(maxFontVal !== undefined ? { max_font_size: maxFontVal, maxFontSize: maxFontVal } : {}),
+          ...(familyVal !== undefined ? { font_family: familyVal, fontFamily: familyVal } : {}),
+          ...(idVal !== undefined ? { font_id: idVal, fontId: idVal } : {}),
+          ...(weightVal !== undefined ? { font_weight: weightVal, fontWeight: weightVal } : {}),
+          ...(styleVal !== undefined ? { font_style: styleVal, fontStyle: styleVal } : {}),
+        };
+      })
     );
   };
 
@@ -503,13 +949,251 @@ export const CertificateBuilderPage: React.FC = () => {
       const newY = Math.max(0, Math.min(1, dragStartRef.current.elementY + deltaY));
       updateSelectedElement({ x: parseFloat(newX.toFixed(4)), y: parseFloat(newY.toFixed(4)) });
     } else if (isResizing) {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const canvasRect = canvas.getBoundingClientRect();
+
+      const canvasWidthPx = canvasRect.width;
+      const canvasHeightPx = canvasRect.height;
+
+      if (canvasWidthPx <= 0 || canvasHeightPx <= 0) return;
+
+      // Text elements can become very small.
+      // These ratios are based on the ACTUAL DISPLAYED CANVAS.
+      const MIN_TEXT_WIDTH_RATIO = 1 / canvasWidthPx;
+      const MIN_TEXT_HEIGHT_RATIO = 1 / canvasHeightPx;
+
       let newW = dragStartRef.current.elementW;
       let newH = dragStartRef.current.elementH;
 
-      if (isResizing.includes('r')) newW = Math.max(0.05, dragStartRef.current.elementW + deltaX);
-      if (isResizing.includes('b')) newH = Math.max(0.02, dragStartRef.current.elementH + deltaY);
+      if (isResizing.includes('r')) {
+        newW = Math.max(
+          MIN_TEXT_WIDTH_RATIO,
+          dragStartRef.current.elementW + deltaX
+        );
+      }
 
-      updateSelectedElement({ width: parseFloat(newW.toFixed(4)), height: parseFloat(newH.toFixed(4)) });
+      if (isResizing.includes('l')) {
+        newW = Math.max(
+          MIN_TEXT_WIDTH_RATIO,
+          dragStartRef.current.elementW - deltaX
+        );
+      }
+
+      if (isResizing.includes('b')) {
+        newH = Math.max(
+          MIN_TEXT_HEIGHT_RATIO,
+          dragStartRef.current.elementH + deltaY
+        );
+      }
+
+      if (isResizing.includes('t')) {
+        newH = Math.max(
+          MIN_TEXT_HEIGHT_RATIO,
+          dragStartRef.current.elementH - deltaY
+        );
+      }
+
+      // IMPORTANT:
+      // Convert normalized dimensions to CURRENT VISIBLE CANVAS pixels.
+      // Do NOT use 1600 / 1131 here.
+      const widthPx = newW * canvasWidthPx;
+      const heightPx = newH * canvasHeightPx;
+
+      if (selectedElement.type !== 'image') {
+        const isSingleLine = !selectedElement.multiline;
+
+        if (isSingleLine) {
+          const fontObj = availableFonts.find(
+            (f) =>
+              f.key === selectedElement.fontKey ||
+              f.id === selectedElement.fontId ||
+              f.id === selectedElement.font_id
+          );
+
+          // Academy/custom fonts must use the exact runtime family
+          // that FontFace registered.
+          const runtimeFamily =
+            fontObj?.source === 'ACADEMY'
+              ? `cubix-font-${fontObj.id}`
+              : fontObj?.family ||
+                selectedElement.font_family ||
+                selectedElement.fontFamily ||
+                'Inter';
+
+          const fontRes = calculateFontSizeForWidth({
+            text: resolveSampleValue(selectedElement),
+
+            // WIDTH RESIZE IS AUTHORITATIVE.
+            // This is the real visible width of the blue box.
+            targetWidthPx: widthPx,
+
+            padding:
+              selectedElement.padding ||
+              {
+                top: 1,
+                right: 2,
+                bottom: 1,
+                left: 2,
+              },
+
+            fontFamily: runtimeFamily,
+
+            fontWeight:
+              selectedElement.font_weight ||
+              selectedElement.fontWeight ||
+              '600',
+
+            fontStyle:
+              selectedElement.font_style ||
+              selectedElement.fontStyle ||
+              'normal',
+
+            lineHeight:
+              selectedElement.line_height ||
+              1,
+
+            letterSpacing:
+              selectedElement.letter_spacing ||
+              0,
+
+            maxFontSize: 150,
+            minFontSize: 1,
+          });
+
+          const fittedFont = Math.min(
+            150,
+            Math.max(1, fontRes.fontSize)
+          );
+
+          /*
+           * CRITICAL:
+           *
+           * Height must follow the NEW font size.
+           * Do not preserve the previous dragged height for single-line text.
+           *
+           * calculateFontSizeForWidth should return the natural height
+           * for the final fitted font.
+           */
+          const naturalHeightPx = Math.max(
+            1,
+            fontRes.measuredHeightPx
+          );
+
+          const naturalHeightRatio =
+            naturalHeightPx / canvasHeightPx;
+
+          updateSelectedElement({
+            width: newW,
+
+            // Natural single-line height follows Font Size.
+            height: naturalHeightRatio,
+
+            fontSize: fittedFont,
+            font_size: fittedFont,
+
+            maxFontSize: fittedFont,
+            max_font_size: fittedFont,
+
+            font_family: runtimeFamily,
+            fontFamily: runtimeFamily,
+          });
+
+          setFontSizeInput(
+            String(Math.round(fittedFont))
+          );
+
+          setWidthInput(
+            String(Math.round(widthPx))
+          );
+
+          setHeightInput(
+            String(Math.round(naturalHeightPx))
+          );
+        } else {
+          // Multiline text may use both width and height constraints.
+          const fitRes = calculateAutoFontSize({
+            text: resolveSampleValue(selectedElement),
+            width: widthPx,
+            height: heightPx,
+
+            padding:
+              selectedElement.padding ||
+              DEFAULT_TEXT_PADDING,
+
+            fontFamily:
+              selectedElement.font_family ||
+              selectedElement.fontFamily ||
+              availableFonts[0]?.family ||
+              'Inter',
+
+            fontWeight:
+              selectedElement.font_weight ||
+              selectedElement.fontWeight ||
+              '600',
+
+            fontStyle:
+              selectedElement.font_style ||
+              selectedElement.fontStyle ||
+              'normal',
+
+            maxFontSize: 150,
+            minFontSize: 1,
+
+            lineHeight:
+              selectedElement.line_height ||
+              1,
+
+            letterSpacing:
+              selectedElement.letter_spacing ||
+              0,
+
+            multiline: true,
+          });
+
+          const fittedFont = Math.min(
+            150,
+            Math.max(1, fitRes.renderedFontSize)
+          );
+
+          updateSelectedElement({
+            width: newW,
+            height: newH,
+
+            fontSize: fittedFont,
+            font_size: fittedFont,
+
+            maxFontSize: fittedFont,
+            max_font_size: fittedFont,
+          });
+
+          setFontSizeInput(
+            String(Math.round(fittedFont))
+          );
+
+          setWidthInput(
+            String(Math.round(widthPx))
+          );
+
+          setHeightInput(
+            String(Math.round(heightPx))
+          );
+        }
+      } else {
+        updateSelectedElement({
+          width: newW,
+          height: newH,
+        });
+
+        setWidthInput(
+          String(Math.round(widthPx))
+        );
+
+        setHeightInput(
+          String(Math.round(heightPx))
+        );
+      }
     }
   };
 
@@ -519,6 +1203,7 @@ export const CertificateBuilderPage: React.FC = () => {
   };
 
   const handleSaveTemplate = async () => {
+    if (isSaving) return;
     setIsSaving(true);
     try {
       const payload: Partial<CertificateTemplateData> = {
@@ -527,7 +1212,63 @@ export const CertificateBuilderPage: React.FC = () => {
         page_size: pageSize,
         orientation,
         template_data: {
-          elements,
+          elements: elements.map((el) => {
+            const fontObj = availableFonts.find(
+              (f) => f.key === el.fontKey || f.family === el.font_family || f.id === el.fontId || f.id === el.font_id
+            );
+            const runtimeFamily =
+              (fontObj?.source === 'ACADEMY' ? `cubix-font-${fontObj.id}` : el.font_family ?? el.fontFamily ?? fontObj?.family) ??
+              'Inter';
+
+            const fontVal = el.fontSize ?? el.font_size ?? 16;
+            const fontIdVal = el.font_id ?? el.fontId ?? fontObj?.id ?? null;
+            const fontKeyVal = el.fontKey ?? el.font_key ?? fontObj?.key ?? 'inter';
+
+            return {
+              ...el,
+              id: el.id,
+              type: el.type,
+              binding: el.binding,
+              label: el.label,
+              x: el.x ?? 0.5,
+              y: el.y ?? 0.5,
+              width: el.width ?? 0.2,
+              height: el.height ?? 0.05,
+              fontSize: fontVal,
+              font_size: fontVal,
+              maxFontSize: el.maxFontSize ?? el.max_font_size ?? fontVal,
+              max_font_size: el.max_font_size ?? el.maxFontSize ?? fontVal,
+              minFontSize: el.minFontSize ?? el.min_font_size ?? 1,
+              min_font_size: el.min_font_size ?? el.minFontSize ?? 1,
+              fontId: fontIdVal,
+              font_id: fontIdVal,
+              fontKey: fontKeyVal,
+              font_key: fontKeyVal,
+              fontFamily: runtimeFamily,
+              font_family: runtimeFamily,
+              fontWeight: el.fontWeight ?? el.font_weight ?? '600',
+              font_weight: el.font_weight ?? el.fontWeight ?? '600',
+              fontStyle: el.fontStyle ?? el.font_style ?? 'normal',
+              font_style: el.font_style ?? el.fontStyle ?? 'normal',
+              textAlign: el.textAlign ?? el.text_align ?? 'center',
+              text_align: el.text_align ?? el.textAlign ?? 'center',
+              color: el.color ?? '#0F172A',
+              letterSpacing: el.letterSpacing ?? el.letter_spacing ?? 0,
+              letter_spacing: el.letter_spacing ?? el.letterSpacing ?? 0,
+              lineHeight: el.lineHeight ?? el.line_height ?? 1,
+              line_height: el.line_height ?? el.lineHeight ?? 1,
+              padding: el.padding ?? { top: 1, right: 2, bottom: 1, left: 2 },
+              rotation: el.rotation ?? 0,
+              opacity: el.opacity ?? 1,
+              z_index: el.z_index ?? 1,
+              is_locked: el.is_locked ?? false,
+              is_visible: el.is_visible ?? true,
+              static_text: el.static_text,
+              image_url: el.image_url,
+              asset_id: (el as any).asset_id ?? null,
+              fit: el.fit ?? 'contain',
+            };
+          }),
           canvas: { width: 1600, height: 1131 },
           background_image_url: backgroundImageUrl,
         },
@@ -535,17 +1276,27 @@ export const CertificateBuilderPage: React.FC = () => {
 
       if (templateId) {
         await certificatesService.updateTemplate(templateId, payload);
-        showToast('Certificate template updated.');
+        if (selectedCourseId) {
+          try {
+            await certificatesService.assignCourseToTemplate(templateId, selectedCourseId);
+          } catch (_) {}
+        }
+        queryClient.invalidateQueries({ queryKey: certificateKeys.templates() });
+        queryClient.invalidateQueries({ queryKey: certificateKeys.template(templateId) });
+        showToast('Certificate template updated successfully.', 'success');
       } else {
         const created = await certificatesService.createTemplate(payload);
-        showToast('Certificate template created successfully.');
-        if (selectedCourseId) {
-          await certificatesService.assignCourseToTemplate(created.id, selectedCourseId);
+        showToast('Certificate template created successfully.', 'success');
+        if (selectedCourseId && created?.id) {
+          try {
+            await certificatesService.assignCourseToTemplate(created.id, selectedCourseId);
+          } catch (_) {}
         }
-        navigate(`/certificates`);
+        queryClient.invalidateQueries({ queryKey: certificateKeys.templates() });
+        navigate('/certificates');
       }
     } catch (err: any) {
-      showToast(err.message || 'Failed to save template.');
+      showToast(err?.message || 'Failed to save template.');
     } finally {
       setIsSaving(false);
     }
@@ -605,56 +1356,70 @@ export const CertificateBuilderPage: React.FC = () => {
       onTouchMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onTouchEnd={handleMouseUp}
-      className="space-y-4 sm:space-y-6 text-left font-sans pb-32 sm:pb-12 max-w-[1600px] mx-auto px-1 sm:px-2 select-none"
+      className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 space-y-4 sm:space-y-6 text-left font-sans pb-12 select-none"
     >
       {/* Hidden File Inputs */}
       <input type="file" ref={imageFileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
       <input type="file" ref={bgFileInputRef} onChange={handleBackgroundUpload} accept="image/*" className="hidden" />
 
       {/* Toast Alert */}
-      {toastMsg && (
-        <div className="fixed top-4 right-4 z-50 px-4 py-3 bg-[#0F172A] text-white text-xs font-semibold rounded-2xl shadow-xl animate-fade-in flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>{toastMsg}</span>
-          <button type="button" onClick={() => setToastMsg(null)} className="p-0.5 hover:bg-slate-700 rounded cursor-pointer">
+      {toastState && (
+        <div
+          className={`fixed top-4 right-4 z-50 px-4 py-3 text-xs font-semibold rounded-2xl shadow-xl animate-fade-in flex items-center gap-2 border ${
+            toastState.type === 'error'
+              ? 'bg-rose-950/90 text-rose-100 border-rose-800'
+              : toastState.type === 'info'
+              ? 'bg-slate-900 text-blue-200 border-slate-700'
+              : 'bg-slate-900 text-white border-slate-800'
+          }`}
+        >
+          {toastState.type === 'error' ? (
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          )}
+          <span>{toastState.message}</span>
+          <button type="button" onClick={() => setToastState(null)} className="p-0.5 hover:bg-slate-700 rounded cursor-pointer">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
       {/* HEADER & TOOLBAR */}
-      <div className="bg-white dark:bg-[#111827] p-4 sm:p-5 rounded-[16px] border border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white dark:bg-[#111827] p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => (step === 2 && !templateId ? setStep(1) : navigate('/certificates'))}
-              className="p-2 text-slate-500 hover:text-slate-900 dark:text-[#94A3B8] dark:hover:text-white rounded-xl bg-slate-50 dark:bg-[#172033] border border-slate-200 dark:border-[#263244] cursor-pointer"
+              className="p-2 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer shrink-0 transition-colors"
+              aria-label="Back to Certificates"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-5 h-5" />
             </button>
 
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <input
                   type="text"
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
-                  className="text-lg sm:text-xl font-bold text-[#0F172A] dark:text-[#F8FAFC] bg-transparent border-b border-transparent hover:border-slate-300 dark:hover:border-slate-700 focus:outline-none focus:border-[#2563EB]"
+                  className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-b border-transparent hover:border-slate-300 dark:hover:border-slate-700 focus:outline-none focus:border-blue-600 transition-colors"
+                  placeholder="Certificate Template Name"
                 />
-                <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] dark:text-blue-400 border border-blue-200 dark:border-blue-900">
+                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 shrink-0">
                   Step {step} of 2
                 </span>
               </div>
-              <p className="text-xs text-[#64748B] dark:text-[#94A3B8] font-medium mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">
                 {step === 1
                   ? 'Select Course & Pick Dynamic Fields — Choose the information source for automatic certificate generation.'
-                  : 'Visual Certificate Designer — Move/resize containers, add images, and preview live text auto-fit.'}
+                  : 'Design and configure your certificate template.'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {step === 1 ? (
               <Button
                 variant="primary"
@@ -662,7 +1427,7 @@ export const CertificateBuilderPage: React.FC = () => {
                 disabled={!selectedCourseId || selectedFieldKeys.length === 0}
                 onClick={() => setStep(2)}
                 rightIcon={<ChevronRight className="w-4 h-4 text-white" />}
-                className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold h-9 cursor-pointer shadow-xs shadow-[#2563EB]/25"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium h-10 px-4 rounded-xl cursor-pointer shadow-xs inline-flex items-center justify-center gap-2 whitespace-nowrap"
               >
                 Continue to Designer ({selectedFieldKeys.length} Fields)
               </Button>
@@ -673,7 +1438,7 @@ export const CertificateBuilderPage: React.FC = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => setStep(1)}
-                    className="text-xs font-semibold h-9 cursor-pointer"
+                    className="text-xs font-medium h-10 px-4 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap"
                   >
                     Edit Fields Selection
                   </Button>
@@ -683,7 +1448,7 @@ export const CertificateBuilderPage: React.FC = () => {
                   size="sm"
                   onClick={() => setIsPreview(!isPreview)}
                   leftIcon={<Eye className="w-4 h-4" />}
-                  className="text-xs font-semibold h-9 cursor-pointer"
+                  className="text-xs font-medium h-10 px-4 rounded-xl cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                   {isPreview ? 'Edit Layout' : 'Preview Sample'}
                 </Button>
@@ -693,7 +1458,7 @@ export const CertificateBuilderPage: React.FC = () => {
                   disabled={isSaving}
                   onClick={handleSaveTemplate}
                   leftIcon={<Save className="w-4 h-4 text-white" />}
-                  className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold h-9 cursor-pointer shadow-xs shadow-[#2563EB]/25"
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium h-10 px-4 rounded-xl cursor-pointer shadow-xs inline-flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                   {isSaving ? 'Saving...' : 'Save Template'}
                 </Button>
@@ -716,33 +1481,66 @@ export const CertificateBuilderPage: React.FC = () => {
 
             {isLoadingCourses ? (
               <div className="flex items-center gap-2 text-xs text-slate-500 py-4">
-                <Loader2 className="w-4 h-4 animate-spin text-[#2563EB]" />
+                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
                 <span>Loading available courses...</span>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] mb-1.5">
-                    Course Context
-                  </label>
-                  <select
-                    value={selectedCourseId}
-                    onChange={(e) => setSelectedCourseId(e.target.value)}
-                    className="w-full h-10 px-3 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#2563EB] cursor-pointer"
-                  >
-                    {courses.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.title} ({c.code || 'CS-COURSE'})
-                      </option>
-                    ))}
-                  </select>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1.5">
+                      Course Context
+                    </label>
+                    <select
+                      value={selectedCourseId}
+                      onChange={(e) => setSelectedCourseId(e.target.value)}
+                      className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 cursor-pointer"
+                    >
+                      {courses.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="p-3 bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 rounded-xl text-xs text-blue-800 dark:text-blue-300 flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                    <p className="leading-relaxed">
+                      Selecting a course evaluates its specific lesson structure. If a course lacks Quizzes or Assignments, those specific score fields will be automatically excluded.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="p-3 bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 rounded-xl text-xs text-blue-800 dark:text-blue-300 flex items-start gap-2.5">
-                  <AlertCircle className="w-4 h-4 text-[#2563EB] shrink-0 mt-0.5" />
-                  <p className="leading-relaxed">
-                    Selecting a course evaluates its specific lesson structure. If a course lacks Quizzes or Assignments, those specific score fields will be automatically excluded.
-                  </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1.5">
+                      Page Size
+                    </label>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => setPageSize(e.target.value as any)}
+                      className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 cursor-pointer"
+                    >
+                      <option value="A4">A4 (Standard 210 × 297 mm)</option>
+                      <option value="LETTER">US Letter (8.5 × 11 in)</option>
+                      <option value="CUSTOM">Custom Dimensions</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1.5">
+                      Orientation
+                    </label>
+                    <select
+                      value={orientation}
+                      onChange={(e) => setOrientation(e.target.value as any)}
+                      className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 cursor-pointer"
+                    >
+                      <option value="LANDSCAPE">Landscape (Horizontal)</option>
+                      <option value="PORTRAIT">Portrait (Vertical)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             )}
@@ -888,210 +1686,91 @@ export const CertificateBuilderPage: React.FC = () => {
 
       {/* STEP 2: VISUAL DESIGNER */}
       {step === 2 && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* LEFT COLUMN — TOOLBAR & FIELD LIBRARY */}
-          <div className="lg:col-span-3 space-y-4">
-            <Card className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] p-4 rounded-[16px] shadow-2xs space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] border-b border-slate-100 dark:border-[#263244] pb-2 flex items-center gap-1.5">
-                <PlusCircle className="w-4 h-4 text-[#2563EB]" />
-                <span>Add Custom Elements</span>
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)] gap-5 lg:gap-6 items-start">
+          {/* LEFT COLUMN — TOOLBAR, FIELD LIBRARY & PROPERTIES */}
+          <div className="space-y-4 w-full">
+            <Card className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-2xs space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-1.5">
+                <PlusCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span>Add Elements</span>
               </h3>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={addStaticTextElement}
-                  className="p-2.5 bg-slate-50 dark:bg-[#172033] hover:bg-blue-50 dark:hover:bg-[#1e293b] border border-slate-200 dark:border-[#263244] rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition-colors"
+                  className="p-2.5 bg-slate-50 dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2 cursor-pointer transition-colors"
                 >
-                  <Type className="w-4 h-4 text-[#2563EB]" />
-                  <span>+ Static Text</span>
+                  <Type className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <span className="truncate"> Text</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => imageFileInputRef.current?.click()}
-                  className="p-2.5 bg-slate-50 dark:bg-[#172033] hover:bg-emerald-50 dark:hover:bg-[#132e25] border border-slate-200 dark:border-[#263244] rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition-colors"
+                  className="p-2.5 bg-slate-50 dark:bg-slate-900 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2 cursor-pointer transition-colors"
                 >
-                  <ImageIcon className="w-4 h-4 text-emerald-500" />
-                  <span>+ Image</span>
+                  <ImageIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span className="truncate"> Image</span>
                 </button>
               </div>
 
-              <div className="pt-2 border-t border-slate-100 dark:border-[#263244]">
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => bgFileInputRef.current?.click()}
-                  className="w-full p-2.5 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                  className="w-full p-2.5 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 rounded-xl text-xs font-medium flex items-center justify-center gap-2 cursor-pointer transition-colors"
                 >
-                  <Upload className="w-4 h-4 text-purple-500" />
+                  <Upload className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
                   <span>Set Background Image</span>
                 </button>
               </div>
             </Card>
 
-            <Card className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] p-4 rounded-[16px] shadow-2xs space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#263244] pb-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] flex items-center gap-1.5">
-                  <Layers className="w-4 h-4 text-[#2563EB]" />
-                  <span>Selected Dynamic Fields</span>
+            <Card className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-2xs space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span>Selected Fields</span>
                 </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-[#2563EB] rounded">
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-md border border-blue-200 dark:border-blue-900/40">
                   {designerSelectedBindings.length}
                 </span>
               </div>
 
-              <div className="space-y-2 max-h-[400px] overflow-y-auto no-scrollbar">
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
                 {designerSelectedBindings.map((b) => (
                   <button
                     key={b.key}
                     type="button"
                     onClick={() => addElement(b)}
-                    className="w-full p-2.5 bg-[#F8FAFC] dark:bg-[#172033] hover:bg-blue-50 dark:hover:bg-[#1e293b] border border-[#E2E8F0] dark:border-[#263244] rounded-xl text-left flex items-center justify-between text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] cursor-pointer transition-colors"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-800 rounded-xl text-left flex items-center justify-between text-xs font-medium text-slate-900 dark:text-slate-100 cursor-pointer transition-colors"
                   >
                     <div className="flex items-center gap-2 truncate">
-                      {b.type === 'text' && <Type className="w-3.5 h-3.5 text-[#2563EB]" />}
-                      {b.type === 'image' && <ImageIcon className="w-3.5 h-3.5 text-emerald-500" />}
-                      {b.type === 'qr' && <QrCode className="w-3.5 h-3.5 text-purple-500" />}
+                      {b.type === 'text' && <Type className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                      {b.type === 'image' && <ImageIcon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                      {b.type === 'qr' && <QrCode className="w-3.5 h-3.5 text-purple-500 shrink-0" />}
                       <span className="truncate">{b.label}</span>
                     </div>
-                    <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal px-1.5 py-0.5 bg-slate-200/60 dark:bg-[#0F172A] rounded">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal px-1.5 py-0.5 bg-slate-200/60 dark:bg-slate-800 rounded shrink-0">
                       {b.group}
                     </span>
                   </button>
                 ))}
               </div>
             </Card>
-          </div>
 
-          {/* CENTER COLUMN — CANVAS PREVIEW WITH RESIZE HANDLES & DRAG */}
-          <div className="lg:col-span-6">
-            <Card className="bg-[#F1F5F9] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#263244] p-4 sm:p-6 rounded-[16px] shadow-2xs space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-600 dark:text-[#94A3B8] uppercase tracking-wider">
-                  {isPreview ? 'Live Sample Document Preview' : 'Interactive Layout Canvas (Drag / Resize / Arrow Keys)'}
-                </span>
-                <span className="px-2 py-0.5 bg-slate-200 dark:bg-[#1E293B] text-slate-700 dark:text-slate-300 text-[10px] font-semibold rounded-md">
-                  1600 × 1131 px
-                </span>
-              </div>
-
-              <div
-                ref={canvasRef}
-                onClick={(e) => {
-                  if (e.target === canvasRef.current || (e.target as HTMLElement).classList.contains('canvas-backdrop')) {
-                    setSelectedElementId(null);
-                  }
-                }}
-                style={{
-                  backgroundImage: backgroundImageUrl
-                    ? `url(${backgroundImageUrl})`
-                    : `radial-gradient(#CBD5E1 1px, transparent 1px), radial-gradient(#CBD5E1 1px, #FFFFFF 1px)`,
-                  backgroundSize: backgroundImageUrl ? 'cover' : '20px 20px',
-                  backgroundPosition: backgroundImageUrl ? 'center' : '0 0, 10px 10px',
-                }}
-                className="w-full aspect-[1.414/1] bg-white text-slate-900 border-8 border-[#1E293B] shadow-2xl rounded-lg relative overflow-hidden font-serif select-none"
-              >
-                <div className="absolute inset-2 border-2 border-[#D97706]/40 pointer-events-none" />
-
-                {elements.map((el) => {
-                  const isSelected = selectedElementId === el.id;
-
-                  return (
-                    <div
-                      key={el.id}
-                      onMouseDown={(e) => !isPreview && handleMouseDownOnElement(e, el)}
-                      onTouchStart={(e) => !isPreview && handleMouseDownOnElement(e, el)}
-                      style={{
-                        position: 'absolute',
-                        left: `${el.x * 100}%`,
-                        top: `${el.y * 100}%`,
-                        width: `${el.width * 100}%`,
-                        height: `${el.height * 100}%`,
-                        transform: 'translate(-50%, -50%)',
-                        fontSize: el.font_size ? `${el.font_size}px` : undefined,
-                        fontWeight: el.font_weight || 'normal',
-                        textAlign: el.text_align || 'center',
-                        color: el.color || '#0F172A',
-                        fontFamily: 'serif',
-                        zIndex: el.z_index || 1,
-                      }}
-                      className={`px-2 py-1 rounded cursor-move transition-all flex items-center justify-center relative overflow-hidden box-border ${
-                        isSelected && !isPreview
-                          ? 'ring-2 ring-[#2563EB] bg-blue-50/70 dark:bg-blue-900/30 shadow-md'
-                          : 'hover:ring-1 hover:ring-blue-300 hover:bg-slate-100/40'
-                      }`}
-                    >
-                      {el.type === 'image' ? (
-                        <img
-                          src={el.image_url || 'https://via.placeholder.com/150'}
-                          alt={el.label}
-                          className="w-full h-full object-contain pointer-events-none"
-                        />
-                      ) : (
-                        <AutoFitTextContainer
-                          text={resolveSampleValue(el)}
-                          maxFontSize={el.font_size || 16}
-                          minFontSize={el.min_font_size || 1}
-                          fontFamily={el.font_family || 'Inter'}
-                          fontWeight={el.font_weight || 'normal'}
-                          fontColor={el.color || '#0F172A'}
-                          textAlign={el.text_align || 'center'}
-                          padding={el.padding || { top: 1, right: 2, bottom: 1, left: 2 }}
-                          isEditorMode={!isPreview}
-                          className="w-full h-full pointer-events-none"
-                        />
-                      )}
-
-                      {/* 4 CORNER RESIZE HANDLES */}
-                      {isSelected && !isPreview && (
-                        <>
-                          {/* TOP-LEFT */}
-                          <div
-                            onMouseDown={(e) => handleMouseDownOnElement(e, el, 'lt')}
-                            onTouchStart={(e) => handleMouseDownOnElement(e, el, 'lt')}
-                            className="w-3.5 h-3.5 bg-white border-2 border-[#2563EB] rounded-full absolute -left-1.5 -top-1.5 cursor-nwse-resize shadow-xs z-50 hover:scale-125 transition-transform"
-                          />
-                          {/* TOP-RIGHT */}
-                          <div
-                            onMouseDown={(e) => handleMouseDownOnElement(e, el, 'rt')}
-                            onTouchStart={(e) => handleMouseDownOnElement(e, el, 'rt')}
-                            className="w-3.5 h-3.5 bg-white border-2 border-[#2563EB] rounded-full absolute -right-1.5 -top-1.5 cursor-nesw-resize shadow-xs z-50 hover:scale-125 transition-transform"
-                          />
-                          {/* BOTTOM-LEFT */}
-                          <div
-                            onMouseDown={(e) => handleMouseDownOnElement(e, el, 'lb')}
-                            onTouchStart={(e) => handleMouseDownOnElement(e, el, 'lb')}
-                            className="w-3.5 h-3.5 bg-white border-2 border-[#2563EB] rounded-full absolute -left-1.5 -bottom-1.5 cursor-nesw-resize shadow-xs z-50 hover:scale-125 transition-transform"
-                          />
-                          {/* BOTTOM-RIGHT */}
-                          <div
-                            onMouseDown={(e) => handleMouseDownOnElement(e, el, 'rb')}
-                            onTouchStart={(e) => handleMouseDownOnElement(e, el, 'rb')}
-                            className="w-3.5 h-3.5 bg-[#2563EB] border-2 border-white rounded-full absolute -right-1.5 -bottom-1.5 cursor-nwse-resize shadow-md z-50 hover:scale-125 transition-transform flex items-center justify-center"
-                          >
-                            <Maximize2 className="w-1.5 h-1.5 text-white" />
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-          </div>
-
-          {/* RIGHT COLUMN — ELEMENT INSPECTOR & LAYER CONTROLS */}
-          <div className="lg:col-span-3 space-y-4">
-            <Card className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] p-4 rounded-[16px] shadow-2xs space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] border-b border-slate-100 dark:border-[#263244] pb-2 flex items-center justify-between">
+            {/* PROPERTIES PANEL */}
+            <Card className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-2xs space-y-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
-                  <Sliders className="w-4 h-4 text-[#2563EB]" />
-                  <span>Element Properties</span>
+                  <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span>Properties</span>
                 </span>
                 {selectedElement && (
                   <button
                     type="button"
                     onClick={deleteSelectedElement}
                     title="Delete Element"
-                    className="text-rose-600 hover:text-rose-700 p-1 rounded hover:bg-rose-50 dark:hover:bg-[#3f1d24] cursor-pointer"
+                    className="text-rose-600 hover:text-rose-700 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -1099,11 +1778,10 @@ export const CertificateBuilderPage: React.FC = () => {
               </h3>
 
               {selectedElement ? (
-                <div className="space-y-3 text-xs">
-                  {/* ACTIVE ELEMENT CONTEXT HEADER */}
-                  <div className="p-2.5 bg-blue-50/60 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 rounded-xl flex items-center justify-between">
+                <div className="space-y-3.5 text-xs">
+                  <div className="p-2.5 bg-blue-50/60 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/60 rounded-xl flex items-center justify-between">
                     <div className="truncate">
-                      <span className="text-[10px] uppercase font-bold text-[#2563EB] block">
+                      <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 block">
                         {selectedElement.type === 'static_text'
                           ? 'Static Text'
                           : selectedElement.type === 'image'
@@ -1112,52 +1790,47 @@ export const CertificateBuilderPage: React.FC = () => {
                           ? 'Personal Detail'
                           : 'Dynamic Field'}
                       </span>
-                      <span className="font-bold text-[#0F172A] dark:text-[#F8FAFC] truncate block">
+                      <span className="font-semibold text-slate-900 dark:text-slate-100 truncate block">
                         {selectedElement.label}
                       </span>
                     </div>
-                    <span className="text-[10px] font-mono text-slate-500 bg-white dark:bg-[#0F172A] px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800 shrink-0">
-                      #{selectedElement.id.slice(-4)}
-                    </span>
                   </div>
 
-                  {/* 1. CONTENT / FIELD READONLY KEY (TEXT TYPES) */}
                   {selectedElement.type === 'static_text' ? (
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
                         Static Text Content
                       </label>
                       <input
                         type="text"
                         value={selectedElement.static_text || ''}
-                        onChange={(e) => updateSelectedElement({ static_text: e.target.value })}
-                        className="w-full h-8 px-2 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded text-xs focus:outline-none focus:border-[#2563EB]"
+                        onChange={(e) => handleTextContentChange(e.target.value)}
+                        className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
                       />
                     </div>
                   ) : selectedElement.type !== 'image' ? (
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
-                        Field Resolver Key (Read-Only)
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                        Field Resolver Key
                       </label>
                       <input
                         type="text"
                         value={selectedElement.binding}
                         disabled
-                        className="w-full h-8 px-2 bg-slate-100 dark:bg-[#172033] border border-slate-200 dark:border-[#263244] rounded text-xs font-mono text-slate-500"
+                        className="w-full h-10 px-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-500 dark:text-slate-400"
                       />
                     </div>
                   ) : null}
 
-                  {/* 2. IMAGE CONTENT CONTROLS */}
                   {selectedElement.type === 'image' && (
-                    <div className="space-y-2">
-                      <label className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
                         Image Source
                       </label>
                       <button
                         type="button"
                         onClick={() => imageFileInputRef.current?.click()}
-                        className="w-full h-8 px-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1.5 cursor-pointer hover:bg-emerald-100 transition-colors"
+                        className="w-full h-10 px-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-medium text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1.5 cursor-pointer hover:bg-emerald-100 transition-colors"
                       >
                         <ImageIcon className="w-3.5 h-3.5" />
                         <span>Replace Image</span>
@@ -1165,166 +1838,381 @@ export const CertificateBuilderPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* 3. POSITION CONTROLS */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
-                        Position X (0–1)
+                  {/* DIMENSIONS & FONT SIZE CONTROLS */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                        Width
                       </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="1"
-                        value={selectedElement.x}
-                        onChange={(e) => updateSelectedElement({ x: parseFloat(e.target.value) || 0.5 })}
-                        className="w-full h-8 px-2 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded text-xs"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
-                        Position Y (0–1)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="1"
-                        value={selectedElement.y}
-                        onChange={(e) => updateSelectedElement({ y: parseFloat(e.target.value) || 0.5 })}
-                        className="w-full h-8 px-2 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  {/* 4. SIZE CONTROLS */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
-                        Width (0.05–1)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0.05"
-                        max="1"
-                        value={selectedElement.width}
-                        onChange={(e) => updateSelectedElement({ width: parseFloat(e.target.value) || 0.2 })}
-                        className="w-full h-8 px-2 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded text-xs"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
-                        Height (0.02–1)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0.02"
-                        max="1"
-                        value={selectedElement.height}
-                        onChange={(e) => updateSelectedElement({ height: parseFloat(e.target.value) || 0.05 })}
-                        className="w-full h-8 px-2 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  {/* 5. IMAGE-SPECIFIC FIT & OPACITY CONTROLS */}
-                  {selectedElement.type === 'image' && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
-                          Object Fit
-                        </label>
-                        <select
-                          value={selectedElement.fit || 'contain'}
-                          onChange={(e) => updateSelectedElement({ fit: e.target.value as any })}
-                          className="w-full h-8 px-2 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded text-xs"
-                        >
-                          <option value="contain">Contain</option>
-                          <option value="cover">Cover</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
-                          Z-Index Layer
-                        </label>
+                      <div className="relative flex items-center">
                         <input
                           type="number"
-                          value={selectedElement.z_index || 1}
-                          onChange={(e) => updateSelectedElement({ z_index: parseInt(e.target.value, 10) || 1 })}
-                          className="w-full h-8 px-2 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded text-xs"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 6. TYPOGRAPHY CONTROLS (TEXT TYPES ONLY) */}
-                  {selectedElement.type !== 'image' && (
-                    <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-[#263244]">
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
-                            Font Family
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => setIsUploadFontModalOpen(true)}
-                            className="text-[10px] text-emerald-600 hover:text-emerald-700 font-bold px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 rounded border border-emerald-200 cursor-pointer"
-                          >
-                            + Upload
-                          </button>
-                        </div>
-                        <select
-                          value={selectedElement.fontKey || selectedElement.font_family || 'inter'}
+                          min={20}
+                          max={1600}
+                          value={widthInput}
                           onChange={(e) => {
-                            const fontKey = e.target.value;
-                            const fontObj = availableFonts.find((f) => f.key === fontKey || f.family === fontKey);
-                            if (fontObj) {
-                              loadFontFaceIntoDOM(fontObj);
-                              updateSelectedElement({
-                                fontKey: fontObj.key,
-                                font_family: fontObj.family,
-                              });
+                            const valStr = e.target.value;
+                            setWidthInput(valStr);
+                            if (valStr !== '' && selectedElement) {
+                              const num = parseInt(valStr, 10);
+                              if (!isNaN(num)) {
+                                const clampedWidth = Math.min(1600, Math.max(20, num));
+                                const widthRatio = parseFloat((clampedWidth / 1600).toFixed(4));
+                                const heightPx = (selectedElement.height || 0.05) * 1131;
+
+                                if (selectedElement.type !== 'image') {
+                                  if (!selectedElement.multiline) {
+                                    const fontRes = calculateFontSizeForWidth({
+                                      text: resolveSampleValue(selectedElement),
+                                      targetWidthPx: clampedWidth,
+                                      padding: selectedElement.padding || DEFAULT_TEXT_PADDING,
+                                      fontFamily: selectedElement.font_family || selectedElement.fontFamily || availableFonts[0]?.family || 'Inter',
+                                      fontWeight: selectedElement.font_weight || selectedElement.fontWeight || '600',
+                                      fontStyle: selectedElement.font_style || selectedElement.fontStyle || 'normal',
+                                      lineHeight: selectedElement.line_height || 1.0,
+                                      letterSpacing: selectedElement.letter_spacing || 0,
+                                      maxFontSize: 150,
+                                      minFontSize: 1,
+                                    });
+
+                                    const fittedFont = Math.round(Math.min(150, Math.max(1, fontRes.fontSize)));
+                                    const naturalHeightRatio = parseFloat((fontRes.measuredHeightPx / 1131).toFixed(4));
+
+                                    updateSelectedElement({
+                                      width: widthRatio,
+                                      height: naturalHeightRatio,
+                                      fontSize: fittedFont,
+                                      font_size: fittedFont,
+                                      maxFontSize: fittedFont,
+                                      max_font_size: fittedFont,
+                                    });
+                                    setFontSizeInput(String(fittedFont));
+                                    setHeightInput(String(Math.round(fontRes.measuredHeightPx)));
+                                  } else {
+                                    const fitRes = calculateAutoFontSize({
+                                      text: resolveSampleValue(selectedElement),
+                                      width: clampedWidth,
+                                      height: heightPx,
+                                      padding: selectedElement.padding || DEFAULT_TEXT_PADDING,
+                                      fontFamily: selectedElement.font_family || selectedElement.fontFamily || availableFonts[0]?.family || 'Inter',
+                                      fontWeight: selectedElement.font_weight || selectedElement.fontWeight || '600',
+                                      fontStyle: selectedElement.font_style || selectedElement.fontStyle || 'normal',
+                                      maxFontSize: 150,
+                                      minFontSize: 1,
+                                      lineHeight: selectedElement.line_height || 1.0,
+                                      letterSpacing: selectedElement.letter_spacing || 0,
+                                      multiline: true,
+                                    });
+
+                                    const fittedFont = Math.round(Math.min(150, Math.max(1, fitRes.renderedFontSize)));
+
+                                    updateSelectedElement({
+                                      width: widthRatio,
+                                      fontSize: fittedFont,
+                                      font_size: fittedFont,
+                                      maxFontSize: fittedFont,
+                                      max_font_size: fittedFont,
+                                    });
+                                    setFontSizeInput(String(fittedFont));
+                                  }
+                                } else {
+                                  updateSelectedElement({ width: widthRatio });
+                                }
+                              }
                             }
                           }}
-                          className="w-full h-8 px-2 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded text-xs"
-                        >
-                          <optgroup label="DEFAULT SYSTEM FONTS">
-                            {availableFonts.filter(f => f.source === 'SYSTEM').map((f) => (
-                              <option key={f.id} value={f.key}>
-                                {f.name} ({f.license_name})
-                              </option>
-                            ))}
-                          </optgroup>
-                          {availableFonts.some(f => f.source === 'ACADEMY') && (
-                            <optgroup label="MY ACADEMY FONTS">
-                              {availableFonts.filter(f => f.source === 'ACADEMY').map((f) => (
-                                <option key={f.id} value={f.key}>
-                                  {f.name}
-                                </option>
-                              ))}
-                            </optgroup>
-                          )}
-                        </select>
+                          onBlur={() => {
+                            const num = parseInt(widthInput, 10);
+                            const clamped = isNaN(num) ? 320 : Math.min(1600, Math.max(20, num));
+                            setWidthInput(String(clamped));
+                            if (selectedElement) {
+                              const widthRatio = parseFloat((clamped / 1600).toFixed(4));
+                              updateSelectedElement({ width: widthRatio });
+                            }
+                          }}
+                          className="w-full h-9 pl-2.5 pr-7 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                        />
+                        <span className="absolute right-2.5 text-[10px] font-mono text-slate-400 pointer-events-none">
+                          px
+                        </span>
                       </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                        Height
+                      </label>
+                      <div className="relative flex items-center">
+                        <input
+                          type="number"
+                          min={10}
+                          max={1131}
+                          value={heightInput}
+                          onChange={(e) => {
+                            const valStr = e.target.value;
+                            setHeightInput(valStr);
+                            if (valStr !== '' && selectedElement) {
+                              const num = parseInt(valStr, 10);
+                              if (!isNaN(num)) {
+                                const clampedHeight = Math.min(1131, Math.max(10, num));
+                                const heightRatio = parseFloat((clampedHeight / 1131).toFixed(4));
+                                const widthPx = (selectedElement.width || 0.2) * 1600;
+
+                                if (selectedElement.type !== 'image') {
+                                  const fitRes = calculateAutoFontSize({
+                                    text: resolveSampleValue(selectedElement),
+                                    width: widthPx,
+                                    height: clampedHeight,
+                                    padding: selectedElement.padding || DEFAULT_TEXT_PADDING,
+                                    fontFamily: selectedElement.font_family || selectedElement.fontFamily || availableFonts[0]?.family || 'Inter',
+                                    fontWeight: selectedElement.font_weight || selectedElement.fontWeight || '600',
+                                    fontStyle: selectedElement.font_style || selectedElement.fontStyle || 'normal',
+                                    maxFontSize: 150,
+                                    minFontSize: 1,
+                                    lineHeight: selectedElement.line_height || 1.0,
+                                    letterSpacing: selectedElement.letter_spacing || 0,
+                                    multiline: selectedElement.multiline || false,
+                                  });
+
+                                  const fittedFont = Math.round(Math.min(150, Math.max(1, fitRes.renderedFontSize)));
+
+                                  updateSelectedElement({
+                                    height: heightRatio,
+                                    fontSize: fittedFont,
+                                    font_size: fittedFont,
+                                    maxFontSize: fittedFont,
+                                    max_font_size: fittedFont,
+                                  });
+                                  setFontSizeInput(String(fittedFont));
+                                } else {
+                                  updateSelectedElement({ height: heightRatio });
+                                }
+                              }
+                            }
+                          }}
+                          onBlur={() => {
+                            const num = parseInt(heightInput, 10);
+                            const clamped = isNaN(num) ? 60 : Math.min(1131, Math.max(10, num));
+                            setHeightInput(String(clamped));
+                            if (selectedElement) {
+                              const heightRatio = parseFloat((clamped / 1131).toFixed(4));
+                              updateSelectedElement({ height: heightRatio });
+                            }
+                          }}
+                          className="w-full h-9 pl-2.5 pr-7 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                        />
+                        <span className="absolute right-2.5 text-[10px] font-mono text-slate-400 pointer-events-none">
+                          px
+                        </span>
+                      </div>
+                    </div>
+
+                    {selectedElement.type !== 'image' && (
+                      <div className="space-y-1 col-span-2 sm:col-span-1">
+                        <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                          Font Size
+                        </label>
+                        <div className="relative flex items-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const configured = selectedElement.fontSize ?? selectedElement.font_size ?? selectedElement.maxFontSize ?? selectedElement.max_font_size ?? 56;
+                              const parsed = parseInt(fontSizeInput, 10);
+                              const current = isNaN(parsed) ? configured : parsed;
+                              const next = Math.max(1, current - 1);
+                              handleFontSizeChange(next);
+                            }}
+                            className="w-8 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold border border-r-0 border-slate-300 dark:border-slate-700 rounded-l-xl text-xs transition-colors cursor-pointer select-none"
+                            title="Decrease font size"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            min={1}
+                            max={150}
+                            step={1}
+                            value={fontSizeInput}
+                            onChange={(e) => {
+                              const valStr = e.target.value;
+                              setFontSizeInput(valStr);
+                              if (valStr !== '') {
+                                const num = parseInt(valStr, 10);
+                                if (!isNaN(num)) {
+                                  handleFontSizeChange(num);
+                                }
+                              }
+                            }}
+                            onBlur={() => {
+                              const num = parseInt(fontSizeInput, 10);
+                              const configured = selectedElement.fontSize ?? selectedElement.font_size ?? selectedElement.maxFontSize ?? selectedElement.max_font_size ?? 56;
+                              const clamped = isNaN(num) ? configured : Math.min(150, Math.max(1, num));
+                              handleFontSizeChange(clamped);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                const num = parseInt(fontSizeInput, 10);
+                                const configured = selectedElement.fontSize ?? selectedElement.font_size ?? selectedElement.maxFontSize ?? selectedElement.max_font_size ?? 56;
+                                const clamped = isNaN(num) ? configured : Math.min(150, Math.max(1, num));
+                                handleFontSizeChange(clamped);
+                              }
+                            }}
+                            className="w-full h-9 text-center bg-slate-50 dark:bg-slate-900 border-y border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const configured = selectedElement.fontSize ?? selectedElement.font_size ?? selectedElement.maxFontSize ?? selectedElement.max_font_size ?? 56;
+                              const parsed = parseInt(fontSizeInput, 10);
+                              const current = isNaN(parsed) ? configured : parsed;
+                              const next = Math.min(150, current + 1);
+                              handleFontSizeChange(next);
+                            }}
+                            className="w-8 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold border border-l-0 border-slate-300 dark:border-slate-700 rounded-r-xl text-xs transition-colors cursor-pointer select-none"
+                            title="Increase font size"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                    {/* FONT SELECT & TYPOGRAPHY */}
+                    {selectedElement.type !== 'image' && (
+                      <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                            Font
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={
+                                selectedElement.fontKey ||
+                                availableFonts.find(
+                                  (f) => f.family === selectedElement.font_family || f.id === selectedElement.fontId || f.id === selectedElement.font_id
+                                )?.key ||
+                                availableFonts[0]?.key ||
+                                'inter'
+                              }
+                              style={{
+                                fontFamily: `"${selectedElement.font_family || selectedElement.fontFamily || availableFonts.find(f => f.key === selectedElement.fontKey)?.family || 'Inter'}", sans-serif`,
+                              }}
+                              onChange={async (e) => {
+                                const val = e.target.value;
+                                if (val === '__upload_new__') {
+                                  setIsUploadFontModalOpen(true);
+                                  return;
+                                }
+                                const fontObj = availableFonts.find((f) => f.key === val);
+                                if (fontObj && selectedElement) {
+                                  try {
+                                    const currentFontSize = selectedElement.fontSize ?? selectedElement.font_size ?? 16;
+                                    const result = await resizeTextElementToContent(selectedElement, {
+                                      fontSize: currentFontSize,
+                                      fontObj,
+                                    });
+
+                                    if (!result) return;
+
+                                    updateSelectedElement({
+                                      fontKey: fontObj.key,
+                                      fontId: fontObj.id,
+                                      font_id: fontObj.id,
+
+                                      fontFamily: result.runtimeFamily,
+                                      font_family: result.runtimeFamily,
+
+                                      fontSize: currentFontSize,
+                                      font_size: currentFontSize,
+
+                                      width: result.width,
+                                      height: result.height,
+                                    });
+
+                                    setFontSizeInput(String(currentFontSize));
+                                    setWidthInput(String(Math.round(result.width * 1600)));
+                                    setHeightInput(String(Math.round(result.height * 1131)));
+                                  } catch (error: any) {
+                                    showToast(error?.message || 'Unable to load selected font.', 'error');
+                                  }
+                                }
+                              }}
+                              className="flex-1 h-10 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 cursor-pointer"
+                            >
+                              <optgroup label="System / built-in fonts">
+                                {availableFonts
+                                  .filter((f) => f.source === 'SYSTEM')
+                                  .map((f) => (
+                                    <option key={f.id} value={f.key} style={{ fontFamily: `"${f.family}", sans-serif` }}>
+                                      {f.name}
+                                    </option>
+                                  ))}
+                              </optgroup>
+                              {availableFonts.some((f) => f.source === 'ACADEMY') && (
+                                <optgroup label="Custom Fonts">
+                                  {availableFonts
+                                    .filter((f) => f.source === 'ACADEMY')
+                                    .map((f) => (
+                                      <option key={f.id} value={f.key} style={{ fontFamily: `"${f.family}", sans-serif` }}>
+                                        {f.name}
+                                      </option>
+                                    ))}
+                                </optgroup>
+                              )}
+                              <optgroup label="Actions">
+                                <option value="__upload_new__">+ Upload New Font...</option>
+                              </optgroup>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => fontFileInputRef.current?.click()}
+                              className="h-10 px-3 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              Upload Font
+                            </button>
+                            <input
+                              ref={fontFileInputRef}
+                              type="file"
+                              accept=".ttf,.otf,.woff,.woff2"
+                              onChange={handleDirectFontFileUpload}
+                              className="hidden"
+                            />
+                          </div>
+                        </div>
 
                       <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
                             Font Weight
                           </label>
                           <select
                             value={selectedElement.font_weight || '600'}
-                            onChange={(e) => updateSelectedElement({ font_weight: e.target.value })}
-                            className="w-full h-8 px-2 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded text-xs"
+                            onChange={async (e) => {
+                              const newWeight = e.target.value;
+                              if (!selectedElement) return;
+                              const updatedElement = {
+                                ...selectedElement,
+                                font_weight: newWeight,
+                                fontWeight: newWeight,
+                              };
+                              const result = await resizeTextElementToContent(updatedElement);
+                              if (!result) return;
+
+                              updateSelectedElement({
+                                font_weight: newWeight,
+                                fontWeight: newWeight,
+                                width: result.width,
+                                height: result.height,
+                              });
+                              setWidthInput(String(Math.round(result.width * 1600)));
+                              setHeightInput(String(Math.round(result.height * 1131)));
+                            }}
+                            className="w-full h-10 px-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 cursor-pointer"
                           >
                             {(() => {
                               const curFont = availableFonts.find(f => f.key === selectedElement.fontKey || f.family === selectedElement.font_family);
-                              const variants = curFont?.font_weight_variants || ['400', '600', '700'];
+                              const variants = curFont?.font_weight_variants || ['400', '500', '600', '700'];
                               return variants.map(v => (
                                 <option key={v} value={v}>
                                   {v === '400' ? '400 (Regular)' : v === '500' ? '500 (Medium)' : v === '600' ? '600 (SemiBold)' : v === '700' ? '700 (Bold)' : v === '800' ? '800 (ExtraBold)' : v}
@@ -1334,40 +2222,14 @@ export const CertificateBuilderPage: React.FC = () => {
                           </select>
                         </div>
 
-                        <div>
-                          <label className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
-                            Font Size
-                          </label>
-                          <input
-                            type="number"
-                            value={selectedElement.font_size || 16}
-                            onChange={(e) => updateSelectedElement({ font_size: parseInt(e.target.value, 10) || 16 })}
-                            className="w-full h-8 px-2 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded text-xs font-semibold"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
-                            Color
-                          </label>
-                          <input
-                            type="color"
-                            value={selectedElement.color || '#0F172A'}
-                            onChange={(e) => updateSelectedElement({ color: e.target.value })}
-                            className="w-full h-8 p-0.5 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded cursor-pointer"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
                             Alignment
                           </label>
                           <select
                             value={selectedElement.text_align || 'center'}
                             onChange={(e) => updateSelectedElement({ text_align: e.target.value as any })}
-                            className="w-full h-8 px-2 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded text-xs"
+                            className="w-full h-10 px-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 cursor-pointer"
                           >
                             <option value="left">Left</option>
                             <option value="center">Center</option>
@@ -1375,19 +2237,31 @@ export const CertificateBuilderPage: React.FC = () => {
                           </select>
                         </div>
                       </div>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                          Text Color
+                        </label>
+                        <input
+                          type="color"
+                          value={selectedElement.color || '#0F172A'}
+                          onChange={(e) => updateSelectedElement({ color: e.target.value })}
+                          className="w-full h-10 p-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer"
+                        />
+                      </div>
                     </div>
                   )}
 
-                  {/* 7. LAYER ORDERING BUTTONS */}
-                  <div className="pt-2 border-t border-slate-100 dark:border-[#263244] flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">
-                      Layer Order (z-index: {selectedElement.z_index || 1})
+                  {/* LAYER ORDERING */}
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                      Layer Order ({selectedElement.z_index || 1})
                     </span>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => moveLayer('up')}
-                        className="p-1 bg-slate-100 dark:bg-[#172033] hover:bg-slate-200 rounded text-slate-700 dark:text-slate-300 cursor-pointer"
+                        className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-700 dark:text-slate-300 cursor-pointer transition-colors"
                         title="Bring Forward"
                       >
                         <ArrowUp className="w-3.5 h-3.5" />
@@ -1395,7 +2269,7 @@ export const CertificateBuilderPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => moveLayer('down')}
-                        className="p-1 bg-slate-100 dark:bg-[#172033] hover:bg-slate-200 rounded text-slate-700 dark:text-slate-300 cursor-pointer"
+                        className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-700 dark:text-slate-300 cursor-pointer transition-colors"
                         title="Send Backward"
                       >
                         <ArrowDown className="w-3.5 h-3.5" />
@@ -1404,17 +2278,139 @@ export const CertificateBuilderPage: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8 space-y-2">
-                  <Sliders className="w-8 h-8 text-slate-300 mx-auto" />
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <div className="text-center py-6 space-y-2">
+                  <Sliders className="w-7 h-7 text-slate-300 dark:text-slate-600 mx-auto" />
+                  <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
                     No element selected
                   </p>
                   <p className="text-[11px] text-slate-400 dark:text-slate-500 max-w-[200px] mx-auto">
-                    Click an element on the canvas to inspect and edit its type-specific properties.
+                    Click an element on the canvas to edit properties.
                   </p>
                 </div>
               )}
             </Card>
+          </div>
+
+          {/* RIGHT COLUMN — CANVAS PREVIEW */}
+          <div className="w-full flex items-start justify-center">
+            <div className="w-full max-w-[900px]">
+              <Card className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-5 rounded-2xl shadow-2xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    {isPreview ? 'Live Sample Preview' : 'Interactive Canvas'}
+                  </span>
+                  <span className="px-2 py-0.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-mono font-medium rounded-md border border-slate-200 dark:border-slate-700">
+                    1600 × 1131 px
+                  </span>
+                </div>
+
+                <div
+                  ref={canvasRef}
+                  onClick={(e) => {
+                    if (e.target === canvasRef.current || (e.target as HTMLElement).classList.contains('canvas-backdrop')) {
+                      setSelectedElementId(null);
+                    }
+                  }}
+                  style={{
+                    backgroundImage: backgroundImageUrl
+                      ? `url(${backgroundImageUrl})`
+                      : `radial-gradient(#CBD5E1 1px, transparent 1px), radial-gradient(#CBD5E1 1px, #FFFFFF 1px)`,
+                    backgroundSize: backgroundImageUrl ? 'cover' : '20px 20px',
+                    backgroundPosition: backgroundImageUrl ? 'center' : '0 0, 10px 10px',
+                  }}
+                  className="w-full aspect-[1.414/1] bg-white text-slate-900 border-4 sm:border-8 border-slate-800 shadow-xl rounded-xl relative overflow-hidden font-sans select-none"
+                >
+                  <div className="absolute inset-2 border-2 border-amber-500/40 pointer-events-none" />
+
+                  {elements.map((el) => {
+                    const isSelected = selectedElementId === el.id;
+                    const safeWidth =
+                      el.type === 'image'
+                        ? Math.max(20 / 1600, el.width || 0.15)
+                        : Math.max(1 / 1600, el.width || 1 / 1600);
+                    const safeHeight =
+                      el.type === 'image'
+                        ? Math.max(20 / 1131, el.height || 0.15)
+                        : Math.max(1 / 1131, el.height || 1 / 1131);
+
+                    return (
+                      <div
+                        key={el.id}
+                        onMouseDown={(e) => !isPreview && handleMouseDownOnElement(e, el)}
+                        onTouchStart={(e) => !isPreview && handleMouseDownOnElement(e, el)}
+                        style={{
+                          position: 'absolute',
+                          left: `${el.x * 100}%`,
+                          top: `${el.y * 100}%`,
+                          width: `${safeWidth * 100}%`,
+                          height: `${safeHeight * 100}%`,
+                          transform: 'translate(-50%, -50%)',
+                          fontWeight: el.font_weight || el.fontWeight || 'normal',
+                          textAlign: el.text_align || el.textAlign || 'center',
+                          color: el.color || '#0F172A',
+                          fontFamily: el.font_family || el.fontFamily || availableFonts[0]?.family || 'Inter',
+                          zIndex: el.z_index || 1,
+                        }}
+                        className={`rounded cursor-move transition-all flex items-center justify-center relative overflow-visible box-border ${
+                          isSelected && !isPreview
+                            ? 'ring-2 ring-blue-600 bg-blue-50/70 dark:bg-blue-900/30 shadow-md'
+                            : 'hover:ring-1 hover:ring-blue-300 hover:bg-slate-100/40'
+                        }`}
+                      >
+                        {el.type === 'image' ? (
+                          <img
+                            src={el.image_url || 'https://via.placeholder.com/150'}
+                            alt={el.label}
+                            className="w-full h-full object-contain pointer-events-none"
+                          />
+                        ) : (
+                          <div className="w-full h-full overflow-hidden pointer-events-none">
+                            <AutoFitTextContainer
+                              text={resolveSampleValue(el)}
+                              maxFontSize={el.fontSize ?? el.font_size ?? el.maxFontSize ?? el.max_font_size ?? 16}
+                              minFontSize={Math.max(1, el.min_font_size ?? el.minFontSize ?? 1)}
+                              fontFamily={el.font_family || el.fontFamily || availableFonts[0]?.family || 'Inter'}
+                              fontWeight={el.font_weight || el.fontWeight || 'normal'}
+                              fontColor={el.color || '#0F172A'}
+                              textAlign={el.text_align || el.textAlign || 'center'}
+                              padding={el.padding || { top: 1, right: 2, bottom: 1, left: 2 }}
+                              isEditorMode={!isPreview}
+                              className="w-full h-full pointer-events-none"
+                            />
+                          </div>
+                        )}
+
+                        {/* RESIZE HANDLES (OUTSIDE TEXT BOX) */}
+                        {isSelected && !isPreview && (
+                          <>
+                            <div
+                              onMouseDown={(e) => handleMouseDownOnElement(e, el, 'lt')}
+                              onTouchStart={(e) => handleMouseDownOnElement(e, el, 'lt')}
+                              className="w-2 h-2 bg-white border-2 border-blue-600 rounded-full absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize shadow-xs z-50 hover:scale-125 transition-transform pointer-events-auto"
+                            />
+                            <div
+                              onMouseDown={(e) => handleMouseDownOnElement(e, el, 'rt')}
+                              onTouchStart={(e) => handleMouseDownOnElement(e, el, 'rt')}
+                              className="w-2 h-2 bg-white border-2 border-blue-600 rounded-full absolute right-0 top-0 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize shadow-xs z-50 hover:scale-125 transition-transform pointer-events-auto"
+                            />
+                            <div
+                              onMouseDown={(e) => handleMouseDownOnElement(e, el, 'lb')}
+                              onTouchStart={(e) => handleMouseDownOnElement(e, el, 'lb')}
+                              className="w-2 h-2 bg-white border-2 border-blue-600 rounded-full absolute left-0 bottom-0 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize shadow-xs z-50 hover:scale-125 transition-transform pointer-events-auto"
+                            />
+                            <div
+                              onMouseDown={(e) => handleMouseDownOnElement(e, el, 'rb')}
+                              onTouchStart={(e) => handleMouseDownOnElement(e, el, 'rb')}
+                              className="w-2 h-2 bg-blue-600 border-2 border-white rounded-full absolute right-0 bottom-0 translate-x-1/2 translate-y-1/2 cursor-nwse-resize shadow-md z-50 hover:scale-125 transition-transform pointer-events-auto flex items-center justify-center"
+                            />
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            </div>
           </div>
         </div>
       )}
@@ -1426,21 +2422,28 @@ export const CertificateBuilderPage: React.FC = () => {
         onFieldCreated={handlePersonalFieldCreated}
       />
 
+      {/* HIDDEN FILE INPUTS */}
+      <input
+        ref={bgFileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleBackgroundUpload}
+        className="hidden"
+      />
+      <input
+        ref={imageFileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageUpload}
+        className="hidden"
+      />
+
       {/* UPLOAD CUSTOM FONT MODAL */}
       <UploadFontModal
         isOpen={isUploadFontModalOpen}
         onClose={() => setIsUploadFontModalOpen(false)}
-        onFontUploaded={(newFont) => {
-          setAvailableFonts((prev) => [...prev, newFont]);
-          loadFontFaceIntoDOM(newFont);
-          if (selectedElementId) {
-            updateSelectedElement({
-              fontKey: newFont.key,
-              font_family: newFont.family,
-            });
-          }
-          setToastMsg(`Font "${newFont.name}" uploaded successfully!`);
-          setTimeout(() => setToastMsg(null), 3000);
+        onFontUploaded={(font) => {
+          handleFontUploaded(font);
         }}
       />
     </div>

@@ -73,6 +73,7 @@ export const curriculumService = {
           const rawVideoUrl = String(l.video_url || l.videoUrl || '');
           const rawAudioUrl = String(l.audio_url || l.audioUrl || '');
           const primaryMedia = l.primary_media || null;
+          const rawStreamUrl = String(l.stream_url || primaryMedia?.stream_url || '');
           const mediaFiles = l.media_files || [];
           const mediaFileUrl = primaryMedia?.url || primaryMedia?.file || mediaFiles[0]?.media_file?.url || '';
 
@@ -89,10 +90,13 @@ export const curriculumService = {
             sortOrder: typeof l.order_index === 'number' ? l.order_index : lIdx + 1,
             durationMinutes: typeof l.duration_minutes === 'number' ? l.duration_minutes : 0,
             isDemo: Boolean(l.is_demo),
+            is_locked: Boolean(l.is_locked),
+            isLocked: Boolean(l.is_locked),
             allowDownload: Boolean(l.allow_download),
             external_url: rawExternalUrl,
             video_url: rawVideoUrl,
             audio_url: rawAudioUrl,
+            stream_url: rawStreamUrl,
             primary_media: primaryMedia,
             media_files: mediaFiles,
             question_count: rawQCount,
@@ -100,6 +104,7 @@ export const curriculumService = {
               externalUrl: rawExternalUrl || rawAudioUrl || rawVideoUrl,
               audioUrl: rawAudioUrl || rawExternalUrl || mediaFileUrl,
               videoUrl: rawVideoUrl || rawExternalUrl || mediaFileUrl,
+              streamUrl: rawStreamUrl,
               mediaUrl: mediaFileUrl || rawExternalUrl || rawAudioUrl || rawVideoUrl,
               mediaFile: primaryMedia,
               mediaFileId: primaryMedia?.id || null,
@@ -224,14 +229,16 @@ export const curriculumService = {
     const backendLessonType = toBackendLessonType(data.type);
     const textContent = content.textContent || content.body || '';
 
+    const rawIsLocked = (data as any)?.is_locked ?? data.isLocked;
     const payload: Record<string, any> = {
       title: data.title,
       lesson_type: backendLessonType,
       content_source: sourceMode.toLowerCase(),
       description: data.description || '',
       duration_minutes: data.durationMinutes || 0,
-      is_demo: data.isDemo || false,
-      allow_download: data.allowDownload || false,
+      is_demo: typeof data.isDemo === 'boolean' ? data.isDemo : Boolean(data.isDemo),
+      is_locked: typeof rawIsLocked === 'boolean' ? rawIsLocked : Boolean(rawIsLocked),
+      allow_download: Boolean(data.allowDownload),
     };
 
     if (externalUrl) {
@@ -260,8 +267,6 @@ export const curriculumService = {
       payload.resources = rawResources;
     }
 
-    console.log('[lesson-create] payload', payload);
-
     let response: any;
     try {
       response = await apiClient.post<{ data: Record<string, unknown> } | Record<string, unknown>>(
@@ -287,6 +292,8 @@ export const curriculumService = {
       id: realId,
       uuid: realId,
       video_url: backendData.video_url || content.videoUrl,
+      stream_url: backendData.stream_url || (backendData.primary_media as any)?.stream_url || '',
+      primary_media: backendData.primary_media || null,
       media_files: backendData.media_files || [],
       question_count: backendData.question_count || (backendData.quiz as any)?.questions?.length || 0,
       quiz: backendData.quiz || null,
@@ -298,6 +305,9 @@ export const curriculumService = {
         id: realId,
         uuid: realId,
         video_url: backendData.video_url || content.videoUrl,
+        stream_url: backendData.stream_url || (backendData.primary_media as any)?.stream_url || '',
+        primary_media: backendData.primary_media || null,
+        media_files: backendData.media_files || [],
         question_count: backendData.question_count || (backendData.quiz as any)?.questions?.length || 0,
         quiz: backendData.quiz || null,
       } as any);
@@ -306,46 +316,93 @@ export const curriculumService = {
   },
 
   async updateLesson(lessonUuid: string, data: UpdateLessonInput): Promise<void> {
-    useCurriculumStore.getState().updateLesson(lessonUuid, data);
     const content = (data as any)?.content || {};
-    const mediaFileId = content.mediaFileId || content.mediaFile?.id || (data as any)?.media_file_id || null;
-    const externalUrl = content.externalUrl || content.videoUrl || content.audioUrl || content.documentUrl || content.imageUrl || content.mediaUrl || '';
-    const textContent = content.textContent || content.body || '';
+    const mediaFileId =
+      content.mediaFileId ||
+      content.mediaFile?.id ||
+      (data as any)?.media_file_id ||
+      (data as any)?.media_id ||
+      null;
 
-    const payload: Record<string, any> = {
-      title: data.title,
-      description: data.description,
-      duration_minutes: data.durationMinutes,
-      is_demo: data.isDemo,
-      allow_download: data.allowDownload,
-      external_url: externalUrl,
-      media_file_id: mediaFileId,
-    };
+    const sourceModeRaw = content.sourceMode || (data as any)?.content_source;
+    const sourceMode = sourceModeRaw
+      ? String(sourceModeRaw).toUpperCase()
+      : (mediaFileId ? 'UPLOAD' : null);
+
+    const payload: Record<string, any> = {};
+
+    if (typeof data.title === 'string') {
+      payload.title = data.title;
+    }
+    if (typeof data.description === 'string') {
+      payload.description = data.description;
+    }
+    if (typeof data.durationMinutes === 'number') {
+      payload.duration_minutes = data.durationMinutes;
+    }
+    if (typeof data.isDemo === 'boolean') {
+      payload.is_demo = data.isDemo;
+    }
+
+    const rawIsLocked = (data as any)?.is_locked ?? data.isLocked;
+    if (typeof rawIsLocked === 'boolean') {
+      payload.is_locked = rawIsLocked;
+    }
+
+    if (typeof data.allowDownload === 'boolean') {
+      payload.allow_download = data.allowDownload;
+    }
+
+    if (sourceMode === 'UPLOAD') {
+      payload.content_source = 'upload';
+      if (mediaFileId) {
+        payload.media_file_id = mediaFileId;
+      }
+    } else if (sourceMode === 'URL') {
+      payload.content_source = 'url';
+      const explicitExternalUrl = String(content.externalUrl || (data as any)?.external_url || '').trim();
+      if (explicitExternalUrl) {
+        payload.external_url = explicitExternalUrl;
+      }
+    }
 
     if (content.quizPayload || content.quiz || (data as any).quizPayload) {
       payload.content = content.quizPayload || content.quiz || (data as any).quizPayload;
     } else if (content.assignmentPayload || content.assignment || (data as any).assignmentPayload) {
       payload.content = content.assignmentPayload || content.assignment || (data as any).assignmentPayload;
-    } else if (textContent) {
-      payload.content = textContent;
+    } else {
+      const textContent = content.textContent || content.body || '';
+      if (textContent) {
+        payload.content = textContent;
+      }
     }
 
-    const rawResources = Array.isArray(content.resources)
-      ? content.resources
-      : Array.isArray((data as any).resources)
-      ? (data as any).resources
-      : undefined;
-
-    if (rawResources !== undefined) {
-      payload.resources = rawResources;
+    let res: any;
+    try {
+      res = await apiClient.patch(`/api/v1/lessons/${lessonUuid}/`, payload);
+    } catch (err: any) {
+      const responseErr = err?.response?.data || err?.data;
+      console.error('[lesson-update] PATCH failed:', { lessonUuid, payload, responseErr });
+      throw err;
     }
-
-    const res = await apiClient.patch(`/api/v1/lessons/${lessonUuid}/`, payload);
 
     const updatedBackend = res.data?.data || res.data;
     if (updatedBackend) {
+      const rawStreamUrl = String(updatedBackend.stream_url || (updatedBackend.primary_media as any)?.stream_url || '');
+      const rawVideoUrl = String(updatedBackend.video_url || (updatedBackend.primary_media as any)?.url || '');
+
       useCurriculumStore.getState().updateLesson(lessonUuid, {
-        video_url: updatedBackend.video_url,
+        title: updatedBackend.title,
+        description: updatedBackend.description,
+        durationMinutes: updatedBackend.duration_minutes ?? 0,
+        isDemo: Boolean(updatedBackend.is_demo),
+        is_locked: Boolean(updatedBackend.is_locked),
+        isLocked: Boolean(updatedBackend.is_locked),
+        allowDownload: Boolean(updatedBackend.allow_download),
+        video_url: rawVideoUrl,
+        stream_url: rawStreamUrl,
+        primary_media: updatedBackend.primary_media || null,
+        media_files: updatedBackend.media_files || [],
         question_count: updatedBackend.question_count || (updatedBackend.quiz as any)?.questions?.length || 0,
         quiz: updatedBackend.quiz || null,
       } as any);

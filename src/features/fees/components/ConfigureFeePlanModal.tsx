@@ -166,23 +166,19 @@ export const ConfigureFeePlanModal: React.FC<ConfigureFeePlanModalProps> = ({
             </select>
           </div>
 
-          {/* Total Fee & Currency */}
+          {/* Total Fee & Currency (Read-Only from Course) */}
           <div className="grid grid-cols-3 gap-2.5">
             <div className="space-y-1 col-span-2">
               <label className="text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] block">
-                Total Fee Amount <span className="text-rose-500">*</span>
+                Course Price <span className="text-xs text-[#64748B] dark:text-[#94A3B8] font-normal">(Read-only from Course)</span>
               </label>
               <input
-                type="number"
-                step="0.01"
-                min="1"
-                value={totalFeeAmount}
-                onChange={(e) => setTotalFeeAmount(e.target.value)}
-                className={`w-full h-9.5 px-3 rounded-xl border text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] bg-white dark:bg-[#0F172A] focus:outline-none ${
-                  fieldErrors.totalFee ? 'border-rose-500' : 'border-[#CBD5E1] dark:border-[#334155] focus:border-[#3B82F6]'
-                }`}
+                type="text"
+                readOnly
+                value={existingConfig?.canonical_course_price ? `₹${existingConfig.canonical_course_price}` : (totalFeeAmount ? `₹${totalFeeAmount}` : 'From Course')}
+                className="w-full h-9.5 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-slate-100 dark:bg-[#1E293B] text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] cursor-not-allowed"
               />
-              {fieldErrors.totalFee && <p className="text-[10px] text-rose-500 font-normal">{fieldErrors.totalFee}</p>}
+              <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">To change course price, edit the Course settings.</p>
             </div>
 
             <div className="space-y-1">

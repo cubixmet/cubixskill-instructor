@@ -23,6 +23,8 @@ export function normalizeChatMessage(raw: any): NormalizedChatMessage {
     raw?.sender?.uuid ??
     raw?.senderId ??
     raw?.user_id ??
+    raw?.author_id ??
+    raw?.author?.id ??
     ''
   );
   const senderName =
@@ -30,6 +32,7 @@ export function normalizeChatMessage(raw: any): NormalizedChatMessage {
     raw?.sender?.full_name ??
     raw?.sender?.name ??
     raw?.senderName ??
+    raw?.author_name ??
     '';
   const senderRole =
     raw?.sender_role ??

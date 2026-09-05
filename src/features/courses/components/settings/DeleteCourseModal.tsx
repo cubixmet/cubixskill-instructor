@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { AlertTriangle, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Trash2 } from 'lucide-react';
 import { Modal } from '../../../../components/ui/Modal';
 import { Button } from '../../../../components/ui/Button';
-import { Input } from '../../../../components/ui/Input';
 
 export interface DeleteCourseModalProps {
   isOpen: boolean;
   onClose: () => void;
   courseTitle: string;
-  onConfirmDelete: () => void;
+  onConfirmDelete: () => void | Promise<void>;
+  isDeleting?: boolean;
 }
 
 export const DeleteCourseModal: React.FC<DeleteCourseModalProps> = ({
@@ -16,80 +16,84 @@ export const DeleteCourseModal: React.FC<DeleteCourseModalProps> = ({
   onClose,
   courseTitle,
   onConfirmDelete,
+  isDeleting = false,
 }) => {
   const [typedTitle, setTypedTitle] = useState('');
 
-  const isMatched = typedTitle.trim() === courseTitle.trim();
+  useEffect(() => {
+    if (isOpen) {
+      setTypedTitle('');
+    }
+  }, [isOpen]);
+
+  const isMatched = typedTitle === courseTitle;
 
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isMatched) return;
+    if (!isMatched || isDeleting) return;
     onConfirmDelete();
-    onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="⚠ Danger Zone: Delete Course Permanently"
-      subtitle="This action cannot be undone. All associated data will be removed."
-      maxWidth="md"
+      title="Confirm Delete Course"
+      maxWidth="sm"
     >
       <form onSubmit={handleConfirm} className="space-y-4 font-sans text-xs text-left">
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-2 text-rose-950">
-          <div className="flex items-center gap-2 font-black text-rose-900 text-xs">
-            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
-            <span>Permanent Deletion Warning</span>
-          </div>
-          <p className="text-rose-800 text-xs leading-relaxed font-medium">
-            Deleting this course will permanently remove all enrolled student records, video files, curriculum modules, assignment submissions, quiz attempt logs, and issued certificates.
-          </p>
-        </div>
+        <p className="text-xs text-slate-600 dark:text-[#94A3B8] font-normal leading-relaxed">
+          This action cannot be undone.
+        </p>
 
-        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 font-bold text-slate-800 text-xs">
-          <div className="flex justify-between">
-            <span className="text-slate-500">Enrolled Students:</span>
-            <span>420 Enrolled</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-slate-500">Curriculum Modules:</span>
-            <span>4 Modules (38 Lessons)</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-slate-500">Assignments &amp; Quizzes:</span>
-            <span>3 Assignments • 5 Quizzes</span>
-          </div>
-        </div>
-
-        <div>
-          <label className="block font-bold text-slate-900 mb-1">
-            Type <strong>"{courseTitle}"</strong> to confirm deletion *
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-slate-900 dark:text-[#F8FAFC] block">
+            To confirm, type the course title below:
           </label>
-          <Input
-            placeholder={courseTitle}
+
+          <div className="p-3 bg-slate-100 dark:bg-[#1E293B] rounded-xl border border-slate-200 dark:border-[#334155] font-mono text-xs font-bold text-slate-900 dark:text-[#F8FAFC] select-all break-words">
+            {courseTitle}
+          </div>
+
+          <input
+            type="text"
             value={typedTitle}
             onChange={(e) => setTypedTitle(e.target.value)}
-            required
+            placeholder="Type course title"
+            className="w-full h-10 px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+            autoFocus
           />
         </div>
 
-        <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-          <Button variant="outline" type="button" onClick={onClose}>
+        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-[#263244]">
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={isDeleting}
+            className="h-9.5 px-4 rounded-xl border-slate-300 dark:border-[#334155] text-slate-700 dark:text-[#CBD5E1] bg-white dark:bg-[#172033]"
+          >
             Cancel
           </Button>
+
           <Button
             type="submit"
-            disabled={!isMatched}
-            className={`font-extrabold px-5 text-white ${
-              isMatched ? 'bg-rose-600 hover:bg-rose-700' : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+            disabled={!isMatched || isDeleting}
+            variant="danger"
+            className={`h-9.5 px-5 font-semibold text-xs rounded-xl min-h-[40px] ${
+              isMatched
+                ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer'
+                : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border-none'
             }`}
             leftIcon={<Trash2 className="w-4 h-4" />}
           >
-            Delete Course Permanently
+            {isDeleting ? 'Deleting...' : 'Delete Course'}
           </Button>
         </div>
       </form>
     </Modal>
   );
 };
+

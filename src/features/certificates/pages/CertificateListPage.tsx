@@ -21,6 +21,7 @@ import {
   BookOpen,
   Send,
   Layers,
+  Trash2,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -34,10 +35,18 @@ import {
 } from '../../../services/certificates.service';
 import { coursesService } from '../../../services/courses.service';
 import type { CourseListItem } from '../../../features/courses/types/course.types';
-import { authStore } from '../../../store/auth.store';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  useCertificateCourses,
+  useCertificateSummary,
+  useCertificateTemplates,
+  useCertificateList,
+  certificateKeys,
+} from '../hooks/useCertificateQueries';
 
 export const CertificateListPage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const authState = authStore.getState();
   const user = authState.user;
   const userRole = (user?.role || 'instructor') as string;
@@ -55,17 +64,51 @@ export const CertificateListPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 15;
 
-  const [certificates, setCertificates] = useState<CertificateData[]>([]);
-  const [totalCount, setTotalCount] = useState<number>(0);
-  const [summary, setSummary] = useState<CertificateSummaryData | null>(null);
-  const [courses, setCourses] = useState<CourseListItem[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isError, setIsError] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>('');
+  // React Query server state owners
+  const { data: courses = [] } = useCertificateCourses();
+  const { data: summary = null } = useCertificateSummary();
+  const { data: templates = [], isLoading: isLoadingTemplates } = useCertificateTemplates();
 
-  // Templates State
-  const [templates, setTemplates] = useState<CertificateTemplateData[]>([]);
-  const [isLoadingTemplates, setIsLoadingTemplates] = useState<boolean>(false);
+  const listParams = React.useMemo(() => {
+    const params: Record<string, any> = {
+      page: currentPage,
+      page_size: pageSize,
+      ordering,
+    };
+    if (debouncedSearch) params.search = debouncedSearch;
+    if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
+    if (courseFilter && courseFilter !== 'all') params.course_id = courseFilter;
+    return params;
+  }, [currentPage, pageSize, ordering, debouncedSearch, statusFilter, courseFilter]);
+
+  const {
+    data: listResponse,
+    isLoading,
+    isError,
+    error: listQueryError,
+  } = useCertificateList(listParams);
+
+  const certificates: CertificateData[] = React.useMemo(() => {
+    if (listResponse && 'results' in listResponse && Array.isArray(listResponse.results)) {
+      return listResponse.results;
+    }
+    if (Array.isArray(listResponse)) {
+      return listResponse;
+    }
+    return [];
+  }, [listResponse]);
+
+  const totalCount: number = React.useMemo(() => {
+    if (listResponse && 'results' in listResponse && typeof listResponse.count === 'number') {
+      return listResponse.count;
+    }
+    if (Array.isArray(listResponse)) {
+      return listResponse.length;
+    }
+    return 0;
+  }, [listResponse]);
+
+  const errorMessage = listQueryError ? (listQueryError as any).message || 'Unable to load certificates.' : '';
 
   // Modals
   const [revokeModalOpen, setRevokeModalOpen] = useState(false);
@@ -79,6 +122,11 @@ export const CertificateListPage: React.FC = () => {
   const [targetTemplate, setTargetTemplate] = useState<CertificateTemplateData | null>(null);
   const [selectedAssignCourseId, setSelectedAssignCourseId] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
+
+  // Delete Template Modal
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<CertificateTemplateData | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -95,82 +143,6 @@ export const CertificateListPage: React.FC = () => {
     }, 350);
     return () => clearTimeout(handler);
   }, [search]);
-
-  // Load courses
-  useEffect(() => {
-    coursesService.listCourses({ page_size: 100 }).then((res) => {
-      if (res && 'results' in res && Array.isArray(res.results)) {
-        setCourses(res.results);
-      } else if (Array.isArray(res)) {
-        setCourses(res);
-      }
-    }).catch(() => {});
-  }, []);
-
-  // Fetch summary
-  const fetchSummary = useCallback(async () => {
-    try {
-      const data = await certificatesService.getSummary();
-      setSummary(data);
-    } catch (_) {}
-  }, []);
-
-  // Fetch issued certificates
-  const fetchCertificates = useCallback(async () => {
-    setIsLoading(true);
-    setIsError(false);
-    setErrorMessage('');
-    try {
-      const params: Record<string, any> = {
-        page: currentPage,
-        page_size: pageSize,
-        ordering,
-      };
-      if (debouncedSearch) params.search = debouncedSearch;
-      if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
-      if (courseFilter && courseFilter !== 'all') params.course_id = courseFilter;
-
-      const response = await certificatesService.listCertificates(params);
-
-      if (response && 'results' in response && Array.isArray(response.results)) {
-        setCertificates(response.results);
-        setTotalCount(response.count ?? response.results.length);
-      } else if (Array.isArray(response)) {
-        setCertificates(response);
-        setTotalCount(response.length);
-      } else {
-        setCertificates([]);
-        setTotalCount(0);
-      }
-    } catch (err: any) {
-      setIsError(true);
-      setErrorMessage(err.message || 'Unable to load certificates.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentPage, debouncedSearch, statusFilter, courseFilter, ordering]);
-
-  // Fetch templates
-  const fetchTemplates = useCallback(async () => {
-    setIsLoadingTemplates(true);
-    try {
-      const tmplList = await certificatesService.listTemplates();
-      setTemplates(tmplList);
-    } catch (err: any) {
-      showToast(err.message || 'Failed to load templates.');
-    } finally {
-      setIsLoadingTemplates(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'issued') {
-      fetchCertificates();
-      fetchSummary();
-    } else {
-      fetchTemplates();
-    }
-  }, [activeTab, fetchCertificates, fetchSummary, fetchTemplates]);
 
   const hasActiveFilters = search.trim() !== '' || statusFilter !== 'all' || courseFilter !== 'all' || ordering !== 'recent';
 
@@ -212,8 +184,7 @@ export const CertificateListPage: React.FC = () => {
       setRevokeModalOpen(false);
       setSelectedCert(null);
       setRevokeReason('');
-      fetchCertificates();
-      fetchSummary();
+      queryClient.invalidateQueries({ queryKey: certificateKeys.all });
     } catch (err: any) {
       showToast(err.message || 'Failed to revoke certificate.');
     } finally {
@@ -225,7 +196,7 @@ export const CertificateListPage: React.FC = () => {
     try {
       const dup = await certificatesService.duplicateTemplate(tmplId);
       showToast(`Duplicated template as "${dup.name}"`);
-      fetchTemplates();
+      queryClient.invalidateQueries({ queryKey: certificateKeys.templates() });
     } catch (err: any) {
       showToast(err.message || 'Failed to duplicate template.');
     }
@@ -235,7 +206,7 @@ export const CertificateListPage: React.FC = () => {
     try {
       const res = await certificatesService.publishTemplate(tmplId);
       showToast(res.message);
-      fetchTemplates();
+      queryClient.invalidateQueries({ queryKey: certificateKeys.templates() });
     } catch (err: any) {
       showToast(err.message || 'Failed to publish version.');
     }
@@ -255,6 +226,24 @@ export const CertificateListPage: React.FC = () => {
       showToast(err.message || 'Failed to assign template to course.');
     } finally {
       setIsAssigning(false);
+    }
+  };
+
+  const handleDeleteTemplateConfirm = async () => {
+    if (!templateToDelete || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      const res = await certificatesService.deleteTemplate(templateToDelete.id);
+      queryClient.invalidateQueries({ queryKey: certificateKeys.templates() });
+      queryClient.invalidateQueries({ queryKey: certificateKeys.summary() });
+      showToast(res?.message || 'Certificate template deleted.');
+      setDeleteModalOpen(false);
+      setTemplateToDelete(null);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.response?.data?.detail || err?.message || 'Failed to delete template.';
+      showToast(msg);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -691,7 +680,7 @@ export const CertificateListPage: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/certificates/new`)}
+                      onClick={() => navigate(`/certificates/${tmpl.id}/edit`)}
                       leftIcon={<Edit3 className="w-3.5 h-3.5" />}
                       className="text-xs font-semibold h-8"
                     >
@@ -703,6 +692,7 @@ export const CertificateListPage: React.FC = () => {
                         type="button"
                         onClick={() => handleDuplicateTemplate(tmpl.id)}
                         title="Duplicate Template"
+                        aria-label="Duplicate certificate template"
                         className="p-1.5 text-slate-500 hover:text-slate-900 dark:text-[#94A3B8] dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-[#172033] cursor-pointer"
                       >
                         <Copy className="w-4 h-4" />
@@ -712,6 +702,7 @@ export const CertificateListPage: React.FC = () => {
                         type="button"
                         onClick={() => handlePublishTemplate(tmpl.id)}
                         title="Publish New Version"
+                        aria-label="Publish new template version"
                         className="p-1.5 text-[#2563EB] hover:text-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-[#172033] cursor-pointer"
                       >
                         <Layers className="w-4 h-4" />
@@ -724,9 +715,23 @@ export const CertificateListPage: React.FC = () => {
                           setAssignModalOpen(true);
                         }}
                         title="Assign to Course"
+                        aria-label="Assign template to course"
                         className="p-1.5 text-emerald-600 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 dark:hover:bg-[#064e3b]/30 cursor-pointer"
                       >
                         <BookOpen className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTemplateToDelete(tmpl);
+                          setDeleteModalOpen(true);
+                        }}
+                        title="Delete Template"
+                        aria-label="Delete certificate template"
+                        className="p-1.5 text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -834,6 +839,59 @@ export const CertificateListPage: React.FC = () => {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CERTIFICATE TEMPLATE CONFIRMATION MODAL */}
+      {deleteModalOpen && templateToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-[16px] shadow-xl w-full max-w-md p-6 space-y-4 text-left">
+            <div className="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#263244] pb-3">
+              <div className="flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+                <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC]">Delete Certificate Template?</h3>
+              </div>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => {
+                  if (!isDeleting) {
+                    setDeleteModalOpen(false);
+                    setTemplateToDelete(null);
+                  }
+                }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer disabled:opacity-50"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-[#64748B] dark:text-[#94A3B8] leading-relaxed">
+              Are you sure you want to delete this certificate template? This action cannot be undone.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#E2E8F0] dark:border-[#263244]">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isDeleting}
+                onClick={() => {
+                  setDeleteModalOpen(false);
+                  setTemplateToDelete(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteTemplateConfirm}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-medium"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
           </div>
         </div>
       )}

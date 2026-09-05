@@ -27,12 +27,15 @@ import { MobileGlobalSearch } from "../global-search/MobileGlobalSearch";
 import { getUserInitials, getAcademyInitials, getRoleLabel } from "../../utils/branding.utils";
 
 import { useCreditSummary } from "../../hooks/useCreditSummary";
+import { useAcademyEventsSocket } from "../../hooks/useAcademyEventsSocket";
 
 export interface HeaderProps {
   onOpenMobileMenu?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
+  useAcademyEventsSocket();
+
   const { user, academy, logout } = useAuthStore();
   const { setTheme, resolvedTheme } = useTheme();
   const location = useLocation();

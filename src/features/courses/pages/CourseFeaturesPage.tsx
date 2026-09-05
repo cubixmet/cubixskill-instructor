@@ -25,6 +25,7 @@ import { Button } from '../../../components/ui/Button';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { parseApiError } from '../../../api/errors';
 import { normalizeCourseId } from '../../../utils/courseValidation.utils';
+import { CreditUsageConfirmationModal } from '../../../components/credits/CreditUsageConfirmationModal';
 
 export const CourseFeaturesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -90,12 +91,20 @@ export const CourseFeaturesPage: React.FC = () => {
     }));
   };
 
-  const handleSaveAndContinue = async () => {
+  const [isCreditConfirmOpen, setIsCreditConfirmOpen] = useState<boolean>(false);
+
+  const handleOpenCreditConfirm = () => {
+    if (!activeCourseId || isSaving) return;
+    setIsCreditConfirmOpen(true);
+  };
+
+  const handleConfirmSave = async () => {
     if (!activeCourseId || isSaving) return;
     setIsSaving(true);
     try {
       await courseFeaturesService.saveBulk(activeCourseId, localSelections);
       showToast('Course features saved successfully.');
+      setIsCreditConfirmOpen(false);
       navigate(`/courses/${activeCourseId}/overview`);
     } catch (err: any) {
       console.error('Failed to bulk save course features:', err);
@@ -431,7 +440,7 @@ export const CourseFeaturesPage: React.FC = () => {
           <Button
             size="sm"
             disabled={isSaving}
-            onClick={handleSaveAndContinue}
+            onClick={handleOpenCreditConfirm}
             className="h-10 font-normal bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 flex-1 sm:flex-initial justify-center shadow-xs"
             rightIcon={<ArrowRight className="w-4 h-4" />}
           >
@@ -439,6 +448,20 @@ export const CourseFeaturesPage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Credit Usage Confirmation Modal */}
+      <CreditUsageConfirmationModal
+        isOpen={isCreditConfirmOpen}
+        onClose={() => setIsCreditConfirmOpen(false)}
+        onConfirm={handleConfirmSave}
+        resourceType="COURSE_FEATURE"
+        resourceId="LIVE_CLASS"
+        courseId={activeCourseId || undefined}
+        dailyCost={totalCourseCreditsPerStudent}
+        isSubmitting={isSaving}
+        title="Daily Credit Usage"
+        description="Course features and storage consumption are billed daily based on active Academy usage."
+      />
     </div>
   );
 };

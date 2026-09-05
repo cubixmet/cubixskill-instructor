@@ -19,6 +19,7 @@ export const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({
   studentRecord,
   onSuccess,
 }) => {
+  const [collectionMode, setCollectionMode] = useState<string>('DIRECT_ACADEMY');
   const [amount, setAmount] = useState<string>('');
   const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState<string>('UPI');
@@ -64,6 +65,7 @@ export const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({
       await courseFeesCollectionService.collectPayment(courseUuid, studentRecord.fee_account_id, {
         amount: numAmount,
         payment_date: paymentDate,
+        collection_mode: collectionMode,
         payment_method: paymentMethod,
         reference_number: referenceNumber.trim(),
         notes: notes.trim(),
@@ -153,8 +155,22 @@ export const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({
             {fieldErrors.amount && <p className="text-[11px] text-rose-500 font-normal">{fieldErrors.amount}</p>}
           </div>
 
-          {/* Payment Method & Date */}
+          {/* Collection Mode & Payment Method */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] block">
+                Collection Mode
+              </label>
+              <select
+                value={collectionMode}
+                onChange={(e) => setCollectionMode(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
+              >
+                <option value="DIRECT_ACADEMY">Direct Academy (UPI/Bank/Cash)</option>
+                <option value="CUBIXSKILL_GATEWAY">CubixSkill Platform Gateway</option>
+              </select>
+            </div>
+
             <div className="space-y-1">
               <label className="text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] block">
                 Payment Method
@@ -168,22 +184,21 @@ export const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({
                 <option value="CASH">Cash Collection</option>
                 <option value="BANK_TRANSFER">Bank Transfer (NEFT/IMPS)</option>
                 <option value="CARD">Credit/Debit Card</option>
-                <option value="CHEQUE">Cheque / Demand Draft</option>
                 <option value="OTHER">Other Gateway / Manual</option>
               </select>
             </div>
+          </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] block">
-                Payment Date
-              </label>
-              <input
-                type="date"
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
-              />
-            </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] block">
+              Payment Date
+            </label>
+            <input
+              type="date"
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
+              className="w-full h-10 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
+            />
           </div>
 
           {/* Transaction / Reference ID */}

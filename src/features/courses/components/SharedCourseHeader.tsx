@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
+import { CourseThumbnailImage } from '../../../components/courses/CourseThumbnailImage';
 import { useAuthStore } from '../../../store/auth.store';
 import type { CourseDetail } from '../types/course.types';
 import { useCurriculumStore } from '../store/curriculum.store';
@@ -99,17 +100,13 @@ export const SharedCourseHeader: React.FC<SharedCourseHeaderProps> = ({ course }
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0 flex-1 w-full">
-            {course.thumbnail?.url || course.thumbnail_url ? (
-              <img
-                src={course.thumbnail?.url || course.thumbnail_url}
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden border border-slate-200 dark:border-[#263244] shrink-0">
+              <CourseThumbnailImage
+                src={course.thumbnail || course.thumbnail_url}
                 alt={course.title}
-                className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-cover border border-slate-200 dark:border-[#263244] shrink-0"
+                iconClassName="w-6 h-6"
               />
-            ) : (
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-blue-50 dark:bg-[#172033] text-blue-600 dark:text-[#60A5FA] border border-blue-100 dark:border-[#263244] flex items-center justify-center font-bold text-xs shrink-0">
-                <BookOpen className="w-6 h-6" />
-              </div>
-            )}
+            </div>
             <div className="min-w-0 flex-1 space-y-1">
               <h1 className="text-xs sm:text-sm md:text-base font-semibold text-slate-900 dark:text-[#F8FAFC] leading-snug line-clamp-2 break-words">
                 {course.title}

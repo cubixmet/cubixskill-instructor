@@ -418,7 +418,7 @@ export const useCustomCertificateDesignerStore = create<CustomCertificateDesigne
         
         let initialWidth = el.width;
         let initialHeight = el.height;
-        const fontSz = el.fontSize || 32;
+        const fontSz = el.fontSize || 56;
         const padding = el.padding || DEFAULT_PADDING;
         const textContent = el.text || el.label || 'Sample Text';
 
@@ -443,7 +443,7 @@ export const useCustomCertificateDesignerStore = create<CustomCertificateDesigne
           width: initialWidth || 50,
           height: initialHeight || 40,
           fontSize: fontSz,
-          minFontSize: el.minFontSize ?? Math.min(fontSz, 18),
+          minFontSize: el.minFontSize ?? 1,
           padding,
           zIndex: maxZIndex + 1,
           isLocked: false,

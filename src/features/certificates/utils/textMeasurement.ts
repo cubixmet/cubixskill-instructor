@@ -104,6 +104,7 @@ export async function measureTextAsync(options: TextMeasureOptions): Promise<Ini
   let textWidthPx = 0;
   let textHeightPx = 0;
 
+  let glyphHeightPx = 0;
   if (ctx) {
     try {
       ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px "${fontFamily}", sans-serif`;
@@ -114,7 +115,7 @@ export async function measureTextAsync(options: TextMeasureOptions): Promise<Ini
           const ascent = Math.abs(metrics.actualBoundingBoxAscent);
           const descent = Math.abs(metrics.actualBoundingBoxDescent);
           if (ascent + descent > 0) {
-            textHeightPx = ascent + descent;
+            glyphHeightPx = ascent + descent;
           }
         }
       }
@@ -126,9 +127,9 @@ export async function measureTextAsync(options: TextMeasureOptions): Promise<Ini
   if (textWidthPx <= 0) {
     textWidthPx = sampleString.length * (fontSize * 0.62);
   }
-  if (textHeightPx <= 0) {
-    textHeightPx = fontSize * lineHeight;
-  }
+
+  const nominalHeight = fontSize * lineHeight;
+  textHeightPx = Math.max(nominalHeight, glyphHeightPx);
 
   const totalWidthPx = textWidthPx + padding.left + padding.right;
   const totalHeightPx = textHeightPx + padding.top + padding.bottom;

@@ -84,7 +84,7 @@ export const SortableLessonItem: React.FC<SortableLessonItemProps> = ({
     return <Icon className="w-4.5 h-4.5 text-[#2563EB]" />;
   };
 
-  const isLocked = lesson.unlockRule && lesson.unlockRule !== 'immediate';
+  const isLocked = (lesson as any).is_locked === true || (lesson as any).isLocked === true;
   const resources = lesson.resources || lesson.content?.resources || [];
   const resourceCount = resources.length;
 
@@ -192,18 +192,14 @@ export const SortableLessonItem: React.FC<SortableLessonItemProps> = ({
           <span className="flex items-center gap-1">
             <Clock className="w-3 h-3 text-current opacity-70" /> {lesson.durationMinutes} mins
           </span>
-          <span style={{ color: 'var(--border)' }}>•</span>
-          <span className="flex items-center gap-1">
-            {isLocked ? (
-              <span className="flex items-center gap-1 text-amber-500 font-semibold">
-                <Lock className="w-3 h-3" /> Locked
+          {isLocked && (
+            <>
+              <span style={{ color: 'var(--border)' }}>•</span>
+              <span className="flex items-center gap-1.5 text-amber-500 font-semibold">
+                <Lock className="w-3.5 h-3.5" /> Locked
               </span>
-            ) : (
-              <span style={{ color: 'var(--brand-primary)' }} className="flex items-center gap-1 font-semibold">
-                <Unlock className="w-3 h-3" /> Unlocked
-              </span>
-            )}
-          </span>
+            </>
+          )}
         </div>
 
         {/* 4. PUBLISHED STATUS BADGE */}
