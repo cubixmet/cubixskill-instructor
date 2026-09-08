@@ -1,5 +1,5 @@
-import React from "react";
-import { DollarSign, ArrowUpRight, AlertCircle } from "lucide-react";
+import React, { useState } from "react";
+import { BarChart3, DollarSign, ChevronDown } from "lucide-react";
 import type { BackendRevenueAnalytics } from "../types/analytics.types";
 
 interface RevenueOverviewProps {
@@ -8,76 +8,96 @@ interface RevenueOverviewProps {
 
 export const RevenueOverview: React.FC<RevenueOverviewProps> = ({ analytics }) => {
   const currencies = Object.keys(analytics);
+  const [selectedRange, setSelectedRange] = useState("Current Month");
 
   return (
-    <div className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl p-5 shadow-2xs text-left transition-all">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-base font-extrabold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
-              Revenue &amp; Financial Analytics
-            </h3>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#16A34A] dark:text-emerald-400 bg-[#F0FDF4] dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-[#BBF7D0] dark:border-emerald-800">
-              <ArrowUpRight className="w-3 h-3" /> Real-time DB Metrics
-            </span>
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-4 sm:p-5 shadow-xs text-left transition-all h-full flex flex-col justify-between">
+      <div>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 flex items-center justify-center shrink-0">
+              <BarChart3 className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)] tracking-tight truncate">
+                Revenue &amp; Financial Analytics
+              </h3>
+              <p className="text-xs font-normal text-[var(--text-secondary)] truncate">
+                Track revenue, orders and growth
+              </p>
+            </div>
           </div>
-          <p className="text-xs font-medium text-[#64748B] dark:text-[#94A3B8] mt-0.5">
-            Gross earnings, issued refunds, and net revenue calculated per currency
-          </p>
+
+          <div className="relative shrink-0">
+            <select
+              value={selectedRange}
+              onChange={(e) => setSelectedRange(e.target.value)}
+              className="bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] text-xs font-semibold rounded-xl pl-3 pr-7 py-1.5 focus:outline-none cursor-pointer appearance-none"
+            >
+              <option value="Current Month">Current Month</option>
+              <option value="Last 30 Days">Last 30 Days</option>
+              <option value="This Quarter">This Quarter</option>
+              <option value="This Year">This Year</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] absolute right-2.5 top-2.5 pointer-events-none" />
+          </div>
         </div>
+
+        {currencies.length === 0 ? (
+          <div className="py-8 text-center space-y-2 bg-[var(--surface-secondary)] rounded-xl border border-[var(--border)]">
+            <DollarSign className="w-8 h-8 text-[var(--text-muted)] mx-auto" />
+            <p className="text-xs font-semibold text-[var(--text-secondary)]">No revenue transactions recorded yet.</p>
+            <p className="text-[11px] text-[var(--text-muted)]">Completed course purchase orders will appear here automatically.</p>
+          </div>
+        ) : (
+          <div className="space-y-3 w-full min-w-0">
+            {currencies.map((curr) => {
+              const item = analytics[curr];
+              return (
+                <div
+                  key={curr}
+                  className="p-3 bg-[var(--surface-secondary)] rounded-xl border border-[var(--border)] space-y-3 w-full min-w-0"
+                >
+                  <div className="flex items-center justify-between gap-3 text-xs font-semibold flex-wrap sm:flex-nowrap min-w-0">
+                    <span className="text-[var(--text-secondary)] shrink-0">
+                      Currency: <strong className="text-[var(--text-primary)]">{curr}</strong>
+                    </span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                      Net: {curr} {Number(item.net_revenue).toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 max-[340px]:grid-cols-1 gap-2.5 text-center w-full min-w-0">
+                    {/* Gross Revenue: Spans full width on mobile (cols 1/-1), 1 col on desktop */}
+                    <div className="bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] shadow-2xs col-span-2 max-[340px]:col-span-1 md:col-span-1 min-w-0">
+                      <p className="text-[10px] sm:text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Gross Revenue</p>
+                      <p className="text-sm sm:text-base font-bold text-blue-600 dark:text-blue-400 mt-1 whitespace-normal break-words leading-tight">
+                        {curr} {Number(item.gross_revenue).toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* Total Refunds */}
+                    <div className="bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] shadow-2xs col-span-1 min-w-0">
+                      <p className="text-[10px] sm:text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Total Refunds</p>
+                      <p className="text-sm sm:text-base font-bold text-rose-600 dark:text-rose-400 mt-1 whitespace-normal break-words leading-tight">
+                        {curr} {Number(item.total_refunds).toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* Net Revenue */}
+                    <div className="bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] shadow-2xs col-span-1 min-w-0">
+                      <p className="text-[10px] sm:text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Net Revenue</p>
+                      <p className="text-sm sm:text-base font-bold text-emerald-600 dark:text-emerald-400 mt-1 whitespace-normal break-words leading-tight">
+                        {curr} {Number(item.net_revenue).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-
-      {currencies.length === 0 ? (
-        <div className="py-10 text-center space-y-2 bg-slate-50/50 dark:bg-[#172033]/50 rounded-xl border border-slate-100 dark:border-[#263244]">
-          <DollarSign className="w-8 h-8 text-slate-400 dark:text-slate-500 mx-auto" />
-          <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">No revenue transactions recorded yet.</p>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500">Completed course purchase orders will appear here automatically.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {currencies.map((curr) => {
-            const item = analytics[curr];
-            return (
-              <div
-                key={curr}
-                className="p-4 bg-slate-50/80 dark:bg-[#172033] rounded-2xl border border-slate-200/80 dark:border-[#263244] space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider bg-white dark:bg-[#111827] px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#263244] shadow-2xs">
-                    Currency: {curr}
-                  </span>
-                  <span className="text-xs font-extrabold text-[#16A34A] dark:text-emerald-400">
-                    Net: {curr} {Number(item.net_revenue).toLocaleString()}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3 pt-2 text-center">
-                  <div className="bg-white dark:bg-[#111827] p-3 rounded-xl border border-slate-200/80 dark:border-[#263244] shadow-2xs">
-                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Gross Revenue</p>
-                    <p className="text-sm sm:text-base font-extrabold text-blue-600 dark:text-blue-400 mt-1">
-                      {curr} {Number(item.gross_revenue).toLocaleString()}
-                    </p>
-                  </div>
-
-                  <div className="bg-white dark:bg-[#111827] p-3 rounded-xl border border-slate-200/80 dark:border-[#263244] shadow-2xs">
-                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Refunds</p>
-                    <p className="text-sm sm:text-base font-extrabold text-rose-600 dark:text-rose-400 mt-1">
-                      {curr} {Number(item.total_refunds).toLocaleString()}
-                    </p>
-                  </div>
-
-                  <div className="bg-white dark:bg-[#111827] p-3 rounded-xl border border-slate-200/80 dark:border-[#263244] shadow-2xs">
-                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Net Revenue</p>
-                    <p className="text-sm sm:text-base font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
-                      {curr} {Number(item.net_revenue).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 };

@@ -6,9 +6,9 @@ export interface PaddingConfig {
 }
 
 export const DEFAULT_TEXT_PADDING: PaddingConfig = {
-  top: 2,
+  top: 3,
   right: 4,
-  bottom: 2,
+  bottom: 3,
   left: 4,
 };
 
@@ -82,14 +82,18 @@ function checkTextFitAtFontSize(
 
   if (!multiline) {
     const metrics = ctx.measureText(text);
-    const textWidth = metrics.width + (text.length > 1 ? (text.length - 1) * letterSpacing : 0);
-    let textHeight = fontSize * lineHeight;
-    if (typeof metrics.actualBoundingBoxAscent === 'number' && typeof metrics.actualBoundingBoxDescent === 'number') {
-      const bboxHeight = Math.abs(metrics.actualBoundingBoxAscent) + Math.abs(metrics.actualBoundingBoxDescent);
-      if (bboxHeight > 0) {
-        textHeight = Math.max(textHeight, bboxHeight);
-      }
-    }
+    const letterSpacingTotal = text.length > 1 ? (text.length - 1) * letterSpacing : 0;
+    const leftExtent = Math.max(0, metrics.actualBoundingBoxLeft || 0);
+    const rightExtent = Math.max(0, metrics.actualBoundingBoxRight || 0);
+    const glyphWidth = leftExtent > 0 || rightExtent > 0 ? leftExtent + rightExtent : metrics.width;
+    const textWidth = Math.max(metrics.width, glyphWidth) + letterSpacingTotal;
+
+    const nominalHeight = fontSize * lineHeight;
+    const ascent = Math.abs(metrics.actualBoundingBoxAscent || 0);
+    const descent = Math.abs(metrics.actualBoundingBoxDescent || 0);
+    const glyphHeight = ascent + descent > 0 ? ascent + descent : nominalHeight;
+    const textHeight = Math.max(nominalHeight, glyphHeight);
+
     const fits = textWidth <= availableWidth && textHeight <= availableHeight;
     return { fits, measuredWidth: textWidth, measuredHeight: textHeight };
   }

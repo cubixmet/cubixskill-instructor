@@ -93,6 +93,8 @@ export const curriculumService = {
             is_locked: Boolean(l.is_locked),
             isLocked: Boolean(l.is_locked),
             allowDownload: Boolean(l.allow_download),
+            show_media_preview: l.show_media_preview !== false,
+            showMediaPreview: l.show_media_preview !== false,
             external_url: rawExternalUrl,
             video_url: rawVideoUrl,
             audio_url: rawAudioUrl,

@@ -10,12 +10,7 @@ import { isValidCourseId, isValidModuleUuid } from '../utils/courseValidation.ut
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { ForgotPasswordPage } from '../features/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '../features/auth/pages/ResetPasswordPage';
-import { ChangePasswordPage } from '../features/auth/pages/ChangePasswordPage';
 import { SetupPasswordPage } from '../features/auth/pages/SetupPasswordPage';
-import { VerifyEmailPage } from '../features/auth/pages/VerifyEmailPage';
-import { AcceptInvitePage } from '../features/auth/pages/AcceptInvitePage';
-import { AccountActivationPage } from '../features/auth/pages/AccountActivationPage';
-import { PasswordUpdatedSuccessPage } from '../features/auth/pages/PasswordUpdatedSuccessPage';
 
 // Core Eager Shell Pages
 import { DashboardPage } from '../features/dashboard/pages/DashboardPage';
@@ -66,6 +61,7 @@ const PublicSiteBuilderPage = lazy(() => import('../features/website-builder/pag
 const CertificateListPage = lazy(() => import('../features/certificates/pages/CertificateListPage').then(m => ({ default: m.CertificateListPage })));
 const CertificateBuilderPage = lazy(() => import('../features/certificates/pages/CertificateBuilderPage').then(m => ({ default: m.CertificateBuilderPage })));
 const CertificateDetailPage = lazy(() => import('../features/certificates/pages/CertificateDetailPage').then(m => ({ default: m.CertificateDetailPage })));
+const CertificateFontsPage = lazy(() => import('../features/certificates/pages/CertificateFontsPage').then(m => ({ default: m.CertificateFontsPage })));
 
 const CouponListPage = lazy(() => import('../features/coupons/pages/CouponListPage').then(m => ({ default: m.CouponListPage })));
 const CouponCreatePage = lazy(() => import('../features/coupons/pages/CouponCreatePage').then(m => ({ default: m.CouponCreatePage })));
@@ -156,12 +152,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route path="/setup-password" element={<SetupPasswordPage />} />
-            <Route path="/verify-email" element={<VerifyEmailPage />} />
-            <Route path="/accept-invite" element={<AcceptInvitePage />} />
-            <Route path="/activate-account" element={<AccountActivationPage />} />
-            <Route path="/password-updated" element={<PasswordUpdatedSuccessPage />} />
           </Route>
         </Route>
 
@@ -243,6 +234,7 @@ export const AppRoutes: React.FC = () => {
 
             {/* 3. Certificate Builder */}
             <Route path="/certificates" element={<CertificateListPage />} />
+            <Route path="/certificates/fonts" element={<CertificateFontsPage />} />
             <Route path="/certificates/new" element={<CertificateBuilderPage />} />
             <Route path="/certificates/:templateId/edit" element={<CertificateBuilderPage />} />
             <Route path="/certificates/:id/issue" element={<CertificateDetailPage />} />
@@ -318,6 +310,7 @@ export const AppRoutes: React.FC = () => {
             {/* 16. Settings */}
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/general" element={<SettingsPage />} />
+            <Route path="/settings/fonts" element={<CertificateFontsPage />} />
 
             {/* 17. Support Desk */}
             <Route path="/support" element={<SupportPage />} />

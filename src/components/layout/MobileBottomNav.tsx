@@ -4,10 +4,7 @@ import {
   LayoutDashboard,
   BookOpen,
   Users,
-  IndianRupee,
-  MessageCircle,
-  MessageSquare,
-  Layers,
+  Video,
   Menu,
 } from "lucide-react";
 import { cn } from "../../lib/cn";
@@ -23,18 +20,15 @@ export const MobileBottomNav: React.FC<MobileNavProps> = ({
 }) => {
   const location = useLocation();
 
-  // Exactly 7 items as required by specification
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Courses", href: "/courses", icon: BookOpen },
     { label: "Students", href: "/students", icon: Users },
-    { label: "Personal Chat", href: "/discussions/personal", icon: MessageCircle },
-    { label: "Community", href: "/discussions/community", icon: Users },
-    { label: "Media", href: "/media", icon: Layers },
+    { label: "Live Classes", href: "/live-classes", icon: Video },
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-white/95 dark:bg-[#0B1120] backdrop-blur-md border-t border-slate-200/90 dark:border-[#1E293B] px-1 flex items-center justify-between z-40 shadow-lg select-none pb-[env(safe-area-inset-bottom)]">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-white/95 dark:bg-[#0B1120]/95 backdrop-blur-md border-t border-slate-200/90 dark:border-[#1E293B] px-2 flex items-center justify-around z-40 shadow-lg select-none pb-[env(safe-area-inset-bottom)]">
       {navItems.map((item) => {
         const active = isNavItemActive(item.href, location.pathname);
 
@@ -44,26 +38,24 @@ export const MobileBottomNav: React.FC<MobileNavProps> = ({
             to={item.href}
             className={() =>
               cn(
-                "flex-1 flex flex-col items-center justify-center gap-0.5 text-[9px] transition-all min-w-0 h-11 px-0.5 cursor-pointer",
+                "flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] transition-all min-w-0 h-11 px-1 cursor-pointer",
                 active
-                  ? "text-[#2563EB] dark:text-[#60A5FA] font-medium"
-                  : "text-slate-500 dark:text-[#94A3B8] font-normal hover:text-slate-900 dark:hover:text-[#F8FAFC]"
+                  ? "text-[#2563EB] dark:text-[#60A5FA] font-bold"
+                  : "text-slate-500 dark:text-[#94A3B8] font-medium hover:text-slate-900 dark:hover:text-[#F8FAFC]"
               )
             }
           >
-            <item.icon className="w-4 h-4 shrink-0" />
+            <item.icon className={cn("w-4 h-4 shrink-0", active && "stroke-[2.5]")} />
             <span className="truncate w-full text-center">{item.label}</span>
           </NavLink>
         );
       })}
 
-      {/* Item 7: More (Sidebar Drawer trigger) */}
+      {/* Item 5: More (Sidebar Drawer trigger) */}
       <button
         type="button"
         onClick={onOpenSidebar}
-        className={cn(
-          "flex-1 flex flex-col items-center justify-center gap-0.5 text-[9px] transition-all min-w-0 h-11 px-0.5 cursor-pointer text-slate-500 dark:text-[#94A3B8] font-normal hover:text-slate-900 dark:hover:text-[#F8FAFC]"
-        )}
+        className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] transition-all min-w-0 h-11 px-1 cursor-pointer text-slate-500 dark:text-[#94A3B8] font-medium hover:text-slate-900 dark:hover:text-[#F8FAFC]"
       >
         <Menu className="w-4 h-4 shrink-0" />
         <span className="truncate w-full text-center">More</span>

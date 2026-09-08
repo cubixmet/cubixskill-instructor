@@ -6,9 +6,9 @@ export interface PaddingConfig {
 }
 
 export const DEFAULT_PADDING: PaddingConfig = {
-  top: 2,
+  top: 3,
   right: 4,
-  bottom: 2,
+  bottom: 3,
   left: 4,
 };
 
@@ -104,20 +104,22 @@ export async function measureTextAsync(options: TextMeasureOptions): Promise<Ini
   let textWidthPx = 0;
   let textHeightPx = 0;
 
-  let glyphHeightPx = 0;
   if (ctx) {
     try {
       ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px "${fontFamily}", sans-serif`;
       const metrics = ctx.measureText(sampleString);
       if (metrics && metrics.width > 0) {
-        textWidthPx = metrics.width + (sampleString.length > 1 ? (sampleString.length - 1) * letterSpacing : 0);
-        if (typeof metrics.actualBoundingBoxAscent === 'number' && typeof metrics.actualBoundingBoxDescent === 'number') {
-          const ascent = Math.abs(metrics.actualBoundingBoxAscent);
-          const descent = Math.abs(metrics.actualBoundingBoxDescent);
-          if (ascent + descent > 0) {
-            glyphHeightPx = ascent + descent;
-          }
-        }
+        const letterSpacingTotal = sampleString.length > 1 ? (sampleString.length - 1) * letterSpacing : 0;
+        const leftExtent = Math.max(0, metrics.actualBoundingBoxLeft || 0);
+        const rightExtent = Math.max(0, metrics.actualBoundingBoxRight || 0);
+        const glyphWidth = leftExtent > 0 || rightExtent > 0 ? leftExtent + rightExtent : metrics.width;
+        textWidthPx = Math.max(metrics.width, glyphWidth) + letterSpacingTotal;
+
+        const nominalHeight = fontSize * lineHeight;
+        const ascent = Math.abs(metrics.actualBoundingBoxAscent || 0);
+        const descent = Math.abs(metrics.actualBoundingBoxDescent || 0);
+        const glyphHeight = ascent + descent > 0 ? ascent + descent : nominalHeight;
+        textHeightPx = Math.max(nominalHeight, glyphHeight);
       }
     } catch (_e) {
       // Fallback used
@@ -128,8 +130,9 @@ export async function measureTextAsync(options: TextMeasureOptions): Promise<Ini
     textWidthPx = sampleString.length * (fontSize * 0.62);
   }
 
-  const nominalHeight = fontSize * lineHeight;
-  textHeightPx = Math.max(nominalHeight, glyphHeightPx);
+  if (textHeightPx <= 0) {
+    textHeightPx = fontSize * lineHeight;
+  }
 
   const totalWidthPx = textWidthPx + padding.left + padding.right;
   const totalHeightPx = textHeightPx + padding.top + padding.bottom;
@@ -176,14 +179,17 @@ export function calculateTextInitialSize(options: TextMeasureOptions): InitialSi
       ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px "${fontFamily}", sans-serif`;
       const metrics = ctx.measureText(sampleString);
       if (metrics && metrics.width > 0) {
-        textWidthPx = metrics.width + (sampleString.length > 1 ? (sampleString.length - 1) * letterSpacing : 0);
-        if (typeof metrics.actualBoundingBoxAscent === 'number' && typeof metrics.actualBoundingBoxDescent === 'number') {
-          const ascent = Math.abs(metrics.actualBoundingBoxAscent);
-          const descent = Math.abs(metrics.actualBoundingBoxDescent);
-          if (ascent + descent > 0) {
-            textHeightPx = ascent + descent;
-          }
-        }
+        const letterSpacingTotal = sampleString.length > 1 ? (sampleString.length - 1) * letterSpacing : 0;
+        const leftExtent = Math.max(0, metrics.actualBoundingBoxLeft || 0);
+        const rightExtent = Math.max(0, metrics.actualBoundingBoxRight || 0);
+        const glyphWidth = leftExtent > 0 || rightExtent > 0 ? leftExtent + rightExtent : metrics.width;
+        textWidthPx = Math.max(metrics.width, glyphWidth) + letterSpacingTotal;
+
+        const nominalHeight = fontSize * lineHeight;
+        const ascent = Math.abs(metrics.actualBoundingBoxAscent || 0);
+        const descent = Math.abs(metrics.actualBoundingBoxDescent || 0);
+        const glyphHeight = ascent + descent > 0 ? ascent + descent : nominalHeight;
+        textHeightPx = Math.max(nominalHeight, glyphHeight);
       }
     } catch (_e) {
       // Fallback used

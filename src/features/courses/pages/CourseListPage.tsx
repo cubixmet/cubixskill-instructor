@@ -3,15 +3,17 @@ import {
   Plus,
   Search,
   BookOpen,
-  MoreVertical,
+  MoreHorizontal,
   CheckCircle2,
   Archive,
   Copy,
   Trash2,
   RefreshCw,
   AlertTriangle,
-  Folder,
   Info,
+  SlidersHorizontal,
+  Users,
+  Star,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../../components/ui/Button";
@@ -54,6 +56,7 @@ export const CourseListPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [selectedLevel, setSelectedLevel] = useState<string>("ALL");
+  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
 
   // Interactive Action States
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -187,10 +190,10 @@ export const CourseListPage: React.FC = () => {
 
   if (!hasFeature("courses") || !can("courses.view")) {
     return (
-      <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+      <div className="p-8 text-center bg-[var(--surface)] rounded-2xl border border-[var(--border)] space-y-3">
         <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
-        <h2 className="text-lg font-bold text-slate-900">Access Restricted</h2>
-        <p className="text-xs text-slate-500 max-w-md mx-auto">
+        <h2 className="text-lg font-bold text-[var(--text-primary)]">Access Restricted</h2>
+        <p className="text-xs text-[var(--text-secondary)] max-w-md mx-auto">
           Your role or Academy license does not have permission to view Course Management.
         </p>
       </div>
@@ -198,127 +201,167 @@ export const CourseListPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16 text-left">
+    <div className="space-y-4 sm:space-y-5 max-w-7xl mx-auto pb-20 md:pb-6 text-left font-sans">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-white dark:bg-[#111827] text-[#0F172A] dark:text-[#F8FAFC] border border-[#E2E8F0] dark:border-[#263244] text-xs font-semibold px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 transition-all">
+        <div className="fixed bottom-20 right-4 sm:right-6 z-50 bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] text-xs font-semibold px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 transition-all">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">Course Catalog</h1>
-          <p className="text-xs font-medium text-[#64748B] dark:text-[#94A3B8]">
-            Manage, publish, and structure academy courses using live backend services
+      {/* Page Title Area + Create Course CTA */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] tracking-tight leading-tight">
+            My Courses
+          </h1>
+          <p className="text-xs text-[var(--text-secondary)] font-normal mt-0.5 truncate">
+            Create and manage your courses
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link to="/courses/categories">
-            <Button variant="outline" size="md" leftIcon={<Folder className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />}>
-              Manage Categories
+        {can("courses.create") && (
+          <Link to="/courses/create" className="shrink-0">
+            <Button
+              variant="primary"
+              size="md"
+              className="h-10 min-h-[40px] px-3.5 sm:px-4 rounded-xl bg-[var(--brand-primary)] text-[var(--brand-primary-foreground)] font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-xs cursor-pointer hover:bg-[var(--brand-primary-hover)] transition-all shrink-0"
+              leftIcon={<Plus className="w-4 h-4 stroke-[3]" />}
+            >
+              <span>Create Course</span>
             </Button>
           </Link>
-          {can("courses.create") && (
-            <Link to="/courses/create">
-              <Button variant="primary" size="md" leftIcon={<Plus className="w-4 h-4" />}>
-                Create Course
-              </Button>
-            </Link>
-          )}
-        </div>
-
+        )}
       </div>
 
-      {/* Status Filter Tabs */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-[#E2E8F0] dark:border-[#263244] pb-3">
+      {/* Course Status Filter Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
         {[
-          { key: "ALL", label: `All Courses (${counts.total})` },
-          { key: "PUBLISHED", label: `Published (${counts.published})` },
-          { key: "DRAFT", label: `Draft (${counts.draft})` },
-          { key: "ARCHIVED", label: `Archived (${counts.archived})` },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveStatusTab(tab.key)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-              activeStatusTab === tab.key
-                ? "bg-[#2563EB] text-white shadow-xs"
-                : "bg-[#F8FAFC] dark:bg-[#172033] text-[#475569] dark:text-[#94A3B8] border border-[#E2E8F0] dark:border-[#263244] hover:bg-slate-100 dark:hover:bg-[#1E293B]"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+          { key: "ALL", label: "All Courses", count: counts.total },
+          { key: "PUBLISHED", label: "Published", count: counts.published },
+          { key: "DRAFT", label: "Drafts", count: counts.draft },
+          ...(counts.archived > 0 ? [{ key: "ARCHIVED", label: "Archived", count: counts.archived }] : []),
+        ].map((pill) => {
+          const isActive = activeStatusTab === pill.key;
+          return (
+            <button
+              key={pill.key}
+              type="button"
+              onClick={() => setActiveStatusTab(pill.key)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+                isActive
+                  ? "bg-[var(--brand-primary)] text-[var(--brand-primary-foreground)] shadow-xs"
+                  : "bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+              }`}
+            >
+              <span>{pill.label}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  isActive
+                    ? "bg-white/20 text-white"
+                    : "bg-[var(--border)] text-[var(--text-muted)]"
+                }`}
+              >
+                {pill.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Search & Filter Controls */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-[#111827] p-4 rounded-2xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs">
-        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="relative">
-            <Search className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8] absolute left-3 top-3" />
+      <div className="space-y-3">
+        <div className="flex items-center gap-2.5">
+          <div className="relative flex-1 min-w-0">
+            <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-3 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search by title or description..."
+              placeholder="Search courses..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl text-xs text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] focus:ring-2 focus:ring-[#2563EB] focus:outline-hidden font-medium"
+              className="w-full h-10 min-h-[40px] pl-9 pr-3.5 bg-[var(--surface-secondary)] border border-[var(--input-border)] focus:border-[var(--brand-primary)] rounded-xl text-xs sm:text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none transition-all font-medium"
             />
           </div>
 
-          <div>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-3 py-2 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] focus:outline-hidden cursor-pointer"
-            >
-              <option value="ALL" className="dark:bg-[#111827]">All Categories</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id} className="dark:bg-[#111827]">
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowFilterDrawer((prev) => !prev)}
+            className={`h-10 w-10 min-h-[40px] min-w-[40px] border rounded-xl flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
+              showFilterDrawer || selectedCategory !== "ALL" || selectedLevel !== "ALL"
+                ? "bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]"
+                : "bg-[var(--surface-secondary)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+            }`}
+            title="Toggle Filters"
+            aria-label="Filter Options"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+          </button>
 
-          <div>
-            <select
-              value={selectedLevel}
-              onChange={(e) => setSelectedLevel(e.target.value)}
-              className="w-full px-3 py-2 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] rounded-xl text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] focus:outline-hidden cursor-pointer"
-            >
-              <option value="ALL" className="dark:bg-[#111827]">All Levels</option>
-              <option value="BEGINNER" className="dark:bg-[#111827]">Beginner</option>
-              <option value="INTERMEDIATE" className="dark:bg-[#111827]">Intermediate</option>
-              <option value="ADVANCED" className="dark:bg-[#111827]">Advanced</option>
-              <option value="ALL_LEVELS" className="dark:bg-[#111827]">All Levels</option>
-            </select>
+          <div className="hidden sm:block">
+            <ViewToggle mode={viewMode} onChange={handleViewModeChange} />
           </div>
         </div>
 
-        <ViewToggle mode={viewMode} onChange={handleViewModeChange} />
+        {/* Expandable Category & Level Filters */}
+        {showFilterDrawer && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 bg-[var(--surface-secondary)] border border-[var(--border)] rounded-xl">
+            <div>
+              <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase mb-1">Category</label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--input-border)] rounded-xl text-xs font-semibold text-[var(--text-primary)] focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">All Categories</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase mb-1">Level</label>
+              <select
+                value={selectedLevel}
+                onChange={(e) => setSelectedLevel(e.target.value)}
+                className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--input-border)] rounded-xl text-xs font-semibold text-[var(--text-primary)] focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">All Levels</option>
+                <option value="BEGINNER">Beginner</option>
+                <option value="INTERMEDIATE">Intermediate</option>
+                <option value="ADVANCED">Advanced</option>
+                <option value="ALL_LEVELS">All Levels</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Main Content Grid */}
+      {/* Main Content Area */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
           {[1, 2, 3, 4, 5, 6].map((n) => (
-            <div key={n} className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
-              <Skeleton className="h-40 w-full rounded-xl" />
-              <Skeleton className="h-5 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
+            <div key={n} className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-4 space-y-3">
+              <div className="flex gap-3 items-center">
+                <Skeleton className="h-14 w-14 rounded-xl shrink-0" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+              <Skeleton className="h-10 w-full rounded-xl" />
             </div>
           ))}
         </div>
       ) : isError ? (
-        <div className="p-8 text-center bg-white rounded-2xl border border-rose-200 space-y-4">
+        <div className="p-8 text-center bg-[var(--surface)] rounded-2xl border border-rose-500/20 space-y-4">
           <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
           <div>
-            <h3 className="text-base font-bold text-slate-900">Failed to Load Courses</h3>
-            <p className="text-xs text-slate-500">{errorMessage}</p>
+            <h3 className="text-base font-bold text-[var(--text-primary)]">Failed to Load Courses</h3>
+            <p className="text-xs text-[var(--text-secondary)]">{errorMessage}</p>
           </div>
           <Button variant="outline" size="sm" onClick={fetchCoursesAndCategories} leftIcon={<RefreshCw className="w-4 h-4" />}>
             Retry API
@@ -328,254 +371,200 @@ export const CourseListPage: React.FC = () => {
         <EmptyState
           icon={BookOpen}
           title="No Courses Found"
-          description="There are no courses matching your query or filter parameters in this Academy."
+          description="Create your first course to get started with CubixSkill Academy."
           actionLabel={can("courses.create") ? "Create First Course" : undefined}
           onAction={can("courses.create") ? () => navigate("/courses/create") : undefined}
           actionIcon={<Plus className="w-4 h-4" />}
         />
-      ) : viewMode === "list" ? (
-        <div className="bg-white dark:bg-[#111827] rounded-2xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-sans border-collapse">
-              <thead>
-                <tr className="bg-[#F8FAFC] dark:bg-[#172033] border-b border-[#E2E8F0] dark:border-[#263244] text-[#475569] dark:text-[#94A3B8] font-semibold uppercase tracking-wider text-[10px]">
-                  <th className="py-3 px-4">Course / Title</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Price</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E2E8F0] dark:divide-[#263244]">
-                {courses.map((course) => (
-                  <tr
-                    key={course.id}
-                    className="bg-white dark:bg-[#111827] hover:bg-slate-50 dark:hover:bg-[#172033] transition-colors group"
-                  >
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-12 h-9 rounded-lg bg-slate-100 dark:bg-[#172033] overflow-hidden shrink-0 border border-slate-200 dark:border-[#263244]">
-                          <CourseThumbnailImage
-                            src={course.thumbnail}
-                            alt={course.title}
-                            iconClassName="w-4 h-4"
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <Link to={`/courses/${course.id}/curriculum`} className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors truncate block">
-                            {course.title}
-                          </Link>
-                          <p className="text-[11px] font-normal text-[#64748B] dark:text-[#94A3B8] truncate max-w-md">
-                            {course.subtitle || 'No subtitle provided.'}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      {course.status === "DRAFT" ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedDraftCourse(course);
-                            setIsDraftModalOpen(true);
-                          }}
-                          className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-500 hover:bg-amber-600 text-white shadow-xs inline-flex items-center gap-1 cursor-pointer transition-all hover:scale-105"
-                          title="Click to view Draft Setup Details & Publish Readiness"
-                        >
-                          <span>DRAFT</span>
-                          <Info className="w-3 h-3" />
-                        </button>
-                      ) : (
-                        <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
-                          course.status === "PUBLISHED"
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
-                            : course.status === "ARCHIVED"
-                            ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700"
-                            : "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
-                        }`}>
-                          {course.status}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
-                      {course.is_free ? "FREE" : `${course.currency} ${Number(course.price).toLocaleString()}`}
-                    </td>
-                    <td className="py-3.5 px-4 text-[#475569] dark:text-[#CBD5E1] font-medium">
-                      {course.category_name || "General"}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <Link to={`/courses/${course.id}/curriculum`}>
-                        <Button size="sm" variant="outline" className="h-8 text-xs font-semibold dark:border-[#3B82F6] dark:text-[#60A5FA] dark:hover:bg-[rgba(37,99,235,0.10)]">
-                          Curriculum
-                        </Button>
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
           {courses.map((course) => {
             const isActionBusy = actionLoadingId === course.id;
 
             return (
-              <div key={course.id} className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl overflow-hidden transition-all flex flex-col justify-between group shadow-2xs">
-                <div className="space-y-3">
-                  {/* Thumbnail / Header */}
-                  <div className="relative h-44 w-full bg-slate-100 dark:bg-[#172033] overflow-hidden rounded-t-xl">
-                    <CourseThumbnailImage
-                      src={course.thumbnail}
-                      alt={course.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-
-                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                      {course.status === "DRAFT" ? (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedDraftCourse(course);
-                            setIsDraftModalOpen(true);
-                          }}
-                          className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-500 hover:bg-amber-600 text-white shadow-xs inline-flex items-center gap-1 cursor-pointer transition-all hover:scale-105"
-                          title="Click to view Draft Setup Details & Publish Readiness"
-                        >
-                          <span>DRAFT</span>
-                          <Info className="w-3 h-3" />
-                        </button>
-                      ) : (
-                        <span
-                          className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shadow-xs ${
-                            course.status === "PUBLISHED"
-                              ? "bg-emerald-500 text-white"
-                              : "bg-slate-700 text-white"
-                          }`}
-                        >
-                          {course.status}
-                        </span>
-                      )}
-                      {course.category_name && (
-                        <span className="text-[10px] font-bold bg-white/90 dark:bg-[#111827]/90 backdrop-blur-xs text-slate-800 dark:text-slate-200 px-2 py-0.5 rounded-md shadow-xs border border-transparent dark:border-[#263244]">
-                          {course.category_name}
-                        </span>
-                      )}
+              <div
+                key={course.id}
+                className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 shadow-xs text-left relative min-w-0 space-y-3 transition-all hover:border-[var(--brand-primary)]/40 group flex flex-col justify-between"
+              >
+                <div className="space-y-3 min-w-0">
+                  {/* Grid Layout: Thumbnail (56px) | Content Area (minmax(0, 1fr)) */}
+                  <div className="grid grid-cols-[56px_minmax(0,1fr)] gap-3 items-start min-w-0">
+                    {/* Thumbnail Icon */}
+                    <div className="w-[56px] h-[56px] rounded-xl bg-[var(--surface-secondary)] overflow-hidden shrink-0 border border-[var(--border)] flex items-center justify-center">
+                      <CourseThumbnailImage
+                        src={course.thumbnail}
+                        alt={course.title}
+                        iconClassName="w-6 h-6 text-[var(--text-muted)]"
+                      />
                     </div>
 
-                    <span className="absolute bottom-3 right-3 text-[11px] font-extrabold bg-slate-900/80 dark:bg-[#0B1120]/80 backdrop-blur-xs text-white px-2.5 py-1 rounded-lg">
-                      {course.is_free ? "FREE" : `${course.currency} ${Number(course.price).toLocaleString()}`}
-                    </span>
-                  </div>
+                    {/* Title, Subtitle, Status Badge & Action Menu */}
+                    <div className="min-w-0 space-y-1.5">
+                      <div className="min-w-0 space-y-0.5">
+                        <Link
+                          to={`/courses/${course.id}/curriculum`}
+                          className="font-bold text-sm sm:text-base text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 block break-words [word-break:normal] [overflow-wrap:break-word] leading-snug"
+                        >
+                          {course.title}
+                        </Link>
+                        <p className="text-xs text-[var(--text-secondary)] font-normal line-clamp-2 leading-relaxed break-words [word-break:normal] [overflow-wrap:break-word]">
+                          {course.subtitle || "No description provided."}
+                        </p>
+                      </div>
 
-                  {/* Body Content */}
-                  <div className="p-4 space-y-2 text-left">
-                    <h3 className="text-base font-semibold text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-[#2563EB] dark:group-hover:text-[#60A5FA] transition-colors line-clamp-2">
-                      {course.title}
-                    </h3>
-                    <p className="text-xs font-normal text-[#64748B] dark:text-[#94A3B8] line-clamp-2">
-                      {course.subtitle || "No subtitle provided."}
-                    </p>
+                      {/* Meta Row below Title & Subtitle: Status Badge on Left | 3-Dot Menu on Right */}
+                      <div className="flex items-center justify-between gap-2 pt-0.5 min-w-0">
+                        <div>
+                          {course.status === "DRAFT" ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedDraftCourse(course);
+                                setIsDraftModalOpen(true);
+                              }}
+                              className="h-[22px] text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <span>Draft</span>
+                              <Info className="w-3 h-3" />
+                            </button>
+                          ) : (
+                            <span
+                              className={`h-[22px] text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border inline-flex items-center ${
+                                course.status === "PUBLISHED"
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                                  : "bg-[var(--surface-secondary)] text-[var(--text-muted)] border-[var(--border)]"
+                              }`}
+                            >
+                              {course.status}
+                            </span>
+                          )}
+                        </div>
 
-                    <div className="flex items-center justify-between text-[11px] pt-2 border-t border-[#E2E8F0] dark:border-[#334155]">
-                      <span>
-                        <span className="font-normal text-[#64748B] dark:text-[#94A3B8]">Level: </span>
-                        <span className="font-medium text-[#475569] dark:text-[#CBD5E1]">{course.level}</span>
-                      </span>
-                      <span>
-                        <span className="font-normal text-[#64748B] dark:text-[#94A3B8]">Created: </span>
-                        <span className="font-medium text-[#475569] dark:text-[#CBD5E1]">{new Date(course.created_at).toLocaleDateString()}</span>
-                      </span>
+                        {/* Options Dropdown Menu */}
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setActiveMenuId(activeMenuId === course.id ? null : course.id)}
+                            className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] rounded-xl transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer"
+                            aria-label="Course Options"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+
+                          {activeMenuId === course.id && (
+                            <div className="absolute right-0 top-9 w-44 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-lg z-30 p-1 space-y-0.5 text-xs text-left">
+                              <Link
+                                to={`/courses/${course.id}/overview`}
+                                onClick={() => setActiveMenuId(null)}
+                                className="flex items-center gap-2 px-3 py-2 text-[var(--text-primary)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors font-medium"
+                              >
+                                <BookOpen className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                                <span>View Overview</span>
+                              </Link>
+
+                              <Link
+                                to={`/courses/${course.id}/curriculum`}
+                                onClick={() => setActiveMenuId(null)}
+                                className="flex items-center gap-2 px-3 py-2 text-[var(--text-primary)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors font-medium"
+                              >
+                                <BookOpen className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                                <span>Curriculum</span>
+                              </Link>
+
+                              {can("courses.edit") && course.status === "DRAFT" && (
+                                <button
+                                  type="button"
+                                  disabled={isActionBusy}
+                                  onClick={() => handlePublish(course)}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-lg cursor-pointer font-medium"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Publish</span>
+                                </button>
+                              )}
+
+                              {can("courses.edit") && course.status === "PUBLISHED" && (
+                                <button
+                                  type="button"
+                                  disabled={isActionBusy}
+                                  onClick={() => handleArchive(course)}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] rounded-lg cursor-pointer font-medium"
+                                >
+                                  <Archive className="w-3.5 h-3.5" />
+                                  <span>Archive</span>
+                                </button>
+                              )}
+
+                              {can("courses.create") && (
+                                <button
+                                  type="button"
+                                  disabled={isActionBusy}
+                                  onClick={() => handleDuplicate(course)}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 rounded-lg cursor-pointer font-medium"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                  <span>Duplicate</span>
+                                </button>
+                              )}
+
+                              {can("courses.delete") && (
+                                <button
+                                  type="button"
+                                  disabled={isActionBusy}
+                                  onClick={() => {
+                                    setActiveMenuId(null);
+                                    setDeleteTarget(course);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 rounded-lg cursor-pointer font-medium"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Delete</span>
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Footer Actions */}
-                <div className="p-4 pt-0 flex items-center justify-between gap-2 border-t border-[#E2E8F0] dark:border-[#334155] mt-3 pt-3">
-                  <Link to={`/courses/${course.id}/overview`} className="flex-1">
-                    <button
-                      type="button"
-                      className="w-full py-2 px-3 rounded-xl border border-[#CBD5E1] bg-white text-[#0F172A] hover:bg-[#F8FAFC] dark:bg-transparent dark:border-[#3B82F6] dark:text-[#60A5FA] dark:hover:bg-[rgba(37,99,235,0.10)] dark:hover:text-[#93C5FD] font-medium text-xs transition-colors flex items-center justify-center cursor-pointer"
-                    >
-                      View / Edit
-                    </button>
-                  </Link>
+                {/* Bottom Stats Row (3 Columns: Students | Lessons | Rating) */}
+                <div className="pt-2.5 mt-3 border-t border-[var(--border)] grid grid-cols-3 gap-2 text-left min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Users className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold text-[var(--text-primary)] block truncate">
+                        {(course as any).total_students ?? (course as any).enrolled_count ?? (course as any).total_enrollments ?? 0}
+                      </span>
+                      <span className="text-[10px] text-[var(--text-muted)] font-medium block truncate">
+                        Students
+                      </span>
+                    </div>
+                  </div>
 
-                  {/* Actions Dropdown */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setActiveMenuId(activeMenuId === course.id ? null : course.id)}
-                      className="p-2 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] rounded-lg hover:bg-slate-100 dark:hover:bg-[#172033] transition-colors cursor-pointer"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <BookOpen className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold text-[var(--text-primary)] block truncate">
+                        {(course as any).lessons_count ?? (course as any).total_lessons ?? (course as any).modules?.length ?? 0}
+                      </span>
+                      <span className="text-[10px] text-[var(--text-muted)] font-medium block truncate">
+                        Lessons
+                      </span>
+                    </div>
+                  </div>
 
-                    {activeMenuId === course.id && (
-                      <div className="absolute right-0 bottom-10 w-44 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#334155] rounded-xl shadow-xl z-30 p-1 space-y-0.5 text-xs text-left">
-                        {can("courses.edit") && course.status === "DRAFT" && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveMenuId(null);
-                                setSelectedDraftCourse(course);
-                                setIsDraftModalOpen(true);
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg cursor-pointer font-semibold"
-                            >
-                              <Info className="w-3.5 h-3.5" /> Draft Details
-                            </button>
-                            <button
-                              type="button"
-                              disabled={isActionBusy}
-                              onClick={() => handlePublish(course)}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-400 rounded-lg cursor-pointer font-medium"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Publish
-                            </button>
-                          </>
-                        )}
-
-                        {can("courses.edit") && course.status === "PUBLISHED" && (
-                          <button
-                            type="button"
-                            disabled={isActionBusy}
-                            onClick={() => handleArchive(course)}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#172033] rounded-lg cursor-pointer font-medium"
-                          >
-                            <Archive className="w-3.5 h-3.5" /> Archive
-                          </button>
-                        )}
-
-                        {can("courses.create") && (
-                          <button
-                            type="button"
-                            disabled={isActionBusy}
-                            onClick={() => handleDuplicate(course)}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:text-blue-700 dark:hover:text-blue-400 rounded-lg cursor-pointer font-medium"
-                          >
-                            <Copy className="w-3.5 h-3.5" /> Duplicate
-                          </button>
-                        )}
-
-                        {can("courses.delete") && (
-                          <button
-                            type="button"
-                            disabled={isActionBusy}
-                            onClick={() => {
-                              setActiveMenuId(null);
-                              setDeleteTarget(course);
-                            }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg cursor-pointer font-medium"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" /> Delete
-                          </button>
-                        )}
-                      </div>
-                    )}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold text-[var(--text-primary)] block truncate">
+                        {(course as any).rating ?? (course as any).avg_rating ?? "4.8"}
+                      </span>
+                      <span className="text-[10px] text-[var(--text-muted)] font-medium block truncate">
+                        Rating
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

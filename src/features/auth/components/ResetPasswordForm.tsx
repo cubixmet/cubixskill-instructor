@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { resetPasswordSchema, type ResetPasswordSchemaType } from "../schemas/auth.schema";
 import { useResetPassword } from "../hooks/useResetPassword";
 import { PasswordField } from "./PasswordField";
@@ -82,52 +82,45 @@ export const ResetPasswordForm: React.FC = () => {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit, () => scrollToFirstError())} className="space-y-4 text-left">
+    <form onSubmit={handleSubmit(onSubmit, () => scrollToFirstError())} className="space-y-3.5 text-left">
       <ApiErrorAlert message={globalError} onClose={() => setGlobalError(null)} />
 
       <div data-field-name="new_password">
         <PasswordField
-          label="New Password"
-          placeholder="••••••••"
+          placeholder="New Password"
           autoComplete="new-password"
           error={errors.new_password?.message}
           aria-invalid={Boolean(errors.new_password)}
+          className="h-[52px] min-h-[52px] rounded-[12px] bg-[var(--surface-secondary)] border-[var(--input-border)] focus:border-[var(--brand-primary)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] text-sm"
           {...register("new_password")}
+        />
+      </div>
+
+      <div data-field-name="confirm_password">
+        <PasswordField
+          placeholder="Confirm New Password"
+          autoComplete="new-password"
+          error={errors.confirm_password?.message}
+          aria-invalid={Boolean(errors.confirm_password)}
+          className="h-[52px] min-h-[52px] rounded-[12px] bg-[var(--surface-secondary)] border-[var(--input-border)] focus:border-[var(--brand-primary)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] text-sm"
+          {...register("confirm_password")}
         />
       </div>
 
       <PasswordStrength password={watchNewPassword} />
 
-      <div data-field-name="confirm_password">
-        <PasswordField
-          label="Confirm New Password"
-          placeholder="••••••••"
-          autoComplete="new-password"
-          error={errors.confirm_password?.message}
-          aria-invalid={Boolean(errors.confirm_password)}
-          {...register("confirm_password")}
-        />
-      </div>
-
       <Button
         type="submit"
         size="lg"
-        className="w-full mt-2"
+        className="w-full h-[52px] rounded-[12px] bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs mt-2"
         isLoading={resetPasswordMutation.isPending || isSubmitting}
         disabled={resetPasswordMutation.isPending || isSubmitting}
+        loadingText="Resetting..."
       >
-        Reset Password
+        <span>Reset Password</span>
+        <ArrowRight className="w-4 h-4" />
       </Button>
-
-      <div className="text-center pt-2">
-        <Link
-          to="/login"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Login
-        </Link>
-      </div>
     </form>
   );
 };
+

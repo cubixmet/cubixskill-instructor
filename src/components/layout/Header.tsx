@@ -11,11 +11,12 @@ import {
   UserPlus,
   FilePlus,
   Megaphone,
-  Menu,
   Coins,
   KeyRound,
   Sun,
   Moon,
+  Search,
+  GraduationCap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "../../store/auth.store";
@@ -24,7 +25,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Drawer } from "../ui/Drawer";
 import { DesktopGlobalSearch } from "../global-search/DesktopGlobalSearch";
 import { MobileGlobalSearch } from "../global-search/MobileGlobalSearch";
-import { getUserInitials, getAcademyInitials, getRoleLabel } from "../../utils/branding.utils";
+import { getUserInitials, getRoleLabel } from "../../utils/branding.utils";
 
 import { useCreditSummary } from "../../hooks/useCreditSummary";
 import { useAcademyEventsSocket } from "../../hooks/useAcademyEventsSocket";
@@ -46,6 +47,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [quickActionOpen, setQuickActionOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileCreateDrawerOpen, setMobileCreateDrawerOpen] = useState(false);
   const [dateRange, setDateRange] = useState("Last 30 Days");
 
@@ -68,6 +70,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
         setProfileOpen(false);
         setQuickActionOpen(false);
         setMobileCreateDrawerOpen(false);
+        setMobileSearchOpen(false);
       }
     };
 
@@ -126,76 +129,73 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   return (
     <header className="bg-white/95 dark:bg-[#0B1120]/95 backdrop-blur-md border-b border-[#E2E8F0] dark:border-[#1E293B] text-[#0F172A] dark:text-[#F8FAFC] sticky top-0 z-30 transition-all text-left font-sans">
       {/* ========================================== */}
-      {/* MOBILE NAVBAR (2-ROW CLEAN RESPONSIVE STRUCTURE < lg) */}
+      {/* MOBILE NAVBAR (COMPACT PREMIUM SAAS HEADER < lg) */}
       {/* ========================================== */}
-      <div className="lg:hidden p-2.5 sm:p-3 space-y-2">
-        {/* ROW 1: Menu | CubixSkill Branding | Credits | Notification */}
-        <div className="flex items-center justify-between gap-2 min-w-0">
-          {/* Left: Menu + Branding */}
-          <div className="flex items-center gap-2 min-w-0">
-            {onOpenMobileMenu && (
-              <button
-                type="button"
-                onClick={onOpenMobileMenu}
-                className="p-2 rounded-xl text-[#475569] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-[#F8FAFC] dark:hover:bg-[#172033] transition-colors focus:outline-none cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center shrink-0"
-                title="Open Main Menu"
-                aria-label="Open Main Menu"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
+      <div className="lg:hidden px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-2 min-h-[56px]">
+        {/* Left: CubixSkill Logo Branding */}
+        <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-[#2563EB] rounded-xl flex items-center justify-center text-white shadow-xs shrink-0">
+            <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+          <div className="text-left leading-none min-w-0">
+            <span className="text-base sm:text-lg font-bold tracking-tight text-[var(--text-primary)]">
+              Cubix<span className="text-[#2563EB]">Skill</span>
+            </span>
+            <span className="block text-[9px] font-semibold text-[var(--text-muted)] tracking-wider uppercase mt-0.5">
+              Instructor
+            </span>
+          </div>
+        </Link>
+
+        {/* Right: [search] [theme] [notification] [avatar] */}
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => setMobileSearchOpen((prev) => !prev)}
+            aria-label="Search"
+            className="p-2 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl transition-colors cursor-pointer"
+          >
+            <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+            aria-label="Toggle Theme"
+            className="p-2 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl transition-colors cursor-pointer"
+          >
+            {resolvedTheme === 'dark' ? (
+              <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600" />
             )}
+          </button>
 
-            {/* Mobile Brand Logo */}
-            <div className="flex items-center gap-1.5 min-w-0">
-              {academy?.logo_url ? (
-                <img
-                  src={academy.logo_url}
-                  alt={academy.name || "Logo"}
-                  className="w-7 h-7 rounded-lg object-cover shrink-0 border border-slate-200"
-                />
-              ) : (
-                <div className="w-7 h-7 bg-gradient-to-tr from-blue-700 via-blue-600 to-sky-400 rounded-lg flex items-center justify-center text-white font-extrabold text-xs shadow-xs shrink-0">
-                  {getAcademyInitials(academy?.name)}
-                </div>
-              )}
-              <span className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight truncate">
-                {academy?.name || "CubixSkill Academy"}
-              </span>
-            </div>
-          </div>
+          <Link
+            to="/support"
+            aria-label="Notifications"
+            className="p-2 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl transition-colors relative cursor-pointer"
+          >
+            <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-[#0B1120]" />
+          </Link>
 
-          {/* Right: Credits Pill + Notification Icon */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Link
-              to="/credits"
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-colors ${
-                isLowBalance
-                  ? "bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400"
-                  : "bg-blue-50 dark:bg-[#172033] border border-blue-200/80 dark:border-[#263244] text-[#2563EB] dark:text-[#60A5FA] hover:bg-blue-100/80 dark:hover:bg-[#1E293B]"
-              }`}
-              title={isLowBalance ? "Low Credit Balance - Buy Credits" : "View Credits Wallet"}
-            >
-              <Coins className={`w-3.5 h-3.5 shrink-0 ${isLowBalance ? "text-amber-600 dark:text-amber-400" : "text-[#2563EB] dark:text-[#60A5FA]"}`} />
-              <span className="text-xs">{creditBalance}</span>
-            </Link>
-
-            <Link
-              to="/support"
-              className="p-2 text-[#475569] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-[#F8FAFC] dark:hover:bg-[#172033] rounded-xl transition-colors relative flex items-center justify-center min-h-[38px] min-w-[38px] shrink-0"
-              title="Notifications Desk"
-              aria-label="Notifications"
-            >
-              <Bell className="w-4 h-4 text-[#475569] dark:text-[#94A3B8]" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full ring-2 ring-white dark:ring-[#0B1120]" />
-            </Link>
-          </div>
-        </div>
-
-        {/* ROW 2: FULL-WIDTH GLOBAL SEARCH BAR */}
-        <div className="w-full min-w-0">
-          <MobileGlobalSearch />
+          <button
+            type="button"
+            onClick={onOpenMobileMenu}
+            aria-label="User Profile & Menu"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#2563EB] text-white font-bold text-xs sm:text-sm flex items-center justify-center shadow-xs cursor-pointer ml-0.5"
+          >
+            {getUserInitials(user?.full_name) || "S"}
+          </button>
         </div>
       </div>
+
+      {mobileSearchOpen && (
+        <div className="lg:hidden px-3.5 pb-2.5">
+          <MobileGlobalSearch />
+        </div>
+      )}
 
       {/* ========================================== */}
       {/* DESKTOP NAVBAR (SINGLE-ROW STRUCTURE >= lg) */}

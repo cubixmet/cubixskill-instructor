@@ -5,10 +5,19 @@ export interface CertificateFontItem {
   key: string;
   name: string;
   family: string;
+  display_name?: string;
+  runtime_family?: string;
+  storage_key?: string;
+  format?: string;
+  weight?: string;
+  style?: string;
+  size_bytes?: number;
   source: 'SYSTEM' | 'ACADEMY';
   user_rights_confirmed?: boolean;
   file_url?: string;
   font_weight_variants: string[];
+  outline_type?: string;
+  pdf_compatible?: boolean;
   is_active: boolean;
   is_certificate_safe: boolean;
 }
@@ -24,12 +33,33 @@ export function resolveFontUrl(rawUrl?: string): string {
   return `${BACKEND_BASE_URL}${cleanPath}`;
 }
 
+export function getRuntimeFontFamily(fontOrId: string | { id?: string; fontId?: string; font_id?: string; source?: 'SYSTEM' | 'ACADEMY'; family?: string }): string {
+  if (typeof fontOrId === 'string') {
+    if (!fontOrId) return 'Inter';
+    if (fontOrId.startsWith('f-') || fontOrId.startsWith('cubix-font-')) {
+      return fontOrId.startsWith('cubix-font-') ? fontOrId : fontOrId.replace(/^f-/, '');
+    }
+    return `cubix-font-${fontOrId}`;
+  }
+
+  const fontId = fontOrId.id || fontOrId.fontId || fontOrId.font_id;
+  if (fontOrId.source === 'SYSTEM') {
+    return fontOrId.family || 'Inter';
+  }
+  if (fontId) {
+    return `cubix-font-${fontId}`;
+  }
+  return fontOrId.family || 'Inter';
+}
+
 export const SYSTEM_FONTS: CertificateFontItem[] = [
   {
     id: 'f-inter',
     key: 'inter',
     name: 'Inter',
     family: 'Inter',
+    display_name: 'Inter',
+    runtime_family: 'Inter',
     source: 'SYSTEM',
     file_url: 'google_font:Inter:400,500,600,700,800',
     font_weight_variants: ['400', '500', '600', '700', '800'],
@@ -41,6 +71,8 @@ export const SYSTEM_FONTS: CertificateFontItem[] = [
     key: 'roboto',
     name: 'Roboto',
     family: 'Roboto',
+    display_name: 'Roboto',
+    runtime_family: 'Roboto',
     source: 'SYSTEM',
     file_url: 'google_font:Roboto:300,400,500,700',
     font_weight_variants: ['300', '400', '500', '700'],
@@ -52,6 +84,8 @@ export const SYSTEM_FONTS: CertificateFontItem[] = [
     key: 'open_sans',
     name: 'Open Sans',
     family: 'Open Sans',
+    display_name: 'Open Sans',
+    runtime_family: 'Open Sans',
     source: 'SYSTEM',
     file_url: 'google_font:Open+Sans:400,600,700',
     font_weight_variants: ['400', '600', '700'],
@@ -63,6 +97,8 @@ export const SYSTEM_FONTS: CertificateFontItem[] = [
     key: 'lato',
     name: 'Lato',
     family: 'Lato',
+    display_name: 'Lato',
+    runtime_family: 'Lato',
     source: 'SYSTEM',
     file_url: 'google_font:Lato:300,400,700',
     font_weight_variants: ['300', '400', '700'],
@@ -74,6 +110,8 @@ export const SYSTEM_FONTS: CertificateFontItem[] = [
     key: 'montserrat',
     name: 'Montserrat',
     family: 'Montserrat',
+    display_name: 'Montserrat',
+    runtime_family: 'Montserrat',
     source: 'SYSTEM',
     file_url: 'google_font:Montserrat:400,500,600,700,800',
     font_weight_variants: ['400', '500', '600', '700', '800'],
@@ -85,6 +123,8 @@ export const SYSTEM_FONTS: CertificateFontItem[] = [
     key: 'merriweather',
     name: 'Merriweather',
     family: 'Merriweather',
+    display_name: 'Merriweather',
+    runtime_family: 'Merriweather',
     source: 'SYSTEM',
     file_url: 'google_font:Merriweather:300,400,700',
     font_weight_variants: ['300', '400', '700'],
@@ -96,6 +136,8 @@ export const SYSTEM_FONTS: CertificateFontItem[] = [
     key: 'playfair_display',
     name: 'Playfair Display',
     family: 'Playfair Display',
+    display_name: 'Playfair Display',
+    runtime_family: 'Playfair Display',
     source: 'SYSTEM',
     file_url: 'google_font:Playfair+Display:400,600,700,800',
     font_weight_variants: ['400', '600', '700', '800'],
@@ -107,6 +149,8 @@ export const SYSTEM_FONTS: CertificateFontItem[] = [
     key: 'cinzel',
     name: 'Cinzel',
     family: 'Cinzel',
+    display_name: 'Cinzel',
+    runtime_family: 'Cinzel',
     source: 'SYSTEM',
     file_url: 'google_font:Cinzel:400,600,700,800',
     font_weight_variants: ['400', '600', '700', '800'],
@@ -131,12 +175,23 @@ export async function fetchCertificateFonts(): Promise<CertificateFontItem[]> {
     if (Array.isArray(results)) {
       results.forEach((item: any) => {
         if (!item || !item.id) return;
+        const fontIdStr = String(item.id);
+        const sourceVal = item.source || 'ACADEMY';
+        const runtimeFam = sourceVal === 'ACADEMY' ? `cubix-font-${fontIdStr}` : (item.family || item.name || 'Custom Font');
+
         const fontObj: CertificateFontItem = {
-          id: String(item.id),
-          key: item.key || item.id,
-          name: item.name || item.family || 'Custom Font',
-          family: item.family || item.name || 'Custom Font',
-          source: item.source || 'ACADEMY',
+          id: fontIdStr,
+          key: item.key || `cubix-font-${fontIdStr}`,
+          name: item.name || item.display_name || item.family || 'Custom Font',
+          family: runtimeFam,
+          display_name: item.display_name || item.name || item.family || 'Custom Font',
+          runtime_family: runtimeFam,
+          storage_key: item.storage_key,
+          format: item.format,
+          weight: item.weight || '400',
+          style: item.style || 'normal',
+          size_bytes: item.size_bytes,
+          source: sourceVal,
           user_rights_confirmed: item.user_rights_confirmed,
           file_url: item.file_url,
           font_weight_variants: item.font_weight_variants || ['400', '700'],
@@ -197,43 +252,33 @@ export async function loadFontFaceIntoDOM(font: CertificateFontItem): Promise<bo
     }
   }
 
-  // Case B: Uploaded Custom Fonts
+  // Case B: Uploaded Custom Fonts - MUST use canonical runtimeFamily `cubix-font-${font.id}`
   const absoluteUrl = resolveFontUrl(font.file_url);
   if (!absoluteUrl) return false;
 
-  const cacheKey = `${font.id || font.key}_${absoluteUrl}`;
+  const runtimeFamily = `cubix-font-${font.id}`;
+  const cacheKey = font.id || runtimeFamily;
+
   if (loadedFontFaces.has(cacheKey)) {
     return loadedFontFaces.get(cacheKey)!;
   }
 
   const loadPromise = (async () => {
     try {
-      // Validate content type / binary before FontFace registration
-      const response = await fetch(absoluteUrl, { method: 'GET' });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} loading font file`);
-      }
-      const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('text/html') || contentType.includes('application/json')) {
-        throw new Error('Received non-font binary response');
-      }
-
-      const fontArrayBuffer = await response.arrayBuffer();
-
-      if (typeof FontFace !== 'undefined' && document.fonts) {
-        const runtimeFamily = font.source === 'ACADEMY' ? `cubix-font-${font.id}` : font.family;
-        const fontFace = new FontFace(runtimeFamily, fontArrayBuffer, {
-          weight: font.font_weight_variants?.[0] || 'normal',
-          style: 'normal',
-        });
-        const loadedFace = await fontFace.load();
-        document.fonts.add(loadedFace);
-        await document.fonts.ready;
-        return true;
-      }
-      return false;
+      const fontFace = new FontFace(
+        runtimeFamily,
+        `url("${absoluteUrl}")`,
+        {
+          weight: font.weight || '400',
+          style: font.style || 'normal',
+        }
+      );
+      const loadedFace = await fontFace.load();
+      (document.fonts as any).add(loadedFace);
+      await document.fonts.ready;
+      return true;
     } catch (err) {
-      console.warn(`[FontRegistry] Failed to load font ${font.name}:`, err);
+      console.warn(`[FontRegistry] Failed to load font ${runtimeFamily}:`, err);
       return false;
     }
   })();

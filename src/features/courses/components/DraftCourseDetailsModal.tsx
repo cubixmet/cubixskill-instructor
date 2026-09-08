@@ -107,59 +107,42 @@ export const DraftCourseDetailsModal: React.FC<Props> = ({
 
   const processingCount = readiness ? readiness.processing_count : 0;
 
-  // Evaluate Checklist & Upload Readiness
-  const checklistItems = [
-    {
-      key: 'title',
-      label: 'Course Title',
-      isRequired: true,
-      isComplete: Boolean(title && title.trim().length >= 3),
-      valueText: title ? 'Added' : 'Missing',
-      icon: FileText,
-    },
-    {
-      key: 'thumbnail',
-      label: 'Thumbnail / Course Image',
-      isRequired: true,
-      isComplete: Boolean(thumbnail),
-      valueText: thumbnail ? 'Added' : 'Missing',
-      icon: ImageIcon,
-      previewUrl: thumbnail,
-    },
-    {
-      key: 'modules',
-      label: 'Curriculum Modules',
-      isRequired: true,
-      isComplete: modulesCount !== null ? modulesCount >= 1 : false,
-      valueText: modulesCount !== null ? `${modulesCount} Module${modulesCount === 1 ? '' : 's'}` : 'Loading...',
-      icon: Layers,
-    },
-    {
-      key: 'lessons',
-      label: 'Curriculum Lessons',
-      isRequired: true,
-      isComplete: lessonsCount !== null ? lessonsCount >= 1 : false,
-      valueText: lessonsCount !== null ? `${lessonsCount} Lesson${lessonsCount === 1 ? '' : 's'}` : 'Loading...',
-      icon: BookOpen,
-    },
-    {
-      key: 'video_processing',
-      label: 'Video HLS Processing',
-      isRequired: false,
-      isComplete: processingCount === 0,
-      valueText: processingCount > 0 ? `${processingCount} Processing` : 'Ready',
-      icon: Video,
-      status: processingCount > 0 ? 'PROCESSING' : 'READY',
-    },
-  ];
+  // Icon mapping for backend checklist keys
+  const getChecklistIcon = (key: string) => {
+    switch (key) {
+      case 'title':
+        return FileText;
+      case 'category':
+        return Layers;
+      case 'thumbnail':
+        return ImageIcon;
+      case 'modules':
+        return Layers;
+      case 'lessons':
+        return BookOpen;
+      case 'video_processing':
+        return Video;
+      default:
+        return FileText;
+    }
+  };
 
-  const requiredMissingCount = readiness
-    ? readiness.remaining_required_count
-    : checklistItems.filter((i) => i.isRequired && !i.isComplete).length;
+  // Canonical checklist derived from backend readiness items (or fallback to empty array while loading)
+  const checklistItems = (readiness?.items || []).map((item) => ({
+    key: item.key,
+    label: item.label,
+    isRequired: item.required,
+    isComplete: item.complete,
+    valueText: item.value_text || (item.complete ? 'Ready' : 'Missing'),
+    icon: getChecklistIcon(item.key),
+  }));
+
+  const missingRequiredItems = checklistItems.filter((item) => item.isRequired && !item.isComplete);
+  const remainingCount = missingRequiredItems.length;
 
   const isReadyToPublish = readiness
-    ? readiness.ready_to_publish
-    : requiredMissingCount === 0;
+    ? (readiness.ready_to_publish && remainingCount === 0)
+    : false;
 
   const handlePublishCourse = async () => {
     if (isPublishing || !course.id) return;
@@ -255,7 +238,7 @@ export const DraftCourseDetailsModal: React.FC<Props> = ({
                     <span className="font-bold text-xs sm:text-sm block">
                       {isReadyToPublish
                         ? 'All required setup items complete!'
-                        : `${requiredMissingCount} required ${requiredMissingCount === 1 ? 'item' : 'items'} remaining`}
+                        : `${remainingCount} required ${remainingCount === 1 ? 'item' : 'items'} remaining`}
                     </span>
                     <span className="text-[11px] font-normal text-slate-500 dark:text-[#94A3B8] block">
                       {isReadyToPublish

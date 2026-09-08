@@ -13,7 +13,7 @@ import {
   Video,
   GraduationCap,
   TrendingUp,
-  ArrowUpRight,
+  ChevronRight,
 } from "lucide-react";
 import type { BackendDashboardAnalytics } from "../types/analytics.types";
 import { useAuthStore } from "../../../store/auth.store";
@@ -40,9 +40,9 @@ export const DashboardStatGrid: React.FC<DashboardStatGridProps> = ({ analytics 
       value: (analytics.total_students ?? 0).toLocaleString(),
       subtitle: `${analytics.active_students ?? 0} active learners`,
       icon: Users,
-      color: "text-[#0EA5E9]",
-      bgColor: "bg-[#E0F2FE]",
-      borderColor: "border-[#BAE6FD]",
+      color: "text-sky-500",
+      bgColor: "bg-sky-500/10",
+      borderColor: "border-sky-500/20",
       permission: "students.view",
     },
     {
@@ -50,9 +50,9 @@ export const DashboardStatGrid: React.FC<DashboardStatGridProps> = ({ analytics 
       value: (analytics.active_students ?? 0).toLocaleString(),
       subtitle: "Currently enrolled & active",
       icon: UserCheck,
-      color: "text-[#0D9488]",
-      bgColor: "bg-[#CCFBF1]",
-      borderColor: "border-[#99F6E4]",
+      color: "text-emerald-500",
+      bgColor: "bg-emerald-500/10",
+      borderColor: "border-emerald-500/20",
       permission: "students.view",
     },
     {
@@ -60,9 +60,9 @@ export const DashboardStatGrid: React.FC<DashboardStatGridProps> = ({ analytics 
       value: (analytics.total_courses ?? 0).toLocaleString(),
       subtitle: `${analytics.published_courses ?? 0} Published`,
       icon: BookOpen,
-      color: "text-[#2563EB]",
-      bgColor: "bg-[#EFF6FF]",
-      borderColor: "border-[#BFDBFE]",
+      color: "text-blue-500",
+      bgColor: "bg-blue-500/10",
+      borderColor: "border-blue-500/20",
       feature: "courses",
       permission: "courses.view",
     },
@@ -71,92 +71,92 @@ export const DashboardStatGrid: React.FC<DashboardStatGridProps> = ({ analytics 
       value: (analytics.published_courses ?? 0).toLocaleString(),
       subtitle: "Active in catalog",
       icon: CheckCircle2,
-      color: "text-[#16A34A]",
-      bgColor: "bg-[#F0FDF4]",
-      borderColor: "border-[#BBF7D0]",
+      color: "text-purple-500",
+      bgColor: "bg-purple-500/10",
+      borderColor: "border-purple-500/20",
       feature: "courses",
       permission: "courses.view",
     },
     {
       title: "Active Enrollments",
       value: (analytics.active_enrollments ?? 0).toLocaleString(),
-      subtitle: "Ongoing course enrollments",
+      subtitle: "Ongoing enrollments",
       icon: GraduationCap,
-      color: "text-[#6366F1]",
-      bgColor: "bg-[#EEF2FF]",
-      borderColor: "border-[#C7D2FE]",
+      color: "text-indigo-500",
+      bgColor: "bg-indigo-500/10",
+      borderColor: "border-indigo-500/20",
       permission: "students.view",
     },
     {
       title: "Course Completions",
       value: (analytics.course_completions ?? 0).toLocaleString(),
-      subtitle: "Learners completed courses",
+      subtitle: "Learners completed",
       icon: CheckCircle2,
-      color: "text-[#059669]",
-      bgColor: "bg-[#ECFDF5]",
-      borderColor: "border-[#A7F3D0]",
+      color: "text-teal-500",
+      bgColor: "bg-teal-500/10",
+      borderColor: "border-teal-500/20",
       permission: "courses.view",
     },
     {
       title: "Total Revenue",
       value: formatRevenueDisplay(analytics.revenue_by_currency),
-      subtitle: "Completed purchase orders",
+      subtitle: "Completed orders",
       icon: DollarSign,
-      color: "text-[#16A34A]",
-      bgColor: "bg-[#F0FDF4]",
-      borderColor: "border-[#BBF7D0]",
+      color: "text-emerald-500",
+      bgColor: "bg-emerald-500/10",
+      borderColor: "border-emerald-500/20",
       feature: "payments",
       permission: "payments.view",
     },
     {
       title: "Credits Remaining",
       value: Number(analytics.credit_balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
-      subtitle: "Available Academy wallet credits",
+      subtitle: "Available credits",
       icon: Coins,
-      color: "text-[#2563EB]",
-      bgColor: "bg-[#EFF6FF]",
-      borderColor: "border-[#BFDBFE]",
+      color: "text-blue-500",
+      bgColor: "bg-blue-500/10",
+      borderColor: "border-blue-500/20",
       feature: "credits",
     },
     {
       title: "Storage Used",
       value: analytics.storage_gb ?? "0.00 GB",
-      subtitle: "Active media files & assets",
+      subtitle: "Media files & assets",
       icon: HardDrive,
-      color: "text-[#8B5CF6]",
-      bgColor: "bg-[#F3E8FF]",
-      borderColor: "border-[#DDD6FE]",
+      color: "text-purple-500",
+      bgColor: "bg-purple-500/10",
+      borderColor: "border-purple-500/20",
       feature: "media",
     },
     {
       title: "Certificates Issued",
       value: (analytics.certificates_issued ?? 0).toLocaleString(),
-      subtitle: "Issued to eligible learners",
+      subtitle: "Issued to learners",
       icon: Award,
-      color: "text-[#EC4899]",
-      bgColor: "bg-[#FCE7F3]",
-      borderColor: "border-[#FBCFE8]",
+      color: "text-pink-500",
+      bgColor: "bg-pink-500/10",
+      borderColor: "border-pink-500/20",
       feature: "certificates",
       permission: "certificates.view",
     },
     {
       title: "Total Leads",
       value: (analytics.total_leads ?? 0).toLocaleString(),
-      subtitle: `${analytics.converted_leads ?? 0} Converted (${analytics.lead_conversion_rate ?? "0.00%"})`,
+      subtitle: `${analytics.converted_leads ?? 0} converted (${analytics.lead_conversion_rate ?? "0.00%"})`,
       icon: Sparkles,
-      color: "text-[#D97706]",
-      bgColor: "bg-[#FEF3C7]",
-      borderColor: "border-[#FDE68A]",
+      color: "text-amber-500",
+      bgColor: "bg-amber-500/10",
+      borderColor: "border-amber-500/20",
       feature: "demo_leads",
     },
     {
       title: "Upcoming Live Sessions",
       value: (analytics.upcoming_live_sessions ?? 0).toLocaleString(),
-      subtitle: "Scheduled classroom broadcasts",
+      subtitle: "Scheduled broadcasts",
       icon: Video,
-      color: "text-[#DC2626]",
-      bgColor: "bg-[#FEF2F2]",
-      borderColor: "border-[#FCA5A5]",
+      color: "text-rose-500",
+      bgColor: "bg-rose-500/10",
+      borderColor: "border-rose-500/20",
       feature: "live_classes",
       permission: "live_classes.view",
     },
@@ -169,42 +169,41 @@ export const DashboardStatGrid: React.FC<DashboardStatGridProps> = ({ analytics 
   });
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 text-left">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3.5 text-left">
       {visibleCards.map((card, idx) => {
         const IconComponent = card.icon;
         return (
           <motion.div
             key={card.title}
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, delay: idx * 0.02 }}
-            whileHover={{ y: -2 }}
-            className="bg-white border border-slate-200 text-slate-900 dark:bg-[#111827] dark:border-[#263244] dark:text-white rounded-[12px] p-3 sm:p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_4px_12px_rgba(15,23,42,0.04)] dark:shadow-[0_4px_14px_rgba(37,99,235,0.06)] transition-all flex flex-col justify-between h-full min-h-[145px] sm:min-h-[160px] group min-w-0"
+            transition={{ duration: 0.2, delay: idx * 0.015 }}
+            className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-3.5 sm:p-4 shadow-xs flex flex-col justify-between h-full min-h-[110px] sm:min-h-[125px] group min-w-0 transition-all hover:border-[var(--brand-primary)]/40"
           >
             <div>
               <div className="flex items-center justify-between gap-1 mb-2">
                 <div
-                  className={`p-1.5 sm:p-2 rounded-xl ${card.bgColor} dark:bg-[#172033] ${card.color} border ${card.borderColor} dark:border-[#263244] transition-transform group-hover:scale-105 shrink-0`}
+                  className={`w-8 h-8 rounded-xl ${card.bgColor} ${card.color} border ${card.borderColor} flex items-center justify-center shrink-0`}
                 >
                   <IconComponent className="w-4 h-4" />
                 </div>
-                <span className="inline-flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold text-[#16A34A] dark:text-emerald-400 bg-[#F0FDF4] dark:bg-emerald-950/50 border border-[#BBF7D0] dark:border-emerald-800 px-1.5 py-0.5 rounded-full shrink-0 max-w-full truncate">
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20 shrink-0">
                   <TrendingUp className="w-2.5 h-2.5 shrink-0" />
-                  <span className="truncate">Live Data</span>
+                  <span>Live</span>
                 </span>
               </div>
 
-              <p className="text-[11px] sm:text-xs font-medium text-[#2563EB] dark:text-[#93C5FD] mb-1 leading-snug line-clamp-2">
+              <p className="text-xs font-semibold text-[var(--text-secondary)] mb-0.5 truncate">
                 {card.title}
               </p>
-              <h3 className="text-base sm:text-xl font-semibold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight group-hover:text-[#2563EB] dark:group-hover:text-[#60A5FA] transition-colors truncate min-w-0">
+              <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] tracking-tight truncate min-w-0">
                 {card.value}
               </h3>
             </div>
 
-            <div className="mt-2 pt-2 border-t border-slate-100 dark:border-[#263244] flex items-center justify-between text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400 min-w-0">
+            <div className="mt-2 pt-2 border-t border-[var(--border)] flex items-center justify-between text-[11px] font-medium text-[var(--text-muted)] min-w-0">
               <span className="truncate">{card.subtitle}</span>
-              <ArrowUpRight className="w-3 h-3 text-slate-400 group-hover:text-[#2563EB] dark:group-hover:text-[#60A5FA] transition-colors shrink-0" />
+              <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] transition-colors shrink-0" />
             </div>
           </motion.div>
         );

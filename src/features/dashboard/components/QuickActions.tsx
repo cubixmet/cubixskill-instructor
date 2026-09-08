@@ -9,7 +9,8 @@ import {
   FileBarChart2,
   Award,
   Users,
-  ArrowRight,
+  Zap,
+  ChevronRight,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -24,36 +25,36 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ onOpenBuyCredits }) 
       desc: 'Build new curriculum & lessons',
       icon: PlusCircle,
       href: '/courses/create',
-      color: 'text-[#2563EB]',
-      bgColor: 'bg-[#EFF6FF]',
-      borderColor: 'border-[#BFDBFE]',
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-500/10',
+      borderColor: 'border-blue-500/20',
     },
     {
       title: 'Create Assignment',
       desc: 'Publish hands-on projects',
       icon: FileCheck2,
       href: '/courses',
-      color: 'text-[#0EA5E9]',
-      bgColor: 'bg-[#E0F2FE]',
-      borderColor: 'border-[#BAE6FD]',
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'bg-emerald-500/10',
+      borderColor: 'border-emerald-500/20',
     },
     {
       title: 'Create Quiz',
       desc: 'Add auto-graded assessments',
       icon: HelpCircle,
       href: '/courses',
-      color: 'text-[#8B5CF6]',
-      bgColor: 'bg-[#F3E8FF]',
-      borderColor: 'border-[#DDD6FE]',
+      color: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-500/10',
+      borderColor: 'border-purple-500/20',
     },
     {
       title: 'Upload Media',
       desc: 'Add 4K video, audio & PDFs',
       icon: UploadCloud,
       href: '/credits',
-      color: 'text-[#10B981]',
-      bgColor: 'bg-[#D1FAE5]',
-      borderColor: 'border-[#A7F3D0]',
+      color: 'text-teal-600 dark:text-teal-400',
+      bgColor: 'bg-teal-500/10',
+      borderColor: 'border-teal-500/20',
     },
     {
       title: 'Buy Credits',
@@ -61,75 +62,79 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ onOpenBuyCredits }) 
       icon: Coins,
       onClick: onOpenBuyCredits,
       href: '/credits',
-      color: 'text-[#D97706]',
-      bgColor: 'bg-[#FEF3C7]',
-      borderColor: 'border-[#FDE68A]',
+      color: 'text-amber-600 dark:text-amber-400',
+      bgColor: 'bg-amber-500/10',
+      borderColor: 'border-amber-500/20',
     },
     {
       title: 'Generate Report',
       desc: 'Export revenue & student stats',
       icon: FileBarChart2,
       href: '/credits',
-      color: 'text-[#6366F1]',
-      bgColor: 'bg-[#EEF2FF]',
-      borderColor: 'border-[#C7D2FE]',
+      color: 'text-indigo-600 dark:text-indigo-400',
+      bgColor: 'bg-indigo-500/10',
+      borderColor: 'border-indigo-500/20',
     },
     {
       title: 'Manage Certificates',
       desc: 'Design templates & verify',
       icon: Award,
       href: '/courses',
-      color: 'text-[#EC4899]',
-      bgColor: 'bg-[#FCE7F3]',
-      borderColor: 'border-[#FBCFE8]',
+      color: 'text-pink-600 dark:text-pink-400',
+      bgColor: 'bg-pink-500/10',
+      borderColor: 'border-pink-500/20',
     },
     {
       title: 'Manage Students',
       desc: 'Directory, progress & access',
       icon: Users,
       href: '/students',
-      color: 'text-[#0D9488]',
-      bgColor: 'bg-[#CCFBF1]',
-      borderColor: 'border-[#99F6E4]',
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'bg-emerald-500/10',
+      borderColor: 'border-emerald-500/20',
     },
   ];
 
   return (
-    <div className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl p-5 shadow-2xs text-left">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-base font-extrabold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
-            Quick Actions
-          </h3>
-          <p className="text-xs font-medium text-[#64748B] dark:text-[#94A3B8]">
-            Instant shortcuts for high-frequency academy management tasks
-          </p>
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-4 sm:p-5 shadow-xs text-left transition-all">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center shrink-0">
+            <Zap className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)] tracking-tight truncate">
+              Quick Actions
+            </h3>
+            <p className="text-xs font-normal text-[var(--text-secondary)] truncate">
+              Instant shortcuts for common tasks
+            </p>
+          </div>
         </div>
+        <Link
+          to="/courses"
+          className="text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] hover:underline flex items-center gap-0.5 shrink-0"
+        >
+          <span>View All</span>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-2 sm:gap-3">
         {actions.map((action) => {
           const IconComponent = action.icon;
           const content = (
             <motion.div
-              whileHover={{ scale: 1.01, y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              className="p-3.5 bg-[#FFFFFF] dark:bg-[#111827] hover:bg-[#F8FAFC] dark:hover:bg-[#172033] border border-[#E2E8F0] dark:border-[#263244] hover:border-[#CBD5E1] dark:hover:border-[rgba(59,130,246,0.35)] shadow-xs dark:shadow-[0_4px_16px_rgba(37,99,235,0.08)] rounded-xl transition-all cursor-pointer flex items-center gap-3 group h-full"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.96 }}
+              className="p-2 sm:p-2.5 bg-[var(--surface-secondary)] border border-[var(--border)] hover:border-[var(--brand-primary)]/40 rounded-2xl transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-1.5 h-20 sm:h-24 group"
             >
-              <div className={`p-2.5 rounded-lg ${action.bgColor} dark:bg-[#172033] ${action.color} border ${action.borderColor} dark:border-[#263244] shrink-0 transition-transform group-hover:scale-110`}>
-                <IconComponent className="w-5 h-5" />
+              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full ${action.bgColor} ${action.color} border ${action.borderColor} flex items-center justify-center shrink-0 transition-transform group-hover:scale-105`}>
+                <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <h4 className="text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] group-hover:text-[#2563EB] dark:group-hover:text-[#60A5FA] transition-colors truncate">
-                    {action.title}
-                  </h4>
-                  <ArrowRight className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8] group-hover:text-[#2563EB] dark:group-hover:text-[#60A5FA] transition-colors shrink-0" />
-                </div>
-                <p className="text-[11px] font-normal text-[#64748B] dark:text-[#94A3B8] truncate mt-0.5">
-                  {action.desc}
-                </p>
-              </div>
+              <h4 className="text-[10px] sm:text-xs font-bold text-[var(--text-primary)] group-hover:text-[var(--brand-primary)] transition-colors leading-tight line-clamp-2">
+                {action.title}
+              </h4>
             </motion.div>
           );
 

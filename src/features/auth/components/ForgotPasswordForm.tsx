@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "react-router-dom";
-import { Mail, CheckCircle2, ArrowLeft, RefreshCw } from "lucide-react";
+import { Mail, CheckCircle2, ArrowLeft, RefreshCw, ArrowRight } from "lucide-react";
 import { forgotPasswordSchema, type ForgotPasswordSchemaType } from "../schemas/auth.schema";
 import { useForgotPassword } from "../hooks/useForgotPassword";
 import { Input } from "../../../components/ui/Input";
@@ -20,39 +20,56 @@ export const ForgotPasswordForm: React.FC = () => {
     register,
     handleSubmit,
     setError,
+    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<ForgotPasswordSchemaType>({
     resolver: zodResolver(forgotPasswordSchema),
+    mode: "onSubmit",
+    reValidateMode: "onChange",
     defaultValues: {
       email: "",
     },
   });
 
+  const isPending = forgotPasswordMutation.isPending || isSubmitting;
+
   const onSubmit = (data: ForgotPasswordSchemaType) => {
+    if (isPending) return;
     setGlobalError(null);
-    forgotPasswordMutation.mutate(data, {
-      onSuccess: () => {
-        setSubmittedEmail(data.email);
-      },
-      onError: (err) => {
-        const parsed = mapApiErrorsToForm(err, setError);
-        if (!parsed.fieldErrors || Object.keys(parsed.fieldErrors).length === 0) {
-          setGlobalError(parsed.message);
-        }
-      },
-    });
+
+    const trimmedEmail = data.email.trim();
+
+    forgotPasswordMutation.mutate(
+      { email: trimmedEmail },
+      {
+        onSuccess: () => {
+          setSubmittedEmail(trimmedEmail);
+        },
+        onError: (err) => {
+          const parsed = mapApiErrorsToForm(err, setError);
+          if (!parsed.fieldErrors?.email) {
+            setGlobalError(parsed.message || "We couldn't send the reset request right now. Please try again.");
+          } else {
+            setGlobalError(null);
+          }
+        },
+      }
+    );
   };
 
   const handleResend = () => {
-    if (!submittedEmail) return;
+    if (!submittedEmail || isPending) return;
     setGlobalError(null);
+
     forgotPasswordMutation.mutate(
-      { email: submittedEmail },
+      { email: submittedEmail.trim() },
       {
         onError: (err) => {
           const parsed = mapApiErrorsToForm(err, setError);
-          if (!parsed.fieldErrors || Object.keys(parsed.fieldErrors).length === 0) {
-            setGlobalError(parsed.message);
+          if (!parsed.fieldErrors?.email) {
+            setGlobalError(parsed.message || "We couldn't send the reset request right now. Please try again.");
+          } else {
+            setGlobalError(null);
           }
         },
       }
@@ -61,37 +78,41 @@ export const ForgotPasswordForm: React.FC = () => {
 
   if (submittedEmail) {
     return (
-      <div className="space-y-6 text-center">
-        <div className="w-14 h-14 bg-[#ECFDF5] dark:bg-[rgba(16,185,129,0.08)] rounded-full flex items-center justify-center mx-auto text-[#10B981] dark:text-[#6EE7B7] border border-[#A7F3D0] dark:border-[rgba(52,211,153,0.24)]">
-          <CheckCircle2 className="w-7 h-7" />
+      <div className="space-y-4 text-center">
+        <div className="w-12 h-12 bg-[var(--surface-secondary)] rounded-full flex items-center justify-center mx-auto text-[var(--brand-primary)] border border-[var(--border)]">
+          <CheckCircle2 className="w-6 h-6" />
         </div>
 
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Check Your Email</h2>
-          <p className="text-sm text-[#64748B] dark:text-[#94A3B8] leading-relaxed">
-            If an account exists for <span className="font-medium text-[#0F172A] dark:text-[#F8FAFC]">{submittedEmail}</span>, password reset instructions have been sent.
+        <div className="space-y-1.5">
+          <h2 className="text-xl font-bold text-[var(--text-primary)]">Check your email</h2>
+          <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed max-w-sm mx-auto">
+            Password reset instructions have been sent to your email.
           </p>
         </div>
 
         <ApiErrorAlert message={globalError} onClose={() => setGlobalError(null)} />
 
-        <div className="space-y-3 pt-2">
+        <div className="space-y-2.5 pt-2">
           <Button
+            type="button"
             variant="outline"
             size="lg"
-            className="w-full"
+            className="w-full h-[52px] rounded-[12px] border-[var(--border)] bg-[var(--surface-secondary)] text-[var(--text-primary)] font-semibold text-sm hover:bg-[var(--surface-hover)] transition-all cursor-pointer flex items-center justify-center gap-2"
             onClick={handleResend}
-            isLoading={forgotPasswordMutation.isPending}
+            isLoading={isPending}
+            disabled={isPending}
+            loadingText="Sending..."
             leftIcon={<RefreshCw className="w-4 h-4" />}
           >
-            Resend Email
+            Resend Link
           </Button>
 
           <Link to="/login" className="block">
             <Button
+              type="button"
               variant="ghost"
               size="md"
-              className="w-full"
+              className="w-full h-[46px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm font-medium transition-colors"
               leftIcon={<ArrowLeft className="w-4 h-4" />}
             >
               Back to Login
@@ -103,41 +124,44 @@ export const ForgotPasswordForm: React.FC = () => {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit, () => scrollToFirstError())} className="space-y-4 text-left">
+    <form
+      onSubmit={handleSubmit(onSubmit, () => scrollToFirstError("email"))}
+      noValidate
+      className="space-y-3.5 text-left"
+    >
       <ApiErrorAlert message={globalError} onClose={() => setGlobalError(null)} />
 
       <div data-field-name="email">
         <Input
-          label="Email address"
+          id="forgot-password-email"
           type="email"
-          placeholder="admin@academy.com"
+          placeholder="Enter your email address"
           autoComplete="email"
-          leftIcon={<Mail className="w-4 h-4" />}
+          leftIcon={<Mail className="w-4 h-4 text-[var(--text-muted)]" />}
           error={errors.email?.message}
           aria-invalid={Boolean(errors.email)}
-          {...register("email")}
+          className="h-[52px] min-h-[52px] rounded-[12px] bg-[var(--surface-secondary)] border-[var(--input-border)] focus:border-[var(--brand-primary)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] text-sm"
+          {...register("email", {
+            onChange: () => {
+              if (globalError) setGlobalError(null);
+              if (errors.email) clearErrors("email");
+            },
+          })}
         />
       </div>
 
       <Button
         type="submit"
         size="lg"
-        className="w-full mt-2"
-        isLoading={forgotPasswordMutation.isPending || isSubmitting}
-        disabled={forgotPasswordMutation.isPending || isSubmitting}
+        className="w-full h-[52px] rounded-[12px] bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs mt-1"
+        isLoading={isPending}
+        disabled={isPending}
+        loadingText="Sending..."
       >
-        Send Password Reset Link
+        <span>Send Reset Link</span>
+        <ArrowRight className="w-4 h-4" />
       </Button>
-
-      <div className="text-center pt-2">
-        <Link
-          to="/login"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Login
-        </Link>
-      </div>
     </form>
   );
 };
+

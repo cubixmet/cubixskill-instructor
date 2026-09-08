@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail } from "lucide-react";
+import { Mail, ArrowRight } from "lucide-react";
 import { loginSchema, type LoginSchemaType } from "../schemas/auth.schema";
 import { useLogin } from "../hooks/useLogin";
 import { Input } from "../../../components/ui/Input";
@@ -63,42 +63,42 @@ export const LoginForm: React.FC = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-4 text-left">
+    <form onSubmit={handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-3.5 text-left">
       <ApiErrorAlert message={globalError || storeError} onClose={() => { setGlobalError(null); clearError(); }} />
 
       <div data-field-name="email">
         <Input
-          label="Email address"
           type="email"
-          placeholder="admin@academy.com"
+          placeholder="Email Address"
           autoComplete="email"
-          leftIcon={<Mail className="w-4 h-4" />}
+          leftIcon={<Mail className="w-4 h-4 text-[var(--text-muted)]" />}
           error={errors.email?.message}
           aria-invalid={Boolean(errors.email)}
+          className="h-[52px] min-h-[52px] rounded-[12px] bg-[var(--surface-secondary)] border-[var(--input-border)] focus:border-[var(--brand-primary)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] text-sm"
           {...register("email")}
         />
       </div>
 
       <div data-field-name="password">
         <PasswordField
-          label="Password"
-          placeholder="••••••••"
+          placeholder="Password"
           autoComplete="current-password"
           error={errors.password?.message}
           aria-invalid={Boolean(errors.password)}
+          className="h-[52px] min-h-[52px] rounded-[12px] bg-[var(--surface-secondary)] border-[var(--input-border)] focus:border-[var(--brand-primary)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] text-sm"
           {...register("password")}
         />
       </div>
 
-      <div className="flex flex-col gap-3 min-[360px]:flex-row min-[360px]:items-center min-[360px]:justify-between pt-1">
+      <div className="flex items-center justify-between pt-0.5 text-xs sm:text-sm">
         <Checkbox
-          label={<span className="text-xs sm:text-sm text-[#0F172A] dark:text-[#CBD5E1]">Remember Me</span>}
+          label={<span className="text-xs sm:text-sm text-[var(--text-primary)] font-medium">Remember me</span>}
           {...register("remember_me")}
         />
 
         <Link
           to="/forgot-password"
-          className="text-xs sm:text-sm font-medium text-[#2563EB] dark:text-[#60A5FA] hover:underline transition-colors"
+          className="text-xs sm:text-sm font-semibold text-[var(--brand-primary)] hover:underline transition-colors shrink-0"
         >
           Forgot Password?
         </Link>
@@ -107,12 +107,13 @@ export const LoginForm: React.FC = () => {
       <Button
         type="submit"
         size="lg"
-        className="w-full mt-2"
+        className="w-full h-[52px] rounded-[12px] bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs mt-1"
         isLoading={loginMutation.isPending || isSubmitting}
         disabled={loginMutation.isPending || isSubmitting}
-        loadingText="Signing In..."
+        loadingText="Logging in..."
       >
-        Sign In
+        <span>Login</span>
+        <ArrowRight className="w-4 h-4" />
       </Button>
     </form>
   );

@@ -70,14 +70,11 @@ export const DashboardPage: React.FC = () => {
         />
       )}
 
-      {/* 2. Quick Actions Grid */}
-      <QuickActions onOpenBuyCredits={() => setBuyCreditsOpen(true)} />
-
-      {/* 3. Summary Statistics Grid (Feature & Permission Filtered) */}
+      {/* 2. Summary Statistics Grid (Feature & Permission Filtered) */}
       <DashboardStatGrid analytics={dashboardAnalytics} />
 
-      {/* 4. Revenue & Course Performance Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      {/* 3. Revenue & Course Performance Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 sm:gap-6">
         <FeatureGuard feature="payments">
           <PermissionGuard permission="payments.view">
             <RevenueOverview analytics={revenueAnalytics} />
@@ -90,6 +87,9 @@ export const DashboardPage: React.FC = () => {
           </PermissionGuard>
         </FeatureGuard>
       </div>
+
+      {/* 4. Quick Actions Grid */}
+      <QuickActions onOpenBuyCredits={() => setBuyCreditsOpen(true)} />
 
       {/* Shared Modals */}
       <BuyCreditsModal

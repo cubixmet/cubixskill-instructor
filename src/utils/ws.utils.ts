@@ -13,17 +13,14 @@ export function getWebSocketUrl(path: string): string {
   }
 
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-  let wsOrigin = '';
 
   try {
     const url = new URL(apiBase);
     const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-    wsOrigin = `${protocol}//${url.host}`;
+    return `${protocol}//${url.host}${cleanPath}`;
   } catch {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = import.meta.env.VITE_API_HOST || 'localhost:8000';
-    wsOrigin = `${protocol}//${host}`;
+    return `${protocol}//${host}${cleanPath}`;
   }
-
-  return `${wsOrigin}${cleanPath}`;
 }

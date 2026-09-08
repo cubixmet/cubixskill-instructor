@@ -129,6 +129,8 @@ export interface CourseLesson {
   is_locked?: boolean;
   isLocked?: boolean;
   allowDownload?: boolean;
+  show_media_preview?: boolean;
+  showMediaPreview?: boolean;
   external_url?: string;
   video_url?: string;
   audio_url?: string;

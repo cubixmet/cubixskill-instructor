@@ -19,10 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import {
   Plus,
-  Search,
-  ArrowLeft,
   Check,
-  X,
   Video,
   Layers,
   CircleHelp,
@@ -31,7 +28,7 @@ import {
   AlignLeft,
   Image as ImageIcon,
   ClipboardCheck,
-  Award,
+  Award
 } from 'lucide-react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import type {
@@ -47,7 +44,6 @@ import { AttachAssignmentModal } from '../components/curriculum/AttachAssignment
 import { AttachQuizModal } from '../components/curriculum/AttachQuizModal';
 import { AddLessonFlowModal } from '../components/curriculum/AddLessonFlowModal';
 import { Button } from '../../../components/ui/Button';
-import { Badge } from '../../../components/ui/Badge';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Modal } from '../../../components/ui/Modal';
 import { Card } from '../../../components/ui/Card';
@@ -115,18 +111,6 @@ export const CourseCurriculumPage: React.FC = () => {
     return map;
   }, [allLessons]);
 
-  const courseModuleUuids = useMemo(() => modules.map((m) => m.uuid), [modules]);
-
-  const courseLessons = useMemo(
-    () => allLessons.filter((l) => courseModuleUuids.includes(l.moduleUuid)),
-    [allLessons, courseModuleUuids]
-  );
-
-  const totalLessonCount = courseLessons.length;
-  const totalCourseDuration = courseLessons.reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
-  const publishedLessonCount = courseLessons.filter((l) => l.status === 'published').length;
-  const draftLessonCount = courseLessons.filter((l) => l.status === 'draft').length;
-
   const lessonsCountByModule = useMemo(() => {
     const map: Record<string, number> = {};
     modules.forEach((mod) => {
@@ -136,7 +120,7 @@ export const CourseCurriculumPage: React.FC = () => {
   }, [modules, allLessons]);
 
   // Search & Filter State
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery] = useState('');
   const [statusFilter] = useState<string>('all');
   const [typeFilter] = useState<string>('all');
 
@@ -388,235 +372,126 @@ export const CourseCurriculumPage: React.FC = () => {
     { type: 'project', label: 'Project Task', description: 'Hands-on practical capstone project', icon: Award },
   ];
 
+
+
   return (
     <div className="space-y-4 sm:space-y-6 text-left font-sans pb-[calc(88px+env(safe-area-inset-bottom))] no-scrollbar">
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed top-4 right-4 z-50 px-4 py-3 bg-[#0F172A] text-white text-xs font-semibold rounded-2xl shadow-2xl flex items-center gap-2">
-          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="fixed top-4 right-4 z-50 px-4 py-3 bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] text-xs font-semibold rounded-2xl shadow-2xl flex items-center gap-2">
+          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* 1. STICKY MOBILE HEADER (<768px) */}
-      <div className="md:hidden sticky top-0 z-30 bg-white dark:bg-[#111827] border-b border-slate-200 dark:border-[#263244] p-3 shadow-2xs -mx-3 sm:-mx-6 -mt-3 sm:-mt-6">
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => navigate('/courses')}
-            className="flex items-center gap-1.5 text-slate-900 dark:text-[#F8FAFC] text-sm font-semibold p-1"
-          >
-            <ArrowLeft className="w-5 h-5 text-slate-700 dark:text-[#94A3B8]" />
-            <span>Curriculum</span>
-          </button>
 
-          <Badge variant="success" size="sm" dot>Published</Badge>
+
+
+
+      {/* 4. COURSE CURRICULUM SECTION HEADER */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] tracking-tight">
+            Course Curriculum
+          </h2>
+          <p className="text-xs text-[var(--text-secondary)] font-normal">
+            Organize your sections and lessons
+          </p>
         </div>
 
-        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-[#94A3B8] pt-2 border-t border-slate-200 dark:border-[#263244] mt-2 font-medium">
-          <span>{modules.length} Modules • {totalLessonCount} Lessons</span>
-          <span>{Math.floor(totalCourseDuration / 60)}h {totalCourseDuration % 60}m Total</span>
-        </div>
-      </div>
-
-      {/* 2. DESKTOP HEADER CARD (>=768px) */}
-      <div className="hidden md:block bg-white dark:bg-[#111827] p-5 sm:p-6 rounded-[16px] border border-slate-200 dark:border-[#263244] shadow-2xs space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
-              Course Curriculum
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal mt-0.5">
-              Structure modules, drag lessons to reorder, and configure unlock prerequisites.
-            </p>
-            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-[#94A3B8] font-medium mt-2 flex-wrap">
-              <span className="px-2.5 py-1 bg-slate-100 dark:bg-[#172033] rounded-lg text-slate-800 dark:text-[#CBD5E1] border border-slate-200 dark:border-[#263244]">
-                {modules.length} Modules
-              </span>
-              <span>•</span>
-              <span className="px-2.5 py-1 bg-blue-50 dark:bg-[rgba(37,99,235,0.10)] text-[#2563EB] dark:text-[#60A5FA] rounded-lg border border-blue-100 dark:border-[#263244] font-semibold">
-                {totalLessonCount} Lessons
-              </span>
-              <span>•</span>
-              <span className="px-2.5 py-1 bg-slate-100 dark:bg-[#172033] text-slate-800 dark:text-[#CBD5E1] rounded-lg border border-slate-200 dark:border-[#263244]">
-                {Math.floor(totalCourseDuration / 60)}h {totalCourseDuration % 60}m Total
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 shrink-0">
-            <Button
-              size="sm"
-              leftIcon={<Plus className="w-4 h-4 stroke-[3]" />}
-              onClick={handleOpenAddModuleModal}
-              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold px-4 h-10"
-            >
-              Add Module
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              leftIcon={<Plus className="w-4 h-4 stroke-[3]" />}
-              onClick={handleOpenGeneralAddLesson}
-              className="bg-white dark:bg-[#172033] border-[#2563EB] dark:border-[#334155] text-[#2563EB] dark:text-[#F8FAFC] hover:bg-blue-50 dark:hover:bg-[#1E293B] font-bold px-4 h-10"
-            >
-              Add Lesson
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. MOBILE SUMMARY CARD (<768px 2-COLUMN GRID) */}
-      <Card padding="md" className="md:hidden bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] p-4 rounded-[16px] shadow-2xs space-y-3">
-        <strong className="text-[13px] font-semibold text-slate-900 dark:text-[#F8FAFC] block">Curriculum Summary</strong>
-        <div className="grid grid-cols-2 gap-2 text-center text-xs font-medium">
-          <div className="p-2.5 bg-slate-50 dark:bg-[#0F172A] rounded-xl border border-slate-200 dark:border-[#263244]">
-            <span className="text-slate-500 dark:text-[#94A3B8] block text-[10px]">Modules</span>
-            <strong className="text-[16px] font-bold text-slate-900 dark:text-[#F8FAFC]">{modules.length}</strong>
-          </div>
-          <div className="p-2.5 bg-slate-50 dark:bg-[#0F172A] rounded-xl border border-slate-200 dark:border-[#263244]">
-            <span className="text-slate-500 dark:text-[#94A3B8] block text-[10px]">Total Lessons</span>
-            <strong className="text-[16px] font-bold text-[#2563EB] dark:text-[#60A5FA]">{totalLessonCount}</strong>
-          </div>
-          <div className="p-2.5 bg-slate-50 dark:bg-[#0F172A] rounded-xl border border-slate-200 dark:border-[#263244]">
-            <span className="text-slate-500 dark:text-[#94A3B8] block text-[10px]">Published</span>
-            <strong className="text-[16px] font-bold text-emerald-600 dark:text-emerald-400">{publishedLessonCount}</strong>
-          </div>
-          <div className="p-2.5 bg-slate-50 dark:bg-[#0F172A] rounded-xl border border-slate-200 dark:border-[#263244]">
-            <span className="text-slate-500 dark:text-[#94A3B8] block text-[10px]">Drafts</span>
-            <strong className="text-[16px] font-bold text-slate-500 dark:text-[#94A3B8]">{draftLessonCount}</strong>
-          </div>
-        </div>
-      </Card>
-
-      {/* 4. SEARCH BAR & QUICK ACTIONS */}
-      <div className="space-y-3">
-        <div className="relative w-full">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#64748B]" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search modules, lessons, or subsections..."
-            className="w-full h-[46px] pl-10 pr-10 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-[14px] text-xs font-normal text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B] focus:outline-none focus:border-[#2563EB] shadow-2xs"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Mobile / Page Action Buttons Grid */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full max-w-full">
-          <button
-            type="button"
-            onClick={handleOpenAddModuleModal}
-            className="h-11 sm:h-12 px-3 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-[0.98] text-white rounded-xl flex items-center justify-center gap-1.5 text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap min-w-0 w-full"
-          >
-            <Plus className="w-4 h-4 stroke-[3] shrink-0" />
-            <span className="whitespace-nowrap">Add Module</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleOpenGeneralAddLesson}
-            className="h-11 sm:h-12 px-3 bg-white dark:bg-[#172033] border border-slate-300 dark:border-[#334155] text-[#2563EB] dark:text-[#F8FAFC] hover:bg-blue-50/60 dark:hover:bg-[#1E293B] dark:hover:border-[#3B82F6] active:scale-[0.98] rounded-xl flex items-center justify-center gap-1.5 text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap min-w-0 w-full"
-          >
-            <Plus className="w-4 h-4 stroke-[3] text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
-            <span className="whitespace-nowrap">Add Lesson</span>
-          </button>
-        </div>
+        <Button
+          size="sm"
+          leftIcon={<Plus className="w-4 h-4 stroke-[3]" />}
+          onClick={handleOpenAddModuleModal}
+          className="bg-[var(--brand-primary)] hover:opacity-90 text-[var(--brand-primary-foreground)] font-bold px-3.5 h-9 text-xs rounded-xl shrink-0"
+        >
+          Add Section
+        </Button>
       </div>
 
       {/* 5. MAIN CURRICULUM WORKSPACE */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        <div className="xl:col-span-8 2xl:col-span-9 space-y-4">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={moduleUuids} strategy={verticalListSortingStrategy}>
-              <div className="space-y-4">
-                {isLoading ? (
-                  <div className="p-8 text-center bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] space-y-3">
-                    <div className="w-8 h-8 border-3 border-[#2563EB] border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="text-xs font-semibold text-slate-500 dark:text-[#94A3B8]">Loading course curriculum...</p>
+      <div className="space-y-4">
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={moduleUuids} strategy={verticalListSortingStrategy}>
+            <div className="space-y-4">
+              {isLoading ? (
+                <div className="p-8 text-center bg-[var(--surface)] rounded-2xl border border-[var(--border)] space-y-3">
+                  <div className="w-8 h-8 border-3 border-[var(--brand-primary)] border-t-transparent rounded-full animate-spin mx-auto" />
+                  <p className="text-xs font-semibold text-[var(--text-secondary)]">Loading course curriculum...</p>
+                </div>
+              ) : fetchError ? (
+                <Card padding="md" className="p-8 text-center bg-[var(--surface)] rounded-[16px] border border-rose-500/20 space-y-3">
+                  <div className="w-10 h-10 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto font-bold text-base">
+                    !
                   </div>
-                ) : fetchError ? (
-                  <Card padding="md" className="p-8 text-center bg-white dark:bg-[#111827] rounded-[16px] border border-rose-200 dark:border-rose-800 space-y-3">
-                    <div className="w-10 h-10 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto font-bold text-base">
-                      !
-                    </div>
-                    <p className="font-semibold text-rose-900 dark:text-rose-300 text-sm">{fetchError.message}</p>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        if (courseUuid) loadCurriculum(courseUuid);
-                      }}
-                      className="bg-[#2563EB] text-white font-semibold mx-auto"
-                    >
-                      Retry Loading
-                    </Button>
-                  </Card>
-                ) : filteredModules.length === 0 ? (
-                  <EmptyState
-                    icon={Layers}
-                    title="No Modules Found"
-                    description="Click &quot;Add Module&quot; to start creating your course curriculum."
-                    actionLabel="Add Module"
-                    onAction={handleOpenAddModuleModal}
-                    actionIcon={<Plus className="w-4 h-4" />}
-                  />
-                ) : (
-                  filteredModules.map((module, idx) => {
-                    const moduleLessons = (lessonsByModule[module.uuid] || []).map((l, lIdx) => ({
-                      ...l,
-                      id: l.uuid || `lesson-temp-${lIdx}-${l.title}`,
-                    }));
+                  <p className="font-semibold text-[var(--text-primary)] text-sm">{fetchError.message}</p>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (courseUuid) loadCurriculum(courseUuid);
+                    }}
+                    className="bg-[var(--brand-primary)] text-[var(--brand-primary-foreground)] font-semibold mx-auto"
+                  >
+                    Retry Loading
+                  </Button>
+                </Card>
+              ) : filteredModules.length === 0 ? (
+                <EmptyState
+                  icon={Layers}
+                  title="No Modules Found"
+                  description="Click &quot;Add Section&quot; to start creating your course curriculum."
+                  actionLabel="Add Section"
+                  onAction={handleOpenAddModuleModal}
+                  actionIcon={<Plus className="w-4 h-4" />}
+                />
+              ) : (
+                filteredModules.map((module, idx) => {
+                  const moduleLessons = (lessonsByModule[module.uuid] || []).map((l, lIdx) => ({
+                    ...l,
+                    id: l.uuid || `lesson-temp-${lIdx}-${l.title}`,
+                  }));
 
-                    return (
-                      <div key={module.uuid} className="space-y-2">
-                        <SortableModuleCard
-                          module={module}
-                          lessons={moduleLessons}
-                          moduleIndex={idx + 1}
-                          onAddLesson={handleOpenLessonTypeSelector}
-                          onSelectLesson={(lesson: CurriculumLesson) => {
-                            const full = lessonsByModule[module.uuid]?.find((l) => l.uuid === lesson.id);
-                            if (full) {
-                              navigate(`/courses/${courseUuid}/curriculum/lessons/${full.uuid}/edit`);
-                            }
-                          }}
-                          onDeleteLesson={(modUuid, lessonUuid) =>
-                            setDeleteModalTarget({
-                              type: 'lesson',
-                              moduleUuid: modUuid,
-                              lessonUuid,
-                              title: 'Selected Lesson',
-                            })
+                  return (
+                    <div key={module.uuid} className="space-y-2">
+                      <SortableModuleCard
+                        module={module}
+                        lessons={moduleLessons}
+                        moduleIndex={idx + 1}
+                        onAddLesson={handleOpenLessonTypeSelector}
+                        onSelectLesson={(lesson: CurriculumLesson) => {
+                          const full = lessonsByModule[module.uuid]?.find((l) => l.uuid === lesson.id);
+                          if (full) {
+                            navigate(`/courses/${courseUuid}/curriculum/lessons/${full.uuid}/edit`);
                           }
-                          onDeleteModule={(modUuid) =>
-                            setDeleteModalTarget({
-                              type: 'module',
-                              moduleUuid: modUuid,
-                              title: module.title,
-                              lessonCount: moduleLessons.length,
-                            })
-                          }
-                          onDuplicateModule={handleDuplicateModule}
-                          onEditModule={handleOpenEditModuleModal}
-                          onDuplicateLesson={handleDuplicateLesson}
-                          onAddResource={handleOpenAddResourcePage}
-                        />
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </SortableContext>
-          </DndContext>
-        </div>
+                        }}
+                        onDeleteLesson={(modUuid, lessonUuid) =>
+                          setDeleteModalTarget({
+                            type: 'lesson',
+                            moduleUuid: modUuid,
+                            lessonUuid,
+                            title: 'Selected Lesson',
+                          })
+                        }
+                        onDeleteModule={(modUuid) =>
+                          setDeleteModalTarget({
+                            type: 'module',
+                            moduleUuid: modUuid,
+                            title: module.title,
+                            lessonCount: moduleLessons.length,
+                          })
+                        }
+                        onDuplicateModule={handleDuplicateModule}
+                        onEditModule={handleOpenEditModuleModal}
+                        onDuplicateLesson={handleDuplicateLesson}
+                        onAddResource={handleOpenAddResourcePage}
+                      />
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </SortableContext>
+        </DndContext>
       </div>
 
       {/* 6. STICKY MOBILE BOTTOM ACTION BAR (<768px) */}

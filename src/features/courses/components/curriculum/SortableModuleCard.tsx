@@ -215,12 +215,13 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
         </div>
       )}
 
-      {/* MORE MODULE ACTIONS MODAL */}
+      {/* SECTION THREE-DOT ACTION MENU */}
       <Modal
         isOpen={isMoreMenuOpen}
         onClose={() => setIsMoreMenuOpen(false)}
-        title={`Module Options: ${module.title}`}
+        title={`Section Options: ${module.title}`}
         maxWidth="sm"
+        mobileMode="sheet"
       >
         <div className="flex flex-col gap-1 text-left font-sans py-1">
           <button
@@ -229,10 +230,22 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
               setIsMoreMenuOpen(false);
               onEditModule(module);
             }}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 min-h-[42px] text-left text-sm font-medium text-[#334155] dark:text-[#CBD5E1] hover:bg-slate-100/80 dark:hover:bg-[#172033] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#2563EB] dark:focus:ring-[#3B82F6]"
+            className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
           >
-            <Edit3 className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
-            <span>Edit Module Settings</span>
+            <Edit3 className="w-4 h-4 text-[var(--brand-primary)] shrink-0" />
+            <span>Edit Section</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsMoreMenuOpen(false);
+              onAddLesson(module.uuid);
+            }}
+            className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4 text-[var(--brand-primary)] shrink-0 stroke-[2.5]" />
+            <span>Add Lesson</span>
           </button>
 
           <button
@@ -241,13 +254,13 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
               setIsMoreMenuOpen(false);
               onDuplicateModule(module.uuid);
             }}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 min-h-[42px] text-left text-sm font-medium text-[#334155] dark:text-[#CBD5E1] hover:bg-slate-100/80 dark:hover:bg-[#172033] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#2563EB] dark:focus:ring-[#3B82F6]"
+            className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
           >
-            <Copy className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
-            <span>Duplicate Module</span>
+            <Copy className="w-4 h-4 text-[var(--brand-primary)] shrink-0" />
+            <span>Duplicate Section</span>
           </button>
 
-          <div className="my-1 border-t border-[#E2E8F0] dark:border-[#263244]" />
+          <div className="my-1.5 border-t border-[var(--border)]" />
 
           <button
             type="button"
@@ -255,15 +268,16 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
               setIsMoreMenuOpen(false);
               setIsDeleteConfirmOpen(true);
             }}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 min-h-[42px] text-left text-sm font-medium text-rose-600 dark:text-[#F87171] hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-700 dark:hover:text-[#FCA5A5] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-rose-500"
+            aria-label="Remove section"
+            className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left text-sm font-bold text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
           >
-            <Trash2 className="w-4 h-4 text-current shrink-0" />
-            <span>Delete Module</span>
+            <Trash2 className="w-4 h-4 text-rose-500 shrink-0" />
+            <span>Remove Section</span>
           </button>
         </div>
       </Modal>
 
-      {/* SAFE DELETE CONFIRMATION MODAL */}
+      {/* CONFIRMATION BOTTOM SHEET / MODAL */}
       <Modal
         isOpen={isDeleteConfirmOpen}
         onClose={() => {
@@ -272,35 +286,58 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
             setDeleteError(null);
           }
         }}
-        title="Delete Module?"
+        showClose={false}
         maxWidth="sm"
+        mobileMode="sheet"
       >
-        <div className="flex flex-col gap-3 p-6 text-left font-sans text-xs">
-          <p className="text-sm font-normal text-[var(--text-secondary,#64748B)] dark:text-[#94A3B8] leading-relaxed">
-            Are you sure you want to delete{' '}
-            <span className="font-medium text-[var(--text-primary,#0F172A)] dark:text-[#F8FAFC]">
-              "{module.title}"
-            </span>
-            ?
-          </p>
+        <div className="flex flex-col items-center p-5 sm:p-6 text-center font-sans space-y-4">
+          <div className="w-14 h-14 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center shrink-0">
+            <Trash2 className="w-7 h-7 stroke-[2]" />
+          </div>
 
-          <p className="text-xs text-[#F87171] font-medium">
-            This action cannot be undone.
-          </p>
-
-          {lessons.length > 0 && (
-            <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-xl text-rose-800 dark:text-rose-300 font-medium text-xs">
-              Warning: This module contains {lessons.length} {lessons.length === 1 ? 'lesson' : 'lessons'}. Deleting it will permanently remove all contained lessons.
-            </div>
-          )}
+          <div className="space-y-1.5">
+            <h3 className="text-base sm:text-lg font-bold text-[var(--text-primary)]">
+              Remove Section
+            </h3>
+            <p className="text-xs sm:text-sm font-medium text-[var(--text-secondary)] leading-relaxed">
+              Are you sure you want to remove this section?
+            </p>
+            {lessons.length > 0 && (
+              <p className="text-xs font-semibold text-rose-500">
+                This will also remove all lessons inside it.
+              </p>
+            )}
+            <p className="text-[11px] font-medium text-[var(--text-muted)]">
+              This action cannot be undone.
+            </p>
+          </div>
 
           {deleteError && (
-            <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-xl text-rose-800 dark:text-rose-300 font-medium text-xs">
+            <div className="w-full p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 font-semibold text-xs text-left">
               {deleteError}
             </div>
           )}
 
-          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pt-4 border-t border-[var(--border,#E2E8F0)] dark:border-[#263244] mt-2">
+          <div className="w-full space-y-2.5 pt-2">
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={handleConfirmDelete}
+              className="w-full h-12 rounded-xl font-bold text-sm bg-rose-600 hover:bg-rose-700 text-white transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs disabled:opacity-50 active:scale-[0.98]"
+            >
+              {isDeleting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Removing...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  <span>Remove Section</span>
+                </>
+              )}
+            </button>
+
             <button
               type="button"
               disabled={isDeleting}
@@ -308,25 +345,9 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
                 setIsDeleteConfirmOpen(false);
                 setDeleteError(null);
               }}
-              className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl font-medium text-sm bg-[var(--surface-secondary,#F1F5F9)] dark:bg-[#1E293B] border border-[var(--border,#E2E8F0)] dark:border-[#334155] text-[var(--text-secondary,#64748B)] dark:text-[#CBD5E1] hover:bg-[var(--surface-hover,#E2E8F0)] dark:hover:bg-[#334155] hover:text-[var(--text-primary,#0F172A)] dark:hover:text-[#F8FAFC] transition-colors cursor-pointer disabled:opacity-50"
+              className="w-full h-12 rounded-xl font-semibold text-sm bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98]"
             >
               Cancel
-            </button>
-
-            <button
-              type="button"
-              disabled={isDeleting}
-              onClick={handleConfirmDelete}
-              className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl font-medium text-sm bg-[#E11D48] hover:bg-[#BE123C] text-white transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isDeleting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Deleting...</span>
-                </>
-              ) : (
-                <span>Confirm Delete</span>
-              )}
             </button>
           </div>
         </div>

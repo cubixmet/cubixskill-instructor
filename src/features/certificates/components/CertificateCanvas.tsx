@@ -1,7 +1,47 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { CanvasElement } from '../../../types/certificate.types';
+import { CanvasElement, BackgroundFit, BackgroundPosition } from '../../../types/certificate.types';
 import { AutoFitTextContainer } from './AutoFitTextContainer';
 import { resolveFieldValue } from '../services/certificateFieldResolver';
+
+const getCssBackgroundSize = (fit?: string): string => {
+  switch (fit) {
+    case 'contain':
+      return 'contain';
+    case 'fill':
+    case 'stretch':
+      return '100% 100%';
+    case 'original':
+    case 'center':
+      return 'auto';
+    case 'cover':
+    default:
+      return 'cover';
+  }
+};
+
+const getCssBackgroundPosition = (pos?: string): string => {
+  switch (pos) {
+    case 'top-left':
+      return 'top left';
+    case 'top-right':
+      return 'top right';
+    case 'bottom-left':
+      return 'bottom left';
+    case 'bottom-right':
+      return 'bottom right';
+    case 'top':
+      return 'top center';
+    case 'bottom':
+      return 'bottom center';
+    case 'left':
+      return 'left center';
+    case 'right':
+      return 'right center';
+    case 'center':
+    default:
+      return 'center';
+  }
+};
 
 interface CertificateCanvasProps {
   elements: CanvasElement[];
@@ -16,8 +56,8 @@ interface CertificateCanvasProps {
   canvasHeight?: number;
   backgroundUrl?: string;
   backgroundColor?: string;
-  bgFit?: 'cover' | 'contain';
-  bgPosition?: 'center' | 'top' | 'bottom' | 'left' | 'right';
+  bgFit?: BackgroundFit;
+  bgPosition?: BackgroundPosition;
   bgOpacity?: number;
   isEditorMode?: boolean;
   isPreviewOnly?: boolean;
@@ -308,8 +348,8 @@ export const CertificateCanvas: React.FC<CertificateCanvasProps> = ({
           className="absolute inset-0 pointer-events-none transition-all"
           style={{
             backgroundImage: `url(${backgroundUrl})`,
-            backgroundSize: bgFit === 'contain' ? 'contain' : 'cover',
-            backgroundPosition: bgPosition || 'center',
+            backgroundSize: getCssBackgroundSize(bgFit),
+            backgroundPosition: getCssBackgroundPosition(bgPosition),
             backgroundRepeat: 'no-repeat',
             opacity: bgOpacity ?? 1,
           }}

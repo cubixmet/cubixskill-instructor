@@ -14,7 +14,7 @@ export function normalizeIndianPhone(phone?: string | null): string {
   if (!trimmed) return '';
 
   // Remove spaces, hyphens, and brackets
-  const clean = trimmed.replace(/[\s\-\(\)]/g, '');
+  const clean = trimmed.replace(/[\s\-()]/g, '');
 
   if (clean.startsWith('+')) {
     return clean;

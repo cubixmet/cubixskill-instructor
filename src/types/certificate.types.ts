@@ -44,9 +44,22 @@ export type PlaceholderKey =
   | '{{director_signature}}'
   | '{{custom_text}}';
 
+export type BackgroundFit = 'cover' | 'contain' | 'fill' | 'original' | 'center' | 'stretch';
+
+export type BackgroundPosition =
+  | 'center'
+  | 'top'
+  | 'bottom'
+  | 'left'
+  | 'right'
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-right';
+
 export interface CanvasElement {
   id: string;
-  type: 'text' | 'image' | 'qr_code' | 'signature' | 'logo' | 'placeholder' | 'dynamic_field' | 'static_text';
+  type: 'text' | 'image' | 'qr' | 'qr_code' | 'signature' | 'logo' | 'placeholder' | 'dynamic_field' | 'static_text';
   label: string;
   fieldKey?: string; // Stable field identifier e.g. 'student.full_name'
   placeholderKey?: PlaceholderKey;
@@ -61,6 +74,7 @@ export interface CanvasElement {
   fontFamily?: string;
   font_family?: string;
   fontKey?: string;
+  font_key?: string;
   fontSize?: number; // preferred font size in px
   font_size?: number;
   preferredFontSize?: number;
@@ -80,10 +94,28 @@ export interface CanvasElement {
   textAlign?: 'left' | 'center' | 'right';
   text_align?: 'left' | 'center' | 'right';
   padding?: { top: number; right: number; bottom: number; left: number };
+  fontStyle?: string;
+  font_style?: string;
+  fontId?: string;
+  font_id?: string;
+  letterSpacing?: number;
+  letter_spacing?: number;
+  lineHeight?: number;
+  line_height?: number;
+  multiline?: boolean;
+  rotation?: number;
   opacity?: number;
   zIndex?: number;
   z_index?: number;
   isLocked?: boolean;
+  is_locked?: boolean;
+  is_visible?: boolean;
+  prefix?: string;
+  suffix?: string;
+  image_url?: string;
+  asset_id?: string | null;
+  assetId?: string | null;
+  fit?: 'contain' | 'cover';
 }
 
 export interface AutoIssueConditions {
@@ -148,9 +180,16 @@ export interface CertificateTemplate {
   orientation?: 'landscape' | 'portrait';
   backgroundUrl?: string;
   backgroundColor?: string;
-  bgFit?: 'cover' | 'contain';
-  bgPosition?: 'center' | 'top' | 'bottom' | 'left' | 'right';
+  bgFit?: BackgroundFit;
+  bgPosition?: BackgroundPosition;
   bgOpacity?: number;
+  background?: {
+    fit?: BackgroundFit;
+    position?: BackgroundPosition;
+    url?: string;
+    opacity?: number;
+    mediaId?: string;
+  };
   elements: CanvasElement[];
   issuedCount: number;
   createdAt: string;

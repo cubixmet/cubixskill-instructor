@@ -1,21 +1,25 @@
-import type { CanvasElement } from '../pages/CertificateBuilderPage';
+import type { CanvasElement } from '../../../types/certificate.types';
 import type { CertificateTemplateData } from '../../../services/certificates.service';
 import type { CertificateFontItem } from './fontRegistry';
 
 export interface BuilderStageState {
   templateName: string;
   description: string;
-  pageSize: 'A4' | 'LETTER' | 'CUSTOM';
+  pageSize: string;
   orientation: 'LANDSCAPE' | 'PORTRAIT';
   customWidth?: number;
   customHeight?: number;
   customUnit?: 'MM' | 'CM' | 'INCH';
   backgroundImageUrl: string;
   backgroundAssetId?: string | null;
+  bgFit?: any;
+  bgPosition?: any;
   elements: CanvasElement[];
   selectedCourseId?: string;
   requiredStudentFields?: string[];
   availableFonts?: CertificateFontItem[];
+  isEditMode?: boolean;
+  existingTemplateDetail?: any;
 }
 
 /**
@@ -35,12 +39,12 @@ export function serializeCertificateTemplate(
         f.family === el.font_family
     );
 
-    const fontIdVal = el.font_id ?? el.fontId ?? fontObj?.id ?? null;
-    const fontKeyVal = el.font_key ?? el.fontKey ?? fontObj?.key ?? null;
+    const fontIdVal = el.fontId ?? el.font_id ?? fontObj?.id ?? null;
+    const fontKeyVal = el.fontKey ?? el.font_key ?? fontObj?.key ?? (fontIdVal ? `cubix-font-${fontIdVal}` : null);
 
-    let runtimeFamily = el.font_family ?? el.fontFamily ?? fontObj?.family ?? 'Inter';
-    if (fontObj?.source === 'ACADEMY') {
-      runtimeFamily = `cubix-font-${fontObj.id}`;
+    let runtimeFamily = el.fontFamily ?? el.font_family ?? fontObj?.family ?? 'Inter';
+    if (fontObj?.source === 'ACADEMY' || fontIdVal) {
+      runtimeFamily = `cubix-font-${fontIdVal}`;
     }
 
     const fontVal = el.fontSize ?? el.font_size ?? 16;
@@ -50,13 +54,13 @@ export function serializeCertificateTemplate(
     const allowGrowVal = el.allowGrow ?? el.allow_grow ?? false;
 
     const fontColorVal = el.color ?? el.fontColor ?? '#0F172A';
-    const fontWeightVal = el.font_weight ?? el.fontWeight ?? '600';
-    const fontStyleVal = el.font_style ?? el.fontStyle ?? 'normal';
-    const textAlignVal = el.text_align ?? el.textAlign ?? 'center';
+    const fontWeightVal = el.fontWeight ?? el.font_weight ?? '400';
+    const fontStyleVal = el.fontStyle ?? el.font_style ?? 'normal';
+    const textAlignVal = el.textAlign ?? el.text_align ?? 'center';
 
-    const letterSpacingVal = el.letter_spacing ?? el.letterSpacing ?? 0;
-    const lineHeightVal = el.line_height ?? el.lineHeight ?? 1;
-    const paddingVal = el.padding ?? { top: 1, right: 2, bottom: 1, left: 2 };
+    const letterSpacingVal = el.letterSpacing ?? el.letter_spacing ?? 0;
+    const lineHeightVal = el.lineHeight ?? el.line_height ?? 1;
+    const paddingVal = el.padding ?? { top: 3, right: 4, bottom: 3, left: 4 };
 
     const rotationVal = el.rotation ?? 0;
     const opacityVal = el.opacity ?? 1;
@@ -141,17 +145,38 @@ export function serializeCertificateTemplate(
       ? state.backgroundImageUrl
       : '';
 
+  let apiPageSize = 'LETTER';
+  let customW = state.customWidth;
+  let customH = state.customHeight;
+  let customU = state.customUnit ?? 'MM';
+
+  if (state.pageSize === 'A4_LANDSCAPE' || state.pageSize === 'A4_PORTRAIT') {
+    apiPageSize = 'A4';
+  } else if (state.pageSize === 'SQUARE_CERTIFICATE') {
+    apiPageSize = 'CUSTOM';
+    customW = 10;
+    customH = 10;
+    customU = 'INCH';
+  } else if (state.pageSize === 'CUSTOM') {
+    apiPageSize = 'CUSTOM';
+  } else if (state.pageSize === 'LETTER' || state.pageSize === 'A4') {
+    apiPageSize = state.pageSize;
+  }
+
+  const bgFitVal = state.bgFit || 'cover';
+  const bgPosVal = state.bgPosition || 'center';
+
   return {
     name: state.templateName,
     description: state.description ?? '',
-    page_size: state.pageSize,
+    page_size: apiPageSize,
     orientation: state.orientation,
     background_media: state.backgroundAssetId ?? null,
-    ...(state.pageSize === 'CUSTOM'
+    ...(apiPageSize === 'CUSTOM'
       ? {
-          custom_width: state.customWidth,
-          custom_height: state.customHeight,
-          custom_unit: state.customUnit ?? 'MM',
+          custom_width: customW,
+          custom_height: customH,
+          custom_unit: customU,
         }
       : {}),
     template_data: {
@@ -159,6 +184,16 @@ export function serializeCertificateTemplate(
       canvas: { width: 1600, height: 1131 },
       background_image_url: validBgUrl,
       background_asset_id: state.backgroundAssetId ?? null,
+      bg_fit: bgFitVal,
+      bgFit: bgFitVal,
+      bg_position: bgPosVal,
+      bgPosition: bgPosVal,
+      background: {
+        fit: bgFitVal,
+        position: bgPosVal,
+        url: validBgUrl,
+        mediaId: state.backgroundAssetId ?? null,
+      },
       required_student_fields: state.requiredStudentFields ?? [],
       selected_course_id: state.selectedCourseId ?? null,
     },
@@ -178,6 +213,8 @@ export function deserializeCertificateTemplate(apiTemplate: CertificateTemplateD
   customUnit?: 'MM' | 'CM' | 'INCH';
   backgroundImageUrl: string;
   backgroundAssetId?: string | null;
+  bgFit?: any;
+  bgPosition?: any;
   elements: CanvasElement[];
   selectedCourseId?: string;
   requiredStudentFields?: string[];
@@ -192,9 +229,13 @@ export function deserializeCertificateTemplate(apiTemplate: CertificateTemplateD
     const autoFitVal = el.autoFit ?? el.auto_fit ?? true;
     const allowGrowVal = el.allowGrow ?? el.allow_grow ?? false;
 
-    const fontColorVal = el.color ?? el.fontColor ?? '#0F172A';
-    const fontFamVal = el.font_family ?? el.fontFamily ?? 'Inter';
+    const fontIdVal = el.fontId ?? el.font_id ?? null;
+    let fontFamVal = el.fontFamily ?? el.font_family ?? 'Inter';
+    if (fontIdVal && (fontIdVal.length > 20 || fontFamVal.startsWith('cubix-font-'))) {
+      fontFamVal = `cubix-font-${fontIdVal}`;
+    }
 
+    const fontColorVal = el.color ?? el.fontColor ?? '#0F172A';
     const imageUrlVal = el.image_url && !/^(data:|blob:)/i.test(el.image_url) ? el.image_url : undefined;
 
     return {
@@ -223,34 +264,34 @@ export function deserializeCertificateTemplate(apiTemplate: CertificateTemplateD
       allowGrow: allowGrowVal,
       allow_grow: allowGrowVal,
 
-      fontId: el.font_id ?? el.fontId ?? null,
-      font_id: el.font_id ?? el.fontId ?? null,
+      fontId: fontIdVal,
+      font_id: fontIdVal,
 
-      fontKey: el.font_key ?? el.fontKey ?? null,
-      font_key: el.font_key ?? el.fontKey ?? null,
+      fontKey: el.fontKey ?? el.font_key ?? (fontIdVal ? `cubix-font-${fontIdVal}` : undefined),
+      font_key: el.fontKey ?? el.font_key ?? (fontIdVal ? `cubix-font-${fontIdVal}` : undefined),
 
       fontFamily: fontFamVal,
       font_family: fontFamVal,
 
-      fontWeight: el.font_weight ?? el.fontWeight ?? '600',
-      font_weight: el.font_weight ?? el.fontWeight ?? '600',
+      fontWeight: el.fontWeight ?? el.font_weight ?? '400',
+      font_weight: el.fontWeight ?? el.font_weight ?? '400',
 
-      fontStyle: el.font_style ?? el.fontStyle ?? 'normal',
-      font_style: el.font_style ?? el.fontStyle ?? 'normal',
+      fontStyle: el.fontStyle ?? el.font_style ?? 'normal',
+      font_style: el.fontStyle ?? el.font_style ?? 'normal',
 
-      textAlign: el.text_align ?? el.textAlign ?? 'center',
-      text_align: el.text_align ?? el.textAlign ?? 'center',
+      textAlign: el.textAlign ?? el.text_align ?? 'center',
+      text_align: el.textAlign ?? el.text_align ?? 'center',
 
       color: fontColorVal,
       fontColor: fontColorVal,
 
-      letterSpacing: el.letter_spacing ?? el.letterSpacing ?? 0,
-      letter_spacing: el.letter_spacing ?? el.letterSpacing ?? 0,
+      letterSpacing: el.letterSpacing ?? el.letter_spacing ?? 0,
+      letter_spacing: el.letterSpacing ?? el.letter_spacing ?? 0,
 
-      lineHeight: el.line_height ?? el.lineHeight ?? 1,
-      line_height: el.line_height ?? el.lineHeight ?? 1,
+      lineHeight: el.lineHeight ?? el.line_height ?? 1,
+      line_height: el.lineHeight ?? el.line_height ?? 1,
 
-      padding: el.padding ?? { top: 1, right: 2, bottom: 1, left: 2 },
+      padding: el.padding ?? { top: 3, right: 4, bottom: 3, left: 4 },
 
       rotation: el.rotation ?? 0,
       opacity: el.opacity ?? 1,
@@ -269,6 +310,28 @@ export function deserializeCertificateTemplate(apiTemplate: CertificateTemplateD
       multiline: el.multiline ?? false,
     };
   });
+
+  const SYSTEM_QR_ELEMENT: CanvasElement = {
+    id: 'system-verification-qr',
+    type: 'qr_code',
+    binding: 'certificate.verification_url',
+    label: 'Verification QR Code',
+    x: 0.85,
+    y: 0.82,
+    width: 0.12,
+    height: 0.12,
+    is_locked: true,
+    is_visible: true,
+  };
+
+  const hasQr = elements.some(
+    (el) =>
+      el.binding === 'certificate.verification_url' ||
+      el.type === 'qr_code' ||
+      el.id === 'system-verification-qr'
+  );
+
+  const finalElements = hasQr ? elements : [...elements, SYSTEM_QR_ELEMENT];
 
   const rawBg =
     templateData.background_image_url ??
@@ -296,17 +359,33 @@ export function deserializeCertificateTemplate(apiTemplate: CertificateTemplateD
       ? apiTemplate.background_media
       : null);
 
+  const bgFitVal = templateData.background?.fit ?? templateData.bgFit ?? templateData.bg_fit ?? 'cover';
+  const bgPosVal = templateData.background?.position ?? templateData.bgPosition ?? templateData.bg_position ?? 'center';
+
+  let resolvedPageSize: 'A4' | 'LETTER' | 'CUSTOM' = 'LETTER';
+  const rawOrientation = apiTemplate.orientation ?? 'LANDSCAPE';
+
+  if (apiTemplate.page_size === 'LETTER') {
+    resolvedPageSize = 'LETTER';
+  } else if (apiTemplate.page_size === 'A4') {
+    resolvedPageSize = 'A4';
+  } else if (apiTemplate.page_size === 'CUSTOM') {
+    resolvedPageSize = 'CUSTOM';
+  }
+
   return {
     templateName: apiTemplate.name ?? 'Custom Certificate Template',
     description: apiTemplate.description ?? '',
-    pageSize: apiTemplate.page_size ?? 'A4',
-    orientation: apiTemplate.orientation ?? 'LANDSCAPE',
+    pageSize: resolvedPageSize,
+    orientation: rawOrientation,
     customWidth: apiTemplate.custom_width,
     customHeight: apiTemplate.custom_height,
-    customUnit: apiTemplate.custom_unit,
+    customUnit: apiTemplate.custom_unit as any,
     backgroundImageUrl: formattedBg,
     backgroundAssetId: bgAssetId ?? null,
-    elements,
+    bgFit: bgFitVal,
+    bgPosition: bgPosVal,
+    elements: finalElements,
     selectedCourseId: templateData.selected_course_id,
     requiredStudentFields: templateData.required_student_fields ?? [],
   };

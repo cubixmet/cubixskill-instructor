@@ -45,7 +45,10 @@ export interface BackgroundConfig {
   gradientColor2: string;
   gradientAngle: number; // 0 - 360deg
   imageUrl?: string;
-  imageFit: 'fit' | 'fill' | 'stretch' | 'center';
+  fit?: BackgroundFit;
+  position?: BackgroundPosition;
+  imageFit: BackgroundFit;
+  imagePosition?: BackgroundPosition;
   opacity: number; // 0 - 1
   brightness: number; // 50 - 150 (100 default)
   blur: number; // 0 - 20 px
@@ -88,7 +91,10 @@ const DEFAULT_BG_CONFIG: BackgroundConfig = {
   gradientColor2: '#1E1B4B',
   gradientAngle: 135,
   imageUrl: undefined,
-  imageFit: 'fit',
+  fit: 'cover',
+  position: 'center',
+  imageFit: 'cover',
+  imagePosition: 'center',
   opacity: 1,
   brightness: 100,
   blur: 0,
