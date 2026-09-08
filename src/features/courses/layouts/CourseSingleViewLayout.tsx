@@ -235,7 +235,7 @@ export const CourseSingleViewLayout: React.FC = () => {
         title="More Course Options"
         subtitle="Manage settings, features & live classes"
       >
-        <div className="space-y-1 py-1">
+        <div className="space-y-1.5 py-1">
           {secondaryMobileSections.map((sec) => {
             const Icon = sec.icon;
             const isActive = isCourseTabActive(sec, location.pathname);
@@ -245,16 +245,22 @@ export const CourseSingleViewLayout: React.FC = () => {
                 key={sec.id}
                 to={`/courses/${course.id}/${sec.route}`}
                 onClick={() => setIsMoreMenuOpen(false)}
-                className={`flex items-center gap-3 w-full px-3.5 py-3 rounded-xl text-xs sm:text-sm font-semibold transition-colors ${
+                className={`flex items-center gap-3 w-full h-[50px] px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   isActive
-                    ? "bg-[#2563EB] text-white"
-                    : "text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#172033]"
+                    ? "bg-[#2563EB] text-white shadow-xs"
+                    : "text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#16223D] active:bg-slate-200/60 dark:active:bg-[#1A2848]"
                 }`}
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isActive ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-[#1E293B] text-slate-600 dark:text-[#94A3B8]"}`}>
+                <div
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-100 dark:bg-[#182442] text-slate-600 dark:text-[#94A3B8]"
+                  }`}
+                >
                   <Icon className="w-4 h-4 stroke-current" />
                 </div>
-                <span className="flex-1 text-left">{sec.label}</span>
+                <span className="flex-1 text-left truncate">{sec.label}</span>
               </NavLink>
             );
           })}

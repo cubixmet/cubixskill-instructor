@@ -1,18 +1,20 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
+
 import {
   ArrowLeft,
   UserPlus,
   Check,
   Search,
-  BookOpen,
   AlertTriangle,
   RefreshCw,
   SlidersHorizontal,
   Upload,
-  UserCheck,
   X,
+  Mail,
+  ChevronLeft,
+  ChevronRight,
+  User,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -41,9 +43,43 @@ interface RealCourse {
   slug?: string;
 }
 
+// Vibrant avatar background colors matching modern SaaS designs
+const AVATAR_COLORS = [
+  'bg-blue-600 text-white',
+  'bg-teal-500 text-white',
+  'bg-purple-600 text-white',
+  'bg-[#3B82F6] text-white',
+  'bg-amber-500 text-white',
+  'bg-indigo-600 text-white',
+  'bg-emerald-500 text-white',
+  'bg-rose-500 text-white',
+  'bg-cyan-600 text-white',
+  'bg-pink-600 text-white',
+];
+
+const getAvatarColorClass = (name: string) => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+};
+
+const getInitials = (name: string) => {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
+
 export const EnrollStudentPage: React.FC = () => {
   const navigate = useNavigate();
-  const { courseUuid, studentUuid: routeStudentUuid } = useParams<{ courseUuid?: string; studentUuid?: string }>();
+  const params = useParams<{ courseId?: string; courseUuid?: string; studentUuid?: string }>();
+  const activeCourseUuid = params.courseId || params.courseUuid || '';
+  const routeStudentUuid = params.studentUuid;
+
   const [searchParams] = useSearchParams();
   const queryStudentUuid = searchParams.get('studentUuid');
 
@@ -58,24 +94,28 @@ export const EnrollStudentPage: React.FC = () => {
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Tab mode: 'search' | 'create'
-  const [tabMode, setTabMode] = useState<'search' | 'create'>('search');
+  // Tab mode: 'search' | 'create' | 'email'
+  const [tabMode, setTabMode] = useState<'search' | 'create' | 'email'>('search');
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'enrolled'>('all');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
   // Selection state
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>(
     studentUuid ? [studentUuid] : []
   );
 
-  // New Student Fields State
+  // New Student / Invite Fields State
   const [newStudentName, setNewStudentName] = useState('');
   const [newStudentEmail, setNewStudentEmail] = useState('');
   const [newStudentPhone, setNewStudentPhone] = useState('');
-  const [accessExpiryDate, setAccessExpiryDate] = useState('');
+  const [inviteEmailInput, setInviteEmailInput] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -87,17 +127,22 @@ export const EnrollStudentPage: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const backLink = courseUuid ? courseRoutes.students(courseUuid) : '/courses';
+  const backLink = activeCourseUuid ? courseRoutes.students(activeCourseUuid) : '/courses';
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, []);
 
+  // Reset page to 1 whenever search query or status filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+
   // Load Real Data from Backend
   const loadData = useCallback(async () => {
-    if (!courseUuid || courseUuid === 'undefined') {
+    if (!activeCourseUuid || activeCourseUuid === 'undefined') {
       setIsError(true);
-      setErrorMessage('Course ID is missing.');
+      setErrorMessage('Course ID is missing from the URL.');
       setIsLoading(false);
       return;
     }
@@ -109,8 +154,8 @@ export const EnrollStudentPage: React.FC = () => {
     try {
       // Concurrently fetch course info, existing enrollments, and all academy students
       const [courseData, enrollments, rawStudents] = await Promise.all([
-        coursesService.getCourse(courseUuid),
-        studentsService.listCourseEnrollments(courseUuid),
+        coursesService.getCourse(activeCourseUuid),
+        studentsService.listCourseEnrollments(activeCourseUuid),
         studentsService.listStudents(),
       ]);
 
@@ -155,11 +200,20 @@ export const EnrollStudentPage: React.FC = () => {
       setStudents(mappedStudents);
     } catch (err: any) {
       setIsError(true);
-      setErrorMessage(err?.response?.data?.error?.message || err?.message || 'Failed to load course and student data.');
+      const status = err?.response?.status;
+      const apiMsg = err?.response?.data?.error?.message || err?.response?.data?.detail || err?.message;
+
+      if (status === 404) {
+        setErrorMessage('The requested course could not be found.');
+      } else if (status === 403) {
+        setErrorMessage('You do not have permission to view or manage this course.');
+      } else {
+        setErrorMessage(apiMsg || 'Failed to load course and student data. Please check your network connection.');
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [courseUuid]);
+  }, [activeCourseUuid]);
 
   useEffect(() => {
     loadData();
@@ -173,7 +227,7 @@ export const EnrollStudentPage: React.FC = () => {
 
   // Single student submission handler
   const handleSingleStudentEnroll = async () => {
-    if (isSubmitting || !courseUuid || !singleStudent?.userId) return;
+    if (isSubmitting || !activeCourseUuid || !singleStudent?.userId) return;
 
     setIsSubmitting(true);
     setErrorMsg(null);
@@ -181,7 +235,7 @@ export const EnrollStudentPage: React.FC = () => {
     try {
       await enrollmentService.create({
         student_id: singleStudent.userId,
-        course_id: courseUuid,
+        course_id: activeCourseUuid,
         access_type: 'FULL',
         source: 'MANUAL',
         is_lifetime: true,
@@ -200,7 +254,7 @@ export const EnrollStudentPage: React.FC = () => {
     }
   };
 
-  // Filtered students list
+  // Filtered students list across all criteria
   const filteredStudents = useMemo(() => {
     return students.filter((s) => {
       const matchesSearch =
@@ -216,21 +270,31 @@ export const EnrollStudentPage: React.FC = () => {
     });
   }, [students, searchQuery, statusFilter]);
 
-  const availableFilteredStudents = useMemo(
-    () => filteredStudents.filter((s) => !s.isEnrolled),
-    [filteredStudents]
+  // Total pages calculation
+  const totalPages = Math.ceil(filteredStudents.length / pageSize) || 1;
+
+  // Paginated students for current view
+  const paginatedStudents = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredStudents.slice(start, start + pageSize);
+  }, [filteredStudents, currentPage, pageSize]);
+
+  // Current page available (non-enrolled) students
+  const currentPageAvailableStudents = useMemo(
+    () => paginatedStudents.filter((s) => !s.isEnrolled),
+    [paginatedStudents]
   );
 
-  const isAllAvailableSelected =
-    availableFilteredStudents.length > 0 &&
-    availableFilteredStudents.every((s) => selectedStudentIds.includes(s.id));
+  const isAllCurrentPageAvailableSelected =
+    currentPageAvailableStudents.length > 0 &&
+    currentPageAvailableStudents.every((s) => selectedStudentIds.includes(s.id));
 
   const handleToggleSelectAll = () => {
-    if (isAllAvailableSelected) {
-      const availableIds = availableFilteredStudents.map((s) => s.id);
+    if (isAllCurrentPageAvailableSelected) {
+      const availableIds = currentPageAvailableStudents.map((s) => s.id);
       setSelectedStudentIds((prev) => prev.filter((id) => !availableIds.includes(id)));
     } else {
-      const availableIds = availableFilteredStudents.map((s) => s.id);
+      const availableIds = currentPageAvailableStudents.map((s) => s.id);
       setSelectedStudentIds((prev) => Array.from(new Set([...prev, ...availableIds])));
     }
   };
@@ -243,9 +307,20 @@ export const EnrollStudentPage: React.FC = () => {
     );
   };
 
-  // Main Submit Handler for Multi-Student Enrollment or New Student Creation
+  const selectedStudentDetails = useMemo(() => {
+    return students.filter((s) => selectedStudentIds.includes(s.id));
+  }, [students, selectedStudentIds]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  };
+
+  // Main Submit Handler for Multi-Student Enrollment, New Student Creation, or Email Invite
   const handleConfirmEnrollment = async () => {
-    if (isSubmitting || !courseUuid) return;
+    if (isSubmitting || !activeCourseUuid) return;
 
     setErrorMsg(null);
     setEmailFieldError(null);
@@ -264,7 +339,7 @@ export const EnrollStudentPage: React.FC = () => {
           if (!selectedStudent.userId) continue;
           await enrollmentService.create({
             student_id: selectedStudent.userId,
-            course_id: courseUuid,
+            course_id: activeCourseUuid,
             access_type: 'FULL',
             source: 'MANUAL',
             is_lifetime: true,
@@ -283,7 +358,7 @@ export const EnrollStudentPage: React.FC = () => {
         const apiErr = err?.response?.data?.error?.message || err?.response?.data?.detail;
         setErrorMsg(apiErr || 'Failed to complete student enrollment. Please try again.');
       }
-    } else {
+    } else if (tabMode === 'create') {
       // Create new student flow
       if (!newStudentName.trim()) {
         setErrorMsg('Full Name is required.');
@@ -335,7 +410,7 @@ export const EnrollStudentPage: React.FC = () => {
 
         await enrollmentService.create({
           student_id: String(realUserId),
-          course_id: courseUuid,
+          course_id: activeCourseUuid,
           access_type: 'FULL',
           source: 'MANUAL',
           is_lifetime: true,
@@ -350,26 +425,82 @@ export const EnrollStudentPage: React.FC = () => {
         const apiErr = err?.response?.data?.error?.message || err?.response?.data?.detail;
         setErrorMsg(apiErr || 'Failed to create and enroll new student.');
       }
+    } else if (tabMode === 'email') {
+      // Invite by email flow
+      const trimmedEmail = inviteEmailInput.trim().toLowerCase();
+      if (!trimmedEmail) {
+        setEmailFieldError('Email address is required.');
+        setErrorMsg('Please enter a valid email address.');
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedEmail)) {
+        setEmailFieldError('Please enter a valid email address.');
+        setErrorMsg('Please enter a valid email address.');
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        // Find existing student or create a placeholder student account to enroll
+        let existingStudent = students.find((s) => s.email.toLowerCase() === trimmedEmail);
+        let targetUserId = existingStudent?.userId;
+
+        if (!targetUserId) {
+          const createResponse = await studentsService.createStudent({
+            full_name: trimmedEmail.split('@')[0],
+            email: trimmedEmail,
+            phone: '',
+          });
+
+          const createdData: any =
+            (createResponse as any)?.data?.data ??
+            (createResponse as any)?.data ??
+            createResponse;
+
+          targetUserId = createdData?.user?.id || createdData?.user_id || createdData?.id;
+        }
+
+        if (targetUserId) {
+          await enrollmentService.create({
+            student_id: String(targetUserId),
+            course_id: activeCourseUuid,
+            access_type: 'FULL',
+            source: 'MANUAL',
+            is_lifetime: true,
+          });
+        }
+
+        showToast(`Invitation sent and student enrolled.`);
+        setInviteEmailInput('');
+        await loadData();
+        setIsSubmitting(false);
+        navigate(backLink);
+      } catch (err: any) {
+        setIsSubmitting(false);
+        const apiErr = err?.response?.data?.error?.message || err?.response?.data?.detail;
+        setErrorMsg(apiErr || 'Failed to send invitation.');
+      }
     }
   };
 
-  const selectedStudentDetails = useMemo(() => {
-    return students.filter((s) => selectedStudentIds.includes(s.id));
-  }, [students, selectedStudentIds]);
-
   if (isLoading) {
     return (
-      <div className="w-full max-w-[1400px] mx-auto px-4 py-6 space-y-4 font-sans text-left">
-        <Skeleton className="h-24 w-full rounded-2xl" />
-        <Skeleton className="h-12 w-full rounded-xl" />
-        <Skeleton className="h-96 w-full rounded-2xl" />
+      <div className="w-full max-w-[1600px] mx-auto p-4 sm:p-6 space-y-4 font-sans">
+        <Skeleton className="h-20 w-full rounded-2xl" />
+        <Skeleton className="h-14 w-full rounded-xl" />
+        <div className="space-y-3">
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="h-16 w-full rounded-xl" />
+        </div>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="p-8 text-center bg-white dark:bg-[#111827] rounded-2xl border border-rose-200 dark:border-rose-900/50 space-y-4 max-w-lg mx-auto mt-8 font-sans">
+      <div className="p-8 text-center bg-white dark:bg-[#0B132B] rounded-2xl border border-rose-200 dark:border-rose-900/50 space-y-4 max-w-lg mx-auto mt-8 font-sans">
         <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
         <div>
           <h3 className="text-base font-semibold text-slate-900 dark:text-[#F8FAFC]">Unable to Load Enrollment Page</h3>
@@ -382,8 +513,11 @@ export const EnrollStudentPage: React.FC = () => {
     );
   }
 
+  const startRange = filteredStudents.length > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+  const endRange = Math.min(currentPage * pageSize, filteredStudents.length);
+
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-2 sm:px-4 md:px-0 py-4 sm:py-6 space-y-4 sm:space-y-6 text-left font-sans pb-32 md:pb-12 min-w-0 max-w-full box-border">
+    <div className="w-full max-w-[1600px] mx-auto px-2 sm:px-4 md:px-0 py-3 sm:py-6 space-y-3.5 sm:space-y-6 text-left font-sans pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-12 min-w-0 max-w-full box-border">
       {/* Toast Alert */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 px-4 py-3 bg-[#0F172A] dark:bg-[#1E293B] text-white dark:text-[#F8FAFC] text-xs font-semibold rounded-2xl shadow-xl flex items-center gap-2 border border-slate-800 dark:border-[#334155]">
@@ -393,25 +527,26 @@ export const EnrollStudentPage: React.FC = () => {
       )}
 
       {/* 1. PAGE HEADER */}
-      <div className="bg-white dark:bg-[#111827] p-4 sm:p-6 rounded-[16px] border border-slate-200 dark:border-[#263244] shadow-2xs space-y-3">
-        <div className="flex items-center gap-2">
+      <div className="bg-white dark:bg-transparent p-1 sm:p-0 space-y-2 sm:space-y-3">
+        <div className="flex items-center justify-between">
           <Link
             to={backLink}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-[#94A3B8] hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back to Course
           </Link>
+          <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-[#1C2640] border border-slate-200 dark:border-[#2A3859] flex items-center justify-center text-slate-600 dark:text-[#94A3B8]">
+            <User className="w-4 h-4" />
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-          <div>
-            <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
-              Enroll Students
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal mt-0.5">
-              Add existing students to <strong className="text-slate-700 dark:text-[#CBD5E1] font-semibold">{course?.title || 'this course'}</strong>.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
+            Enroll Students
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal mt-0.5">
+            Add existing students to this course.
+          </p>
         </div>
       </div>
 
@@ -422,59 +557,59 @@ export const EnrollStudentPage: React.FC = () => {
         </div>
       )}
 
-      {/* 2. ENROLLMENT MODES TABS */}
+      {/* 2. ENROLLMENT MODES TABS (3 EQUAL-WIDTH TABS MATCHING REFERENCE IMAGE) */}
       {!singleStudent && (
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-[#111827] p-2 rounded-xl border border-slate-200 dark:border-[#263244] shadow-2xs">
-          <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 flex-1">
+        <div className="bg-slate-100 dark:bg-[#0B1329] p-1 rounded-2xl border border-slate-200 dark:border-[#1E2B4B] shadow-2xs">
+          <div className="grid grid-cols-3 gap-1 w-full min-w-0">
             <button
               type="button"
               onClick={() => setTabMode('search')}
-              className={`py-2 px-4 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`h-[52px] min-w-0 px-1 text-[11px] sm:text-xs font-semibold rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1 text-center ${
                 tabMode === 'search'
-                  ? 'bg-[#2563EB] text-white shadow-2xs'
-                  : 'text-slate-600 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#172033]'
+                  ? 'bg-[#2563EB] text-white shadow-md font-bold'
+                  : 'text-slate-600 dark:text-[#94A3B8] hover:bg-slate-200/50 dark:hover:bg-[#162244]'
               }`}
             >
-              Search Students
+              <Search className="w-4 h-4 shrink-0" />
+              <span className="truncate">Search Students</span>
             </button>
             <button
               type="button"
-              onClick={() => setTabMode('create')}
-              className={`py-2 px-4 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                tabMode === 'create'
-                  ? 'bg-[#2563EB] text-white shadow-2xs'
-                  : 'text-slate-600 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#172033]'
+              onClick={() => navigate(`/courses/${activeCourseUuid}/students/bulk-upload`)}
+              className="h-[52px] min-w-0 px-1 text-[11px] sm:text-xs font-semibold rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1 text-center text-slate-600 dark:text-[#94A3B8] hover:bg-slate-200/50 dark:hover:bg-[#162244]"
+            >
+              <Upload className="w-4 h-4 shrink-0" />
+              <span className="truncate">Bulk Enroll</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setTabMode('email')}
+              className={`h-[52px] min-w-0 px-1 text-[11px] sm:text-xs font-semibold rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1 text-center ${
+                tabMode === 'email'
+                  ? 'bg-[#2563EB] text-white shadow-md font-bold'
+                  : 'text-slate-600 dark:text-[#94A3B8] hover:bg-slate-200/50 dark:hover:bg-[#162244]'
               }`}
             >
-              + Create New Student
+              <Mail className="w-4 h-4 shrink-0" />
+              <span className="truncate">Invite by Email</span>
             </button>
           </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            leftIcon={<Upload className="w-3.5 h-3.5" />}
-            onClick={() => navigate(`/courses/${courseUuid}/students/bulk-upload`)}
-            className="border-slate-200 dark:border-[#334155] text-[#2563EB] dark:text-[#60A5FA] bg-white dark:bg-[#0F172A] hover:bg-blue-50 dark:hover:bg-[#172033] text-xs font-semibold h-9 px-3"
-          >
-            Bulk Enroll
-          </Button>
         </div>
       )}
 
       {/* SINGLE STUDENT SPECIFIC ENROLLMENT */}
       {singleStudent ? (
-        <Card className="bg-white dark:bg-[#111827] p-4 sm:p-6 border border-slate-200 dark:border-[#263244] rounded-2xl shadow-2xs space-y-4">
+        <Card className="bg-white dark:bg-[#0E1733] p-4 sm:p-6 border border-slate-200 dark:border-[#1E2B4B] rounded-2xl shadow-2xs space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-800 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center font-bold text-sm">
-              {singleStudent.fullName.charAt(0)}
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${getAvatarColorClass(singleStudent.fullName)}`}>
+              {getInitials(singleStudent.fullName)}
             </div>
             <div>
               <strong className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] block">{singleStudent.fullName}</strong>
               <span className="text-xs text-slate-500 dark:text-[#94A3B8] block">{singleStudent.email}</span>
             </div>
           </div>
-          <div className="pt-2 border-t border-slate-100 dark:border-[#263244] flex items-center justify-between">
+          <div className="pt-2 border-t border-slate-100 dark:border-[#1E2B4B] flex items-center justify-between">
             <span className="text-xs text-slate-500 dark:text-[#94A3B8]">Target Course: <strong>{course?.title}</strong></span>
             {singleStudent.isEnrolled ? (
               <Badge variant="secondary" size="sm">Already Enrolled</Badge>
@@ -488,20 +623,20 @@ export const EnrollStudentPage: React.FC = () => {
       ) : (
         /* MAIN TWO-COLUMN RESPONSIVE LAYOUT (Desktop >= 1024px) */
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-4 sm:gap-6 items-start w-full min-w-0">
-          {/* LEFT COLUMN: SEARCH & STUDENT LIST OR CREATE FORM */}
-          <div className="space-y-4 min-w-0 w-full">
+          {/* LEFT COLUMN: SEARCH & STUDENT LIST / FORMS */}
+          <div className="space-y-3.5 min-w-0 w-full">
             {tabMode === 'search' ? (
-              <div className="space-y-3.5 bg-white dark:bg-[#111827] p-3.5 sm:p-4 rounded-[16px] border border-slate-200 dark:border-[#263244] shadow-2xs">
-                {/* SEARCH BAR & FILTER BUTTON */}
-                <div className="flex items-center justify-between gap-2.5">
-                  <div className="relative flex-1 min-w-0">
+              <div className="space-y-3.5 bg-transparent p-0">
+                {/* SEARCH BAR & FILTER BUTTON ROW */}
+                <div className="grid grid-cols-[minmax(0,1fr)_48px] gap-2 items-center w-full min-w-0">
+                  <div className="relative min-w-0">
                     <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#64748B] pointer-events-none" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search students..."
-                      className="w-full h-10 pl-10 pr-10 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl text-xs font-medium text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6] min-w-0"
+                      placeholder="Search students by name or email..."
+                      className="w-full h-12 pl-10 pr-9 bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E2B4B] rounded-2xl text-xs font-medium text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6] min-w-0"
                     />
                     {searchQuery && (
                       <button
@@ -514,52 +649,48 @@ export const EnrollStudentPage: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="flex shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      leftIcon={<SlidersHorizontal className="w-4 h-4" />}
-                      onClick={() => setIsMobileFilterOpen(true)}
-                      className="h-10 text-xs px-3 border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] text-slate-700 dark:text-[#F8FAFC] font-semibold"
-                      aria-label="Filter"
-                    >
-                      <span className="hidden sm:inline">Filter</span>
-                    </Button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileFilterOpen(true)}
+                    aria-label="Filter"
+                    className="h-12 w-12 flex items-center justify-center border border-slate-200 dark:border-[#1E2B4B] bg-white dark:bg-[#0B1329] hover:bg-slate-100 dark:hover:bg-[#162244] text-slate-700 dark:text-[#F8FAFC] rounded-2xl transition-all cursor-pointer shrink-0"
+                  >
+                    <SlidersHorizontal className="w-4 h-4" />
+                  </button>
                 </div>
 
-                {/* SELECT ALL TOOLBAR & COUNT */}
-                <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-[#263244]">
-                  <span className="text-slate-500 dark:text-[#94A3B8] font-medium text-[11px]">
-                    Showing {filteredStudents.length} of {students.length} students
+                {/* RESULT COUNT + SELECT ALL ROW */}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-1 px-1">
+                  <span className="text-slate-600 dark:text-[#94A3B8] font-medium text-[11px] sm:text-xs">
+                    Showing {startRange}–{endRange} of {filteredStudents.length} students
                   </span>
 
-                  {availableFilteredStudents.length > 0 && (
-                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-[#2563EB] dark:text-[#60A5FA] select-none">
+                  {currentPageAvailableStudents.length > 0 && (
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700 dark:text-[#CBD5E1] select-none">
                       <input
                         type="checkbox"
-                        checked={isAllAvailableSelected}
+                        checked={isAllCurrentPageAvailableSelected}
                         onChange={handleToggleSelectAll}
-                        className="w-4 h-4 text-[#2563EB] bg-white dark:bg-[#0F172A] rounded border-slate-300 dark:border-[#64748B] focus:ring-blue-500 cursor-pointer"
+                        className="w-4 h-4 text-[#2563EB] bg-white dark:bg-[#0B1329] rounded border-slate-300 dark:border-[#2A3859] focus:ring-blue-500 cursor-pointer"
                       />
                       Select all on this page
                     </label>
                   )}
                 </div>
 
-                {/* STUDENT LIST: DESKTOP TABLE & MOBILE CARDS */}
+                {/* STUDENT LIST: DESKTOP TABLE & MOBILE COMPACT CARDS */}
                 {filteredStudents.length === 0 ? (
-                  <div className="p-8 text-center bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl space-y-2">
+                  <div className="p-8 text-center bg-white dark:bg-[#0E1733] border border-slate-200 dark:border-[#1E2B4B] rounded-2xl space-y-2">
                     <p className="text-xs font-semibold text-slate-900 dark:text-[#F8FAFC]">No students found</p>
                     <p className="text-[11px] text-slate-500 dark:text-[#94A3B8]">Try adjusting your search or filter criteria.</p>
                   </div>
                 ) : (
                   <>
-                    {/* DESKTOP TABLE */}
-                    <div className="hidden md:block border border-slate-200 dark:border-[#263244] rounded-xl overflow-hidden shadow-2xs">
+                    {/* DESKTOP TABLE (HIDDEN ON MOBILE) */}
+                    <div className="hidden md:block border border-slate-200 dark:border-[#1E2B4B] rounded-xl overflow-hidden shadow-2xs">
                       <table className="w-full text-left text-xs">
                         <thead>
-                          <tr className="bg-slate-50 dark:bg-[#172033] border-b border-slate-200 dark:border-[#263244] text-slate-500 dark:text-[#94A3B8] font-medium">
+                          <tr className="bg-slate-50 dark:bg-[#0B1329] border-b border-slate-200 dark:border-[#1E2B4B] text-slate-500 dark:text-[#94A3B8] font-medium">
                             <th className="py-3 px-3 w-10 text-center">Select</th>
                             <th className="py-3 px-3 w-10">#</th>
                             <th className="py-3 px-4">Student</th>
@@ -567,8 +698,8 @@ export const EnrollStudentPage: React.FC = () => {
                             <th className="py-3 px-4">Status</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-200 dark:divide-[#263244]">
-                          {filteredStudents.map((student, idx) => {
+                        <tbody className="divide-y divide-slate-200 dark:divide-[#1E2B4B]">
+                          {paginatedStudents.map((student, idx) => {
                             const enrolled = student.isEnrolled;
                             const isSelected = selectedStudentIds.includes(student.id);
 
@@ -578,10 +709,10 @@ export const EnrollStudentPage: React.FC = () => {
                                 onClick={() => handleToggleStudent(student.id)}
                                 className={`transition-colors cursor-pointer ${
                                   enrolled
-                                    ? 'bg-slate-50/70 dark:bg-[#0F172A]/50 opacity-60 cursor-not-allowed'
+                                    ? 'bg-slate-50/70 dark:bg-[#0B1329]/50 opacity-60 cursor-not-allowed'
                                     : isSelected
                                     ? 'bg-blue-50/80 dark:bg-[rgba(37,99,235,0.12)]'
-                                    : 'hover:bg-slate-50 dark:hover:bg-[#172033]'
+                                    : 'hover:bg-slate-50 dark:hover:bg-[#162244]'
                                 }`}
                               >
                                 <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
@@ -591,14 +722,16 @@ export const EnrollStudentPage: React.FC = () => {
                                     disabled={enrolled}
                                     onChange={() => handleToggleStudent(student.id)}
                                     aria-label={`Select ${student.fullName}`}
-                                    className="w-4 h-4 text-[#2563EB] bg-white dark:bg-[#0F172A] rounded border-slate-300 dark:border-[#64748B] focus:ring-blue-500 cursor-pointer"
+                                    className="w-4 h-4 text-[#2563EB] bg-white dark:bg-[#0B1329] rounded border-slate-300 dark:border-[#2A3859] focus:ring-blue-500 cursor-pointer"
                                   />
                                 </td>
-                                <td className="py-3 px-3 text-slate-400 font-medium">{idx + 1}</td>
+                                <td className="py-3 px-3 text-slate-400 font-medium">
+                                  {(currentPage - 1) * pageSize + idx + 1}
+                                </td>
                                 <td className="py-3 px-4">
                                   <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-800 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center font-bold text-xs shrink-0">
-                                      {student.fullName.charAt(0)}
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${getAvatarColorClass(student.fullName)}`}>
+                                      {getInitials(student.fullName)}
                                     </div>
                                     <strong className="font-semibold text-slate-900 dark:text-[#F8FAFC] truncate">
                                       {student.fullName}
@@ -609,9 +742,14 @@ export const EnrollStudentPage: React.FC = () => {
                                   {student.email}
                                 </td>
                                 <td className="py-3 px-4">
-                                  <Badge variant={enrolled ? 'secondary' : 'success'} size="sm" dot>
-                                    {enrolled ? 'Already Enrolled' : 'Available'}
-                                  </Badge>
+                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                                    enrolled
+                                      ? 'bg-slate-200/60 dark:bg-[#18233C] text-slate-600 dark:text-[#7A8EA8]'
+                                      : 'bg-emerald-500/15 text-emerald-600 dark:text-[#34D399]'
+                                  }`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${enrolled ? 'bg-slate-400' : 'bg-emerald-400'}`}></span>
+                                    {enrolled ? 'Enrolled' : 'Available'}
+                                  </span>
                                 </td>
                               </tr>
                             );
@@ -620,9 +758,9 @@ export const EnrollStudentPage: React.FC = () => {
                       </table>
                     </div>
 
-                    {/* MOBILE CARDS */}
+                    {/* MOBILE COMPACT CARDS GRID */}
                     <div className="grid gap-2.5 md:hidden w-full min-w-0">
-                      {filteredStudents.map((student) => {
+                      {paginatedStudents.map((student) => {
                         const enrolled = student.isEnrolled;
                         const isSelected = selectedStudentIds.includes(student.id);
 
@@ -630,57 +768,90 @@ export const EnrollStudentPage: React.FC = () => {
                           <div
                             key={student.id}
                             onClick={() => handleToggleStudent(student.id)}
-                            className={`p-3 rounded-xl border transition-all grid grid-cols-[28px_40px_minmax(0,1fr)_auto] items-center gap-2.5 w-full min-w-0 box-border ${
+                            className={`p-3 rounded-2xl border transition-all space-y-2 w-full min-w-0 box-border ${
                               enrolled
-                                ? 'bg-slate-50 dark:bg-[#0F172A] border-slate-200 dark:border-[#263244] opacity-60 cursor-not-allowed'
+                                ? 'bg-white dark:bg-[#0D152C] border-slate-200 dark:border-[#1A2645] opacity-60 cursor-not-allowed'
                                 : isSelected
-                                ? 'bg-blue-50/90 dark:bg-[rgba(37,99,235,0.14)] border-[#3B82F6] shadow-2xs cursor-pointer'
-                                : 'bg-white dark:bg-[#111827] border-slate-200 dark:border-[#263244] hover:bg-slate-50 dark:hover:bg-[#172033] cursor-pointer'
+                                ? 'bg-blue-50/90 dark:bg-[#12224A] border-[#3B82F6] shadow-2xs cursor-pointer'
+                                : 'bg-white dark:bg-[#0D152C] border-slate-200 dark:border-[#1A2645] hover:bg-slate-50 dark:hover:bg-[#142040] cursor-pointer'
                             }`}
                           >
-                            {/* 1. Checkbox */}
-                            <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                disabled={enrolled}
-                                onChange={() => handleToggleStudent(student.id)}
-                                aria-label={`Select ${student.fullName}`}
-                                className="w-4 h-4 text-[#2563EB] bg-white dark:bg-[#0F172A] rounded border-slate-300 dark:border-[#64748B] focus:ring-blue-500 cursor-pointer"
-                              />
+                            {/* TOP ROW: [Checkbox] [Avatar] ... [StatusBadge] */}
+                            <div className="grid grid-cols-[28px_44px_minmax(0,1fr)] items-center gap-2.5 w-full min-w-0">
+                              {/* 1. Checkbox */}
+                              <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  disabled={enrolled}
+                                  onChange={() => handleToggleStudent(student.id)}
+                                  aria-label={`Select ${student.fullName}`}
+                                  className="w-4 h-4 text-[#2563EB] bg-white dark:bg-[#0B1329] rounded border-slate-300 dark:border-[#2A3859] focus:ring-blue-500 cursor-pointer"
+                                />
+                              </div>
+
+                              {/* 2. Vibrant Initials Avatar */}
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs ${getAvatarColorClass(student.fullName)}`}>
+                                {getInitials(student.fullName)}
+                              </div>
+
+                              {/* 3. Status Badge (Right Aligned) */}
+                              <div className="justify-self-end">
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                                  enrolled
+                                    ? 'bg-slate-200/60 dark:bg-[#192745] text-slate-600 dark:text-[#8899B0]'
+                                    : 'bg-emerald-500/15 text-emerald-600 dark:text-[#34D399]'
+                                }`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${enrolled ? 'bg-slate-400 dark:bg-[#64748B]' : 'bg-emerald-400'}`}></span>
+                                  {enrolled ? 'Enrolled' : 'Available'}
+                                </span>
+                              </div>
                             </div>
 
-                            {/* 2. Avatar */}
-                            <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-800 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center font-extrabold text-xs shrink-0">
-                              {student.fullName.charAt(0)}
-                            </div>
-
-                            {/* 3. Name & Email */}
-                            <div className="min-w-0">
-                              <strong className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC] block truncate leading-tight">
+                            {/* BOTTOM CONTENT: Full-width Student Name & Email */}
+                            <div className="w-full min-w-0 space-y-0.5 pt-0.5">
+                              <strong className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC] block w-full whitespace-normal leading-snug overflow-wrap-break-word">
                                 {student.fullName}
                               </strong>
-                              <span className="text-[11px] font-normal text-slate-500 dark:text-[#94A3B8] block truncate leading-tight mt-0.5">
+                              <span className="text-[11px] font-normal text-slate-500 dark:text-[#8899B0] block w-full truncate leading-tight">
                                 {student.email}
                               </span>
-                            </div>
-
-                            {/* 4. Status Badge */}
-                            <div className="shrink-0">
-                              <Badge variant={enrolled ? 'secondary' : 'success'} size="sm" dot>
-                                {enrolled ? 'Enrolled' : 'Available'}
-                              </Badge>
                             </div>
                           </div>
                         );
                       })}
                     </div>
+
+                    {/* COMPACT PAGINATION (EXACT MATCH TO REFERENCE SCREENSHOT) */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-center gap-4 pt-4 pb-2">
+                        <button
+                          type="button"
+                          disabled={currentPage === 1}
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          className="w-10 h-10 rounded-xl border border-slate-200 dark:border-[#1E2B4B] bg-white dark:bg-[#0B1329] hover:bg-slate-100 dark:hover:bg-[#162244] text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center disabled:opacity-40 cursor-pointer"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <span className="text-xs font-semibold text-slate-700 dark:text-[#F8FAFC]">
+                          Page {currentPage} of {totalPages}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={currentPage === totalPages}
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          className="w-10 h-10 rounded-xl border border-slate-200 dark:border-[#1E2B4B] bg-white dark:bg-[#0B1329] hover:bg-slate-100 dark:hover:bg-[#162244] text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center disabled:opacity-40 cursor-pointer"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
-            ) : (
+            ) : tabMode === 'create' ? (
               /* CREATE NEW STUDENT FORM */
-              <Card className="space-y-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl p-4 sm:p-6 shadow-2xs">
+              <Card className="space-y-4 bg-white dark:bg-[#0E1733] border border-slate-200 dark:border-[#1E2B4B] rounded-2xl p-4 sm:p-6 shadow-2xs">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">Create New Student Profile</h3>
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold text-slate-900 dark:text-[#F8FAFC]">Full Name *</label>
@@ -688,7 +859,7 @@ export const EnrollStudentPage: React.FC = () => {
                     value={newStudentName}
                     onChange={(e) => setNewStudentName(e.target.value)}
                     placeholder="e.g. Rahul Sharma"
-                    className="h-10 text-xs font-medium bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B]"
+                    className="h-10 text-xs font-medium bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E2B4B] text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B]"
                   />
                 </div>
 
@@ -703,8 +874,8 @@ export const EnrollStudentPage: React.FC = () => {
                         if (emailFieldError) setEmailFieldError(null);
                       }}
                       placeholder="student@example.com"
-                      className={`h-10 text-xs font-medium bg-slate-50 dark:bg-[#0F172A] text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B] ${
-                        emailFieldError ? 'border-rose-500' : 'border-slate-200 dark:border-[#334155]'
+                      className={`h-10 text-xs font-medium bg-slate-50 dark:bg-[#0B1329] text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B] ${
+                        emailFieldError ? 'border-rose-500' : 'border-slate-200 dark:border-[#1E2B4B]'
                       }`}
                     />
                     {emailFieldError && (
@@ -720,9 +891,61 @@ export const EnrollStudentPage: React.FC = () => {
                       value={newStudentPhone}
                       onChange={(e) => setNewStudentPhone(e.target.value)}
                       placeholder="+91 98765 43210"
-                      className="h-10 text-xs font-medium bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B]"
+                      className="h-10 text-xs font-medium bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E2B4B] text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B]"
                     />
                   </div>
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    type="button"
+                    onClick={handleConfirmEnrollment}
+                    disabled={isSubmitting || !newStudentName.trim() || !newStudentEmail.trim()}
+                    isLoading={isSubmitting}
+                    leftIcon={<UserPlus className="w-4 h-4" />}
+                    className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs h-10 shadow-2xs cursor-pointer"
+                  >
+                    Create & Enroll Student
+                  </Button>
+                </div>
+              </Card>
+            ) : (
+              /* INVITE BY EMAIL FORM */
+              <Card className="space-y-4 bg-white dark:bg-[#0E1733] border border-slate-200 dark:border-[#1E2B4B] rounded-2xl p-4 sm:p-6 shadow-2xs">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">Invite Student by Email</h3>
+                <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
+                  Send a course enrollment link directly to the student's email address.
+                </p>
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-slate-900 dark:text-[#F8FAFC]">Student Email *</label>
+                  <Input
+                    type="email"
+                    value={inviteEmailInput}
+                    onChange={(e) => {
+                      setInviteEmailInput(e.target.value);
+                      if (emailFieldError) setEmailFieldError(null);
+                    }}
+                    placeholder="student@example.com"
+                    className="h-10 text-xs font-medium bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E2B4B] text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B]"
+                  />
+                  {emailFieldError && (
+                    <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 mt-1">
+                      {emailFieldError}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    type="button"
+                    onClick={handleConfirmEnrollment}
+                    disabled={isSubmitting || !inviteEmailInput.trim()}
+                    isLoading={isSubmitting}
+                    leftIcon={<UserPlus className="w-4 h-4" />}
+                    className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs h-10 shadow-2xs cursor-pointer"
+                  >
+                    Send Invite & Enroll
+                  </Button>
                 </div>
               </Card>
             )}
@@ -730,10 +953,10 @@ export const EnrollStudentPage: React.FC = () => {
 
           {/* RIGHT COLUMN: DESKTOP ENROLLMENT SUMMARY SIDEBAR (HIDDEN ON MOBILE) */}
           <div className="hidden lg:block space-y-4 sticky top-6">
-            <Card className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] p-5 rounded-2xl shadow-2xs space-y-4 text-left">
+            <Card className="bg-white dark:bg-[#0E1733] border border-slate-200 dark:border-[#1E2B4B] p-5 rounded-2xl shadow-2xs space-y-4 text-left">
               <h2 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">Enrollment Summary</h2>
 
-              <div className="p-3 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#263244] rounded-xl space-y-1">
+              <div className="p-3 bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E2B4B] rounded-xl space-y-1">
                 <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] font-medium block">Target Course:</span>
                 <strong className="text-xs font-semibold text-slate-900 dark:text-[#F8FAFC] block">{course?.title}</strong>
               </div>
@@ -742,19 +965,19 @@ export const EnrollStudentPage: React.FC = () => {
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-500 dark:text-[#94A3B8]">Selection Count:</span>
                   <strong className="font-bold text-[#2563EB] dark:text-[#60A5FA]">
-                    {tabMode === 'search' ? `${selectedStudentIds.length} Students` : '1 New Student'}
+                    {tabMode === 'search' ? `${selectedStudentIds.length} Students` : '1 Student'}
                   </strong>
                 </div>
 
                 {tabMode === 'search' && selectedStudentDetails.length > 0 && (
-                  <div className="max-h-48 overflow-y-auto space-y-1.5 pt-2 border-t border-slate-100 dark:border-[#263244]">
+                  <div className="max-h-48 overflow-y-auto space-y-1.5 pt-2 border-t border-slate-100 dark:border-[#1E2B4B]">
                     {selectedStudentDetails.map((student) => (
                       <div key={student.id} className="flex items-center justify-between text-[11px] text-slate-700 dark:text-[#CBD5E1]">
                         <span className="truncate pr-2">{student.fullName}</span>
                         <button
                           type="button"
                           onClick={() => handleToggleStudent(student.id)}
-                          className="text-rose-500 hover:text-rose-700 font-bold"
+                          className="text-rose-500 hover:text-rose-700 font-bold cursor-pointer"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -776,36 +999,35 @@ export const EnrollStudentPage: React.FC = () => {
                   ? 'Enrolling...'
                   : tabMode === 'search'
                   ? `Enroll ${selectedStudentIds.length} Selected ${selectedStudentIds.length === 1 ? 'Student' : 'Students'}`
-                  : 'Create & Enroll Student'}
+                  : 'Complete Enrollment'}
               </Button>
             </Card>
           </div>
         </div>
       )}
 
-      {/* MOBILE STICKY ENROLLMENT ACTION BAR (PLACED STRICTLY ABOVE MOBILE BOTTOM NAV) */}
-      {!singleStudent && (
-        <div className="lg:hidden fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-30 p-3 bg-white/95 dark:bg-[#111827]/95 backdrop-blur-md border-t border-slate-200 dark:border-[#263244] shadow-lg">
+      {/* MOBILE STICKY ENROLLMENT ACTION BAR (STRICTLY ABOVE BOTTOM NAVIGATION BAR MATCHING SCREENSHOT) */}
+      {!singleStudent && tabMode === 'search' && (
+        <div className="lg:hidden fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] left-0 right-0 z-30 p-3 bg-[#091024]/95 backdrop-blur-md border-t border-[#192748] shadow-2xl">
           <div className="max-w-[500px] mx-auto flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <span className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC] block truncate">
-                {tabMode === 'search' ? `${selectedStudentIds.length} students selected` : 'New student profile'}
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-[#94A3B8] block truncate">
-                Ready for course enrollment
+              <span className="text-xs font-bold text-white block truncate">
+                {selectedStudentIds.length} students selected
               </span>
             </div>
 
-            <Button
+            <button
               type="button"
               onClick={handleConfirmEnrollment}
-              disabled={isSubmitting || (tabMode === 'search' && selectedStudentIds.length === 0)}
-              isLoading={isSubmitting}
-              leftIcon={<UserPlus className="w-3.5 h-3.5" />}
-              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs h-9 px-4 shrink-0 shadow-2xs"
+              disabled={isSubmitting || selectedStudentIds.length === 0}
+              className={`h-11 px-5 rounded-xl font-bold text-xs transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+                selectedStudentIds.length > 0
+                  ? 'bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-md'
+                  : 'bg-[#182544] text-[#4A5D7C] cursor-not-allowed'
+              }`}
             >
-              Enroll
-            </Button>
+              {isSubmitting ? 'Enrolling...' : 'Enroll Selected Students'}
+            </button>
           </div>
         </div>
       )}
@@ -818,7 +1040,7 @@ export const EnrollStudentPage: React.FC = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as 'all' | 'available' | 'enrolled')}
-              className="w-full h-10 px-3 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl font-medium text-slate-900 dark:text-[#F8FAFC] text-xs"
+              className="w-full h-10 px-3 bg-slate-50 dark:bg-[#0B1329] border border-slate-200 dark:border-[#1E2B4B] rounded-xl font-medium text-slate-900 dark:text-[#F8FAFC] text-xs"
             >
               <option value="all">All Students</option>
               <option value="available">Available for Enrollment</option>
@@ -826,7 +1048,7 @@ export const EnrollStudentPage: React.FC = () => {
             </select>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-[#263244]">
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-[#1E2B4B]">
             <Button variant="outline" onClick={() => setStatusFilter('all')}>
               Reset Filter
             </Button>

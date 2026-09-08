@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -15,27 +15,11 @@ import {
   AlertTriangle,
   MailCheck,
 } from 'lucide-react';
-import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { Card } from '../../../components/ui/Card';
 import { exportToCsv, type CsvColumn } from '../../../utils/export-csv';
 import { studentsService, type BulkUploadRowResult } from '../../../services/students.service';
 import { courseRoutes } from '../../../utils/courseRoutes.utils';
-
-export interface ParsedCsvRow {
-  rowNumber: number;
-  name: string;
-  email: string;
-  phone: string;
-  studentCode?: string;
-  studentUserId?: string;
-  studentCreated?: boolean;
-  enrollmentCreated?: boolean;
-  activationEmailSent?: boolean;
-  status: 'valid' | 'invalid' | 'duplicate';
-  errorMessage?: string;
-}
-
 import { apiClient } from '../../../api/client';
 
 export interface ParsedCsvRow {
@@ -461,6 +445,27 @@ export const BulkUploadStudentsPage: React.FC = () => {
               Select or drop your prepared .csv or .xlsx file (max file size 10MB)
             </p>
           </div>
+
+          {/* Course Selection when no courseUuid is present in route params */}
+          {!courseUuid && availableCourses.length > 0 && (
+            <div className="bg-[var(--surface-secondary)] dark:bg-[#0F172A] border border-[var(--border)] dark:border-[#263244] rounded-xl p-3.5 space-y-2">
+              <label htmlFor="course-select" className="block text-xs font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC]">
+                Select Target Course for Enrollment:
+              </label>
+              <select
+                id="course-select"
+                value={selectedCourseUuid}
+                onChange={(e) => setSelectedCourseUuid(e.target.value)}
+                className="w-full bg-[var(--surface)] dark:bg-[#172033] text-[var(--text-primary)] dark:text-[#F8FAFC] border border-[var(--border)] dark:border-[#334155] rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
+              >
+                {availableCourses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {file ? (
             /* SELECTED FILE CARD */

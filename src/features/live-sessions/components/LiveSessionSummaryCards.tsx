@@ -29,50 +29,55 @@ export const LiveSessionSummaryCards: React.FC<LiveSessionSummaryCardsProps> = (
   avgAttendanceRate,
 }) => {
   const cards = [
-    { title: 'Upcoming Sessions', value: upcoming, sub: 'Scheduled webinars', icon: Clock, color: 'blue' },
-    { title: 'Live Now', value: liveNow, sub: 'Active meetings', icon: Radio, color: 'rose' },
-    { title: 'Completed', value: completed, sub: 'Finished classes', icon: CheckCircle2, color: 'emerald' },
-    { title: 'Recorded Hub', value: recorded, sub: 'Archived MP4s', icon: Film, color: 'indigo' },
-    { title: 'Avg Attendance', value: `${avgAttendanceRate}%`, sub: 'Student participation', icon: TrendingUp, color: 'amber' },
-    { title: 'Cancelled', value: cancelled, sub: 'Aborted meetings', icon: XCircle, color: 'slate' },
+    { label: 'Upcoming', value: upcoming, icon: Clock, color: 'blue' },
+    { label: 'Live Now', value: liveNow, icon: Radio, color: 'rose' },
+    { label: 'Completed', value: completed, icon: CheckCircle2, color: 'emerald' },
+    { label: 'Recorded', value: recorded, icon: Film, color: 'indigo' },
+    { label: 'Avg Attendance', value: `${avgAttendanceRate}%`, icon: TrendingUp, color: 'amber' },
+    { label: 'Cancelled', value: cancelled, icon: XCircle, color: 'slate' },
   ];
 
   const getColorStyles = (color: string) => {
     switch (color) {
       case 'rose':
-        return 'bg-rose-50 dark:bg-rose-950/40 border-rose-100 dark:border-rose-800/40 text-rose-600 dark:text-rose-400';
+        return 'bg-rose-50 dark:bg-rose-950/50 border-rose-200/50 dark:border-rose-800/40 text-rose-600 dark:text-rose-400';
       case 'emerald':
-        return 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-100 dark:border-emerald-800/40 text-emerald-600 dark:text-[#6EE7B7]';
+        return 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200/50 dark:border-emerald-800/40 text-emerald-600 dark:text-[#6EE7B7]';
       case 'amber':
-        return 'bg-amber-50 dark:bg-amber-950/40 border-amber-100 dark:border-amber-800/40 text-amber-600 dark:text-[#FCD34D]';
+        return 'bg-amber-50 dark:bg-amber-950/50 border-amber-200/50 dark:border-amber-800/40 text-amber-600 dark:text-[#FCD34D]';
       case 'indigo':
-        return 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-100 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400';
+        return 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200/50 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400';
       case 'blue':
-        return 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-800/40 text-[#2563EB] dark:text-[#60A5FA]';
+        return 'bg-blue-50 dark:bg-blue-950/50 border-blue-200/50 dark:border-blue-800/40 text-[#2563EB] dark:text-[#60A5FA]';
       default:
-        return 'bg-slate-50 dark:bg-[#0F172A] border-slate-200 dark:border-[#334155] text-slate-600 dark:text-[#94A3B8]';
+        return 'bg-slate-100 dark:bg-[#1E293B]/70 border-slate-200 dark:border-[#334155] text-slate-600 dark:text-[#94A3B8]';
     }
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 font-sans text-left">
+    <div className="grid grid-cols-2 min-[360px]:grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5 font-sans text-left min-w-0 w-full">
       {cards.map((card, idx) => {
         const Icon = card.icon;
         const colorStyle = getColorStyles(card.color);
 
         return (
-          <Card key={idx} padding="sm" className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] shadow-2xs">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <div className={`p-1.5 rounded-xl border ${colorStyle}`}>
-                  <Icon className="w-4 h-4" />
-                </div>
+          <Card
+            key={idx}
+            padding="none"
+            className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-[14px] p-2.5 sm:p-3 shadow-2xs min-w-0 flex flex-col justify-between"
+          >
+            <div className="space-y-1.5 min-w-0">
+              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl border flex items-center justify-center shrink-0 ${colorStyle}`}>
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.25]" />
               </div>
 
-              <div>
-                <h4 className="text-base sm:text-lg font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">{card.value}</h4>
-                <p className="text-[11px] font-semibold text-[#475569] dark:text-[#CBD5E1] truncate">{card.title}</p>
-                <p className="text-[10px] font-normal text-[#64748B] dark:text-[#94A3B8] truncate">{card.sub}</p>
+              <div className="min-w-0 space-y-0.5">
+                <div className="text-base sm:text-lg font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight truncate leading-none">
+                  {card.value}
+                </div>
+                <div className="text-[11px] font-medium text-[#64748B] dark:text-[#94A3B8] truncate leading-tight">
+                  {card.label}
+                </div>
               </div>
             </div>
           </Card>

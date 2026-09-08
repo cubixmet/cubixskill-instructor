@@ -31,6 +31,10 @@ export const courseRoutes = {
         ? `/discussions/personal/${studentUuid}`
         : '/discussions/personal',
   },
+  detail: (courseId?: string | null) =>
+    isValidCourseId(courseId) ? `/courses/${courseId.trim()}/overview` : '/courses',
+  liveSessions: (courseId?: string | null) =>
+    isValidCourseId(courseId) ? `/courses/${courseId.trim()}/live-sessions` : '/live-classes',
   reports: (courseId?: string | null) =>
     isValidCourseId(courseId) ? `/courses/${courseId.trim()}/reports` : '/courses',
   settings: (courseId?: string | null) =>

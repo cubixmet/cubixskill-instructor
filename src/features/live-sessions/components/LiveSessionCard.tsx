@@ -66,59 +66,66 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
   const getStatusBadge = (status: string) => {
     if (status === 'live') {
       return (
-        <Badge variant="error" size="sm" className="font-semibold animate-pulse flex items-center gap-1 text-[10px]">
-          <Radio className="w-3 h-3 shrink-0" /> LIVE NOW
+        <Badge variant="error" size="sm" className="font-bold flex items-center gap-1 text-[11px] bg-rose-500 text-white border-none px-2.5 py-0.5 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> Live Now
         </Badge>
       );
     }
     if (status === 'upcoming') {
-      return <Badge variant="info" size="sm" className="font-semibold text-[10px] bg-blue-50 dark:bg-[rgba(37,99,235,0.12)] border border-blue-100 dark:border-[rgba(59,130,246,0.18)] text-[#2563EB] dark:text-[#60A5FA]">Upcoming</Badge>;
+      return (
+        <Badge variant="info" size="sm" className="font-semibold text-[11px] bg-blue-500/10 dark:bg-blue-500/20 text-[#2563EB] dark:text-[#60A5FA] border border-blue-500/20 px-2.5 py-0.5 rounded-full">
+          Upcoming
+        </Badge>
+      );
     }
     if (status === 'completed') {
-      return <Badge variant="success" size="sm" className="font-semibold text-[10px]">Completed</Badge>;
+      return (
+        <Badge variant="success" size="sm" className="font-semibold text-[11px] bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-[#6EE7B7] border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+          Completed
+        </Badge>
+      );
     }
-    return <Badge variant="neutral" size="sm" className="font-semibold text-[10px]">Cancelled</Badge>;
+    if (session.isRecorded && session.recordingUrl) {
+      return (
+        <Badge variant="neutral" size="sm" className="font-semibold text-[11px] bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full">
+          Recorded
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="neutral" size="sm" className="font-semibold text-[11px] bg-slate-500/10 text-slate-500 dark:text-[#94A3B8] border border-slate-500/20 px-2.5 py-0.5 rounded-full">
+        Cancelled
+      </Badge>
+    );
   };
 
   const records = session.attendanceRecords || [];
   const joinedCount = records.filter((r) => r.status === 'joined').length;
+  const maxParticipants = session.maxParticipants || 40;
 
   return (
     <>
       <Card
         padding="none"
-        className={`bg-white dark:bg-[#111827] border transition-all shadow-2xs font-sans text-xs text-left p-3.5 sm:p-4 space-y-3 w-full max-w-full min-w-0 ${
+        className={`bg-white dark:bg-[#111827] border transition-all shadow-2xs font-sans text-xs text-left p-3.5 sm:p-4 space-y-3 w-full max-w-full min-w-0 rounded-2xl ${
           session.status === 'live'
-            ? 'border-rose-400 dark:border-rose-500/50 ring-2 ring-rose-500/20 bg-rose-50/10 dark:bg-rose-950/10'
-            : 'border-[#E2E8F0] dark:border-[#263244] hover:bg-slate-50/50 dark:hover:bg-[#172033] hover:border-blue-300 dark:hover:border-[rgba(59,130,246,0.30)]'
+            ? 'border-rose-500/50 ring-1 ring-rose-500/30 bg-rose-50/20 dark:bg-rose-950/20'
+            : 'border-[#E2E8F0] dark:border-[#263244] hover:bg-slate-50/50 dark:hover:bg-[#172033]/60'
         }`}
       >
-        {/* Header Badges & 3-Dot Options Menu */}
-        <div className="flex items-start justify-between gap-2 w-full min-w-0">
-          <div className="flex flex-wrap items-center gap-1.5 min-w-0 flex-1">
-            {getStatusBadge(session.status)}
-            <span className="bg-slate-100 dark:bg-[#0F172A] text-slate-800 dark:text-[#60A5FA] font-semibold px-2 py-0.5 rounded text-[10px] border border-slate-200 dark:border-[#334155]">
-              {session.platform}
-            </span>
-            {session.courseTitle && (
-              <span className="bg-blue-50 dark:bg-[#0F172A] text-[#2563EB] dark:text-[#60A5FA] font-semibold px-2 py-0.5 rounded text-[10px] truncate max-w-[180px] border border-blue-100 dark:border-[#334155]">
-                {session.courseTitle}
-              </span>
-            )}
-            <span className="text-[#64748B] dark:text-[#94A3B8] font-normal text-[11px] truncate">
-              Host: <span className="text-[#0F172A] dark:text-[#CBD5E1] font-medium">{session.hostName}</span>
-            </span>
-          </div>
+        {/* TOP ROW: BADGE + 3-DOT MENU */}
+        <div className="flex items-center justify-between gap-2 w-full min-w-0">
+          <div className="shrink-0">{getStatusBadge(session.status)}</div>
 
           {/* 3-DOT MENU BUTTON */}
           <div className="relative shrink-0">
             <button
               type="button"
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1.5 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl cursor-pointer transition-colors"
+              className="w-10 h-10 -mr-2 flex items-center justify-center text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-full cursor-pointer transition-colors"
               aria-label="More actions"
             >
-              <MoreVertical className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />
+              <MoreVertical className="w-4 h-4" />
             </button>
 
             {showMenu && (
@@ -129,7 +136,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                     setShowMenu(false);
                     onEdit(session);
                   }}
-                  className="w-full px-3.5 py-2 text-left hover:bg-slate-50 dark:hover:bg-[#172033] dark:hover:text-white flex items-center gap-2 cursor-pointer"
+                  className="w-full px-3.5 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-[#172033] dark:hover:text-white flex items-center gap-2 cursor-pointer"
                 >
                   <Edit2 className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
                   <span>Edit Session</span>
@@ -142,7 +149,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                       setShowMenu(false);
                       setConfirmModal('cancel');
                     }}
-                    className="w-full px-3.5 py-2 text-left hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center gap-2 text-amber-600 dark:text-amber-400 cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center gap-2 text-amber-600 dark:text-amber-400 cursor-pointer"
                   >
                     <XCircle className="w-3.5 h-3.5" />
                     <span>Cancel Session</span>
@@ -155,7 +162,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                     setShowMenu(false);
                     setConfirmModal('delete');
                   }}
-                  className="w-full px-3.5 py-2 text-left hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center gap-2 text-rose-600 dark:text-[#F87171] cursor-pointer"
+                  className="w-full px-3.5 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center gap-2 text-rose-600 dark:text-[#F87171] cursor-pointer border-t border-slate-100 dark:border-[#263244]"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Delete Session</span>
@@ -165,92 +172,71 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
           </div>
         </div>
 
-        {/* FULL TITLE */}
-        <h3 className="text-xs sm:text-base font-semibold text-[#0F172A] dark:text-[#F8FAFC] leading-snug tracking-tight break-words whitespace-normal">
+        {/* SESSION TITLE */}
+        <h3 className="text-sm sm:text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] leading-snug tracking-tight break-words whitespace-normal">
           {session.title}
         </h3>
 
-        {session.description && (
-          <p className="text-[#64748B] dark:text-[#94A3B8] text-xs line-clamp-2 leading-relaxed break-words font-normal">
-            {session.description}
-          </p>
-        )}
+        {/* METADATA ROW: PLATFORM & DATE/TIME */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-[#64748B] dark:text-[#94A3B8] font-normal">
+          <div className="flex items-center gap-1.5 font-medium text-[#334155] dark:text-[#CBD5E1]">
+            <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+            <span>{session.platform}</span>
+          </div>
 
-        {/* DATE, TIME & DURATION */}
-        <div className="flex flex-wrap items-center gap-3 text-[11px] font-normal text-[#64748B] dark:text-[#94A3B8] pt-1 border-t border-[#E2E8F0] dark:border-[#263244]">
-          <div className="flex items-center gap-1 text-[#0F172A] dark:text-[#CBD5E1] font-medium">
+          <span className="text-slate-300 dark:text-[#334155]">•</span>
+
+          <div className="flex items-center gap-1 text-[#475569] dark:text-[#94A3B8]">
             <Calendar className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
             <span>{session.scheduledDate}</span>
-          </div>
-          <div className="flex items-center gap-1 text-[#0F172A] dark:text-[#CBD5E1] font-medium">
-            <Clock className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
-            <span>{session.scheduledTime} ({session.durationMinutes} min)</span>
+            <span>•</span>
+            <span>{session.scheduledTime}</span>
           </div>
         </div>
 
-        {/* PRIMARY & SECONDARY ACTIONS ROW */}
-        <div className="pt-2 border-t border-[#E2E8F0] dark:border-[#263244] w-full min-w-0">
-          {session.status === 'live' ? (
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
+        {/* PARTICIPANTS & ACTION BUTTON ROW */}
+        <div className="pt-2 flex items-center justify-between gap-3 border-t border-[#E2E8F0] dark:border-[#263244] w-full min-w-0">
+          <div className="flex items-center gap-1.5 text-xs text-[#64748B] dark:text-[#94A3B8] font-medium shrink-0">
+            <Users className="w-4 h-4 text-slate-400 dark:text-[#64748B] shrink-0" />
+            <span>{joinedCount} / {maxParticipants}</span>
+          </div>
+
+          {/* ACTION BUTTON */}
+          <div className="shrink-0">
+            {session.status === 'live' ? (
               <button
                 type="button"
                 onClick={handleJoinMeeting}
-                className="h-10 sm:h-9 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer w-full sm:w-auto flex-1 text-center"
+                className="h-9 px-5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-[0_4px_12px_rgba(37,99,235,0.25)] transition-all cursor-pointer"
               >
-                <ExternalLink className="w-4 h-4 shrink-0" /> Join Live Classroom
+                Join
               </button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onEnd(session.id)}
-                className="h-10 sm:h-9 font-medium text-xs w-full sm:w-auto bg-slate-100 dark:bg-[#172033] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-200 dark:hover:bg-[#1E293B] hover:border-[#3B82F6] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]"
-              >
-                End Session
-              </Button>
-            </div>
-          ) : session.status === 'upcoming' ? (
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-              <Button
-                size="sm"
-                disabled={isStarting}
-                onClick={handleStartClick}
-                className="h-10 sm:h-9 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-xs px-4 w-full sm:w-auto flex-1 shadow-[0_4px_12px_rgba(37,99,235,0.12)] cursor-pointer"
-                leftIcon={<Play className="w-4 h-4 fill-current shrink-0" />}
-              >
-                {isStarting ? 'Starting...' : 'Start Class'}
-              </Button>
+            ) : session.status === 'upcoming' ? (
               <button
                 type="button"
-                onClick={handleJoinMeeting}
-                className="h-10 sm:h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-slate-100 dark:bg-[#172033] text-[#0F172A] dark:text-[#CBD5E1] font-medium hover:bg-slate-200 dark:hover:bg-[#1E293B] hover:border-[#3B82F6] dark:hover:border-[#3B82F6] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] flex items-center justify-center gap-1 transition-colors cursor-pointer text-xs w-full sm:w-auto"
+                onClick={() => onEdit(session)}
+                className="h-9 px-4 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#F8FAFC] font-semibold hover:bg-slate-50 dark:hover:bg-[#1E293B] text-xs transition-colors cursor-pointer"
               >
-                <ExternalLink className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" /> Provider Link
+                View Details
               </button>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2 w-full">
-              <Button
-                size="sm"
-                variant="outline"
+            ) : session.isRecorded && session.recordingUrl ? (
+              <button
+                type="button"
+                onClick={() => onOpenRecording?.(session)}
+                className="h-9 px-4 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#F8FAFC] font-semibold hover:bg-slate-50 dark:hover:bg-[#1E293B] text-xs transition-colors cursor-pointer"
+              >
+                View Recording
+              </button>
+            ) : (
+              <button
+                type="button"
                 onClick={() => onOpenAttendance?.(session)}
-                className="h-9 text-xs font-medium bg-slate-100 dark:bg-[#172033] border border-[#CBD5E1] dark:border-[#334155] text-[#2563EB] dark:text-[#60A5FA] hover:bg-slate-200 dark:hover:bg-[#1E293B] hover:border-[#3B82F6] hover:text-[#2563EB] dark:hover:text-[#60A5FA] flex-1 sm:flex-initial"
-                leftIcon={<Users className="w-3.5 h-3.5" />}
+                className="h-9 px-4 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#F8FAFC] font-semibold hover:bg-slate-50 dark:hover:bg-[#1E293B] text-xs transition-colors cursor-pointer"
               >
-                Attendance ({joinedCount})
-              </Button>
-              {session.isRecorded && session.recordingUrl && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onOpenRecording?.(session)}
-                  className="h-9 text-xs font-medium bg-slate-100 dark:bg-[#172033] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-200 dark:hover:bg-[#1E293B] hover:border-[#3B82F6] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] flex-1 sm:flex-initial"
-                  leftIcon={<Film className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />}
-                >
-                  Recording
-                </Button>
-              )}
-            </div>
-          )}
+                Attendance
+              </button>
+            )}
+          </div>
         </div>
       </Card>
 
