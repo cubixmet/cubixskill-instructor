@@ -407,12 +407,7 @@ export const CertificateBuilderPage: React.FC = () => {
       fontStyle: el.font_style || el.fontStyle || 'normal',
       letterSpacing: el.letter_spacing || 0,
       lineHeight: el.line_height || 1,
-      padding: el.padding || {
-        top: 1,
-        right: 2,
-        bottom: 1,
-        left: 2,
-      },
+      padding: el.padding || DEFAULT_TEXT_PADDING,
       canvasWidth,
       canvasHeight,
     });
@@ -1960,245 +1955,156 @@ export const CertificateBuilderPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* DIMENSIONS & FONT SIZE CONTROLS */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                        Width
-                      </label>
-                      <div className="relative flex items-center">
-                        <input
-                          type="number"
-                          min={20}
-                          max={1600}
-                          value={widthInput}
-                          onChange={(e) => {
-                            const valStr = e.target.value;
-                            setWidthInput(valStr);
-                            if (valStr !== '' && selectedElement) {
-                              const num = parseInt(valStr, 10);
-                              if (!isNaN(num)) {
-                                const clampedWidth = Math.min(1600, Math.max(20, num));
-                                const widthRatio = parseFloat((clampedWidth / 1600).toFixed(4));
-                                const heightPx = (selectedElement.height || 0.05) * 1131;
-
-                                if (selectedElement.type !== 'image') {
-                                  if (!selectedElement.multiline) {
-                                    const fontRes = calculateFontSizeForWidth({
-                                      text: resolveSampleValue(selectedElement),
-                                      targetWidthPx: clampedWidth,
-                                      padding: selectedElement.padding || DEFAULT_TEXT_PADDING,
-                                      fontFamily: selectedElement.font_family || selectedElement.fontFamily || availableFonts[0]?.family || 'Inter',
-                                      fontWeight: selectedElement.font_weight || selectedElement.fontWeight || '600',
-                                      fontStyle: selectedElement.font_style || selectedElement.fontStyle || 'normal',
-                                      lineHeight: selectedElement.line_height || 1.0,
-                                      letterSpacing: selectedElement.letter_spacing || 0,
-                                      maxFontSize: 150,
-                                      minFontSize: 1,
-                                    });
-
-                                    const fittedFont = Math.round(Math.min(150, Math.max(1, fontRes.fontSize)));
-                                    const naturalHeightRatio = parseFloat((fontRes.measuredHeightPx / 1131).toFixed(4));
-
-                                    updateSelectedElement({
-                                      width: widthRatio,
-                                      height: naturalHeightRatio,
-                                      fontSize: fittedFont,
-                                      font_size: fittedFont,
-                                      maxFontSize: fittedFont,
-                                      max_font_size: fittedFont,
-                                    });
-                                    setFontSizeInput(String(fittedFont));
-                                    setHeightInput(String(Math.round(fontRes.measuredHeightPx)));
-                                  } else {
-                                    const fitRes = calculateAutoFontSize({
-                                      text: resolveSampleValue(selectedElement),
-                                      width: clampedWidth,
-                                      height: heightPx,
-                                      padding: selectedElement.padding || DEFAULT_TEXT_PADDING,
-                                      fontFamily: selectedElement.font_family || selectedElement.fontFamily || availableFonts[0]?.family || 'Inter',
-                                      fontWeight: selectedElement.font_weight || selectedElement.fontWeight || '600',
-                                      fontStyle: selectedElement.font_style || selectedElement.fontStyle || 'normal',
-                                      maxFontSize: 150,
-                                      minFontSize: 1,
-                                      lineHeight: selectedElement.line_height || 1.0,
-                                      letterSpacing: selectedElement.letter_spacing || 0,
-                                      multiline: true,
-                                    });
-
-                                    const fittedFont = Math.round(Math.min(150, Math.max(1, fitRes.renderedFontSize)));
-
-                                    updateSelectedElement({
-                                      width: widthRatio,
-                                      fontSize: fittedFont,
-                                      font_size: fittedFont,
-                                      maxFontSize: fittedFont,
-                                      max_font_size: fittedFont,
-                                    });
-                                    setFontSizeInput(String(fittedFont));
-                                  }
-                                } else {
-                                  updateSelectedElement({ width: widthRatio });
-                                }
-                              }
-                            }
-                          }}
-                          onBlur={() => {
-                            const num = parseInt(widthInput, 10);
-                            const clamped = isNaN(num) ? 320 : Math.min(1600, Math.max(20, num));
-                            setWidthInput(String(clamped));
-                            if (selectedElement) {
-                              const widthRatio = parseFloat((clamped / 1600).toFixed(4));
-                              updateSelectedElement({ width: widthRatio });
-                            }
-                          }}
-                          className="w-full h-9 pl-2.5 pr-7 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
-                        />
-                        <span className="absolute right-2.5 text-[10px] font-mono text-slate-400 pointer-events-none">
-                          px
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                        Height
-                      </label>
-                      <div className="relative flex items-center">
-                        <input
-                          type="number"
-                          min={10}
-                          max={1131}
-                          value={heightInput}
-                          onChange={(e) => {
-                            const valStr = e.target.value;
-                            setHeightInput(valStr);
-                            if (valStr !== '' && selectedElement) {
-                              const num = parseInt(valStr, 10);
-                              if (!isNaN(num)) {
-                                const clampedHeight = Math.min(1131, Math.max(10, num));
-                                const heightRatio = parseFloat((clampedHeight / 1131).toFixed(4));
-                                const widthPx = (selectedElement.width || 0.2) * 1600;
-
-                                if (selectedElement.type !== 'image') {
-                                  const fitRes = calculateAutoFontSize({
-                                    text: resolveSampleValue(selectedElement),
-                                    width: widthPx,
-                                    height: clampedHeight,
-                                    padding: selectedElement.padding || DEFAULT_TEXT_PADDING,
-                                    fontFamily: selectedElement.font_family || selectedElement.fontFamily || availableFonts[0]?.family || 'Inter',
-                                    fontWeight: selectedElement.font_weight || selectedElement.fontWeight || '600',
-                                    fontStyle: selectedElement.font_style || selectedElement.fontStyle || 'normal',
-                                    maxFontSize: 150,
-                                    minFontSize: 1,
-                                    lineHeight: selectedElement.line_height || 1.0,
-                                    letterSpacing: selectedElement.letter_spacing || 0,
-                                    multiline: selectedElement.multiline || false,
-                                  });
-
-                                  const fittedFont = Math.round(Math.min(150, Math.max(1, fitRes.renderedFontSize)));
-
-                                  updateSelectedElement({
-                                    height: heightRatio,
-                                    fontSize: fittedFont,
-                                    font_size: fittedFont,
-                                    maxFontSize: fittedFont,
-                                    max_font_size: fittedFont,
-                                  });
-                                  setFontSizeInput(String(fittedFont));
-                                } else {
-                                  updateSelectedElement({ height: heightRatio });
-                                }
-                              }
-                            }
-                          }}
-                          onBlur={() => {
-                            const num = parseInt(heightInput, 10);
-                            const clamped = isNaN(num) ? 60 : Math.min(1131, Math.max(10, num));
-                            setHeightInput(String(clamped));
-                            if (selectedElement) {
-                              const heightRatio = parseFloat((clamped / 1131).toFixed(4));
-                              updateSelectedElement({ height: heightRatio });
-                            }
-                          }}
-                          className="w-full h-9 pl-2.5 pr-7 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
-                        />
-                        <span className="absolute right-2.5 text-[10px] font-mono text-slate-400 pointer-events-none">
-                          px
-                        </span>
-                      </div>
-                    </div>
-
-                    {selectedElement.type !== 'image' && (
-                      <div className="space-y-1 col-span-2 sm:col-span-1">
+                  {/* FONT SIZE CONTROL (for text elements) / DIMENSIONS (for image elements) */}
+                  {selectedElement.type === 'image' ? (
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div className="space-y-1">
                         <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                          Font Size
+                          Width
                         </label>
                         <div className="relative flex items-center">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const configured = selectedElement.fontSize ?? selectedElement.font_size ?? selectedElement.maxFontSize ?? selectedElement.max_font_size ?? 56;
-                              const parsed = parseInt(fontSizeInput, 10);
-                              const current = isNaN(parsed) ? configured : parsed;
-                              const next = Math.max(1, current - 1);
-                              handleFontSizeChange(next);
-                            }}
-                            className="w-8 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold border border-r-0 border-slate-300 dark:border-slate-700 rounded-l-xl text-xs transition-colors cursor-pointer select-none"
-                            title="Decrease font size"
-                          >
-                            -
-                          </button>
                           <input
                             type="number"
-                            min={1}
-                            max={150}
-                            step={1}
-                            value={fontSizeInput}
+                            min={20}
+                            max={1600}
+                            value={widthInput}
                             onChange={(e) => {
                               const valStr = e.target.value;
-                              setFontSizeInput(valStr);
-                              if (valStr !== '') {
+                              setWidthInput(valStr);
+                              if (valStr !== '' && selectedElement) {
                                 const num = parseInt(valStr, 10);
                                 if (!isNaN(num)) {
-                                  handleFontSizeChange(num);
+                                  const clampedWidth = Math.min(1600, Math.max(20, num));
+                                  const widthRatio = parseFloat((clampedWidth / 1600).toFixed(4));
+                                  updateSelectedElement({ width: widthRatio });
                                 }
                               }
                             }}
                             onBlur={() => {
+                              const num = parseInt(widthInput, 10);
+                              const clamped = isNaN(num) ? 320 : Math.min(1600, Math.max(20, num));
+                              setWidthInput(String(clamped));
+                              if (selectedElement) {
+                                const widthRatio = parseFloat((clamped / 1600).toFixed(4));
+                                updateSelectedElement({ width: widthRatio });
+                              }
+                            }}
+                            className="w-full h-9 pl-2.5 pr-7 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                          />
+                          <span className="absolute right-2.5 text-[10px] font-mono text-slate-400 pointer-events-none">
+                            px
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                          Height
+                        </label>
+                        <div className="relative flex items-center">
+                          <input
+                            type="number"
+                            min={10}
+                            max={1131}
+                            value={heightInput}
+                            onChange={(e) => {
+                              const valStr = e.target.value;
+                              setHeightInput(valStr);
+                              if (valStr !== '' && selectedElement) {
+                                const num = parseInt(valStr, 10);
+                                if (!isNaN(num)) {
+                                  const clampedHeight = Math.min(1131, Math.max(10, num));
+                                  const heightRatio = parseFloat((clampedHeight / 1131).toFixed(4));
+                                  updateSelectedElement({ height: heightRatio });
+                                }
+                              }
+                            }}
+                            onBlur={() => {
+                              const num = parseInt(heightInput, 10);
+                              const clamped = isNaN(num) ? 60 : Math.min(1131, Math.max(10, num));
+                              setHeightInput(String(clamped));
+                              if (selectedElement) {
+                                const heightRatio = parseFloat((clamped / 1131).toFixed(4));
+                                updateSelectedElement({ height: heightRatio });
+                              }
+                            }}
+                            className="w-full h-9 pl-2.5 pr-7 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                          />
+                          <span className="absolute right-2.5 text-[10px] font-mono text-slate-400 pointer-events-none">
+                            px
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                        Font Size
+                      </label>
+                      <div className="relative flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const configured = selectedElement.fontSize ?? selectedElement.font_size ?? selectedElement.maxFontSize ?? selectedElement.max_font_size ?? 56;
+                            const parsed = parseInt(fontSizeInput, 10);
+                            const current = isNaN(parsed) ? configured : parsed;
+                            const next = Math.max(1, current - 1);
+                            handleFontSizeChange(next);
+                          }}
+                          className="w-8 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold border border-r-0 border-slate-300 dark:border-slate-700 rounded-l-xl text-xs transition-colors cursor-pointer select-none"
+                          title="Decrease font size"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min={1}
+                          max={150}
+                          step={1}
+                          value={fontSizeInput}
+                          onChange={(e) => {
+                            const valStr = e.target.value;
+                            setFontSizeInput(valStr);
+                            if (valStr !== '') {
+                              const num = parseInt(valStr, 10);
+                              if (!isNaN(num)) {
+                                handleFontSizeChange(num);
+                              }
+                            }
+                          }}
+                          onBlur={() => {
+                            const num = parseInt(fontSizeInput, 10);
+                            const configured = selectedElement.fontSize ?? selectedElement.font_size ?? selectedElement.maxFontSize ?? selectedElement.max_font_size ?? 56;
+                            const clamped = isNaN(num) ? configured : Math.min(150, Math.max(1, num));
+                            handleFontSizeChange(clamped);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
                               const num = parseInt(fontSizeInput, 10);
                               const configured = selectedElement.fontSize ?? selectedElement.font_size ?? selectedElement.maxFontSize ?? selectedElement.max_font_size ?? 56;
                               const clamped = isNaN(num) ? configured : Math.min(150, Math.max(1, num));
                               handleFontSizeChange(clamped);
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                const num = parseInt(fontSizeInput, 10);
-                                const configured = selectedElement.fontSize ?? selectedElement.font_size ?? selectedElement.maxFontSize ?? selectedElement.max_font_size ?? 56;
-                                const clamped = isNaN(num) ? configured : Math.min(150, Math.max(1, num));
-                                handleFontSizeChange(clamped);
-                              }
-                            }}
-                            className="w-full h-9 text-center bg-slate-50 dark:bg-slate-900 border-y border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const configured = selectedElement.fontSize ?? selectedElement.font_size ?? selectedElement.maxFontSize ?? selectedElement.max_font_size ?? 56;
-                              const parsed = parseInt(fontSizeInput, 10);
-                              const current = isNaN(parsed) ? configured : parsed;
-                              const next = Math.min(150, current + 1);
-                              handleFontSizeChange(next);
-                            }}
-                            className="w-8 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold border border-l-0 border-slate-300 dark:border-slate-700 rounded-r-xl text-xs transition-colors cursor-pointer select-none"
-                            title="Increase font size"
-                          >
-                            +
-                          </button>
-                        </div>
+                            }
+                          }}
+                          className="w-full h-9 text-center bg-slate-50 dark:bg-slate-900 border-y border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const configured = selectedElement.fontSize ?? selectedElement.font_size ?? selectedElement.maxFontSize ?? selectedElement.max_font_size ?? 56;
+                            const parsed = parseInt(fontSizeInput, 10);
+                            const current = isNaN(parsed) ? configured : parsed;
+                            const next = Math.min(150, current + 1);
+                            handleFontSizeChange(next);
+                          }}
+                          className="w-8 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold border border-l-0 border-slate-300 dark:border-slate-700 rounded-r-xl text-xs transition-colors cursor-pointer select-none"
+                          title="Increase font size"
+                        >
+                          +
+                        </button>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                     {/* FONT SELECT & TYPOGRAPHY */}
                     {selectedElement.type !== 'image' && (

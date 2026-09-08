@@ -6,10 +6,10 @@ export interface PaddingConfig {
 }
 
 export const DEFAULT_PADDING: PaddingConfig = {
-  top: 1,
-  right: 2,
-  bottom: 1,
-  left: 2,
+  top: 2,
+  right: 4,
+  bottom: 2,
+  left: 4,
 };
 
 let cachedCanvasCtx: CanvasRenderingContext2D | null = null;
