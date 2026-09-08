@@ -184,8 +184,8 @@ export const AppRoutes: React.FC = () => {
               <Route path="overview" element={<CourseOverviewPage />} />
               <Route path="curriculum" element={<CourseCurriculumPage />} />
               <Route path="students" element={<CourseStudentsPage />} />
-              <Route path="students/enroll" element={<CourseStudentsPage />} />
-              <Route path="students/bulk-upload" element={<CourseStudentsPage />} />
+              <Route path="students/enroll" element={<EnrollStudentPage />} />
+              <Route path="students/bulk-upload" element={<BulkUploadStudentsPage />} />
               <Route path="students/:studentId" element={<StudentSinglePage />} />
               <Route path="students/:studentId/overview" element={<StudentSinglePage />} />
               <Route path="assignments" element={<CourseAssignmentsPage />} />

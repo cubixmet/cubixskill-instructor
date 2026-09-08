@@ -56,7 +56,7 @@ interface LessonThumbnailBadgeProps {
   className?: string;
 }
 
-export const LessonThumbnailBadge: React.FC<LessonThumbnailBadgeProps> = ({ type, lesson, className = "w-[76px] h-[76px]" }) => {
+export const LessonThumbnailBadge: React.FC<LessonThumbnailBadgeProps> = ({ type, lesson, className = "w-[60px] h-[60px] sm:w-[64px] sm:h-[64px]" }) => {
   const [imgError, setImgError] = useState(false);
   const thumbUrl = getLessonThumbnailUrl(lesson);
   const content = lesson.content || {};
@@ -73,7 +73,7 @@ export const LessonThumbnailBadge: React.FC<LessonThumbnailBadgeProps> = ({ type
   // If real thumbnail/image exists
   if (thumbUrl && !imgError) {
     return (
-      <div className={`relative rounded-[12px] overflow-hidden bg-slate-900 border border-slate-700/60 shrink-0 group/thumb ${className}`}>
+      <div className={`relative rounded-[10px] overflow-hidden bg-slate-900 border border-slate-700/60 shrink-0 group/thumb ${className}`}>
         <img
           src={thumbUrl}
           alt={lesson.title}
@@ -81,14 +81,14 @@ export const LessonThumbnailBadge: React.FC<LessonThumbnailBadgeProps> = ({ type
           className="w-full h-full object-cover transition-transform duration-200 group-hover/thumb:scale-105"
         />
         {type === 'video' && (
-          <div className="absolute inset-0 bg-black/35 flex flex-col items-center justify-between p-1.5">
+          <div className="absolute inset-0 bg-black/35 flex flex-col items-center justify-between p-1">
             <div className="flex-1 flex items-center justify-center">
-              <div className="w-8 h-8 rounded-full bg-white/25 backdrop-blur-xs flex items-center justify-center shadow-md border border-white/20">
-                <Play className="w-4 h-4 fill-white ml-0.5 text-white" />
+              <div className="w-6 h-6 rounded-full bg-white/25 backdrop-blur-xs flex items-center justify-center shadow-md border border-white/20">
+                <Play className="w-3 h-3 fill-white ml-0.5 text-white" />
               </div>
             </div>
             {tileDuration && (
-              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-black/75 text-white backdrop-blur-xs shadow-xs leading-none">
+              <span className="text-[8px] font-mono font-bold px-1 py-0.5 rounded-md bg-black/80 text-white backdrop-blur-xs shadow-xs leading-none max-w-full truncate">
                 {tileDuration}
               </span>
             )}
@@ -102,14 +102,14 @@ export const LessonThumbnailBadge: React.FC<LessonThumbnailBadgeProps> = ({ type
   switch (type) {
     case 'video': {
       return (
-        <div className={`relative rounded-[12px] overflow-hidden bg-gradient-to-br from-[#1E293B] via-[#1E2538] to-[#0F172A] border border-slate-700/60 flex flex-col items-center justify-between p-2 shrink-0 text-white ${className}`}>
+        <div className={`relative rounded-[12px] overflow-hidden bg-gradient-to-br from-[#1E293B] via-[#1E2538] to-[#0F172A] border border-slate-700/60 flex flex-col items-center justify-between p-1 shrink-0 text-white ${className}`}>
           <div className="flex-1 flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center shadow-md border border-white/20">
-              <Play className="w-4 h-4 fill-white ml-0.5 text-white" />
+            <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center shadow-md border border-white/20">
+              <Play className="w-3.5 h-3.5 fill-white ml-0.5 text-white" />
             </div>
           </div>
           {tileDuration && (
-            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-black/60 text-white backdrop-blur-xs shadow-xs leading-none">
+            <span className="text-[8px] font-mono font-bold px-1 py-0.5 rounded-md bg-black/60 text-white backdrop-blur-xs shadow-xs leading-none max-w-full truncate">
               {tileDuration}
             </span>
           )}
@@ -118,25 +118,25 @@ export const LessonThumbnailBadge: React.FC<LessonThumbnailBadgeProps> = ({ type
     }
     case 'image':
       return (
-        <div className={`rounded-[12px] bg-gradient-to-br from-purple-950/40 via-indigo-900/30 to-slate-900 border border-purple-500/20 text-purple-400 flex flex-col items-center justify-center shrink-0 ${className}`}>
-          <ImageIcon className="w-7 h-7" />
-          <span className="text-[9px] font-bold uppercase tracking-wider mt-1 text-purple-300">IMAGE</span>
+        <div className={`rounded-[12px] bg-gradient-to-br from-[#2D1B4E] via-[#1F143A] to-[#120B24] border border-purple-500/30 text-purple-400 flex flex-col items-center justify-center shrink-0 ${className}`}>
+          <ImageIcon className="w-7 h-7 stroke-[1.75]" />
+          <span className="text-[8px] font-extrabold uppercase tracking-wider mt-0.5 text-purple-300">IMAGE</span>
         </div>
       );
     case 'audio':
       return (
-        <div className={`rounded-[12px] bg-gradient-to-br from-amber-950/40 via-orange-900/30 to-slate-900 border border-amber-500/20 text-amber-400 flex flex-col items-center justify-center shrink-0 ${className}`}>
-          <Music className="w-7 h-7" />
-          <span className="text-[9px] font-bold uppercase tracking-wider mt-1 text-amber-300">AUDIO</span>
+        <div className={`rounded-[12px] bg-gradient-to-br from-[#3D2614] via-[#2A180B] to-[#170C04] border border-amber-500/30 text-amber-400 flex flex-col items-center justify-center shrink-0 ${className}`}>
+          <Music className="w-7 h-7 stroke-[1.75]" />
+          <span className="text-[8px] font-extrabold uppercase tracking-wider mt-0.5 text-amber-300">AUDIO</span>
         </div>
       );
     case 'document': {
       const fileName = content.fileName || content.fileUrl || lesson.title;
       const isPdf = fileName.toLowerCase().endsWith('.pdf') || (content.mediaUrl && content.mediaUrl.toLowerCase().endsWith('.pdf'));
       return (
-        <div className={`rounded-[12px] ${isPdf ? 'bg-gradient-to-br from-rose-950/40 via-red-900/30 to-slate-900 border-rose-500/20 text-rose-400' : 'bg-gradient-to-br from-blue-950/40 via-slate-900 to-slate-900 border-blue-500/20 text-blue-400'} border flex flex-col items-center justify-center shrink-0 ${className}`}>
-          <FileText className="w-7 h-7" />
-          <span className="text-[9px] font-bold uppercase tracking-wider mt-1">
+        <div className={`rounded-[12px] ${isPdf ? 'bg-gradient-to-br from-[#45121E] via-[#2E0B13] to-[#1A050A] border-rose-500/30 text-rose-400' : 'bg-gradient-to-br from-[#122245] via-[#0B152E] to-[#050B1A] border-blue-500/30 text-blue-400'} border flex flex-col items-center justify-center shrink-0 ${className}`}>
+          <FileText className="w-7 h-7 stroke-[1.75]" />
+          <span className="text-[8px] font-extrabold uppercase tracking-wider mt-0.5">
             {isPdf ? 'PDF' : 'DOC'}
           </span>
         </div>
@@ -144,25 +144,25 @@ export const LessonThumbnailBadge: React.FC<LessonThumbnailBadgeProps> = ({ type
     }
     case 'quiz':
       return (
-        <div className={`rounded-[12px] bg-gradient-to-br from-emerald-950/40 via-teal-900/30 to-slate-900 border border-emerald-500/20 text-emerald-400 flex flex-col items-center justify-center shrink-0 ${className}`}>
-          <HelpCircle className="w-7 h-7" />
-          <span className="text-[9px] font-bold uppercase tracking-wider mt-1 text-emerald-300">QUIZ</span>
+        <div className={`rounded-[10px] sm:rounded-[12px] bg-gradient-to-br from-[#0B3322] via-[#062116] to-[#03120C] border border-emerald-500/30 text-emerald-400 flex flex-col items-center justify-center shrink-0 ${className}`}>
+          <HelpCircle className="w-7 h-7 stroke-[1.75]" />
+          <span className="text-[8px] font-extrabold uppercase tracking-wider mt-0.5 text-emerald-300">QUIZ</span>
         </div>
       );
     case 'assignment':
     case 'project':
       return (
-        <div className={`rounded-[12px] bg-gradient-to-br from-blue-950/40 via-indigo-900/30 to-slate-900 border border-blue-500/20 text-blue-400 flex flex-col items-center justify-center shrink-0 ${className}`}>
-          <CheckSquare className="w-7 h-7" />
-          <span className="text-[9px] font-bold uppercase tracking-wider mt-1 text-blue-300">TASK</span>
+        <div className={`rounded-[10px] sm:rounded-[12px] bg-gradient-to-br from-[#122245] via-[#0B152E] to-[#050B1A] border border-blue-500/30 text-blue-400 flex flex-col items-center justify-center shrink-0 ${className}`}>
+          <CheckSquare className="w-7 h-7 stroke-[1.75]" />
+          <span className="text-[8px] font-extrabold uppercase tracking-wider mt-0.5 text-blue-300">TASK</span>
         </div>
       );
     case 'text':
     default:
       return (
-        <div className={`rounded-[12px] bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 border border-slate-700/60 text-slate-300 flex flex-col items-center justify-center shrink-0 ${className}`}>
-          <FileText className="w-7 h-7" />
-          <span className="text-[9px] font-bold uppercase tracking-wider mt-1 text-slate-400">TEXT</span>
+        <div className={`rounded-[10px] sm:rounded-[12px] bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#090D16] border border-slate-700/60 text-slate-300 flex flex-col items-center justify-center shrink-0 ${className}`}>
+          <FileText className="w-7 h-7 stroke-[1.75]" />
+          <span className="text-[8px] font-extrabold uppercase tracking-wider mt-0.5 text-slate-400">TEXT</span>
         </div>
       );
   }

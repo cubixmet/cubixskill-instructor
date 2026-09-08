@@ -179,26 +179,30 @@ export const CourseCurriculumPage: React.FC = () => {
 
   // MODULE SERVICE HANDLERS
   const handleOpenAddModuleModal = () => {
-    navigate(`/courses/${courseUuid}/curriculum/modules/new`);
+    setEditingModuleState(null);
+    setIsModuleModalOpen(true);
   };
 
   const handleOpenEditModuleModal = (mod: CourseModule) => {
-    navigate(`/courses/${courseUuid}/curriculum/modules/${mod.uuid}/edit`);
+    setEditingModuleState(mod);
+    setIsModuleModalOpen(true);
   };
 
+  const [editingModuleState, setEditingModuleState] = useState<CourseModule | null>(null);
+
   const handleSaveModule = async (data: Partial<CourseModule>) => {
-    if (editingModule) {
-      await curriculumService.updateModule(editingModule.uuid, courseUuid, data);
-      showToast('Module updated successfully.');
+    if (editingModuleState) {
+      await curriculumService.updateModule(editingModuleState.uuid, courseUuid, data);
+      showToast('Section updated successfully.');
     } else {
       const created = await curriculumService.createModule(courseUuid, {
-        title: data.title || 'Untitled Module',
+        title: data.title || 'Untitled Section',
         description: data.description || '',
         status: data.status || 'published',
         durationMinutes: 0,
         isCollapsed: false,
       });
-      showToast('Module created successfully.');
+      showToast('Section created successfully.');
       setTimeout(() => {
         const el = document.getElementById(`module-${created.uuid}`);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -389,12 +393,12 @@ export const CourseCurriculumPage: React.FC = () => {
 
 
       {/* 4. COURSE CURRICULUM SECTION HEADER */}
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] tracking-tight">
+      <div className="flex flex-col min-[340px]:flex-row items-stretch min-[340px]:items-center justify-between gap-2.5 sm:gap-3 w-full min-w-0">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] tracking-tight leading-tight m-0">
             Course Curriculum
           </h2>
-          <p className="text-xs text-[var(--text-secondary)] font-normal">
+          <p className="text-xs text-[var(--text-secondary)] font-normal mt-0.5 mb-0">
             Organize your sections and lessons
           </p>
         </div>
@@ -403,7 +407,7 @@ export const CourseCurriculumPage: React.FC = () => {
           size="sm"
           leftIcon={<Plus className="w-4 h-4 stroke-[3]" />}
           onClick={handleOpenAddModuleModal}
-          className="bg-[var(--brand-primary)] hover:opacity-90 text-[var(--brand-primary-foreground)] font-bold px-3.5 h-9 text-xs rounded-xl shrink-0"
+          className="bg-[var(--brand-primary)] hover:opacity-90 text-[var(--brand-primary-foreground)] font-bold px-3.5 h-10 sm:h-9 text-xs rounded-xl shrink-0 self-auto min-[340px]:self-center whitespace-nowrap"
         >
           Add Section
         </Button>
@@ -664,6 +668,14 @@ export const CourseCurriculumPage: React.FC = () => {
             showToast(`Attached "${quiz.title}" to course curriculum.`);
           }
         }}
+      />
+
+      {/* ADD / EDIT SECTION MODAL */}
+      <ModuleFormModal
+        isOpen={isModuleModalOpen}
+        onClose={() => setIsModuleModalOpen(false)}
+        onSubmitModule={handleSaveModule}
+        initialModule={editingModuleState}
       />
 
       {/* ADD LESSON FLOW MODAL */}

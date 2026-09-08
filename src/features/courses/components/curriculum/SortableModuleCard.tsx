@@ -50,7 +50,7 @@ export const SortableModuleCard: React.FC<SortableModuleCardProps> = ({
   onDuplicateLesson,
   onAddResource,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);

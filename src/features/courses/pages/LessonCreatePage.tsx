@@ -22,6 +22,11 @@ export const LessonCreatePage: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Reset scroll position to top on mount
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+
   // Redirect if type parameter is missing or if type is QUIZ
   useEffect(() => {
     if (isCourseValid && !rawTypeParam) {
@@ -89,7 +94,13 @@ export const LessonCreatePage: React.FC = () => {
     if (lessonType === 'quiz') return 'Create Quiz';
     if (lessonType === 'assignment') return 'Create Assignment';
     if (lessonType === 'project') return 'Create Project';
+    if (lessonType === 'video') return 'Create Video Lesson';
     return `Create ${typeMeta.label}`;
+  };
+
+  const getPageSubtitle = () => {
+    if (lessonType === 'video') return 'Upload or embed video content for your students.';
+    return `Adding to section: ${moduleTitle}`;
   };
 
   const handleSaveLesson = async (data: Partial<CourseLesson>): Promise<CourseLesson> => {
@@ -179,7 +190,7 @@ export const LessonCreatePage: React.FC = () => {
   return (
     <FormPageLayout
       title={pageTitle}
-      subtitle={`Adding to section: ${moduleTitle}`}
+      subtitle={getPageSubtitle()}
       backUrl={`/courses/${effectiveCourseId}/curriculum/lessons/select-type${
         selectedModule?.uuid || targetModuleUuid ? `?moduleUuid=${selectedModule?.uuid || targetModuleUuid}` : ''
       }`}

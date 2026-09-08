@@ -3,12 +3,14 @@ import {
   Check,
   AlertTriangle,
   RefreshCw,
+  MoreHorizontal,
 } from "lucide-react";
 import { useParams, Link, NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "../../../components/ui/Button";
 import { Modal } from "../../../components/ui/Modal";
 import { Skeleton } from "../../../components/ui/Skeleton";
+import { AppBottomSheet } from "../../../components/ui/app-dialogs/AppBottomSheet";
 import { coursesService } from "../../../services/courses.service";
 import { COURSE_NAV_SECTIONS, isCourseTabActive } from "../config/courseNavigation.config";
 import type { CourseDetail } from "../types/course.types";
@@ -32,6 +34,7 @@ export const CourseSingleViewLayout: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isActionBusy, setIsActionBusy] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 
   const mobileTabNavRef = useRef<HTMLDivElement>(null);
   const activeMobileTabRef = useRef<HTMLAnchorElement>(null);
@@ -130,6 +133,17 @@ export const CourseSingleViewLayout: React.FC = () => {
     );
   }
 
+  // Filter available sections based on feature flags
+  const availableSections = COURSE_NAV_SECTIONS.filter((sec) => !sec.requiredFeature || isFeatureEnabled(sec.requiredFeature));
+  
+  // Primary 3 tabs for mobile
+  const primaryMobileIds = ['overview', 'curriculum', 'students'];
+  const primaryMobileSections = availableSections.filter((sec) => primaryMobileIds.includes(sec.id));
+  
+  // Remaining sections for mobile "More" menu
+  const secondaryMobileSections = availableSections.filter((sec) => !primaryMobileIds.includes(sec.id));
+  const isSecondaryActive = secondaryMobileSections.some((sec) => isCourseTabActive(sec, location.pathname));
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -148,11 +162,11 @@ export const CourseSingleViewLayout: React.FC = () => {
       {/* 1. REUSABLE SHARED COURSE HEADER */}
       <SharedCourseHeader course={course} />
 
-      {/* 2. TABS NAVIGATION */}
+      {/* 2. DESKTOP TABS NAVIGATION (All 8 tabs) */}
       <div className="hidden md:block sticky top-0 z-20">
         <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl p-1.5 h-13 flex items-center justify-between shadow-2xs">
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full">
-            {COURSE_NAV_SECTIONS.filter((sec) => !sec.requiredFeature || isFeatureEnabled(sec.requiredFeature)).map((sec) => {
+            {availableSections.map((sec) => {
               const Icon = sec.icon;
               const isActive = isCourseTabActive(sec, location.pathname);
 
@@ -175,34 +189,77 @@ export const CourseSingleViewLayout: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. MOBILE TABS */}
-      <div
-        ref={mobileTabNavRef}
-        className="md:hidden sticky top-0 z-30 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl p-1.5 shadow-2xs overflow-x-auto no-scrollbar touch-pan-x w-full max-w-full min-w-0"
-      >
-        <div className="flex items-center gap-1.5 flex-nowrap w-max px-1">
-          {COURSE_NAV_SECTIONS.filter((sec) => !sec.requiredFeature || isFeatureEnabled(sec.requiredFeature)).map((sec) => {
+      {/* 3. MOBILE TABS NAVIGATION (4 Primary Tabs Grid: [Overview] [Curriculum] [Students] [More]) */}
+      <div className="md:hidden sticky top-0 z-30 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl p-1.5 shadow-2xs w-full max-w-full min-w-0">
+        <div className="grid grid-cols-4 gap-1 w-full box-border">
+          {primaryMobileSections.map((sec) => {
             const Icon = sec.icon;
             const isActive = isCourseTabActive(sec, location.pathname);
 
             return (
               <NavLink
                 key={sec.id}
-                ref={isActive ? activeMobileTabRef : undefined}
                 to={`/courses/${course.id}/${sec.route}`}
-                className={`h-10 px-3.5 rounded-xl flex items-center gap-1.5 text-xs font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 flex-none ${
+                className={`h-11 sm:h-12 px-1 rounded-xl flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-all cursor-pointer min-w-0 w-full text-center ${
                   isActive
-                    ? "bg-[#2563EB] text-white shadow-xs font-semibold"
+                    ? "bg-[#2563EB] text-white shadow-xs font-bold"
                     : "text-slate-500 dark:text-[#94A3B8] hover:text-[#2563EB] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033]"
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-white" : "text-slate-500 dark:text-[#94A3B8]"}`} />
-                <span>{sec.label}</span>
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-white stroke-[2.5]" : "text-slate-500 dark:text-[#94A3B8]"}`} />
+                <span className="truncate w-full text-center leading-none">{sec.label}</span>
+              </NavLink>
+            );
+          })}
+
+          {/* Tab 4: More Menu Button */}
+          <button
+            type="button"
+            onClick={() => setIsMoreMenuOpen(true)}
+            className={`h-11 sm:h-12 px-1 rounded-xl flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-all cursor-pointer min-w-0 w-full text-center ${
+              isSecondaryActive
+                ? "bg-[#2563EB] text-white shadow-xs font-bold"
+                : "text-slate-500 dark:text-[#94A3B8] hover:text-[#2563EB] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033]"
+            }`}
+          >
+            <MoreHorizontal className={`w-4 h-4 shrink-0 ${isSecondaryActive ? "text-white stroke-[2.5]" : "text-slate-500 dark:text-[#94A3B8]"}`} />
+            <span className="truncate w-full text-center leading-none">More</span>
+          </button>
+        </div>
+      </div>
+
+      {/* MORE NAVIGATION BOTTOM SHEET FOR MOBILE */}
+      <AppBottomSheet
+        isOpen={isMoreMenuOpen}
+        onClose={() => setIsMoreMenuOpen(false)}
+        title="More Course Options"
+        subtitle="Manage settings, features & live classes"
+      >
+        <div className="space-y-1 py-1">
+          {secondaryMobileSections.map((sec) => {
+            const Icon = sec.icon;
+            const isActive = isCourseTabActive(sec, location.pathname);
+
+            return (
+              <NavLink
+                key={sec.id}
+                to={`/courses/${course.id}/${sec.route}`}
+                onClick={() => setIsMoreMenuOpen(false)}
+                className={`flex items-center gap-3 w-full px-3.5 py-3 rounded-xl text-xs sm:text-sm font-semibold transition-colors ${
+                  isActive
+                    ? "bg-[#2563EB] text-white"
+                    : "text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#172033]"
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isActive ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-[#1E293B] text-slate-600 dark:text-[#94A3B8]"}`}>
+                  <Icon className="w-4 h-4 stroke-current" />
+                </div>
+                <span className="flex-1 text-left">{sec.label}</span>
               </NavLink>
             );
           })}
         </div>
-      </div>
+      </AppBottomSheet>
 
       {/* 4. ACTIVE SUB-ROUTE OUTLET */}
       <div className="min-h-[500px]">

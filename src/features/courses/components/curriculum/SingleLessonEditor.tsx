@@ -2,16 +2,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Files,
-  Layers,
   CheckCircle2,
   AlertCircle,
-  Clock,
   Link2,
   Plus,
   Upload,
   Loader2,
-  Lock,
-  Unlock,
+  SlidersHorizontal,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { authService } from '../../../../services/auth.service';
 import { Button } from '../../../../components/ui/Button';
@@ -143,6 +142,11 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
     lesson?.moduleUuid || moduleUuid || activeModules[0]?.uuid || ''
   );
 
+  // Scroll to top on page load
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+
   // View mode: 'editor' or 'preview'
   const [editorMode, setEditorMode] = useState<'editor' | 'preview'>('editor');
 
@@ -166,7 +170,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
   const [questionErrors, setQuestionErrors] = useState<Record<string, string>>({});
 
   // Helpers
-  const showFreeDemoOption = type === 'video' || type === 'audio';
+  const showFreeDemoOption = type === 'video';
   const showAllowDownloadOption = type === 'document';
   const canUseUrlSource = !isDemo;
 
@@ -249,6 +253,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
       ? Number((lesson?.content as Record<string, unknown>).maxAttempts)
       : undefined)
   );
+  const [showAdvancedQuizSettings, setShowAdvancedQuizSettings] = useState(false);
 
   // Assignment & Project State
   const [instructions, setInstructions] = useState(
@@ -683,341 +688,139 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
   }
 
   return (
-    <form id="lesson-form" onSubmit={handleSubmit} className="space-y-5 text-left font-sans max-w-4xl mx-auto pb-44 md:pb-16 w-full min-w-0 px-1 md:px-0">
-      {/* Top Header Card */}
-      <div
-        style={{
-          backgroundColor: 'var(--surface)',
-          borderColor: 'var(--border)',
-          color: 'var(--text-primary)',
-        }}
-        className="p-3.5 sm:p-5 border rounded-2xl shadow-2xs space-y-4 w-full min-w-0"
-      >
-        <div style={{ borderColor: 'var(--border)' }} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3.5 w-full min-w-0">
-          <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1 w-full">
-            <div
-              style={{
-                backgroundColor: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
-                color: 'var(--brand-primary)',
-                borderColor: 'var(--border)',
-              }}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl border flex items-center justify-center shrink-0 shadow-2xs"
-            >
-              <Icon className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
-            </div>
-            <div className="min-w-0 flex-1 w-full">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 style={{ color: 'var(--text-primary)' }} className="text-sm sm:text-base font-semibold truncate">
-                  {isCreateMode ? `Create ${meta.label}` : `Edit ${meta.label}`}
-                </h3>
-                <Badge variant="primary" size="sm" className="text-xs px-2 py-0.5">
-                  {meta.label}
-                </Badge>
-              </div>
-
-              {/* Explicit Module Selector Dropdown */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 mt-2 sm:mt-1 w-full min-w-0">
-                <div style={{ color: 'var(--text-muted)' }} className="flex items-center gap-1 text-xs font-medium shrink-0">
-                  <Layers style={{ color: 'var(--brand-primary)' }} className="w-3.5 h-3.5 shrink-0" />
-                  <span>Section:</span>
-                </div>
-                <select
-                  value={selectedModuleUuid}
-                  onChange={(e) => setSelectedModuleUuid(e.target.value)}
-                  style={{
-                    backgroundColor: 'var(--surface-secondary)',
-                    borderColor: 'var(--input-border)',
-                    color: 'var(--text-primary)',
-                  }}
-                  className="w-full sm:w-auto min-w-0 max-w-full font-semibold text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-[var(--brand-primary)] cursor-pointer truncate"
-                >
-                  {activeModules.map((mod, idx) => (
-                    <option key={mod.uuid} value={mod.uuid} style={{ backgroundColor: 'var(--surface)', color: 'var(--text-primary)' }} className="truncate">
-                      Module #{idx + 1}: {mod.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
+    <form id="lesson-form" onSubmit={handleSubmit} className="w-full max-w-[1100px] mx-auto space-y-3 sm:space-y-4 font-sans text-left pb-32 md:pb-24 min-w-0">
+      {/* Missing module notice */}
+      {!selectedModuleUuid && (
+        <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>No section selected. Please select a section for this lesson.</span>
         </div>
+      )}
 
-        {/* 1. COMMON LESSON FIELDS (TOP SECTION) */}
-        <div className="space-y-4">
-          <div>
-            <label style={{ color: 'var(--text-secondary)' }} className="block text-xs font-medium mb-1">
-              Lesson Title <span style={{ color: 'var(--brand-primary)' }}>*</span>
-            </label>
-            <Input
-              id="lesson-title-input"
-              value={title}
-              autoFocus
-              onChange={(e) => {
-                setTitle(e.target.value);
-                if (e.target.value.trim()) setTitleError('');
-              }}
-              placeholder={`e.g. Master ${meta.label} Fundamentals`}
-              className="h-11 text-xs sm:text-sm font-medium rounded-xl"
-              error={titleError}
-            />
-          </div>
+      {/* Main Grid: Single Column on Mobile, Responsive 2-Column Grid on Desktop ONLY when real video exists */}
+      <div className={`grid grid-cols-1 ${parsedEmbed || uploadedFileObj?.url ? 'lg:grid-cols-12' : ''} gap-3 sm:gap-4 items-start`}>
+        
+        {/* Left / Main Column */}
+        <div className={`${parsedEmbed || uploadedFileObj?.url ? 'lg:col-span-8' : 'w-full'} space-y-3 sm:space-y-4 min-w-0`}>
+          
+          {/* 1. BASIC INFORMATION */}
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[12px] sm:rounded-[14px] p-3 sm:p-4 space-y-3 shadow-xs">
+            <h3 className="text-xs sm:text-sm font-bold text-[var(--text-primary)] tracking-tight">
+              Basic Information
+            </h3>
 
-          <div>
-            <label style={{ color: 'var(--text-secondary)' }} className="block text-xs font-medium mb-1">
-              Short Description <span style={{ color: 'var(--text-muted)' }} className="font-normal">(Optional)</span>
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Concise summary of what students will learn in this unit..."
-              rows={2}
-              style={{
-                backgroundColor: 'var(--surface-secondary)',
-                borderColor: 'var(--input-border)',
-                color: 'var(--text-primary)',
-              }}
-              className="w-full p-3 rounded-xl text-xs sm:text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)] transition-all resize-y font-normal"
-            />
-          </div>
-
-          {/* Quick Settings Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-            {/* Field: Duration */}
-            <div
-              style={{
-                backgroundColor: 'var(--surface-secondary)',
-                borderColor: 'var(--border)',
-              }}
-              className="p-3 border rounded-xl space-y-1"
-            >
-              <label style={{ color: 'var(--text-secondary)' }} className="text-[11px] font-semibold flex items-center gap-1.5">
-                <Clock style={{ color: 'var(--brand-primary)' }} className="w-3.5 h-3.5" />
-                <span>Duration (Mins)</span>
+            {/* Lesson Title */}
+            <div className="space-y-1 min-w-0">
+              <label className="block text-xs font-bold text-[var(--text-primary)]">
+                Lesson Title <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="number"
-                min={1}
-                max={600}
-                value={durationMinutes}
-                onChange={(e) => setDurationMinutes(Math.max(1, Number(e.target.value)))}
-                style={{
-                  backgroundColor: 'var(--surface)',
-                  borderColor: 'var(--input-border)',
-                  color: 'var(--text-primary)',
+              <Input
+                id="lesson-title-input"
+                value={title}
+                autoFocus
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (e.target.value.trim()) setTitleError('');
                 }}
-                className="w-full h-8 px-2.5 border rounded-lg text-xs font-bold focus:outline-none focus:border-[var(--brand-primary)]"
+                placeholder="Introduction to Web Development"
+                className="h-[46px] sm:h-[48px] text-xs sm:text-sm font-medium rounded-[10px] bg-[var(--surface-secondary)] border-[var(--input-border)] text-[var(--text-primary)] placeholder:[var(--text-muted)] w-full"
+                error={titleError}
               />
             </div>
 
-            {/* Field: Free Trial / Demo Toggle (Only for Video Lessons) */}
-            {showFreeDemoOption && (
-              <div
-                style={{
-                  backgroundColor: 'var(--surface-secondary)',
-                  borderColor: 'var(--border)',
-                }}
-                className="p-3 border rounded-xl space-y-1.5"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span style={{ color: 'var(--text-secondary)' }} className="text-[11px] font-semibold block">Free Demo / Public Preview</span>
-                    <span style={{ color: 'var(--text-muted)' }} className="text-[10px]">Allow public visitors to preview this lesson</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isDemo}
-                    onChange={(e) => {
-                      const enabled = e.target.checked;
-                      setIsDemo(enabled);
-                      if (enabled) {
-                        setMediaSource('UPLOAD');
-                        setMediaUrl('');
-                        setUrlError('');
-                      }
+            {/* Description */}
+            <div className="space-y-1 min-w-0">
+              <label className="block text-xs font-bold text-[var(--text-primary)]">
+                Description
+              </label>
+              {type === 'text' ? (
+                <div className="w-full min-w-0 overflow-hidden">
+                  <RichTextEditor
+                    value={textContent}
+                    onChange={(val) => {
+                      setTextContent(val);
+                      if (!isHtmlContentEmpty(val)) setContentError('');
                     }}
-                    style={{ accentColor: 'var(--brand-primary)' }}
-                    className="w-4 h-4 rounded cursor-pointer"
+                    placeholder="Write a description for this lesson..."
+                    minHeight="100px"
                   />
                 </div>
-                {isDemo && (
-                  <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium pt-1 border-t border-slate-200 dark:border-[#263244]">
-                    ℹ️ Public preview duration will be automatically calculated (first 5 mins for videos &gt; 5 mins, 50% for shorter videos).
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Field: Allow Download Toggle (Only for Document Lessons) */}
-            {showAllowDownloadOption && (
-              <div
-                style={{
-                  backgroundColor: 'var(--surface-secondary)',
-                  borderColor: 'var(--border)',
-                }}
-                className="p-3 border rounded-xl flex items-center justify-between"
-              >
-                <div>
-                  <span style={{ color: 'var(--text-secondary)' }} className="text-[11px] font-semibold block">Allow Download</span>
-                  <span style={{ color: 'var(--text-muted)' }} className="text-[10px]">Permit learners to save/download file</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={allowDownload}
-                  onChange={(e) => setAllowDownload(e.target.checked)}
-                  style={{ accentColor: 'var(--brand-primary)' }}
-                  className="w-4 h-4 rounded cursor-pointer"
-                />
-              </div>
-            )}
-
-            {/* Field: Lesson Access Lock Control */}
-            <div
-              style={{
-                backgroundColor: 'var(--surface-secondary)',
-                borderColor: 'var(--border)',
-              }}
-              className="p-3 border rounded-xl flex items-center justify-between"
-            >
-              <div>
-                <span style={{ color: 'var(--text-secondary)' }} className="text-[11px] font-semibold block">Lesson Access (Manual Lock)</span>
-                <span style={{ color: 'var(--text-muted)' }} className="text-[10px]">
-                  {isLocked ? 'Lesson is locked' : 'Lesson is unlocked and freely accessible'}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsLocked(!isLocked)}
-                style={{
-                  backgroundColor: isLocked ? 'rgba(234, 179, 8, 0.1)' : 'color-mix(in srgb, var(--brand-primary) 10%, transparent)',
-                  borderColor: isLocked ? 'rgba(234, 179, 8, 0.3)' : 'var(--border)',
-                  color: isLocked ? '#d97706' : 'var(--brand-primary)',
-                }}
-                className="h-8 px-3 border rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                {isLocked ? (
-                  <>
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>Locked</span>
-                  </>
-                ) : (
-                  <>
-                    <Unlock className="w-3.5 h-3.5" />
-                    <span>Unlocked</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. TYPE-SPECIFIC CONTENT EDITOR SECTION */}
-      <div
-        style={{
-          backgroundColor: 'var(--surface)',
-          borderColor: 'var(--border)',
-          color: 'var(--text-primary)',
-        }}
-        className="p-4 sm:p-5 border rounded-2xl shadow-2xs space-y-4"
-      >
-          <div style={{ borderColor: 'var(--border)' }} className="border-b pb-2 flex items-center justify-between">
-            <div>
-              <h4 style={{ color: 'var(--text-primary)' }} className="text-xs font-semibold uppercase tracking-wider">
-                Lesson Content Configuration
-              </h4>
-              <p style={{ color: 'var(--text-muted)' }} className="text-[11px]">
-                Enter media URL, text content, assessment questions, or project criteria.
-              </p>
-            </div>
-          </div>
-
-          {/* A. MEDIA CONTENT SOURCE SELECTOR (FOR VIDEO, AUDIO, IMAGE, DOCUMENT) */}
-          {(type === 'video' || type === 'audio' || type === 'image' || type === 'document') && (
-            <div className="space-y-4">
-              {/* Content Source Mode Switcher */}
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1]">
-                  Content Source <span className="text-[#2563EB] dark:text-[#60A5FA]">*</span>
-                </label>
-                <div className="inline-flex items-center p-1 bg-slate-100 dark:bg-[#0F172A] rounded-xl border border-slate-200 dark:border-[#334155]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMediaSource('UPLOAD');
-                      setUrlError('');
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      mediaSource === 'UPLOAD'
-                        ? 'bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs'
-                        : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white'
-                    }`}
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload File</span>
-                  </button>
-                  {canUseUrlSource && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMediaSource('URL');
-                        setUrlError('');
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                        mediaSource === 'URL'
-                          ? 'bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs'
-                          : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white'
-                      }`}
-                    >
-                      <Link2 className="w-3.5 h-3.5" />
-                      <span>Use URL</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* HLS Video Processing Toggle (Only visible for Video lessons in Upload File mode) */}
-              {type === 'video' && mediaSource === 'UPLOAD' && (
-                <div className="p-3 bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#263244] rounded-xl flex items-center justify-between gap-3">
-                  <div className="space-y-0.5 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1]">
-                        HLS Video Processing
-                      </span>
-                      {hlsEnabled ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
-                          ON
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
-                          OFF
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] leading-tight">
-                      {hlsEnabled
-                        ? 'Video will be converted to HLS after upload.'
-                        : 'Original uploaded video will be used directly.'}
-                    </p>
-                  </div>
-
-                  <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={hlsEnabled}
-                      disabled={isUploadingFile}
-                      onChange={(e) => setHlsEnabled(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]" />
-                  </label>
+              ) : (
+                <div className="w-full min-w-0 overflow-hidden">
+                  <RichTextEditor
+                    value={description}
+                    onChange={(val) => setDescription(val)}
+                    placeholder="Write a description for this lesson..."
+                    minHeight="100px"
+                  />
                 </div>
               )}
+            </div>
+          </div>
 
-              {/* UPLOAD FILE MODE */}
+          {/* 2. MEDIA CONTENT */}
+          {(type === 'video' || type === 'audio' || type === 'image' || type === 'document') && (
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[12px] sm:rounded-[14px] p-3 sm:p-4 space-y-3 shadow-xs">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs sm:text-sm font-bold text-[var(--text-primary)] tracking-tight">
+                  {meta.label} Lesson Content
+                </h3>
+
+                {/* HLS Toggle for Video Uploads */}
+                {type === 'video' && mediaSource === 'UPLOAD' && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[11px] font-semibold text-[var(--text-secondary)]">Adaptive HLS</span>
+                    <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={hlsEnabled}
+                        disabled={isUploadingFile}
+                        onChange={(e) => setHlsEnabled(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-8 h-4.5 bg-[var(--surface-secondary)] border border-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-[var(--brand-primary)]" />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Source Tabs */}
+              <div className="grid grid-cols-2 gap-1 p-1 bg-[var(--surface-secondary)] border border-[var(--border)] rounded-[10px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMediaSource('UPLOAD');
+                    setUrlError('');
+                  }}
+                  className={`py-1.5 px-2 rounded-[8px] text-xs font-bold transition-all cursor-pointer ${
+                    mediaSource === 'UPLOAD'
+                      ? 'bg-[var(--brand-primary)] text-[var(--brand-primary-foreground)] shadow-xs'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  Upload {meta.label}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMediaSource('URL');
+                    setUrlError('');
+                  }}
+                  className={`py-1.5 px-2 rounded-[8px] text-xs font-bold transition-all cursor-pointer ${
+                    mediaSource === 'URL'
+                      ? 'bg-[var(--brand-primary)] text-[var(--brand-primary-foreground)] shadow-xs'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {meta.label} URL
+                </button>
+              </div>
+
+              {/* Upload Mode Area */}
               {mediaSource === 'UPLOAD' && (
-                <div className="space-y-3">
+                <div>
                   {!uploadedFileObj ? (
-                    <div className="relative border-2 border-dashed border-slate-300 dark:border-[#475569] hover:border-[#3B82F6] dark:hover:border-[#3B82F6] bg-slate-50 dark:bg-[#0F172A] hover:bg-slate-100/50 dark:hover:bg-[#172033] rounded-2xl p-6 text-center transition-all">
+                    <div className="relative border-2 border-dashed border-[var(--border)] hover:border-[var(--brand-primary)] bg-[var(--surface-secondary)] hover:bg-[var(--surface-hover)] rounded-[10px] p-3 sm:p-4 text-center transition-all min-h-[100px] sm:min-h-[120px] flex flex-col items-center justify-center">
                       <input
                         type="file"
                         onChange={handleFileUpload}
@@ -1033,38 +836,34 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                         }
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       />
-                      <div className="flex flex-col items-center justify-center space-y-2">
-                        <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center">
-                          {isUploadingFile ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                      <div className="flex flex-col items-center justify-center space-y-1.5">
+                        <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center">
+                          {isUploadingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
-                            {isUploadingFile ? 'Uploading file to storage...' : `Click or drag ${meta.label} file to upload`}
-                          </p>
-                          <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] mt-0.5">
-                            {type === 'video' && 'Supports MP4, WEBM (Max 100MB)'}
-                            {type === 'audio' && 'Supports MP3, WAV, AAC (Max 50MB)'}
-                            {type === 'image' && 'Supports PNG, JPG, WEBP (Max 10MB)'}
-                            {type === 'document' && 'Supports PDF, DOCX, ZIP (Max 25MB)'}
+                          <p className="text-xs font-bold text-[var(--text-primary)]">
+                            {isUploadingFile
+                              ? `Uploading ${meta.label.toLowerCase()}...`
+                              : `Tap to upload ${meta.label.toLowerCase()} or drag and drop`}
                           </p>
                         </div>
                         {isUploadingFile && (
-                          <div className="w-full max-w-xs bg-slate-200 dark:bg-[#1E293B] h-1.5 rounded-full overflow-hidden mt-2">
-                            <div className="bg-[#2563EB] dark:bg-[#3B82F6] h-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                          <div className="w-full max-w-xs bg-[var(--border)] h-1.5 rounded-full overflow-hidden mt-1.5">
+                            <div className="bg-[var(--brand-primary)] h-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
                           </div>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <div className="p-4 bg-[#172033] border border-[#334155] rounded-xl flex items-center justify-between gap-3 text-xs">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
+                    <div className="p-3 bg-[var(--surface-secondary)] border border-[var(--border)] rounded-[10px] flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                         <div className="min-w-0">
-                          <strong className="text-xs text-[#F8FAFC] block truncate font-semibold">
+                          <strong className="text-xs text-[var(--text-primary)] block truncate font-bold">
                             {uploadedFileObj.name}
                           </strong>
-                          <span className="text-[10px] text-[#94A3B8]">
-                            {uploadedFileObj.sizeMb} MB • Uploaded & Linked
+                          <span className="text-[11px] text-[var(--text-secondary)]">
+                            {uploadedFileObj.sizeMb} MB • Ready
                           </span>
                         </div>
                       </div>
@@ -1073,7 +872,7 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                         variant="ghost"
                         size="xs"
                         onClick={handleRemoveUploadedFile}
-                        className="text-[#F87171] hover:bg-rose-950/40 font-semibold"
+                        className="text-rose-500 hover:bg-rose-500/10 font-bold shrink-0"
                       >
                         Remove
                       </Button>
@@ -1082,290 +881,204 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
                 </div>
               )}
 
-              {/* URL MODE */}
+              {/* URL Input Mode Area */}
               {mediaSource === 'URL' && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] mb-1 flex items-center gap-1.5">
-                      <Link2 className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
-                      <span>{type === 'audio' ? 'Audio URL' : `${meta.label} Content URL`}</span> <span className="text-[#2563EB] dark:text-[#60A5FA]">*</span>
-                    </label>
-                    <Input
-                      id="media-url-input"
-                      value={mediaUrl}
-                      onChange={(e) => {
-                        setMediaUrl(e.target.value);
-                        if (e.target.value.trim()) setUrlError('');
-                      }}
-                      placeholder={
-                        type === 'video'
-                          ? 'https://www.youtube.com/embed/VIDEO_ID or direct MP4 URL'
-                          : type === 'audio'
-                          ? 'https://example.com/audio/lesson.mp3'
-                          : type === 'image'
-                          ? 'https://domain.com/images/diagram.png'
-                          : 'https://domain.com/docs/handout.pdf'
-                      }
-                      className="h-11 text-xs sm:text-sm font-medium rounded-xl"
-                      error={urlError}
-                    />
-                    <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] mt-1 font-medium hidden sm:block">
-                      {type === 'audio'
-                        ? 'Enter a direct link to an audio file such as MP3, M4A, OGG, or WAV.'
-                        : 'Enter a publicly accessible URL starting with http:// or https://'}
-                    </p>
-                    <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] mt-1 font-medium sm:hidden">
-                      {type === 'audio'
-                        ? 'Direct audio file link'
-                        : 'Enter a publicly accessible URL starting with http:// or https://'}
-                    </p>
-                  </div>
-
+                <div className="space-y-1.5 min-w-0">
+                  <label className="block text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+                    <Link2 className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
+                    <span>{meta.label} URL</span>
+                  </label>
+                  <Input
+                    id="media-url-input"
+                    value={mediaUrl}
+                    onChange={(e) => {
+                      setMediaUrl(e.target.value);
+                      if (e.target.value.trim()) setUrlError('');
+                    }}
+                    placeholder={
+                      type === 'audio'
+                        ? 'https://example.com/audio.mp3 or Soundcloud URL'
+                        : type === 'video'
+                        ? 'https://www.youtube.com/embed/VIDEO_ID or direct MP4 URL'
+                        : `https://example.com/${type.toLowerCase()}-url`
+                    }
+                    className="h-[46px] sm:h-[48px] text-xs sm:text-sm font-medium rounded-[10px] bg-[var(--surface-secondary)] border-[var(--input-border)] text-[var(--text-primary)] placeholder:[var(--text-muted)] w-full"
+                    error={urlError}
+                  />
                   {parsedEmbed && (
-                    <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center justify-between">
+                    <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-[8px] text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                        Valid Embed Provider: <strong>{parsedEmbed.provider}</strong>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        Provider: <strong>{parsedEmbed.provider}</strong>
                       </span>
                       <Badge variant="success" size="sm" className="text-[10px]">Ready</Badge>
                     </div>
                   )}
                 </div>
               )}
-
-              {/* Image Caption Optional Input */}
-              {type === 'image' && (
-                <div className="pt-2">
-                  <label className="block text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1] mb-1">
-                    Image Caption <span className="text-[#64748B] dark:text-[#94A3B8] font-normal">(Optional)</span>
-                  </label>
-                  <textarea
-                    value={caption}
-                    onChange={(e) => setCaption(e.target.value)}
-                    placeholder="Explain diagram labels or key visual details for learners..."
-                    rows={2}
-                    className="w-full p-3 bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] rounded-xl text-xs sm:text-sm focus:outline-none focus:border-[#2563EB] dark:focus:border-[#3B82F6]"
-                  />
-                </div>
-              )}
-
-              {urlError && (
-                <p className="text-[11px] font-semibold text-[#F87171] mt-1">
-                  {urlError}
-                </p>
-              )}
             </div>
           )}
 
-          {/* E. TEXT LESSON TYPE */}
-          {type === 'text' && (
-            <div className="space-y-3">
-              <label style={{ color: 'var(--text-secondary)' }} className="block text-xs font-semibold mb-1">
-                Text Lesson Article Content <span style={{ color: 'var(--brand-primary)' }}>*</span>
-              </label>
-              <RichTextEditor
-                value={textContent}
-                onChange={(val) => {
-                  setTextContent(val);
-                  if (!isHtmlContentEmpty(val)) setContentError('');
-                }}
-                placeholder="Write comprehensive text content, paste code blocks, insert markdown, or format headings..."
-                minHeight="280px"
-              />
-              {contentError && (
-                <div id="content-error-box" className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-700 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>{contentError}</span>
-                </div>
-              )}
-            </div>
-          )}
+          {/* 3. LESSON SETTINGS */}
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[12px] sm:rounded-[14px] p-3 sm:p-4 space-y-3 shadow-xs">
+            <h3 className="text-xs sm:text-sm font-bold text-[var(--text-primary)] tracking-tight">
+              Lesson Settings
+            </h3>
 
-          {/* F. QUIZ LESSON TYPE */}
-          {type === 'quiz' && (
-            <div className="space-y-5">
-              <div
-                style={{
-                  backgroundColor: 'var(--surface-secondary)',
-                  borderColor: 'var(--border)',
-                }}
-                className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 border rounded-xl"
-              >
-                <div>
-                  <label style={{ color: 'var(--text-secondary)' }} className="block text-[11px] font-bold mb-1">
-                    Passing Score (%)
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={passingScore}
-                    onChange={(e) => setPassingScore(Math.min(100, Math.max(1, Number(e.target.value))))}
-                    style={{
-                      backgroundColor: 'var(--surface)',
-                      borderColor: 'var(--input-border)',
-                      color: 'var(--text-primary)',
-                    }}
-                    className="w-full h-9 px-2.5 border rounded-lg text-xs font-bold focus:outline-none focus:border-[var(--brand-primary)]"
-                  />
-                </div>
-
-                <div>
-                  <label style={{ color: 'var(--text-secondary)' }} className="block text-[11px] font-bold mb-1">
-                    Time Limit (Mins)
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={300}
-                    value={timeLimitMinutes || ''}
-                    onChange={(e) =>
-                      setTimeLimitMinutes(e.target.value ? Number(e.target.value) : undefined)
-                    }
-                    placeholder="No limit"
-                    style={{
-                      backgroundColor: 'var(--surface)',
-                      borderColor: 'var(--input-border)',
-                      color: 'var(--text-primary)',
-                    }}
-                    className="w-full h-9 px-2.5 border rounded-lg text-xs font-bold placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]"
-                  />
-                </div>
-
-                <div>
-                  <label style={{ color: 'var(--text-secondary)' }} className="block text-[11px] font-bold mb-1">
-                    Max Attempts
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={50}
-                    value={maxAttempts || ''}
-                    onChange={(e) =>
-                      setMaxAttempts(e.target.value ? Number(e.target.value) : undefined)
-                    }
-                    placeholder="Unlimited"
-                    style={{
-                      backgroundColor: 'var(--surface)',
-                      borderColor: 'var(--input-border)',
-                      color: 'var(--text-primary)',
-                    }}
-                    className="w-full h-9 px-2.5 border rounded-lg text-xs font-bold placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)]"
-                  />
-                </div>
-              </div>
-
-              {contentError && (
-                <div id="content-error-box" className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-700 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>{contentError}</span>
-                </div>
-              )}
-
-              <QuizQuestionBuilder
-                questions={quizQuestions}
-                onChange={setQuizQuestions}
-                errors={questionErrors}
-              />
-            </div>
-          )}
-
-          {/* G. ASSIGNMENT & PROJECT LESSON TYPE */}
-          {(type === 'assignment' || type === 'project') && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold mb-1 text-[var(--text-primary)]">
-                  {type === 'project' ? 'Project Requirements & Guidelines' : 'Assignment Instructions'}{' '}
-                  <span className="text-rose-500">*</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+              {/* Status Selector */}
+              <div className="space-y-1 min-w-0">
+                <label className="block text-xs font-bold text-[var(--text-primary)]">
+                  Status
                 </label>
-                <textarea
-                  value={instructions}
-                  onChange={(e) => {
-                    setInstructions(e.target.value);
-                    if (e.target.value.trim()) setContentError('');
-                  }}
-                  rows={4}
-                  placeholder="Detail step-by-step requirements, submission format, grading criteria..."
-                  className="w-full p-3 rounded-xl text-xs sm:text-sm bg-[var(--surface-secondary)] border border-[var(--input-border)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)] transition-all resize-y font-normal"
-                />
-                {contentError && (
-                  <p id="content-error-box" className="text-xs font-semibold text-rose-600 mt-1">
-                    {contentError}
-                  </p>
-                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    className="p-2.5 rounded-[10px] border border-[var(--brand-primary)] bg-[var(--surface-secondary)] ring-1.5 ring-[var(--brand-primary)]/30 text-left flex items-center gap-2 cursor-pointer h-[46px]"
+                  >
+                    <div className="w-4 h-4 rounded-full bg-[var(--brand-primary)] text-white flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-3 h-3 stroke-[3]" />
+                    </div>
+                    <span className="text-xs font-bold text-[var(--text-primary)]">Published</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    className="p-2.5 rounded-[10px] border border-[var(--border)] bg-[var(--surface-secondary)] text-left flex items-center gap-2 cursor-pointer opacity-70 hover:opacity-100 h-[46px]"
+                  >
+                    <div className="w-4 h-4 rounded-full border border-[var(--text-muted)] shrink-0" />
+                    <span className="text-xs font-bold text-[var(--text-primary)]">Draft</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold mb-1 text-[var(--text-secondary)]">
-                    Max Marks / Score
+              {/* Free Preview Toggle */}
+              {showFreeDemoOption && (
+                <div className="space-y-1 min-w-0">
+                  <label className="block text-xs font-bold text-[var(--text-primary)]">
+                    Free Preview
                   </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={1000}
-                    value={maxScore}
-                    onChange={(e) => setMaxScore(Math.max(1, Number(e.target.value)))}
-                    className="w-full h-9 px-2.5 rounded-lg text-xs font-bold bg-[var(--surface-secondary)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold mb-1 flex items-center gap-1 text-[var(--text-secondary)]">
-                    <Clock style={{ color: 'var(--brand-primary)' }} className="w-3.5 h-3.5" />
-                    <span>Due Day (Optional)</span>
-                  </label>
-                  <div className="relative flex items-center">
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      step={1}
-                      placeholder="e.g. 7"
-                      value={dueDays === null ? '' : dueDays}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === '') {
-                          setDueDays(null);
-                          setDueDaysError(null);
-                        } else {
-                          const parsed = parseInt(val, 10);
-                          setDueDays(parsed);
-                          if (isNaN(parsed) || parsed < 1) {
-                            setDueDaysError('Due Day must be at least 1.');
-                          } else {
-                            setDueDaysError(null);
-                          }
-                        }
-                      }}
-                      className="w-full h-9 pl-2.5 pr-11 rounded-lg text-xs font-bold bg-[var(--surface-secondary)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)]"
-                    />
-                    <span className="absolute right-2.5 text-[11px] text-[var(--text-muted)] pointer-events-none font-medium">
-                      days
-                    </span>
+                  <div className="p-2.5 rounded-[10px] border border-[var(--border)] bg-[var(--surface-secondary)] flex items-center justify-between gap-3 h-[46px]">
+                    <span className="text-xs font-bold text-[var(--text-primary)]">Allow Free Preview</span>
+                    <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={isDemo}
+                        onChange={(e) => {
+                          setIsDemo(e.target.checked);
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-8 h-4.5 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-[var(--brand-primary)]" />
+                    </label>
                   </div>
-                  {dueDaysError && (
-                    <p className="text-[10px] font-semibold text-rose-600 mt-0.5">{dueDaysError}</p>
-                  )}
-                  <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                    Number of days students have to complete this assignment.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* QUIZ LESSON BUILDER */}
+          {type === 'quiz' && (
+            <div className="space-y-3 sm:space-y-4">
+              {/* Quiz Settings Card */}
+              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[12px] sm:rounded-[14px] p-3 sm:p-4 space-y-3 shadow-xs font-sans text-left">
+                <div className="space-y-0.5">
+                  <h3 className="text-xs sm:text-sm font-bold text-[var(--text-primary)] tracking-tight">
+                    Quiz Settings
+                  </h3>
+                  <p className="text-[11px] sm:text-xs text-[var(--text-secondary)]">
+                    Configure passing thresholds and limits.
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold mb-1 text-[var(--text-secondary)]">
-                    Submission Format
-                  </label>
-                  <select
-                    value={submissionType}
-                    onChange={(e) => setSubmissionType(e.target.value as 'file' | 'text' | 'both')}
-                    className="w-full h-9 px-2 rounded-lg text-xs font-bold bg-[var(--surface-secondary)] border border-[var(--input-border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)] cursor-pointer"
-                  >
-                    <option value="file">File Upload Only</option>
-                    <option value="text">Text Response Only</option>
-                    <option value="both">File Upload  Text Response</option>
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  {/* Passing Score */}
+                  <div className="space-y-1 min-w-0">
+                    <label className="block text-xs font-bold text-[var(--text-primary)]">
+                      Passing Score (%)
+                    </label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={passingScore}
+                      onChange={(e) => setPassingScore(Number(e.target.value))}
+                      placeholder="70"
+                      className="h-[44px] sm:h-[46px] text-xs sm:text-sm font-medium rounded-[10px] bg-[var(--surface-secondary)] border-[var(--input-border)] text-[var(--text-primary)] w-full"
+                    />
+                  </div>
+
+                  {/* Time Limit */}
+                  <div className="space-y-1 min-w-0">
+                    <label className="block text-xs font-bold text-[var(--text-primary)]">
+                      Time Limit (Minutes)
+                    </label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={timeLimitMinutes ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        setTimeLimitMinutes(val ? Number(val) : undefined);
+                      }}
+                      placeholder="No limit"
+                      className="h-[44px] sm:h-[46px] text-xs sm:text-sm font-medium rounded-[10px] bg-[var(--surface-secondary)] border-[var(--input-border)] text-[var(--text-primary)] w-full"
+                    />
+                  </div>
+
+                  {/* Attempts Allowed */}
+                  <div className="space-y-1 min-w-0">
+                    <label className="block text-xs font-bold text-[var(--text-primary)]">
+                      Attempts Allowed
+                    </label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={maxAttempts ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        setMaxAttempts(val ? Number(val) : undefined);
+                      }}
+                      placeholder="Unlimited"
+                      className="h-[44px] sm:h-[46px] text-xs sm:text-sm font-medium rounded-[10px] bg-[var(--surface-secondary)] border-[var(--input-border)] text-[var(--text-primary)] w-full"
+                    />
+                    <span className="text-[10px] text-[var(--text-secondary)] block">Number of attempts allowed</span>
+                  </div>
                 </div>
+
+                {/* Advanced Settings Collapsible Toggle */}
+                <div className="pt-1 border-t border-[var(--border)] mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedQuizSettings((prev) => !prev)}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
+                    <span>Advanced Settings</span>
+                    {showAdvancedQuizSettings ? (
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+
+                  {showAdvancedQuizSettings && (
+                    <div className="pt-2 text-xs text-[var(--text-secondary)] font-medium">
+                      <p>Standard assessment configuration active.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Quiz Questions Section */}
+              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[12px] sm:rounded-[14px] p-3 sm:p-4 shadow-xs">
+                <QuizQuestionBuilder
+                  questions={quizQuestions}
+                  onChange={setQuizQuestions}
+                  errors={questionErrors}
+                />
               </div>
             </div>
           )}
@@ -1378,7 +1091,34 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
           />
         </div>
 
-      {/* 4. RESPONSIVE LESSON FORM ACTIONS (Container-aligned on Desktop, persistent above navbar on Mobile) */}
+        {/* Right Column - REAL Video Preview Box (Desktop Only when video exists) */}
+        {(parsedEmbed || uploadedFileObj?.url) && (
+          <div className="lg:col-span-4 space-y-4 min-w-0 hidden lg:block">
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[14px] sm:rounded-[16px] p-4 space-y-3 shadow-xs">
+              <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
+                Video Preview
+              </h3>
+
+              <div className="aspect-video w-full rounded-[10px] bg-[var(--surface-secondary)] border border-[var(--border)] flex flex-col items-center justify-center overflow-hidden">
+                {parsedEmbed ? (
+                  <iframe
+                    src={parsedEmbed.embedUrl}
+                    title="Video Preview"
+                    className="w-full h-full rounded-lg border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <video src={uploadedFileObj?.url} controls className="w-full h-full rounded-lg object-contain" />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* 4. RESPONSIVE ACTIONS */}
       <LessonFormActions
         formId="lesson-form"
         isCreateMode={isCreateMode}
@@ -1388,3 +1128,5 @@ export const SingleLessonEditor: React.FC<SingleLessonEditorProps> = ({
     </form>
   );
 };
+
+

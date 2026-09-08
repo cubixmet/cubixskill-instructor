@@ -22,7 +22,7 @@ export const LessonFormActions: React.FC<LessonFormActionsProps> = ({
   const defaultSubmitLabel = isSaving
     ? 'Saving...'
     : isCreateMode
-    ? 'Save Lesson'
+    ? 'Create Lesson'
     : 'Save Changes';
 
   const resolvedSubmitLabel = submitLabel || defaultSubmitLabel;
@@ -34,9 +34,9 @@ export const LessonFormActions: React.FC<LessonFormActionsProps> = ({
         backgroundColor: 'var(--surface)',
         borderColor: 'var(--border)',
       }}
-      className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:sticky md:bottom-0 left-0 right-0 z-30 border-t p-3 sm:p-4 shadow-xl md:shadow-lg md:rounded-b-2xl w-full max-w-full min-w-0 box-border"
+      className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:sticky md:bottom-0 left-0 right-0 z-30 border-t p-2.5 sm:p-3 shadow-lg w-full min-w-0 box-border"
     >
-      <div className="max-w-4xl mx-auto flex flex-col-reverse sm:flex-row items-center justify-between gap-2.5 sm:gap-4 w-full min-w-0">
+      <div className="max-w-[1100px] mx-auto grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2 sm:gap-3 w-full min-w-0">
         <button
           type="button"
           onClick={onCancel}
@@ -45,7 +45,7 @@ export const LessonFormActions: React.FC<LessonFormActionsProps> = ({
             borderColor: 'var(--border)',
             color: 'var(--text-secondary)',
           }}
-          className="w-full sm:w-auto h-11 sm:h-[42px] px-4 sm:px-6 text-sm font-medium border rounded-lg cursor-pointer flex items-center justify-center gap-1.5 transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] min-h-[44px] sm:min-h-[42px] shrink-0"
+          className="w-full sm:w-auto h-[46px] sm:h-[44px] px-4 sm:px-6 text-xs sm:text-sm font-bold border rounded-[10px] sm:rounded-[12px] cursor-pointer flex items-center justify-center gap-1.5 transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] focus:outline-none shrink-0"
         >
           {cancelLabel}
         </button>
@@ -68,7 +68,7 @@ export const LessonFormActions: React.FC<LessonFormActionsProps> = ({
                   color: 'var(--brand-primary-foreground, #FFFFFF)',
                 }
           }
-          className={`w-full sm:w-auto h-11 sm:h-[42px] px-[18px] text-sm font-medium border rounded-lg flex items-center justify-center gap-1.5 transition-all focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:ring-offset-2 min-h-[44px] sm:min-h-[42px] shrink-0 ${
+          className={`w-full sm:w-auto h-[46px] sm:h-[44px] px-4 sm:px-6 text-xs sm:text-sm font-bold border rounded-[10px] sm:rounded-[12px] flex items-center justify-center gap-1.5 transition-all focus:outline-none shrink-0 ${
             isSaving
               ? 'opacity-80 cursor-wait'
               : isSubmitDisabled

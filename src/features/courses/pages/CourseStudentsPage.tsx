@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   Users,
   Search,
@@ -20,6 +19,7 @@ import {
   RefreshCw,
   AlertTriangle,
   Send,
+  ArrowLeft,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
@@ -30,6 +30,7 @@ import { EnrollStudentModal } from '../../students/components/EnrollStudentModal
 import { BulkEnrollModal } from '../../students/components/BulkEnrollModal';
 import { exportToCsv, slugify, type CsvColumn } from '../../../utils/export-csv';
 import { studentsService } from '../../../services/students.service';
+import { coursesService } from '../../../services/courses.service';
 
 interface StudentRecord {
   id: string;
@@ -58,6 +59,7 @@ export const CourseStudentsPage: React.FC = () => {
   const courseUuid = params.courseId || params.courseUuid;
 
   const [studentList, setStudentList] = useState<StudentRecord[]>([]);
+  const [courseTitle, setCourseTitle] = useState<string>('Course Enrolled Students');
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -79,17 +81,9 @@ export const CourseStudentsPage: React.FC = () => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
-  // Modal Action States
-  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
-  const [isBulkEnrollOpen, setIsBulkEnrollOpen] = useState(false);
-
   useEffect(() => {
-    if (location.pathname.endsWith('/enroll')) {
-      setIsEnrollModalOpen(true);
-    } else if (location.pathname.endsWith('/bulk-upload')) {
-      setIsBulkEnrollOpen(true);
-    }
-  }, [location.pathname]);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
   const [extendAccessTarget, setExtendAccessTarget] = useState<StudentRecord | null>(null);
   const [newExpiryDate, setNewExpiryDate] = useState('2027-12-31');
   const [removeTarget, setRemoveTarget] = useState<StudentRecord | null>(null);
@@ -107,7 +101,15 @@ export const CourseStudentsPage: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      const data = await studentsService.listCourseEnrollments(courseUuid);
+      const [data, courseData] = await Promise.all([
+        studentsService.listCourseEnrollments(courseUuid),
+        coursesService.getCourse(courseUuid).catch(() => null),
+      ]);
+
+      if (courseData && courseData.title) {
+        setCourseTitle(courseData.title);
+      }
+
       const mapped: StudentRecord[] = data.map((item: any, idx: number) => {
         const studentObj = item.student || {};
         const profileObj = studentObj.student_profile || {};
@@ -246,9 +248,9 @@ export const CourseStudentsPage: React.FC = () => {
       return;
     }
 
-    const courseTitle = 'Fullstack React 19 & TypeScript Masterclass';
+    const exportTitle = courseTitle || 'Course Students';
     const dateStr = new Date().toISOString().split('T')[0];
-    const filename = `cubixskill-course-students-${slugify(courseTitle)}-${dateStr}.csv`;
+    const filename = `cubixskill-course-students-${slugify(exportTitle)}-${dateStr}.csv`;
 
     const columns: CsvColumn<StudentRecord>[] = [
       { header: 'Student Name', value: (row) => row.name },
@@ -259,14 +261,11 @@ export const CourseStudentsPage: React.FC = () => {
       { header: 'Enrollment Date', value: (row) => row.enrollmentDate },
       { header: 'Access Start Date', value: (row) => row.enrollmentDate },
       { header: 'Access Expiry Date', value: (row) => row.expiryDate },
-      { header: 'Batch', value: () => 'Batch 2026-A' },
       { header: 'Learning Progress', value: (row) => `${row.progressPercent}%` },
       { header: 'Completed Lessons', value: (row) => row.lessonsCompleted },
       { header: 'Total Lessons', value: (row) => row.totalLessons },
-      { header: 'Credits Used', value: (row) => row.creditsUsed },
       { header: 'Last Activity', value: (row) => row.lastActive },
-      { header: 'Course Name', value: () => courseTitle },
-      { header: 'Course Status', value: () => 'Published' },
+      { header: 'Course Name', value: () => exportTitle },
     ];
 
     try {
@@ -295,13 +294,13 @@ export const CourseStudentsPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-4 max-w-[1600px] mx-auto text-left font-sans py-4">
+      <div className="space-y-4 max-w-[1600px] mx-auto text-left font-sans py-4 px-2 sm:px-0">
         <Skeleton className="h-28 w-full rounded-2xl" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Skeleton className="h-16 w-full rounded-xl" />
-          <Skeleton className="h-16 w-full rounded-xl" />
-          <Skeleton className="h-16 w-full rounded-xl" />
-          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
         </div>
         <Skeleton className="h-16 w-full rounded-2xl" />
         <Skeleton className="h-64 w-full rounded-2xl" />
@@ -325,7 +324,7 @@ export const CourseStudentsPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 text-left font-sans pb-24 md:pb-12 max-w-[1600px] mx-auto px-1 md:px-0 w-full min-w-0 max-w-full">
+    <div className="space-y-4 sm:space-y-6 text-left font-sans pb-28 md:pb-12 max-w-[1600px] mx-auto px-2 sm:px-4 md:px-0 w-full min-w-0 max-w-full box-border">
       {/* Toast Alert */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 px-4 py-3 bg-[#0F172A] dark:bg-[#1E293B] text-white dark:text-[#F8FAFC] text-xs font-semibold rounded-2xl shadow-xl flex items-center gap-2 border border-slate-800 dark:border-[#334155]">
@@ -335,14 +334,23 @@ export const CourseStudentsPage: React.FC = () => {
       )}
 
       {/* 1. PAGE HEADER */}
-      <div className="bg-white dark:bg-[#111827] p-4 sm:p-6 rounded-[16px] border border-slate-200 dark:border-[#263244] shadow-2xs space-y-3 sm:space-y-4">
+      <div className="bg-white dark:bg-[#111827] p-4 sm:p-6 rounded-[16px] border border-slate-200 dark:border-[#263244] shadow-2xs space-y-3">
+        <div className="flex items-center gap-2">
+          <Link
+            to={courseUuid ? `/courses/${courseUuid}/curriculum` : '/courses'}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-[#94A3B8] hover:text-[#2563EB] dark:hover:text-[#60A5FA] transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Course
+          </Link>
+        </div>
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-lg sm:text-2xl font-semibold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
-              Students ({totalEnrolled})
+            <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
+              {courseTitle}
             </h1>
             <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal mt-0.5">
-              Students enrolled in this course and learning progress.
+              Manage and view all enrolled students.
             </p>
           </div>
 
@@ -379,46 +387,84 @@ export const CourseStudentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. SUMMARY STATS (Responsive Grid) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-        <div className="p-3.5 bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-[#263244] text-center space-y-1 shadow-2xs">
-          <Users className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA] mx-auto" />
-          <span className="text-[10px] text-slate-500 dark:text-[#94A3B8] block font-medium uppercase tracking-wider">Enrolled</span>
-          <strong className="text-sm sm:text-base font-semibold text-slate-900 dark:text-[#F8FAFC]">{totalEnrolled}</strong>
+      {/* 2. SUMMARY STATS (2-Column Mobile, 4-Column Desktop Grid) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5 w-full min-w-0">
+        {/* Card 1: Total Students */}
+        <div className="p-3 sm:p-4 bg-white dark:bg-[#111827] rounded-[14px] border border-slate-200 dark:border-[#263244] space-y-1.5 shadow-2xs min-w-0">
+          <div className="flex items-center justify-between">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-800/40 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center shrink-0">
+              <Users className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full">
+              +{totalEnrolled} active
+            </span>
+          </div>
+          <div>
+            <span className="text-[11px] sm:text-xs text-slate-500 dark:text-[#94A3B8] block font-medium">Total Students</span>
+            <strong className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">{totalEnrolled}</strong>
+          </div>
         </div>
 
-        <div className="p-3.5 bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-[#263244] text-center space-y-1 shadow-2xs">
-          <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mx-auto" />
-          <span className="text-[10px] text-slate-500 dark:text-[#94A3B8] block font-medium uppercase tracking-wider">Active</span>
-          <strong className="text-sm sm:text-base font-semibold text-emerald-600 dark:text-emerald-400">{activeCount}</strong>
+        {/* Card 2: Active Students */}
+        <div className="p-3 sm:p-4 bg-white dark:bg-[#111827] rounded-[14px] border border-slate-200 dark:border-[#263244] space-y-1.5 shadow-2xs min-w-0">
+          <div className="flex items-center justify-between">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <UserCheck className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-[#94A3B8]">
+              {totalEnrolled ? Math.round((activeCount / totalEnrolled) * 100) : 0}% active
+            </span>
+          </div>
+          <div>
+            <span className="text-[11px] sm:text-xs text-slate-500 dark:text-[#94A3B8] block font-medium">Active Students</span>
+            <strong className="text-lg sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">{activeCount}</strong>
+          </div>
         </div>
 
-        <div className="p-3.5 bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-[#263244] text-center space-y-1 shadow-2xs">
-          <Award className="w-4 h-4 text-purple-600 dark:text-purple-400 mx-auto" />
-          <span className="text-[10px] text-slate-500 dark:text-[#94A3B8] block font-medium uppercase tracking-wider">Completed</span>
-          <strong className="text-sm sm:text-base font-semibold text-slate-900 dark:text-[#F8FAFC]">{completedCount}</strong>
+        {/* Card 3: Completed */}
+        <div className="p-3 sm:p-4 bg-white dark:bg-[#111827] rounded-[14px] border border-slate-200 dark:border-[#263244] space-y-1.5 shadow-2xs min-w-0">
+          <div className="flex items-center justify-between">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-50 dark:bg-purple-950/50 border border-purple-100 dark:border-purple-800/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+              <Award className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-[#94A3B8]">
+              {totalEnrolled ? Math.round((completedCount / totalEnrolled) * 100) : 0}% done
+            </span>
+          </div>
+          <div>
+            <span className="text-[11px] sm:text-xs text-slate-500 dark:text-[#94A3B8] block font-medium">Completed</span>
+            <strong className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">{completedCount}</strong>
+          </div>
         </div>
 
-        <div className="p-3.5 bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-[#263244] text-center space-y-1 shadow-2xs">
-          <BarChart3 className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA] mx-auto" />
-          <span className="text-[10px] text-slate-500 dark:text-[#94A3B8] block font-medium uppercase tracking-wider">Avg. Progress</span>
-          <strong className="text-sm sm:text-base font-semibold text-[#2563EB] dark:text-[#60A5FA]">{avgProgress}%</strong>
+        {/* Card 4: Average Progress */}
+        <div className="p-3 sm:p-4 bg-white dark:bg-[#111827] rounded-[14px] border border-slate-200 dark:border-[#263244] space-y-1.5 shadow-2xs min-w-0">
+          <div className="flex items-center justify-between">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-800/40 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center shrink-0">
+              <BarChart3 className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-[#94A3B8]">Overall</span>
+          </div>
+          <div>
+            <span className="text-[11px] sm:text-xs text-slate-500 dark:text-[#94A3B8] block font-medium">Avg. Progress</span>
+            <strong className="text-lg sm:text-2xl font-bold text-[#2563EB] dark:text-[#60A5FA] tracking-tight">{avgProgress}%</strong>
+          </div>
         </div>
       </div>
 
       {/* 3. SEARCH & FILTER TOOLBAR */}
       <div className="space-y-3">
-        <div className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 rounded-[16px] border border-slate-200 dark:border-[#263244] shadow-2xs space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white dark:bg-[#111827] p-3 sm:p-4 rounded-[16px] border border-slate-200 dark:border-[#263244] shadow-2xs space-y-3">
+          <div className="flex items-center justify-between gap-2.5">
             {/* Search Input */}
-            <div className="relative w-full sm:w-80">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#64748B]" />
+            <div className="relative flex-1 sm:w-80 min-w-0">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#64748B] pointer-events-none" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search students..."
-                className="w-full h-10 pl-10 pr-10 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl text-xs font-medium text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/10"
+                className="w-full h-10 pl-10 pr-10 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl text-xs font-medium text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6] min-w-0"
               />
               {search && (
                 <button
@@ -432,7 +478,7 @@ export const CourseStudentsPage: React.FC = () => {
             </div>
 
             {/* Desktop Filters */}
-            <div className="hidden md:flex items-center gap-2 flex-wrap">
+            <div className="hidden md:flex items-center gap-2 shrink-0">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -472,15 +518,15 @@ export const CourseStudentsPage: React.FC = () => {
             </div>
 
             {/* Mobile Filter Button */}
-            <div className="flex md:hidden items-center justify-between gap-2 w-full">
+            <div className="flex md:hidden shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 leftIcon={<SlidersHorizontal className="w-4 h-4" />}
                 onClick={() => setIsMobileFilterOpen(true)}
-                className="h-10 text-xs w-full justify-center border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] text-slate-700 dark:text-[#F8FAFC]"
+                className="h-10 text-xs px-3 border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] text-slate-700 dark:text-[#F8FAFC] font-semibold"
               >
-                Filters & Sort
+                Filter
               </Button>
             </div>
           </div>
@@ -488,30 +534,30 @@ export const CourseStudentsPage: React.FC = () => {
           {/* ACTIVE FILTER CHIPS */}
           {(statusFilter !== 'All' || progressFilter !== 'All' || search) && (
             <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-[#263244] overflow-x-auto no-scrollbar text-xs">
-              <span className="text-slate-500 dark:text-[#94A3B8] text-[11px] font-medium">Active Filters:</span>
+              <span className="text-slate-500 dark:text-[#94A3B8] text-[11px] font-medium shrink-0">Active Filters:</span>
 
               {statusFilter !== 'All' && (
-                <span className="px-2.5 py-1 bg-blue-50 dark:bg-[rgba(37,99,235,0.12)] text-[#2563EB] dark:text-[#60A5FA] border border-blue-100 dark:border-[rgba(59,130,246,0.18)] rounded-full flex items-center gap-1 font-medium text-[11px]">
+                <span className="px-2.5 py-1 bg-blue-50 dark:bg-blue-950/40 text-[#2563EB] dark:text-[#60A5FA] border border-blue-200 dark:border-blue-800 rounded-full flex items-center gap-1 font-medium text-[11px] shrink-0">
                   Status: {statusFilter}
-                  <button type="button" onClick={() => setStatusFilter('All')} className="hover:text-red-600 dark:hover:text-red-400">
+                  <button type="button" onClick={() => setStatusFilter('All')} className="hover:text-rose-600 dark:hover:text-rose-400">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
               )}
 
               {progressFilter !== 'All' && (
-                <span className="px-2.5 py-1 bg-blue-50 dark:bg-[rgba(37,99,235,0.12)] text-[#2563EB] dark:text-[#60A5FA] border border-blue-100 dark:border-[rgba(59,130,246,0.18)] rounded-full flex items-center gap-1 font-medium text-[11px]">
+                <span className="px-2.5 py-1 bg-blue-50 dark:bg-blue-950/40 text-[#2563EB] dark:text-[#60A5FA] border border-blue-200 dark:border-blue-800 rounded-full flex items-center gap-1 font-medium text-[11px] shrink-0">
                   Progress: {progressFilter}%
-                  <button type="button" onClick={() => setProgressFilter('All')} className="hover:text-red-600 dark:hover:text-red-400">
+                  <button type="button" onClick={() => setProgressFilter('All')} className="hover:text-rose-600 dark:hover:text-rose-400">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
               )}
 
               {search && (
-                <span className="px-2.5 py-1 bg-blue-50 dark:bg-[rgba(37,99,235,0.12)] text-[#2563EB] dark:text-[#60A5FA] border border-blue-100 dark:border-[rgba(59,130,246,0.18)] rounded-full flex items-center gap-1 font-medium text-[11px]">
+                <span className="px-2.5 py-1 bg-blue-50 dark:bg-blue-950/40 text-[#2563EB] dark:text-[#60A5FA] border border-blue-200 dark:border-blue-800 rounded-full flex items-center gap-1 font-medium text-[11px] shrink-0">
                   Search: "{search}"
-                  <button type="button" onClick={() => setSearch('')} className="hover:text-red-600 dark:hover:text-red-400">
+                  <button type="button" onClick={() => setSearch('')} className="hover:text-rose-600 dark:hover:text-rose-400">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
@@ -524,7 +570,7 @@ export const CourseStudentsPage: React.FC = () => {
                   setProgressFilter('All');
                   setSearch('');
                 }}
-                className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC] underline cursor-pointer ml-1"
+                className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC] underline cursor-pointer shrink-0 ml-1"
               >
                 Clear All
               </button>
@@ -537,8 +583,8 @@ export const CourseStudentsPage: React.FC = () => {
       {filteredStudents.length === 0 ? (
         <div className="p-8 text-center bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl space-y-3">
           <Users className="w-10 h-10 text-slate-400 dark:text-[#64748B] mx-auto" />
-          <h3 className="text-base font-semibold text-slate-900 dark:text-[#F8FAFC]">No students found</h3>
-          <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal">No enrolled students match your search or filter criteria.</p>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-[#F8FAFC]">No students enrolled</h3>
+          <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal">Students enrolled in this course will appear here.</p>
           <Button
             variant="outline"
             size="sm"
@@ -560,41 +606,40 @@ export const CourseStudentsPage: React.FC = () => {
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-[#172033] border-b border-slate-200 dark:border-[#263244] text-slate-500 dark:text-[#94A3B8] font-medium">
+                    <th className="py-3 px-4">#</th>
                     <th className="py-3 px-4">Student</th>
-                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Email</th>
+                    <th className="py-3 px-4">Enrolled On</th>
                     <th className="py-3 px-4">Progress</th>
-                    <th className="py-3 px-4">Enrolled Date</th>
-                    <th className="py-3 px-4">Last Active</th>
+                    <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-[#263244]">
-                  {filteredStudents.map((student) => (
+                  {filteredStudents.map((student, idx) => (
                     <tr
                       key={student.uuid}
                       onClick={() => handleViewStudent(student.uuid)}
                       className="hover:bg-slate-50 dark:hover:bg-[#172033] transition-colors cursor-pointer"
                     >
+                      <td className="py-3 px-4 text-slate-400 font-medium">{idx + 1}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-9 h-9 rounded-full bg-blue-50 dark:bg-[rgba(37,99,235,0.12)] border border-blue-100 dark:border-[rgba(59,130,246,0.18)] text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center font-semibold text-xs shrink-0">
+                          <div className="w-9 h-9 rounded-full bg-blue-50 dark:bg-[rgba(37,99,235,0.12)] border border-blue-100 dark:border-[rgba(59,130,246,0.18)] text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center font-bold text-xs shrink-0">
                             {student.name.charAt(0)}
                           </div>
-                          <div className="min-w-0">
-                            <strong className="font-semibold text-slate-900 dark:text-[#F8FAFC] block truncate">
-                              {student.name}
-                            </strong>
-                            <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] block truncate">
-                              {student.email}
-                            </span>
-                          </div>
+                          <strong className="font-semibold text-slate-900 dark:text-[#F8FAFC] truncate block min-w-0">
+                            {student.name}
+                          </strong>
                         </div>
                       </td>
 
-                      <td className="py-3 px-4">
-                        <Badge variant={getStatusVariant(student.status)} size="sm" dot>
-                          {student.status}
-                        </Badge>
+                      <td className="py-3 px-4 text-slate-600 dark:text-[#94A3B8] font-normal truncate">
+                        {student.email}
+                      </td>
+
+                      <td className="py-3 px-4 text-slate-700 dark:text-[#CBD5E1]">
+                        {student.enrollmentDate}
                       </td>
 
                       <td className="py-3 px-4 w-44">
@@ -618,12 +663,10 @@ export const CourseStudentsPage: React.FC = () => {
                         </div>
                       </td>
 
-                      <td className="py-3 px-4 text-slate-700 dark:text-[#CBD5E1]">
-                        {student.enrollmentDate}
-                      </td>
-
-                      <td className="py-3 px-4 text-slate-500 dark:text-[#94A3B8]">
-                        {student.lastActive}
+                      <td className="py-3 px-4">
+                        <Badge variant={getStatusVariant(student.status)} size="sm" dot>
+                          {student.status}
+                        </Badge>
                       </td>
 
                       <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
@@ -631,13 +674,23 @@ export const CourseStudentsPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setActiveMenuStudentUuid(activeMenuStudentUuid === student.uuid ? null : student.uuid)}
-                            className="p-1.5 text-slate-400 hover:text-slate-700 dark:text-[#94A3B8] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-slate-400 hover:text-slate-700 dark:text-[#94A3B8] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-lg transition-colors cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center"
                           >
                             <MoreVertical className="w-4 h-4" />
                           </button>
 
                           {activeMenuStudentUuid === student.uuid && (
-                            <div className="absolute right-0 mt-1 w-44 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#334155] rounded-xl shadow-lg z-30 py-1 font-sans text-left">
+                            <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#334155] rounded-xl shadow-xl z-30 py-1 font-sans text-left">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveMenuStudentUuid(null);
+                                  handleViewStudent(student.uuid);
+                                }}
+                                className="w-full px-3 py-2 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#172033] hover:text-slate-900 dark:hover:text-white flex items-center gap-2 cursor-pointer"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-slate-500 dark:text-[#94A3B8]" /> View Overview
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => {
@@ -650,16 +703,6 @@ export const CourseStudentsPage: React.FC = () => {
                                 className="w-full px-3 py-2 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#172033] hover:text-slate-900 dark:hover:text-white flex items-center gap-2 cursor-pointer"
                               >
                                 <Mail className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" /> Send Email
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveMenuStudentUuid(null);
-                                  handleViewStudent(student.uuid);
-                                }}
-                                className="w-full px-3 py-2 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#172033] hover:text-slate-900 dark:hover:text-white flex items-center gap-2 cursor-pointer"
-                              >
-                                <Eye className="w-3.5 h-3.5 text-slate-500 dark:text-[#94A3B8]" /> View Overview
                               </button>
                               <button
                                 type="button"
@@ -692,82 +735,111 @@ export const CourseStudentsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* MOBILE CARDS VIEW */}
-          <div className="grid gap-3 md:hidden">
+          {/* MOBILE CARDS VIEW (Clean 320px–430px Responsive Grid Card) */}
+          <div className="grid gap-2.5 md:hidden w-full min-w-0">
             {filteredStudents.map((student) => (
               <div
                 key={student.uuid}
                 onClick={() => handleViewStudent(student.uuid)}
-                className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] p-3.5 rounded-xl space-y-3 shadow-2xs cursor-pointer w-full min-w-0 max-w-full"
+                className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] p-3 rounded-[14px] space-y-2.5 shadow-2xs cursor-pointer w-full min-w-0 max-w-full box-border"
               >
-                <div className="flex items-start justify-between gap-2 min-w-0">
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div className="w-9 h-9 rounded-full bg-blue-50 dark:bg-[rgba(37,99,235,0.12)] border border-blue-100 dark:border-[rgba(59,130,246,0.18)] text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center font-semibold text-xs shrink-0">
-                      {student.name.charAt(0)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <strong className="text-xs font-semibold text-slate-900 dark:text-[#F8FAFC] block truncate">
-                        {student.name}
-                      </strong>
-                      <span className="text-[11px] font-normal text-slate-500 dark:text-[#94A3B8] block truncate">
-                        {student.email}
-                      </span>
-                    </div>
+                {/* Header: Avatar, Name/Email, Status & Menu */}
+                <div className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-2.5 min-w-0 w-full">
+                  {/* Avatar Initials Tile */}
+                  <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-800/50 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center font-extrabold text-xs shrink-0 mt-0.5">
+                    {student.name.charAt(0)}
                   </div>
 
-                  <Badge variant={getStatusVariant(student.status)} size="sm" dot className="shrink-0">
-                    {student.status}
-                  </Badge>
+                  {/* Name and Email */}
+                  <div className="min-w-0 flex-1">
+                    <strong className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC] block truncate leading-tight">
+                      {student.name}
+                    </strong>
+                    <span className="text-[11px] font-normal text-slate-500 dark:text-[#94A3B8] block truncate leading-tight mt-0.5">
+                      {student.email}
+                    </span>
+                  </div>
+
+                  {/* Status & Menu */}
+                  <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <Badge variant={getStatusVariant(student.status)} size="sm" dot className="shrink-0">
+                      {student.status}
+                    </Badge>
+                    <div className="relative inline-block text-left">
+                      <button
+                        type="button"
+                        onClick={() => setActiveMenuStudentUuid(activeMenuStudentUuid === student.uuid ? null : student.uuid)}
+                        className="p-1 text-slate-400 hover:text-slate-700 dark:text-[#94A3B8] dark:hover:text-[#F8FAFC] rounded-lg transition-colors cursor-pointer min-w-[28px] min-h-[28px] flex items-center justify-center"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+
+                      {activeMenuStudentUuid === student.uuid && (
+                        <div className="absolute right-0 mt-1 w-44 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#334155] rounded-xl shadow-xl z-30 py-1 font-sans text-left">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveMenuStudentUuid(null);
+                              handleViewStudent(student.uuid);
+                            }}
+                            className="w-full px-3 py-2 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#172033] hover:text-slate-900 dark:hover:text-white flex items-center gap-2 cursor-pointer"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-slate-500 dark:text-[#94A3B8]" /> View Overview
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveMenuStudentUuid(null);
+                              setEmailTarget(student);
+                              setEmailSubject(`Course Update: Announcement for ${student.name}`);
+                              setEmailMessage('');
+                              setEmailError(null);
+                            }}
+                            className="w-full px-3 py-2 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#172033] hover:text-slate-900 dark:hover:text-white flex items-center gap-2 cursor-pointer"
+                          >
+                            <Mail className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" /> Send Email
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveMenuStudentUuid(null);
+                              setExtendAccessTarget(student);
+                            }}
+                            className="w-full px-3 py-2 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#172033] hover:text-slate-900 dark:hover:text-white flex items-center gap-2 cursor-pointer"
+                          >
+                            <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> Extend Access
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveMenuStudentUuid(null);
+                              setRemoveTarget(student);
+                            }}
+                            className="w-full px-3 py-2 text-xs font-medium text-rose-600 dark:text-[#F87171] hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2 cursor-pointer border-t border-slate-100 dark:border-[#263244] mt-1 pt-2"
+                          >
+                            <UserX className="w-3.5 h-3.5" /> Remove Student
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center text-[11px]">
-                    <span className="text-slate-500 dark:text-[#94A3B8]">Progress</span>
-                    <strong className="text-[#2563EB] dark:text-[#60A5FA] font-medium">{student.progressPercent}%</strong>
-                  </div>
-                  <div className="w-full bg-slate-200 dark:bg-[#334155] h-1.5 rounded-full overflow-hidden">
+                {/* Progress Bar & Percentage */}
+                <div className="space-y-1 pt-1 w-full min-w-0">
+                  <div className="w-full bg-slate-100 dark:bg-[#334155] h-1.5 rounded-full overflow-hidden flex items-center">
                     <div
                       style={{ width: `${student.progressPercent}%` }}
                       className={`h-full rounded-full ${
-                        student.progressPercent === 100 ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-[#3B82F6]'
+                        student.progressPercent === 100 ? 'bg-emerald-500' : 'bg-[#3B82F6]'
                       }`}
                     />
                   </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-[#94A3B8] pt-2 border-t border-slate-100 dark:border-[#263244]">
-                  <span>Joined: <strong className="text-slate-700 dark:text-[#CBD5E1]">{student.enrollmentDate}</strong></span>
-                  <span>Active: <strong className="text-slate-700 dark:text-[#CBD5E1]">{student.lastActive}</strong></span>
-                </div>
-
-                <div className="flex items-center justify-between gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
-                  <span className="text-[11px] font-medium text-[#2563EB] dark:text-[#60A5FA]">
-                    {student.lessonsCompleted}/{student.totalLessons} Lessons
-                  </span>
-
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      size="xs"
-                      onClick={() => handleViewStudent(student.uuid)}
-                      className="bg-blue-50 dark:bg-[rgba(37,99,235,0.12)] text-[#2563EB] dark:text-[#60A5FA] border border-blue-100 dark:border-[rgba(59,130,246,0.18)]"
-                    >
-                      <Eye className="w-3.5 h-3.5" /> View
-                    </Button>
-                    <button
-                      type="button"
-                      onClick={() => setExtendAccessTarget(student)}
-                      className="p-1.5 text-slate-400 dark:text-[#94A3B8] hover:text-slate-700 dark:hover:text-[#F8FAFC]"
-                    >
-                      <Calendar className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRemoveTarget(student)}
-                      className="p-1.5 text-slate-400 dark:text-[#F87171] hover:text-rose-600"
-                    >
-                      <UserX className="w-4 h-4" />
-                    </button>
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-slate-500 dark:text-[#94A3B8]">
+                      {student.lessonsCompleted}/{student.totalLessons} lessons
+                    </span>
+                    <strong className="text-[#2563EB] dark:text-[#60A5FA] font-bold">{student.progressPercent}%</strong>
                   </div>
                 </div>
               </div>
@@ -834,10 +906,10 @@ export const CourseStudentsPage: React.FC = () => {
                 setSortBy('recent');
               }}
             >
-              Reset Filters
+              Reset
             </Button>
             <Button onClick={() => setIsMobileFilterOpen(false)} className="bg-[#2563EB] text-white font-medium">
-              Apply Filters
+              Apply
             </Button>
           </div>
         </div>
@@ -934,22 +1006,6 @@ export const CourseStudentsPage: React.FC = () => {
           </div>
         </div>
       </Modal>
-
-      {/* ENROLL STUDENT MODAL */}
-      <EnrollStudentModal
-        isOpen={isEnrollModalOpen}
-        onClose={() => setIsEnrollModalOpen(false)}
-        defaultCourseUuid={courseUuid}
-        onSuccess={() => showToast('Student enrolled successfully.')}
-      />
-
-      {/* BULK ENROLL MODAL */}
-      <BulkEnrollModal
-        isOpen={isBulkEnrollOpen}
-        onClose={() => setIsBulkEnrollOpen(false)}
-        courseUuid={courseUuid}
-        onSuccess={() => showToast('Bulk enrollment completed successfully.')}
-      />
     </div>
   );
 };

@@ -12,6 +12,7 @@ import {
   Lock,
   Paperclip,
   ChevronDown,
+  ChevronUp,
   ExternalLink,
   Download,
   FileText,
@@ -184,175 +185,208 @@ export const SortableLessonItem: React.FC<SortableLessonItemProps> = ({
           isDragging ? 'opacity-40 shadow-lg scale-[1.01]' : 'shadow-2xs hover:bg-[var(--surface-hover)]'
         }`}
       >
-        {/* UNIFIED COMPACT MOBILE LESSON CARD HEADER */}
-        <div className="flex items-start gap-2.5 sm:gap-3.5 w-full min-w-0">
-          {/* 1. Drag Handle (Isolated) */}
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            style={{ color: 'var(--text-muted)' }}
-            className="p-1 rounded-lg cursor-grab active:cursor-grabbing touch-none shrink-0 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] mt-2"
-            aria-label="Drag to reorder lesson"
-            title="Drag to reorder lesson"
-          >
-            <GripVertical className="w-4 h-4" />
-          </button>
-
-          {/* 2. 76px Preview Thumbnail Badge (Clickable to Preview) */}
-          <div
-            onClick={handleOpenPreview}
-            className="shrink-0 cursor-pointer group/thumb"
-            role="button"
-            tabIndex={0}
-          >
-            <LessonThumbnailBadge
-              type={lesson.type}
-              lesson={lesson}
-              className="w-[76px] h-[76px] sm:w-[80px] sm:h-[80px] rounded-[12px]"
-            />
-          </div>
-
-          {/* 3. Middle Column: Title, Metadata, Status (Clickable to Preview) */}
-          <div
-            onClick={handleOpenPreview}
-            className="flex-1 min-w-0 space-y-1.5 cursor-pointer group/details"
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleOpenPreview();
-              }
-            }}
-          >
-            {/* Title (max 2 lines, word-break normal, overflow-wrap break-word) */}
-            <h4
-              style={{ color: 'var(--text-primary)' }}
-              className="text-[15px] sm:text-[16px] font-bold leading-[1.3] min-w-0 line-clamp-2 overflow-wrap-anywhere break-words group-hover/details:text-[var(--brand-primary)] transition-colors pr-1"
+        {/* 1. TOP CONTROL & PREVIEW ROW */}
+        <div className="flex items-center justify-between gap-2.5 w-full min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {/* Drag Handle */}
+            <button
+              type="button"
+              {...attributes}
+              {...listeners}
+              style={{ color: 'var(--text-muted)' }}
+              className="p-1 rounded-lg cursor-grab active:cursor-grabbing touch-none shrink-0 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+              aria-label="Drag to reorder lesson"
+              title="Drag to reorder lesson"
+              onClick={(e) => e.stopPropagation()}
             >
-              {lesson.title}
-            </h4>
+              <GripVertical className="w-4 h-4 opacity-75" />
+            </button>
 
-            {/* Type + Metadata Row */}
+            {/* Small Media Preview Badge (56-64px max) */}
             <div
-              style={{ color: 'var(--text-secondary)' }}
-              className="flex items-center gap-1.5 text-[12px] sm:text-[13px] font-medium flex-wrap"
+              onClick={handleOpenPreview}
+              className="shrink-0 cursor-pointer group/thumb"
+              role="button"
+              tabIndex={0}
             >
-              <div className="flex items-center gap-1">
-                <TypeIconComponent className="w-3.5 h-3.5 text-[#3B82F6] shrink-0" />
-                <span className="capitalize">{lesson.type.replace('_', ' ')}</span>
-              </div>
-
-              {metadataText && (
-                <>
-                  <span className="text-[var(--text-muted)] opacity-60">•</span>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
-                    <span>{metadataText}</span>
-                  </div>
-                </>
-              )}
-
-              {isLocked && (
-                <>
-                  <span className="text-[var(--text-muted)] opacity-60">•</span>
-                  <span className="flex items-center gap-1 text-amber-500 font-semibold">
-                    <Lock className="w-3 h-3 shrink-0" /> Locked
-                  </span>
-                </>
-              )}
-            </div>
-
-            {/* Status Badge */}
-            <div className="pt-0.5">
-              <Badge
-                variant={lesson.status === 'published' ? 'success' : 'secondary'}
-                size="sm"
-                dot
-                className="h-[24px] px-2.5 text-[11px] font-semibold rounded-full inline-flex items-center"
-              >
-                {lesson.status === 'published' ? 'Published' : 'Draft'}
-              </Badge>
+              <LessonThumbnailBadge
+                type={lesson.type}
+                lesson={lesson}
+                className="w-[56px] h-[56px] sm:w-[64px] sm:h-[64px] rounded-[10px] sm:rounded-[12px]"
+              />
             </div>
           </div>
 
-          {/* 4. Three-Dot Options Menu Button (Top Right, Isolated click) */}
-          <div className="shrink-0">
+          {/* Action Buttons: Expand Toggle Chevron & More Menu */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsResourcesExpanded((prev) => !prev);
+              }}
+              style={{
+                backgroundColor: 'var(--surface-secondary)',
+                borderColor: 'var(--border)',
+                color: 'var(--text-secondary)',
+              }}
+              className="w-8 h-8 sm:w-9 sm:h-9 border rounded-xl flex items-center justify-center transition-all cursor-pointer hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+              aria-label={isResourcesExpanded ? "Collapse lesson card" : "Expand lesson card"}
+              title={isResourcesExpanded ? "Collapse lesson card" : "Expand lesson card"}
+            >
+              {isResourcesExpanded ? (
+                <ChevronUp className="w-4 h-4 shrink-0 stroke-[2.5]" />
+              ) : (
+                <ChevronDown className="w-4 h-4 shrink-0 stroke-[2.5]" />
+              )}
+            </button>
+
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsMoreMenuOpen(true);
               }}
-              style={{ color: 'var(--text-muted)' }}
-              className="w-8 h-8 -mr-1 flex items-center justify-center rounded-xl transition-colors cursor-pointer hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+              style={{
+                backgroundColor: 'var(--surface-secondary)',
+                borderColor: 'var(--border)',
+                color: 'var(--text-secondary)',
+              }}
+              className="w-8 h-8 sm:w-9 sm:h-9 border rounded-xl flex items-center justify-center transition-all cursor-pointer hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
               aria-label="More options"
               title="More Options"
             >
-              <MoreHorizontal className="w-5 h-5 opacity-70 hover:opacity-100" />
+              <MoreHorizontal className="w-4 h-4 opacity-80 hover:opacity-100" />
             </button>
           </div>
         </div>
 
-        {/* RESOURCE COMPACT FOOTER ROW */}
+        {/* 2. FULL-WIDTH LESSON CONTENT SECTION (Title, Meta, Status) */}
         <div
-          style={{ borderColor: 'var(--border)' }}
-          className="pt-2 border-t flex items-center justify-between gap-2 flex-wrap w-full min-w-0"
+          onClick={handleOpenPreview}
+          className="w-full min-w-0 space-y-1.5 cursor-pointer group/details pt-1"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleOpenPreview();
+            }
+          }}
         >
-          <div className="flex items-center gap-2 flex-wrap">
-            {resourceCount > 0 ? (
+          {/* Full Width Lesson Title (Natural wrapping across full card width) */}
+          <h4
+            style={{ color: 'var(--text-primary)' }}
+            className="text-[14px] sm:text-[15px] font-bold leading-[1.35] w-full min-w-0 break-words overflow-wrap-anywhere group-hover/details:text-[var(--brand-primary)] transition-colors"
+          >
+            {lesson.title}
+          </h4>
+
+          {/* Meta Row: Lesson Type + Duration */}
+          <div
+            style={{ color: 'var(--text-secondary)' }}
+            className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-medium flex-wrap"
+          >
+            <div className="flex items-center gap-1 shrink-0">
+              <TypeIconComponent className="w-3.5 h-3.5 text-[#3B82F6] shrink-0" />
+              <span className="capitalize">{lesson.type.replace('_', ' ')}</span>
+            </div>
+
+            {metadataText && (
+              <>
+                <span className="text-[var(--text-muted)] opacity-60">•</span>
+                <div className="flex items-center gap-1 whitespace-nowrap shrink-0">
+                  <Clock className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                  <span className="whitespace-nowrap">{metadataText}</span>
+                </div>
+              </>
+            )}
+
+            {isLocked && (
+              <>
+                <span className="text-[var(--text-muted)] opacity-60">•</span>
+                <span className="flex items-center gap-1 text-amber-500 font-semibold whitespace-nowrap shrink-0">
+                  <Lock className="w-3 h-3 shrink-0" /> Locked
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Status Badge */}
+          <div className="pt-0.5">
+            <Badge
+              variant={lesson.status === 'published' ? 'success' : 'secondary'}
+              size="sm"
+              dot
+              className="h-[22px] sm:h-[24px] px-2 text-[10px] sm:text-[11px] font-semibold rounded-full inline-flex items-center"
+            >
+              {lesson.status === 'published' ? 'Published' : 'Draft'}
+            </Badge>
+          </div>
+        </div>
+
+        {/* 3. RESOURCE COMPACT FOOTER ROW (Rendered only when expanded) */}
+        {isResourcesExpanded && (
+          <div
+            style={{ borderColor: 'var(--border)' }}
+            className="pt-2.5 mt-3 border-t flex items-center justify-between gap-2 flex-wrap w-full min-w-0 animate-fade-in"
+          >
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
+              <span style={{ color: 'var(--text-muted)' }} className="text-[12px] font-medium flex items-center gap-1.5 px-1 py-0.5">
+                <Paperclip className="w-3.5 h-3.5 opacity-70 shrink-0" />
+                {resourceCount > 0 ? (
+                  <span style={{ color: 'var(--text-primary)' }} className="font-semibold">{resourceCount} {resourceCount === 1 ? 'resource' : 'resources'}</span>
+                ) : (
+                  <span>No resources</span>
+                )}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {resourceCount > 0 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenPreview();
+                  }}
+                  style={{
+                    backgroundColor: 'var(--surface-secondary)',
+                    borderColor: 'var(--border)',
+                    color: 'var(--text-primary)',
+                  }}
+                  className="h-8 px-3 border rounded-lg font-semibold text-[11px] sm:text-xs inline-flex items-center gap-1 transition-all cursor-pointer hover:bg-[var(--surface-hover)] hover:border-[var(--brand-primary)]"
+                >
+                  View
+                </button>
+              )}
+
+              {/* Compact + Add Resource Button */}
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setIsResourcesExpanded((prev) => !prev);
+                  const realLessonId = lesson.id || lesson.uuid;
+                  if (onAddResource) {
+                    onAddResource(realLessonId);
+                  } else {
+                    navigate(`/courses/${lesson.courseUuid}/curriculum/resources/add?lessonUuid=${encodeURIComponent(realLessonId)}&moduleUuid=${encodeURIComponent(lesson.moduleUuid)}`);
+                  }
                 }}
-                aria-expanded={isResourcesExpanded}
                 style={{
                   backgroundColor: 'var(--surface-secondary)',
                   borderColor: 'var(--border)',
                   color: 'var(--text-secondary)',
                 }}
-                className="h-7 px-2.5 border rounded-lg font-semibold text-[11px] inline-flex items-center gap-1.5 transition-all cursor-pointer hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
-                title={isResourcesExpanded ? "Collapse attached resources" : `Expand ${resourceCount} attached resources`}
+                className="h-8 px-3 border rounded-[9px] font-semibold text-[11px] sm:text-xs inline-flex items-center gap-1 transition-all cursor-pointer shrink-0 hover:bg-[var(--surface-hover)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] active:scale-[0.98]"
+                title="Add a resource to this lesson"
               >
-                <Paperclip style={{ color: 'var(--brand-primary)' }} className="w-3.5 h-3.5 shrink-0" />
-                <span>{resourceCount} {resourceCount === 1 ? 'Resource' : 'Resources'}</span>
-                <ChevronDown className={`w-3 h-3 transition-transform duration-200 shrink-0 stroke-current ${isResourcesExpanded ? 'rotate-180' : ''}`} />
+                <Plus className="w-3.5 h-3.5 stroke-[2.5] stroke-current" />
+                <span>Add Resource</span>
               </button>
-            ) : (
-              <span style={{ color: 'var(--text-muted)' }} className="text-[11px] font-medium flex items-center gap-1.5 px-1 py-0.5">
-                <Paperclip className="w-3.5 h-3.5 opacity-60" />
-                No resources
-              </span>
-            )}
+            </div>
           </div>
-
-          {/* Compact + Add Resource Button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              const realLessonId = lesson.id || lesson.uuid;
-              if (onAddResource) {
-                onAddResource(realLessonId);
-              } else {
-                navigate(`/courses/${lesson.courseUuid}/curriculum/resources/add?lessonUuid=${encodeURIComponent(realLessonId)}&moduleUuid=${encodeURIComponent(lesson.moduleUuid)}`);
-              }
-            }}
-            style={{
-              backgroundColor: 'var(--surface-secondary)',
-              borderColor: 'var(--border)',
-              color: 'var(--text-secondary)',
-            }}
-            className="h-7 px-2.5 border rounded-[9px] font-semibold text-[11px] inline-flex items-center gap-1 transition-all cursor-pointer shrink-0 hover:bg-[var(--surface-hover)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] active:scale-[0.98]"
-            title="Add a resource to this lesson"
-          >
-            <Plus className="w-3.5 h-3.5 stroke-[2.5] stroke-current" />
-            <span>Add Resource</span>
-          </button>
-        </div>
+        )}
 
         {/* INLINE EXPANDED RESOURCES LIST */}
         {isResourcesExpanded && resources.length > 0 && (

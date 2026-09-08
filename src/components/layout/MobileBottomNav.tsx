@@ -24,7 +24,7 @@ export const MobileBottomNav: React.FC<MobileNavProps> = ({
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Courses", href: "/courses", icon: BookOpen },
     { label: "Students", href: "/students", icon: Users },
-    { label: "Live Classes", href: "/live-classes", icon: Video },
+    { label: "Live Class", href: "/live-classes", icon: Video },
   ];
 
   return (
@@ -51,14 +51,14 @@ export const MobileBottomNav: React.FC<MobileNavProps> = ({
         );
       })}
 
-      {/* Item 5: More (Sidebar Drawer trigger) */}
+      {/* Item 5: Menu (Sidebar Drawer trigger) */}
       <button
         type="button"
         onClick={onOpenSidebar}
         className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] transition-all min-w-0 h-11 px-1 cursor-pointer text-slate-500 dark:text-[#94A3B8] font-medium hover:text-slate-900 dark:hover:text-[#F8FAFC]"
       >
         <Menu className="w-4 h-4 shrink-0" />
-        <span className="truncate w-full text-center">More</span>
+        <span className="truncate w-full text-center">Menu</span>
       </button>
     </nav>
   );

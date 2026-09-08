@@ -523,19 +523,19 @@ export const QuizBuilderPage: React.FC = () => {
         { label: quizIdParam ? 'Edit Quiz' : 'Create Quiz' },
       ]}
     >
-      <div className="w-full max-w-4xl mx-auto px-1 sm:px-4 py-3 sm:py-6 font-sans text-left space-y-5 pb-36 sm:pb-24">
+      <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-6 font-sans text-left space-y-4 pb-[calc(100px+env(safe-area-inset-bottom,0px))] sm:pb-24 box-border min-w-0">
         {/* Toast Alert */}
         {toastMessage && (
-          <div className="fixed top-4 right-4 z-50 px-4 py-3 bg-slate-900 text-white text-xs font-bold rounded-2xl shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <div className="fixed top-4 right-4 z-50 px-4 py-3 bg-[var(--surface-secondary)] text-[var(--text-primary)] border border-[var(--border)] text-xs font-bold rounded-2xl shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
             <span>{toastMessage}</span>
           </div>
         )}
 
         {/* Validation Errors Banner */}
         {validationErrors.length > 0 && (
-          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 space-y-2 text-xs">
-            <div className="flex items-center gap-2 font-bold text-sm text-rose-700 dark:text-rose-300">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 space-y-2 text-xs w-full min-w-0 box-border">
+            <div className="flex items-center gap-2 font-bold text-xs sm:text-sm">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>Please resolve the following errors before saving:</span>
             </div>
@@ -548,46 +548,37 @@ export const QuizBuilderPage: React.FC = () => {
         )}
 
         {/* PAGE HEADER NAVIGATION */}
-        <div className="flex items-center justify-between gap-3">
-          <Link
-            to={backDestination}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] hover:underline"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Curriculum
-          </Link>
-
-          {isCourseValid && (
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 hidden sm:inline">
-                Target Section:
+        {isCourseValid && (
+          <div className="flex items-center justify-end gap-2.5 w-full min-w-0">
+            <span className="text-[11px] font-medium text-[var(--text-secondary)] hidden sm:inline shrink-0">
+              Target Section:
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsModuleModalOpen(true)}
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/30 text-[var(--brand-primary)] text-xs font-bold hover:bg-[var(--brand-primary)]/20 flex items-center gap-1.5 cursor-pointer min-w-0"
+            >
+              <Layers className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate max-w-[120px] sm:max-w-[200px]">
+                {selectedModuleObj?.title || 'Select Section'}
               </span>
-              <button
-                type="button"
-                onClick={() => setIsModuleModalOpen(true)}
-                className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-[#2563EB] dark:text-[#60A5FA] text-xs font-bold hover:bg-blue-100 flex items-center gap-1.5"
-              >
-                <Layers className="w-3.5 h-3.5" />
-                <span className="truncate max-w-[150px] sm:max-w-[200px]">
-                  {selectedModuleObj?.title || 'Select Section'}
-                </span>
-                <span className="text-[10px] bg-[#2563EB] text-white px-1.5 py-0.5 rounded font-extrabold ml-1">
-                  Change
-                </span>
-              </button>
-            </div>
-          )}
-        </div>
+              <span className="text-[10px] bg-[var(--brand-primary)] text-white px-1.5 py-0.5 rounded font-extrabold ml-0.5 shrink-0">
+                Change
+              </span>
+            </button>
+          </div>
+        )}
 
         {/* SECTION 1: QUIZ DETAILS CARD */}
-        <Card padding="md" className="space-y-4">
-          <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Quiz Details</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Basic metadata for student evaluation.</p>
+        <Card padding="md" className="space-y-3.5 p-3.5 sm:p-4 rounded-[14px] bg-[var(--surface)] border-[var(--border)] w-full min-w-0 box-border">
+          <div className="border-b border-[var(--border)] pb-2.5">
+            <h2 className="text-sm sm:text-base font-bold text-[var(--text-primary)]">Quiz Details</h2>
+            <p className="text-[11px] sm:text-xs text-[var(--text-secondary)]">Basic metadata for student evaluation.</p>
           </div>
 
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <div className="space-y-3 w-full min-w-0">
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                 Quiz Title *
               </label>
               <input
@@ -596,12 +587,12 @@ export const QuizBuilderPage: React.FC = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Module 1 Review Quiz"
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl text-xs sm:text-sm text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 focus:outline-none focus:border-blue-600 font-medium shadow-2xs"
+                className="w-full px-3.5 py-2.5 h-[44px] sm:h-[48px] bg-[var(--surface-secondary)] border border-[var(--input-border)] rounded-xl text-xs sm:text-sm text-[var(--text-primary)] placeholder:[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)] font-medium min-w-0 box-border"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                 Short Description / Instructions
               </label>
               <textarea
@@ -609,24 +600,22 @@ export const QuizBuilderPage: React.FC = () => {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Instructions for students taking this assessment..."
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl text-xs sm:text-sm text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 focus:outline-none focus:border-blue-600 font-medium shadow-2xs"
+                className="w-full px-3.5 py-2.5 bg-[var(--surface-secondary)] border border-[var(--input-border)] rounded-xl text-xs sm:text-sm text-[var(--text-primary)] placeholder:[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)] font-medium min-h-[70px] min-w-0 box-border resize-y"
               />
             </div>
           </div>
         </Card>
 
         {/* SECTION 2: QUIZ SETTINGS CARD */}
-        <Card padding="md" className="space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Quiz Settings</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Configure passing thresholds and limits.</p>
-            </div>
+        <Card padding="md" className="space-y-3.5 p-3.5 sm:p-4 rounded-[14px] bg-[var(--surface)] border-[var(--border)] w-full min-w-0 box-border">
+          <div className="border-b border-[var(--border)] pb-2.5">
+            <h2 className="text-sm sm:text-base font-bold text-[var(--text-primary)]">Quiz Settings</h2>
+            <p className="text-[11px] sm:text-xs text-[var(--text-secondary)]">Configure passing thresholds and limits.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 w-full min-w-0">
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                 Passing Score (%)
               </label>
               <input
@@ -635,12 +624,12 @@ export const QuizBuilderPage: React.FC = () => {
                 max={100}
                 value={passingScore}
                 onChange={(e) => setPassingScore(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl text-xs sm:text-sm text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-blue-600 font-medium"
+                className="w-full px-3 py-2.5 h-[44px] sm:h-[48px] bg-[var(--surface-secondary)] border border-[var(--input-border)] rounded-xl text-xs sm:text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)] font-medium min-w-0 box-border"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                 Time Limit (Minutes)
               </label>
               <input
@@ -649,12 +638,12 @@ export const QuizBuilderPage: React.FC = () => {
                 value={timeLimitMinutes}
                 onChange={(e) => setTimeLimitMinutes(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="No limit"
-                className="w-full px-3 py-2 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl text-xs sm:text-sm text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-blue-600 font-medium"
+                className="w-full px-3 py-2.5 h-[44px] sm:h-[48px] bg-[var(--surface-secondary)] border border-[var(--input-border)] rounded-xl text-xs sm:text-sm text-[var(--text-primary)] placeholder:[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)] font-medium min-w-0 box-border"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                 Attempts Allowed
               </label>
               <input
@@ -663,42 +652,44 @@ export const QuizBuilderPage: React.FC = () => {
                 value={maxAttempts}
                 onChange={(e) => setMaxAttempts(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="Unlimited"
-                className="w-full px-3 py-2 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl text-xs sm:text-sm text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-blue-600 font-medium"
+                className="w-full px-3 py-2.5 h-[44px] sm:h-[48px] bg-[var(--surface-secondary)] border border-[var(--input-border)] rounded-xl text-xs sm:text-sm text-[var(--text-primary)] placeholder:[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)] font-medium min-w-0 box-border"
               />
             </div>
           </div>
 
           {/* ADVANCED SETTINGS COLLAPSIBLE */}
-          <div className="pt-2">
+          <div className="pt-1 w-full min-w-0">
             <button
               type="button"
               onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              className="w-full flex items-center justify-between gap-2 p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] text-xs font-bold text-[var(--text-primary)] hover:border-[var(--brand-primary)] transition-colors cursor-pointer box-border"
             >
-              <Settings2 className="w-3.5 h-3.5" />
-              <span>{showAdvancedSettings ? 'Hide Advanced Settings' : 'Advanced Settings'}</span>
-              <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform ${showAdvancedSettings ? 'rotate-180' : ''}`} />
+              <div className="flex items-center gap-2">
+                <Settings2 className="w-4 h-4 text-[var(--brand-primary)]" />
+                <span>Advanced Settings</span>
+              </div>
+              <ChevronDownIcon className={`w-4 h-4 text-[var(--text-secondary)] transition-transform ${showAdvancedSettings ? 'rotate-180' : ''}`} />
             </button>
 
             {showAdvancedSettings && (
-              <div className="mt-3 p-3.5 rounded-xl bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#263244] space-y-2.5 text-xs">
-                <label className="flex items-center justify-between cursor-pointer">
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">Shuffle Questions Order</span>
+              <div className="mt-2.5 p-3 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] space-y-2 text-xs w-full min-w-0 box-border">
+                <label className="flex items-center justify-between cursor-pointer py-1">
+                  <span className="font-semibold text-[var(--text-primary)]">Shuffle Questions Order</span>
                   <input
                     type="checkbox"
                     checked={shuffleQuestions}
                     onChange={(e) => setShuffleQuestions(e.target.checked)}
-                    className="w-4 h-4 text-[#2563EB] rounded"
+                    className="w-4 h-4 text-[var(--brand-primary)] rounded cursor-pointer"
                   />
                 </label>
 
-                <label className="flex items-center justify-between cursor-pointer">
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">Show Result Immediately After Submit</span>
+                <label className="flex items-center justify-between cursor-pointer py-1 border-t border-[var(--border)]">
+                  <span className="font-semibold text-[var(--text-primary)]">Show Result Immediately After Submit</span>
                   <input
                     type="checkbox"
                     checked={showResult}
                     onChange={(e) => setShowResult(e.target.checked)}
-                    className="w-4 h-4 text-[#2563EB] rounded"
+                    className="w-4 h-4 text-[var(--brand-primary)] rounded cursor-pointer"
                   />
                 </label>
               </div>
@@ -707,36 +698,36 @@ export const QuizBuilderPage: React.FC = () => {
         </Card>
 
         {/* SECTION 3: QUESTION BUILDER */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+        <div className="space-y-3.5 w-full min-w-0">
+          <div className="flex items-center justify-between gap-2 w-full min-w-0">
+            <h2 className="text-sm sm:text-base font-bold text-[var(--text-primary)] truncate">
               Questions ({questions.length})
             </h2>
             <Button
               type="button"
               onClick={handleAddQuestion}
-              className="bg-[#2563EB] text-white text-xs font-bold px-3 py-1.5 h-8 rounded-xl shadow-xs"
+              className="bg-[var(--brand-primary)] text-white text-xs font-bold px-3 py-1.5 h-9 rounded-xl shadow-xs shrink-0"
             >
               + Add Question
             </Button>
           </div>
 
           {questions.length === 0 ? (
-            <Card padding="md" className="text-center py-10 space-y-3">
-              <HelpCircle className="w-8 h-8 text-slate-400 mx-auto" />
-              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">No questions yet</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Start by adding your first question.</p>
-              <Button onClick={handleAddQuestion} className="bg-[#2563EB] text-white text-xs font-bold px-4 py-2">
+            <Card padding="md" className="text-center py-8 space-y-3 bg-[var(--surface)] border border-[var(--border)] rounded-[14px] w-full min-w-0">
+              <HelpCircle className="w-8 h-8 text-[var(--text-muted)] mx-auto" />
+              <p className="text-sm font-semibold text-[var(--text-primary)]">No questions yet</p>
+              <p className="text-xs text-[var(--text-secondary)]">Start by adding your first question.</p>
+              <Button onClick={handleAddQuestion} className="bg-[var(--brand-primary)] text-white text-xs font-bold px-4 py-2 h-10 rounded-xl">
                 + Add First Question
               </Button>
             </Card>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3.5 w-full min-w-0">
               {questions.map((q, qIdx) => (
                 <Card
                   key={q.id}
                   padding="md"
-                  className="space-y-4 relative border border-slate-200 dark:border-[#263244] shadow-2xs"
+                  className="space-y-3 relative border border-[var(--border)] bg-[var(--surface)] rounded-[14px] shadow-2xs p-3 sm:p-4 w-full min-w-0 box-border"
                 >
                   <div
                     ref={(el) => {
@@ -745,23 +736,23 @@ export const QuizBuilderPage: React.FC = () => {
                   />
 
                   {/* Question Card Header */}
-                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-[#2563EB] dark:text-[#60A5FA] font-black text-xs flex items-center justify-center">
+                  <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-6 h-6 rounded-lg bg-[var(--brand-primary)]/15 border border-[var(--brand-primary)]/30 text-[var(--brand-primary)] font-black text-xs flex items-center justify-center shrink-0">
                         {qIdx + 1}
                       </span>
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      <span className="text-xs font-bold text-[var(--text-primary)] truncate">
                         Question {qIdx + 1}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1">
-                      {/* Desktop Move Up / Move Down */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* Desktop & Mobile Move Up / Move Down */}
                       <button
                         type="button"
                         disabled={qIdx === 0}
                         onClick={() => handleMoveQuestion(qIdx, 'up')}
-                        className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30 cursor-pointer hidden sm:inline-flex"
+                        className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 cursor-pointer min-w-[28px] min-h-[28px] flex items-center justify-center"
                         title="Move Up"
                       >
                         <ChevronUp className="w-4 h-4" />
@@ -770,7 +761,7 @@ export const QuizBuilderPage: React.FC = () => {
                         type="button"
                         disabled={qIdx === questions.length - 1}
                         onClick={() => handleMoveQuestion(qIdx, 'down')}
-                        className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30 cursor-pointer hidden sm:inline-flex"
+                        className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 cursor-pointer min-w-[28px] min-h-[28px] flex items-center justify-center"
                         title="Move Down"
                       >
                         <ChevronDown className="w-4 h-4" />
@@ -780,7 +771,7 @@ export const QuizBuilderPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleRemoveQuestion(qIdx)}
-                        className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                        className="p-1 text-[var(--text-secondary)] hover:text-rose-500 rounded-lg transition-colors cursor-pointer min-w-[28px] min-h-[28px] flex items-center justify-center"
                         title="Remove Question"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -789,9 +780,9 @@ export const QuizBuilderPage: React.FC = () => {
                   </div>
 
                   {/* Question Inputs */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <div className="space-y-3 w-full min-w-0">
+                    <div className="min-w-0">
+                      <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                         Question Text *
                       </label>
                       <textarea
@@ -804,29 +795,32 @@ export const QuizBuilderPage: React.FC = () => {
                           );
                         }}
                         placeholder="Enter question text here..."
-                        className="w-full px-3.5 py-2 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl text-xs sm:text-sm text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 focus:outline-none focus:border-blue-600 font-medium"
+                        className="w-full px-3.5 py-2.5 bg-[var(--surface-secondary)] border border-[var(--input-border)] rounded-xl text-xs sm:text-sm text-[var(--text-primary)] placeholder:[var(--text-muted)] focus:outline-none focus:border-[var(--brand-primary)] font-medium min-h-[80px] min-w-0 box-border resize-y"
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <div className="grid grid-cols-1 min-[350px]:grid-cols-[minmax(0,1fr)_88px] gap-2.5 items-start w-full min-w-0">
+                      <div className="min-w-0">
+                        <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                           Question Type
                         </label>
-                        <select
-                          value={q.question_type}
-                          onChange={(e) => handleTypeChange(qIdx, e.target.value as QuestionType)}
-                          className="w-full px-3 py-2 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl text-xs text-slate-900 dark:text-[#F8FAFC] font-semibold focus:outline-none focus:border-blue-600"
-                        >
-                          <option value="SINGLE_CHOICE">Single Choice</option>
-                          <option value="MULTIPLE_CHOICE">Multiple Choice</option>
-                          <option value="TRUE_FALSE">True / False</option>
-                          <option value="SHORT_ANSWER">Short Answer</option>
-                        </select>
+                        <div className="relative inline-flex items-center w-full min-w-0">
+                          <select
+                            value={q.question_type}
+                            onChange={(e) => handleTypeChange(qIdx, e.target.value as QuestionType)}
+                            className="h-[44px] sm:h-[48px] w-full pl-3 pr-8 bg-[var(--surface-secondary)] border border-[var(--input-border)] rounded-xl text-xs text-[var(--text-primary)] font-semibold focus:outline-none focus:border-[var(--brand-primary)] appearance-none cursor-pointer min-w-0 box-border"
+                          >
+                            <option value="SINGLE_CHOICE">Single Choice</option>
+                            <option value="MULTIPLE_CHOICE">Multiple Choice</option>
+                            <option value="TRUE_FALSE">True / False</option>
+                            <option value="SHORT_ANSWER">Short Answer</option>
+                          </select>
+                          <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] shrink-0" />
+                        </div>
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <div className="min-w-0">
+                        <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                           Points
                         </label>
                         <input
@@ -839,7 +833,7 @@ export const QuizBuilderPage: React.FC = () => {
                               prev.map((item, idx) => (idx === qIdx ? { ...item, points: val } : item))
                             );
                           }}
-                          className="w-full px-3 py-2 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl text-xs text-slate-900 dark:text-[#F8FAFC] font-semibold focus:outline-none focus:border-blue-600"
+                          className="w-full h-[44px] sm:h-[48px] px-3 bg-[var(--surface-secondary)] border border-[var(--input-border)] rounded-xl text-xs text-[var(--text-primary)] font-semibold focus:outline-none focus:border-[var(--brand-primary)] text-center min-w-0 box-border"
                         />
                       </div>
                     </div>
@@ -848,75 +842,83 @@ export const QuizBuilderPage: React.FC = () => {
                     {(q.question_type === 'SINGLE_CHOICE' ||
                       q.question_type === 'MULTIPLE_CHOICE' ||
                       q.question_type === 'TRUE_FALSE') && (
-                      <div className="space-y-2 pt-2">
-                        <div className="flex items-center justify-between">
-                          <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                      <div className="space-y-2 pt-1 w-full min-w-0">
+                        <div className="flex flex-col min-[360px]:flex-row min-[360px]:items-center justify-between gap-1 w-full">
+                          <label className="block text-xs font-bold text-[var(--text-primary)]">
                             Options
                           </label>
-                          <span className="text-[11px] font-semibold text-[#2563EB] dark:text-[#60A5FA]">
+                          <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
                             Mark the correct answer
                           </span>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-2 w-full min-w-0">
                           {q.options.map((opt, oIdx) => (
-                            <div key={opt.id} className="flex items-center gap-2">
+                            <div key={opt.id} className={`grid grid-cols-[28px_minmax(0,1fr)_32px] items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-[10px] border transition-all w-full min-w-0 box-border ${
+                              opt.is_correct
+                                ? 'border-emerald-500/50 bg-emerald-500/5'
+                                : 'border-[var(--border)] bg-[var(--surface-secondary)]'
+                            }`}>
                               {/* Choice Selector */}
                               <button
                                 type="button"
                                 onClick={() => handleToggleCorrectOption(qIdx, oIdx)}
-                                className={`w-6 h-6 rounded-full border flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+                                className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all cursor-pointer ${
                                   opt.is_correct
-                                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                                    : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-transparent hover:border-emerald-500'
+                                    ? 'bg-emerald-500 border-emerald-500 text-white shadow-xs'
+                                    : 'border-[var(--input-border)] bg-[var(--surface)] text-transparent hover:border-emerald-500'
                                 }`}
                                 title="Toggle Correct Answer"
                               >
                                 <Check className="w-3.5 h-3.5 stroke-[3]" />
                               </button>
 
-                              {/* Option Input */}
-                              <input
-                                type="text"
-                                readOnly={q.question_type === 'TRUE_FALSE'}
-                                value={opt.option_text}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setQuestions((prev) =>
-                                    prev.map((item, idx) => {
-                                      if (idx !== qIdx) return item;
-                                      return {
-                                        ...item,
-                                        options: item.options.map((o, targetOIdx) =>
-                                          targetOIdx === oIdx ? { ...o, option_text: val } : o
-                                        ),
-                                      };
-                                    })
-                                  );
-                                }}
-                                placeholder={`Option ${oIdx + 1}`}
-                                className={`flex-1 px-3 py-1.5 border rounded-xl text-xs font-medium focus:outline-none ${
-                                  opt.is_correct
-                                    ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/20 text-slate-900 dark:text-slate-100 font-bold'
-                                    : 'border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-slate-800 dark:text-slate-200'
-                                }`}
-                              />
+                              {/* Option Input Wrapper */}
+                              <div className="relative flex items-center w-full min-w-0">
+                                <input
+                                  type="text"
+                                  readOnly={q.question_type === 'TRUE_FALSE'}
+                                  value={opt.option_text}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setQuestions((prev) =>
+                                      prev.map((item, idx) => {
+                                        if (idx !== qIdx) return item;
+                                        return {
+                                          ...item,
+                                          options: item.options.map((o, targetOIdx) =>
+                                            targetOIdx === oIdx ? { ...o, option_text: val } : o
+                                          ),
+                                        };
+                                      })
+                                    );
+                                  }}
+                                  placeholder={`Option ${oIdx + 1}`}
+                                  className={`w-full h-[40px] px-3 border rounded-[8px] text-xs font-medium focus:outline-none min-w-0 ${
+                                    opt.is_correct
+                                      ? 'border-emerald-500/60 bg-[var(--surface)] text-[var(--text-primary)] font-bold pr-16 sm:pr-20'
+                                      : 'border-[var(--input-border)] bg-[var(--surface)] text-[var(--text-primary)] pr-3'
+                                  }`}
+                                />
+                                {opt.is_correct && (
+                                  <span className="hidden min-[360px]:inline-flex absolute right-2 top-1/2 -translate-y-1/2 text-[9px] sm:text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/80 px-1.5 py-0.5 rounded-full pointer-events-none shrink-0 border border-emerald-500/20">
+                                    Correct
+                                  </span>
+                                )}
+                              </div>
 
-                              {opt.is_correct && (
-                                <span className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded-full shrink-0">
-                                  Correct answer
-                                </span>
-                              )}
-
-                              {q.question_type !== 'TRUE_FALSE' && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveOption(qIdx, oIdx)}
-                                  className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
+                              <div className="flex items-center justify-center shrink-0">
+                                {q.question_type !== 'TRUE_FALSE' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveOption(qIdx, oIdx)}
+                                    className="w-8 h-8 flex items-center justify-center text-[var(--text-muted)] hover:text-rose-500 rounded-lg transition-colors cursor-pointer"
+                                    title="Remove Option"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -925,7 +927,7 @@ export const QuizBuilderPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleAddOption(qIdx)}
-                            className="text-xs font-bold text-[#2563EB] dark:text-[#60A5FA] hover:underline pt-1 inline-block"
+                            className="w-full h-[44px] rounded-[10px] border border-dashed border-[var(--border)] bg-[var(--surface-secondary)] text-[var(--brand-primary)] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:border-[var(--brand-primary)] box-border mt-1"
                           >
                             + Add Option
                           </button>
@@ -935,8 +937,8 @@ export const QuizBuilderPage: React.FC = () => {
 
                     {/* SHORT ANSWER EXPECTED TEXT */}
                     {q.question_type === 'SHORT_ANSWER' && (
-                      <div className="pt-2">
-                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <div className="pt-2 w-full min-w-0">
+                        <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                           Expected Answer / Grading Key (Optional)
                         </label>
                         <input
@@ -949,13 +951,21 @@ export const QuizBuilderPage: React.FC = () => {
                             );
                           }}
                           placeholder="Enter expected answer string for reference..."
-                          className="w-full px-3 py-1.5 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl text-xs text-slate-900 dark:text-[#F8FAFC] font-medium"
+                          className="w-full h-[44px] px-3 bg-[var(--surface-secondary)] border border-[var(--input-border)] rounded-xl text-xs text-[var(--text-primary)] font-medium min-w-0 box-border"
                         />
                       </div>
                     )}
                   </div>
                 </Card>
               ))}
+
+              <Button
+                type="button"
+                onClick={handleAddQuestion}
+                className="w-full h-[48px] rounded-[12px] bg-[var(--brand-primary)] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+              >
+                + Add Question
+              </Button>
             </div>
           )}
         </div>
@@ -966,12 +976,12 @@ export const QuizBuilderPage: React.FC = () => {
           onClose={() => setIsModuleModalOpen(false)}
           title="Select Target Section"
         >
-          <div className="space-y-3 font-sans text-xs text-left p-1">
-            <p className="text-slate-500 dark:text-slate-400 text-xs">
+          <div className="space-y-3 font-sans text-xs text-left p-1 w-full min-w-0">
+            <p className="text-[var(--text-secondary)] text-xs">
               Where should this quiz be placed in the curriculum?
             </p>
 
-            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1 w-full min-w-0">
               {allModules.map((mod, idx) => {
                 const isSelected = mod.uuid === selectedModuleUuid;
                 return (
@@ -982,22 +992,22 @@ export const QuizBuilderPage: React.FC = () => {
                       setSelectedModuleUuid(mod.uuid);
                       setIsModuleModalOpen(false);
                     }}
-                    className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                    className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer min-w-0 box-border ${
                       isSelected
-                        ? 'bg-blue-50 dark:bg-blue-950/40 border-[#2563EB] text-[#2563EB] font-bold shadow-xs'
-                        : 'bg-white dark:bg-[#111827] border-slate-200 dark:border-[#263244] text-slate-800 dark:text-[#CBD5E1] hover:bg-slate-50'
+                        ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)] text-[var(--brand-primary)] font-bold shadow-xs'
+                        : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <div className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs shrink-0 ${
-                        isSelected ? 'bg-[#2563EB] text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600'
+                        isSelected ? 'bg-[var(--brand-primary)] text-white' : 'bg-[var(--surface-secondary)] text-[var(--text-secondary)]'
                       }`}>
                         {idx + 1}
                       </div>
-                      <strong className="text-xs truncate block">{mod.title}</strong>
+                      <strong className="text-xs truncate block leading-tight">{mod.title}</strong>
                     </div>
 
-                    {isSelected && <Check className="w-4 h-4 text-[#2563EB] shrink-0" />}
+                    {isSelected && <Check className="w-4 h-4 text-[var(--brand-primary)] shrink-0 ml-2" />}
                   </button>
                 );
               })}
@@ -1006,14 +1016,14 @@ export const QuizBuilderPage: React.FC = () => {
         </Modal>
       </div>
 
-      {/* MOBILE & DESKTOP STICKY SAVE BAR */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-md border-t border-slate-200 dark:border-[#263244] p-3 sm:p-4 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:pb-4 shadow-lg">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+      {/* MOBILE & DESKTOP STICKY ACTION BAR (Positioned above mobile nav on mobile) */}
+      <div className="fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px))] sm:bottom-0 left-0 right-0 z-40 bg-[var(--surface)]/95 backdrop-blur-md border-t border-[var(--border)] p-2.5 sm:p-4 shadow-lg box-border">
+        <div className="max-w-4xl mx-auto grid grid-cols-2 sm:flex sm:items-center sm:justify-between gap-2.5 sm:gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={() => navigate(backDestination)}
-            className="text-xs font-semibold px-4 h-10 border-slate-300"
+            className="w-full sm:w-auto h-[46px] sm:h-10 text-xs font-semibold px-4 border-[var(--border)] text-[var(--text-primary)] bg-[var(--surface)] hover:bg-[var(--surface-secondary)] rounded-xl"
           >
             Cancel
           </Button>
@@ -1022,9 +1032,9 @@ export const QuizBuilderPage: React.FC = () => {
             type="button"
             disabled={isSubmitting}
             onClick={handleSaveQuiz}
-            className="bg-[#2563EB] hover:bg-blue-700 text-white font-bold text-xs sm:text-sm px-6 h-10 rounded-xl shadow-md min-w-[120px]"
+            className="w-full sm:w-auto h-[46px] sm:h-10 bg-[var(--brand-primary)] hover:opacity-90 text-white font-bold text-xs sm:text-sm px-6 rounded-xl shadow-md min-w-[120px]"
           >
-            {isSubmitting ? 'Saving Quiz...' : 'Save Quiz'}
+            {isSubmitting ? 'Saving Quiz...' : 'Create Quiz'}
           </Button>
         </div>
       </div>
