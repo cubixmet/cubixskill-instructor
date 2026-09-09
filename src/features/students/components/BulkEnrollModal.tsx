@@ -136,7 +136,6 @@ export const BulkEnrollModal: React.FC<BulkEnrollModalProps> = ({
   React.useEffect(() => {
     if (!isOpen) return;
     setIsPricingLoading(true);
-    const { courseFeaturesService } = require('../../../services/courseFeatures.service');
     courseFeaturesService
       .getPerStudentPricing(courseUuid)
       .then((res: any) => {
@@ -151,8 +150,6 @@ export const BulkEnrollModal: React.FC<BulkEnrollModalProps> = ({
   const validCount = validStudentsToEnroll.length;
   const totalCreditsRequired = validCount * creditsPerStudent;
   const canProceedToReview = validCount > 0;
-
-  if (!isOpen) return null;
 
   // Handlers for Method 1
   const handleToggleSelectAll = () => {
@@ -176,6 +173,8 @@ export const BulkEnrollModal: React.FC<BulkEnrollModalProps> = ({
   };
 
   const { applyCreditDebitResult } = useCreditSummary();
+
+  if (!isOpen) return null;
 
   const handleConfirmBulkEnrollment = () => {
     setIsSubmitting(true);

@@ -20,7 +20,6 @@ import {
   MoreVertical,
   PlusCircle,
   Loader2,
-  AlertCircle,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -28,6 +27,8 @@ import { Badge } from '../../../components/ui/Badge';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
 import { studentsService, type StudentData } from '../../../services/students.service';
+import { useStudentStore } from '../store/student.store';
+import { EnrollStudentModal } from '../components/EnrollStudentModal';
 
 type StudentTabId =
   | 'overview'
@@ -42,7 +43,8 @@ type StudentTabId =
 
 export const StudentSinglePage: React.FC = () => {
   const navigate = useNavigate();
-  const { studentId, studentUuid } = useParams<{ studentId?: string; studentUuid?: string }>();
+  const toggleStudentStatus = useStudentStore((state) => state.toggleStudentStatus);
+  const { studentId, studentUuid, courseUuid } = useParams<{ studentId?: string; studentUuid?: string; courseUuid?: string }>();
   const id = studentId || studentUuid || '';
 
   const [studentData, setStudentData] = useState<StudentData | null>(null);
@@ -58,8 +60,6 @@ export const StudentSinglePage: React.FC = () => {
   useEffect(() => {
     if (!id) return;
     let isMounted = true;
-    setIsLoading(true);
-    setIsError(false);
 
     Promise.all([
       studentsService.getStudent(id),
@@ -68,15 +68,14 @@ export const StudentSinglePage: React.FC = () => {
       .then(([sData, enrData]) => {
         if (!isMounted) return;
         setStudentData(sData);
-        setEnrollments(enrData || []);
+        setEnrollments(enrData);
+        setIsLoading(false);
       })
       .catch((err) => {
         if (!isMounted) return;
         setIsError(true);
-        setErrorMessage(err.message || 'Student record not found.');
-      })
-      .finally(() => {
-        if (isMounted) setIsLoading(false);
+        setErrorMessage(err?.message || 'Failed to load student details');
+        setIsLoading(false);
       });
 
     return () => { isMounted = false; };
@@ -87,22 +86,7 @@ export const StudentSinglePage: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleToggleStatus = async () => {
-    if (!studentData || !id) return;
-    try {
-      if (studentData.status === 'ACTIVE') {
-        await studentsService.deactivateStudent(id);
-        setStudentData((prev) => prev ? { ...prev, status: 'INACTIVE' } : prev);
-        showToast('Student deactivated.');
-      } else {
-        await studentsService.activateStudent(id);
-        setStudentData((prev) => prev ? { ...prev, status: 'ACTIVE' } : prev);
-        showToast('Student activated.');
-      }
-    } catch (err: any) {
-      showToast(err.message || 'Status update failed.');
-    }
-  };
+
 
   const name = studentData?.display_name || studentData?.full_name || studentData?.user?.full_name || 'Student Profile';
   const email = studentData?.email || studentData?.user?.email || '';
@@ -189,6 +173,22 @@ export const StudentSinglePage: React.FC = () => {
         <div className="fixed top-4 right-4 z-50 px-4 py-3 bg-[#0F172A] text-white text-xs font-semibold rounded-2xl shadow-xl flex items-center gap-2">
           <Check className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex items-center justify-center p-12 bg-white rounded-2xl border border-slate-200">
+          <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+          <span className="ml-2 text-xs font-semibold text-slate-600">Loading student profile...</span>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {isError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-2xl flex items-center justify-between">
+          <span>{errorMessage || 'Failed to load student details.'}</span>
+          <button type="button" onClick={() => setIsError(false)} className="text-rose-500 hover:text-rose-700 font-bold">Dismiss</button>
         </div>
       )}
 

@@ -257,6 +257,7 @@ export const AppRoutes: React.FC = () => {
 
             {/* 6. Live Classroom */}
             <Route path="/live-classroom" element={<GlobalLiveClassroomPage />} />
+            <Route path="/live-classroom/*" element={<GlobalLiveClassroomPage />} />
             <Route path="/live-classroom/create" element={<CreateLiveSessionPage />} />
 
             {/* 7. Demo Leads CRM */}

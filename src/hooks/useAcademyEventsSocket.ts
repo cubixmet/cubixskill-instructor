@@ -34,7 +34,7 @@ export function useAcademyEventsSocket() {
           s.close();
         } else if (s.readyState === WebSocket.CONNECTING) {
           s.onopen = () => {
-            try { s.close(); } catch (_) {}
+            try { s.close(); } catch (_err) { /* ignore */ }
           };
         }
       }

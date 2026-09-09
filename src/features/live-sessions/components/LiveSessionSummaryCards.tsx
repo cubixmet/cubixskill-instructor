@@ -17,6 +17,8 @@ export interface LiveSessionSummaryCardsProps {
   cancelled: number;
   recorded: number;
   avgAttendanceRate: number;
+  onSelectStatusFilter?: (status: string) => void;
+  activeStatusFilter?: string;
 }
 
 export const LiveSessionSummaryCards: React.FC<LiveSessionSummaryCardsProps> = ({
@@ -27,14 +29,16 @@ export const LiveSessionSummaryCards: React.FC<LiveSessionSummaryCardsProps> = (
   cancelled,
   recorded,
   avgAttendanceRate,
+  onSelectStatusFilter,
+  activeStatusFilter,
 }) => {
   const cards = [
-    { label: 'Upcoming', value: upcoming, icon: Clock, color: 'blue' },
-    { label: 'Live Now', value: liveNow, icon: Radio, color: 'rose' },
-    { label: 'Completed', value: completed, icon: CheckCircle2, color: 'emerald' },
-    { label: 'Recorded', value: recorded, icon: Film, color: 'indigo' },
-    { label: 'Avg Attendance', value: `${avgAttendanceRate}%`, icon: TrendingUp, color: 'amber' },
-    { label: 'Cancelled', value: cancelled, icon: XCircle, color: 'slate' },
+    { label: 'Upcoming', value: upcoming, icon: Clock, color: 'blue', statusKey: 'upcoming' },
+    { label: 'Live Now', value: liveNow, icon: Radio, color: 'rose', statusKey: 'live' },
+    { label: 'Completed', value: completed, icon: CheckCircle2, color: 'emerald', statusKey: 'completed' },
+    { label: 'Recorded', value: recorded, icon: Film, color: 'indigo', statusKey: 'all' },
+    { label: 'Avg Attendance', value: `${avgAttendanceRate}%`, icon: TrendingUp, color: 'amber', statusKey: undefined },
+    { label: 'Cancelled', value: cancelled, icon: XCircle, color: 'slate', statusKey: 'cancelled' },
   ];
 
   const getColorStyles = (color: string) => {
@@ -59,12 +63,24 @@ export const LiveSessionSummaryCards: React.FC<LiveSessionSummaryCardsProps> = (
       {cards.map((card, idx) => {
         const Icon = card.icon;
         const colorStyle = getColorStyles(card.color);
+        const isActive = card.statusKey && activeStatusFilter === card.statusKey;
 
         return (
           <Card
             key={idx}
             padding="none"
-            className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-[14px] p-2.5 sm:p-3 shadow-2xs min-w-0 flex flex-col justify-between"
+            onClick={() => {
+              if (card.statusKey && onSelectStatusFilter) {
+                onSelectStatusFilter(isActive ? 'all' : card.statusKey);
+              }
+            }}
+            className={`bg-white dark:bg-[#111827] border rounded-[14px] p-2.5 sm:p-3 shadow-2xs min-w-0 flex flex-col justify-between transition-all ${
+              card.statusKey ? 'cursor-pointer hover:border-blue-400 dark:hover:border-blue-600' : ''
+            } ${
+              isActive
+                ? 'border-blue-500 dark:border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-950/20'
+                : 'border-[#E2E8F0] dark:border-[#263244]'
+            }`}
           >
             <div className="space-y-1.5 min-w-0">
               <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl border flex items-center justify-center shrink-0 ${colorStyle}`}>

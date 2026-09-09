@@ -10,15 +10,11 @@ import {
   Upload,
   Trash2,
   Lock,
-  Mail,
   Phone,
   MapPin,
-  Clock,
   Menu,
   X,
   RotateCcw,
-  Sparkles,
-  Check,
   Bell,
   ChevronDown,
   BookOpen,
@@ -29,8 +25,6 @@ import {
   Video,
   Layers,
   Palette,
-  Type,
-  Layout,
   Sliders,
   CheckCircle2,
   MoreVertical,
@@ -135,7 +129,6 @@ export const WebsiteBuilderPage: React.FC = () => {
   const [academyId, setAcademyId] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string>('');
   const [faviconUrl, setFaviconUrl] = useState<string>('');
-  const [publishedAt, setPublishedAt] = useState<string | null>(null);
   const [hasUnpublishedChanges, setHasUnpublishedChanges] = useState<boolean>(false);
 
   // Editor UI Controls
@@ -149,7 +142,6 @@ export const WebsiteBuilderPage: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   // Interactive State
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);

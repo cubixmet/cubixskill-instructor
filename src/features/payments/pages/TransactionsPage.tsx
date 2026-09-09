@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search,
   X,
@@ -26,11 +26,7 @@ export const TransactionsPage: React.FC = () => {
   const [refundReason, setRefundReason] = useState('');
   const [refunding, setRefunding] = useState(false);
 
-  useEffect(() => {
-    loadTransactions();
-  }, []);
-
-  const loadTransactions = async () => {
+  const loadTransactions = useCallback(async () => {
     try {
       setLoading(true);
       const data = await paymentSettingsService.getTransactions();
@@ -40,7 +36,11 @@ export const TransactionsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadTransactions();
+  }, [loadTransactions]);
 
   const handleRefundSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

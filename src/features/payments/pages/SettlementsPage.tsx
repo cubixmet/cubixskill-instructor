@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Settings,
@@ -16,11 +16,7 @@ export const SettlementsPage: React.FC = () => {
   const [settings, setSettings] = useState<PaymentSettingsData | null>(null);
   const [settlements, setSettlements] = useState<AcademySettlementItem[]>([]);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [settingsRes, settlementsRes] = await Promise.all([
@@ -34,7 +30,11 @@ export const SettlementsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const isMode1 = settings?.payment_mode === 'ACADEMY_RAZORPAY';
 

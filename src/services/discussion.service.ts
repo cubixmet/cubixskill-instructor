@@ -103,12 +103,16 @@ export const discussionService = {
     content: string;
     thread_type?: string;
     media_file_ids?: string[];
+    send_email?: boolean;
+    publish_option?: string;
   }): Promise<BackendDiscussionThread> {
     const payload: Record<string, any> = {
       title: data.title,
       content: data.content,
       thread_type: data.thread_type || 'DISCUSSION',
       media_file_ids: data.media_file_ids || [],
+      send_email: Boolean(data.send_email),
+      publish_option: data.publish_option || 'now',
     };
     if (isValidCourseId(data.course_id)) {
       payload.course_id = data.course_id.trim();

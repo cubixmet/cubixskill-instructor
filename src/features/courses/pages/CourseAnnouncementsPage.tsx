@@ -20,12 +20,14 @@ import { FeatureDisabledBanner } from '../../discussions/components/FeatureDisab
 import { AnnouncementSummaryCards } from '../../announcements/components/AnnouncementSummaryCards';
 import { AnnouncementFilters } from '../../announcements/components/AnnouncementFilters';
 import { AnnouncementCard } from '../../announcements/components/AnnouncementCard';
+import { useCreditSummary } from '../../../hooks/useCreditSummary';
 import { CreateAnnouncementModal } from '../../announcements/components/CreateAnnouncementModal';
 import { AnnouncementDetailModal } from '../../announcements/components/AnnouncementDetailModal';
 import { AnnouncementAnalyticsModal } from '../../announcements/components/AnnouncementAnalyticsModal';
 import { ExportAnnouncementsModal } from '../../announcements/components/ExportAnnouncementsModal';
 
 export const CourseAnnouncementsPage: React.FC = () => {
+  const { applyCreditDebitResult } = useCreditSummary();
   const params = useParams<{ courseUuid?: string; '*': string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -207,6 +209,11 @@ export const CourseAnnouncementsPage: React.FC = () => {
         title: data.title || 'Course Announcement',
         content: data.content || data.summary || '',
         thread_type: 'ANNOUNCEMENT',
+        send_email: data.sendEmail,
+      }).then((res: any) => {
+        if (res?.credit_balance !== undefined) {
+          applyCreditDebitResult({ serverBalance: res.credit_balance });
+        }
       }).catch((err) => console.warn('Failed to sync announcement to backend:', err));
     }
     navigate(`/courses/${courseUuid}/announcements`);

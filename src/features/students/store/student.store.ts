@@ -133,9 +133,10 @@ export const useStudentStore = create<StudentStoreState>()(
 
       addStudent: (data) => {
         const newStudent: StudentDetail = {
+          name: data.name || data.full_name || '',
           ...data,
           uuid: generateUuid(),
-          status: 'Active',
+          status: (data.status as StudentStatus) || 'Active',
           enrollmentDate: new Date().toISOString(),
           lastActivity: 'Just now',
           creditsConsumed: 17,

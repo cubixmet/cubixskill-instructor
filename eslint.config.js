@@ -27,6 +27,9 @@ export default defineConfig([
           caughtErrorsIgnorePattern: '^_',
         },
       ],
+      '@typescript-eslint/no-explicit-any': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
 ])

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { courseFeaturesService, CourseFeatureItem } from '../services/courseFeatures.service';
 import { isValidCourseId } from '../utils/courseValidation.utils';
@@ -28,7 +28,7 @@ export function useCourseFeatures(
     retry: false,
   });
 
-  const features = query.data || [];
+  const features = useMemo(() => query.data || [], [query.data]);
   const isLoading = validCourseId ? query.isLoading : false;
   const error = query.error ? (query.error as any)?.message || 'Failed to load course features' : null;
 

@@ -7,10 +7,13 @@ import {
   Calendar as CalendarIcon,
   BarChart3,
   List,
-  BookOpen,
   Filter,
-  SlidersHorizontal,
   X,
+  TrendingUp,
+  Clock,
+  Link as LinkIcon,
+  CheckCircle2,
+  Play,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -25,10 +28,6 @@ import { DedicatedLiveClassroomView } from '../components/DedicatedLiveClassroom
 import { LiveSessionSummaryCards } from '../components/LiveSessionSummaryCards';
 import { LiveSessionCard } from '../components/LiveSessionCard';
 import { LiveSessionCalendarView } from '../components/LiveSessionCalendarView';
-import { CreateLiveSessionModal } from '../components/CreateLiveSessionModal';
-import { LiveSessionAttendanceModal } from '../components/LiveSessionAttendanceModal';
-import { LiveSessionRecordingModal } from '../components/LiveSessionRecordingModal';
-import { LiveSessionAnalyticsModal } from '../components/LiveSessionAnalyticsModal';
 
 export const GlobalLiveClassroomPage: React.FC = () => {
   const params = useParams<{ courseUuid?: string; sessionUuid?: string; '*': string }>();
@@ -36,7 +35,6 @@ export const GlobalLiveClassroomPage: React.FC = () => {
 
   const courses = usePlatformStore((state) => state.courses || []);
   const sessions = useLiveSessionStore((state) => state.sessions);
-  const updateLiveSession = useLiveSessionStore((state) => state.updateLiveSession);
   const cancelLiveSession = useLiveSessionStore((state) => state.cancelLiveSession);
   const startLiveSession = useLiveSessionStore((state) => state.startLiveSession);
   const endLiveSession = useLiveSessionStore((state) => state.endLiveSession);
@@ -60,12 +58,23 @@ export const GlobalLiveClassroomPage: React.FC = () => {
   const [platformFilter, setPlatformFilter] = useState('all');
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
-  // Modal States
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingSession, setEditingSession] = useState<LiveSessionItem | null>(null);
+  // Inline Panel States
+  const [showAnalyticsPanel, setShowAnalyticsPanel] = useState(false);
   const [activeAttendanceSession, setActiveAttendanceSession] = useState<LiveSessionItem | null>(null);
   const [activeRecordingSession, setActiveRecordingSession] = useState<LiveSessionItem | null>(null);
-  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
+  const [attendanceSearch, setAttendanceSearch] = useState('');
+  const [attendanceStatusFilter, setAttendanceStatusFilter] = useState('all');
+
+  // Recording Form State
+  const [recordingUrlInput, setRecordingUrlInput] = useState('');
+  const [recordingProviderInput, setRecordingProviderInput] = useState<'YouTube' | 'Vimeo' | 'Google Drive' | 'Direct'>('Direct');
+
+  useEffect(() => {
+    if (activeRecordingSession) {
+      setRecordingUrlInput(activeRecordingSession.recordingUrl || '');
+      setRecordingProviderInput(activeRecordingSession.recordingProvider || 'Direct');
+    }
+  }, [activeRecordingSession]);
 
   const fetchCourseLiveSessions = useLiveSessionStore((state) => state.fetchCourseLiveSessions);
   const [summaryData, setSummaryData] = useState<{
@@ -167,69 +176,18 @@ export const GlobalLiveClassroomPage: React.FC = () => {
     );
   }
 
-  const createLiveSession = useLiveSessionStore((state) => state.createLiveSession);
-  const updateLiveSessionApi = useLiveSessionStore((state) => state.updateLiveSessionApi);
-
-  const handleSaveForm = async (data: Partial<LiveSessionItem>) => {
-    if (editingSession) {
-      const scheduledStart = `${data.scheduledDate || editingSession.scheduledDate}T${data.scheduledTime || editingSession.scheduledTime}:00Z`;
-      const endMs = new Date(scheduledStart).getTime() + (data.durationMinutes || editingSession.durationMinutes || 60) * 60 * 1000;
-      const scheduledEnd = new Date(endMs).toISOString();
-
-      let mappedProvider: 'GOOGLE_MEET' | 'ZOOM' | 'MICROSOFT_TEAMS' | 'CUSTOM' = 'CUSTOM';
-      if (data.platform === 'Zoom') mappedProvider = 'ZOOM';
-      else if (data.platform === 'Google Meet') mappedProvider = 'GOOGLE_MEET';
-      else if (data.platform === 'Microsoft Teams') mappedProvider = 'MICROSOFT_TEAMS';
-
-      try {
-        await updateLiveSessionApi(editingSession.id, {
-          title: data.title,
-          description: data.description,
-          scheduled_start: scheduledStart,
-          scheduled_end: scheduledEnd,
-          meeting_url: data.meetingUrl,
-          provider: mappedProvider,
-          recording_enabled: data.isRecorded,
-        });
-      } catch (err) {
-        updateLiveSession(editingSession.id, data);
-      }
-    } else {
-      const scheduledStart = `${data.scheduledDate || '2026-08-25'}T${data.scheduledTime || '18:00'}:00Z`;
-      const endMs = new Date(scheduledStart).getTime() + (data.durationMinutes || 60) * 60 * 1000;
-      const scheduledEnd = new Date(endMs).toISOString();
-
-      let mappedProvider: 'GOOGLE_MEET' | 'ZOOM' | 'MICROSOFT_TEAMS' | 'CUSTOM' = 'CUSTOM';
-      if (data.platform === 'Zoom') mappedProvider = 'ZOOM';
-      else if (data.platform === 'Google Meet') mappedProvider = 'GOOGLE_MEET';
-      else if (data.platform === 'Microsoft Teams') mappedProvider = 'MICROSOFT_TEAMS';
-
-      try {
-        await createLiveSession({
-          course_id: data.courseUuid || null,
-          title: data.title || 'Live Virtual Class',
-          description: data.description || '',
-          scheduled_start: scheduledStart,
-          scheduled_end: scheduledEnd,
-          session_mode: data.sessionType === 'cubixskill_live' ? 'NATIVE' : 'EXTERNAL',
-          provider: mappedProvider,
-          meeting_url: data.meetingUrl || '',
-          max_participants: data.maxParticipants || 100,
-          recording_enabled: data.isRecorded || false,
-          send_email: data.notifyStudents || false,
-          status: 'SCHEDULED',
-        });
-      } catch (err) {
-        console.error("Failed to create live session", err);
-      }
-    }
-  };
-
   const resetFilters = () => {
     setSelectedCourseFilter('all');
     setSearch('');
     setStatusFilter('all');
     setPlatformFilter('all');
+  };
+
+  const handleSaveRecordingForm = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeRecordingSession || !recordingUrlInput.trim()) return;
+    uploadRecording(activeRecordingSession.id, recordingUrlInput, recordingProviderInput);
+    setActiveRecordingSession(null);
   };
 
   return (
@@ -255,16 +213,20 @@ export const GlobalLiveClassroomPage: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsAnalyticsOpen(true)}
-              className="h-[38px] min-h-[38px] text-[11.5px] sm:text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] bg-white dark:bg-[#172033] border-[#E2E8F0] dark:border-[#334155] hover:bg-slate-50 dark:hover:bg-[#1E293B] rounded-xl w-full sm:w-auto px-2.5 sm:px-3.5 inline-flex items-center justify-center gap-1.5"
+              onClick={() => setShowAnalyticsPanel(!showAnalyticsPanel)}
+              className={`h-[38px] min-h-[38px] text-[11.5px] sm:text-xs font-semibold border-[#E2E8F0] dark:border-[#334155] rounded-xl w-full sm:w-auto px-2.5 sm:px-3.5 inline-flex items-center justify-center gap-1.5 ${
+                showAnalyticsPanel
+                  ? 'bg-blue-50 dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] border-blue-200 dark:border-blue-800'
+                  : 'text-[#0F172A] dark:text-[#CBD5E1] bg-white dark:bg-[#172033] hover:bg-slate-50 dark:hover:bg-[#1E293B]'
+              }`}
               leftIcon={<BarChart3 className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />}
             >
-              Analytics
+              {showAnalyticsPanel ? 'Hide Analytics' : 'Analytics'}
             </Button>
 
             <Button
               size="sm"
-              onClick={() => navigate('/live-classroom/new')}
+              onClick={() => navigate('/live-classroom/create')}
               className="h-[38px] min-h-[38px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-[11.5px] sm:text-xs px-2.5 sm:px-4 rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.12)] w-full sm:w-auto inline-flex items-center justify-center gap-1.5"
               leftIcon={<Plus className="w-3.5 h-3.5 stroke-[2.5] shrink-0" />}
             >
@@ -274,7 +236,230 @@ export const GlobalLiveClassroomPage: React.FC = () => {
         </div>
       </Card>
 
-      {/* 2. TELEMETRY SUMMARY CARDS */}
+      {/* INLINE ANALYTICS PANEL */}
+      {showAnalyticsPanel && (
+        <Card padding="md" className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] space-y-4">
+          <div className="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#263244] pb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Virtual Classroom Telemetry & Analytics</h3>
+              <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">Comprehensive view of student attendance, session completion, and teaching hours.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAnalyticsPanel(false)}
+              className="p-1 text-[#64748B] hover:text-[#0F172A] dark:hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="p-4 bg-blue-50 dark:bg-[#0F172A] border border-blue-200 dark:border-[#334155] rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-blue-700 dark:text-[#60A5FA] font-bold text-xs">
+                <span>Avg Student Attendance</span>
+                <TrendingUp className="w-4 h-4" />
+              </div>
+              <h3 className="text-2xl font-black text-blue-950 dark:text-[#F8FAFC]">
+                {sessions.filter((s) => s.status === 'completed').length > 0
+                  ? Math.round(
+                      sessions
+                        .filter((s) => s.status === 'completed')
+                        .reduce((sum, s) => {
+                          const records = s.attendanceRecords || [];
+                          const joined = records.filter((r) => r.status === 'joined').length;
+                          const t = records.length || 1;
+                          return sum + (joined / t) * 100;
+                        }, 0) / sessions.filter((s) => s.status === 'completed').length
+                    )
+                  : 0}%
+              </h3>
+              <p className="text-[10px] text-blue-800 dark:text-[#94A3B8] font-medium">Joined vs registered conversion</p>
+            </div>
+
+            <div className="p-4 bg-indigo-50 dark:bg-[#0F172A] border border-indigo-200 dark:border-[#334155] rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-indigo-700 dark:text-indigo-400 font-bold text-xs">
+                <span>Live Hours Taught</span>
+                <Clock className="w-4 h-4" />
+              </div>
+              <h3 className="text-2xl font-black text-indigo-950 dark:text-[#F8FAFC]">
+                {(
+                  sessions
+                    .filter((s) => s.status === 'completed')
+                    .reduce((sum, s) => sum + s.durationMinutes, 0) / 60
+                ).toFixed(1)} Hours
+              </h3>
+              <p className="text-[10px] text-indigo-800 dark:text-[#94A3B8] font-medium">Across all completed webinars</p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* INLINE ATTENDANCE ROSTER PANEL */}
+      {activeAttendanceSession && (
+        <Card padding="md" className="bg-white dark:bg-[#111827] border border-blue-200 dark:border-blue-900 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#263244] pb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
+                Live Attendance Roster — {activeAttendanceSession.title}
+              </h3>
+              <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
+                {(activeAttendanceSession.attendanceRecords || []).filter((r) => r.status === 'joined').length} Joined •{' '}
+                {(activeAttendanceSession.attendanceRecords || []).filter((r) => r.status === 'absent').length} Absent
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveAttendanceSession(null)}
+              className="p-1 text-[#64748B] hover:text-[#0F172A] dark:hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+            <div className="w-full sm:w-64">
+              <Input
+                placeholder="Search student name or email..."
+                value={attendanceSearch}
+                onChange={(e) => setAttendanceSearch(e.target.value)}
+                leftIcon={<Search className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />}
+                className="bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] placeholder-[#64748B]"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={attendanceStatusFilter}
+                onChange={(e) => setAttendanceStatusFilter(e.target.value)}
+                className="h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] font-bold text-xs text-[#0F172A] dark:text-[#F8FAFC]"
+              >
+                <option value="all">All Students ({(activeAttendanceSession.attendanceRecords || []).length})</option>
+                <option value="joined">Joined Only</option>
+                <option value="absent">Absent Only</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="border border-[#E2E8F0] dark:border-[#263244] rounded-xl overflow-hidden divide-y divide-[#E2E8F0] dark:divide-[#263244]">
+            {(activeAttendanceSession.attendanceRecords || []).filter((r) => {
+              const mSearch = r.studentName.toLowerCase().includes(attendanceSearch.toLowerCase()) || r.studentEmail.toLowerCase().includes(attendanceSearch.toLowerCase());
+              const mStatus = attendanceStatusFilter === 'all' || r.status === attendanceStatusFilter;
+              return mSearch && mStatus;
+            }).length > 0 ? (
+              (activeAttendanceSession.attendanceRecords || []).filter((r) => {
+                const mSearch = r.studentName.toLowerCase().includes(attendanceSearch.toLowerCase()) || r.studentEmail.toLowerCase().includes(attendanceSearch.toLowerCase());
+                const mStatus = attendanceStatusFilter === 'all' || r.status === attendanceStatusFilter;
+                return mSearch && mStatus;
+              }).map((rec) => (
+                <div key={rec.studentUuid} className="p-3 bg-white dark:bg-[#111827] flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-[#2563EB] text-white font-bold text-xs flex items-center justify-center">
+                      {rec.studentName.charAt(0)}
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-[#0F172A] dark:text-[#F8FAFC] text-xs">{rec.studentName}</h4>
+                      <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-medium">{rec.studentEmail}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    {rec.status === 'joined' ? (
+                      <span className="bg-emerald-50 dark:bg-[rgba(16,185,129,0.12)] text-emerald-700 dark:text-[#6EE7B7] font-extrabold text-[10px] px-2 py-0.5 rounded border border-emerald-200 dark:border-[rgba(52,211,153,0.22)]">
+                        Joined ({rec.durationMinutes} mins)
+                      </span>
+                    ) : (
+                      <span className="bg-slate-100 dark:bg-[#0F172A] text-slate-500 dark:text-[#94A3B8] font-bold text-[10px] px-2 py-0.5 rounded border border-slate-200 dark:border-[#334155]">
+                        Absent
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-6 text-center text-[#64748B] dark:text-[#94A3B8] font-bold">No student attendance records match search.</div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* INLINE RECORDING ATTACHMENT PANEL */}
+      {activeRecordingSession && (
+        <Card padding="md" className="bg-white dark:bg-[#111827] border border-blue-200 dark:border-blue-900 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#263244] pb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
+                Attach Session Recording — {activeRecordingSession.title}
+              </h3>
+              <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">Attach recording URL for student playback.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveRecordingSession(null)}
+              className="p-1 text-[#64748B] hover:text-[#0F172A] dark:hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSaveRecordingForm} className="space-y-4 font-sans text-xs text-left">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-[#0F172A] dark:text-[#CBD5E1] mb-1">Recording Provider</label>
+                <select
+                  value={recordingProviderInput}
+                  onChange={(e) => setRecordingProviderInput(e.target.value as typeof recordingProviderInput)}
+                  className="w-full h-9 rounded-lg border border-[#CBD5E1] dark:border-[#334155] px-3 bg-white dark:bg-[#0F172A] font-bold text-[#0F172A] dark:text-[#F8FAFC]"
+                >
+                  <option value="Direct">CubixSkill CDN Direct MP4</option>
+                  <option value="YouTube">YouTube Unlisted Link</option>
+                  <option value="Vimeo">Vimeo Video Link</option>
+                  <option value="Google Drive">Google Drive Shared Link</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-[#0F172A] dark:text-[#CBD5E1] mb-1">Recording URL *</label>
+                <Input
+                  placeholder="https://cdn.cubixskill.com/recordings/session.mp4"
+                  value={recordingUrlInput}
+                  onChange={(e) => setRecordingUrlInput(e.target.value)}
+                  required
+                  leftIcon={<LinkIcon className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />}
+                  className="bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] placeholder-[#64748B]"
+                />
+              </div>
+            </div>
+
+            {activeRecordingSession.recordingUrl && (
+              <div className="p-3 bg-emerald-50 dark:bg-[rgba(16,185,129,0.08)] border border-emerald-200 dark:border-[rgba(52,211,153,0.22)] rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-2 font-bold text-xs text-emerald-950 dark:text-[#6EE7B7]">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-[#34D399] shrink-0" />
+                  <span>Active Recording Attached</span>
+                </div>
+                <a
+                  href={activeRecordingSession.recordingUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 dark:bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-800 transition-colors"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" /> Preview Recording
+                </a>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#E2E8F0] dark:border-[#263244]">
+              <Button variant="outline" type="button" onClick={() => setActiveRecordingSession(null)} className="bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1]">
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold px-6">
+                Save Recording URL
+              </Button>
+            </div>
+          </form>
+        </Card>
+      )}
+
+      {/* 2. METRICS CARDS */}
       <LiveSessionSummaryCards
         total={total}
         liveNow={liveNow}
@@ -283,106 +468,51 @@ export const GlobalLiveClassroomPage: React.FC = () => {
         cancelled={cancelled}
         recorded={recorded}
         avgAttendanceRate={avgAttendanceRate}
+        onSelectStatusFilter={(st) => setStatusFilter(st)}
+        activeStatusFilter={statusFilter}
       />
 
-      {/* 3. MOBILE & DESKTOP FILTER CONTROLS */}
-      <div className="space-y-3 font-sans text-xs w-full max-w-full min-w-0">
-        {/* Mobile Filter Bar (< md) */}
-        <div className="md:hidden space-y-3 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] p-3 rounded-2xl shadow-2xs w-full min-w-0">
-          {/* Search */}
-          <Input
-            placeholder="Search live classes..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            leftIcon={<Search className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />}
-            className="h-10 text-xs w-full bg-white dark:bg-[#0F172A] border-[#E2E8F0] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B]"
-          />
+      {/* 3. FILTERS & SEARCH BAR */}
+      <div className="bg-white dark:bg-[#111827] p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-3 w-full max-w-full min-w-0">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 min-w-0">
+          <div className="relative flex-1 min-w-0">
+            <Input
+              placeholder="Search by session title, topic, platform..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              leftIcon={<Search className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />}
+              className="w-full h-10 bg-slate-50 dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] placeholder-[#64748B] dark:placeholder-[#94A3B8] rounded-xl font-normal text-xs"
+            />
+          </div>
 
-          {/* Quick Status Pills Filter Bar */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 w-full">
-            <button
-              type="button"
-              onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-colors cursor-pointer ${
-                statusFilter === 'all'
-                  ? 'bg-[#2563EB] text-white'
-                  : 'bg-slate-100 dark:bg-[#172033] text-[#475569] dark:text-[#CBD5E1] border border-[#E2E8F0] dark:border-[#334155]'
-              }`}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter('live')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-colors cursor-pointer ${
-                statusFilter === 'live'
-                  ? 'bg-rose-600 text-white'
-                  : 'bg-slate-100 dark:bg-[#172033] text-[#475569] dark:text-[#CBD5E1] border border-[#E2E8F0] dark:border-[#334155]'
-              }`}
-            >
-              Live
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter('upcoming')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-colors cursor-pointer ${
-                statusFilter === 'upcoming'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 dark:bg-[#172033] text-[#475569] dark:text-[#CBD5E1] border border-[#E2E8F0] dark:border-[#334155]'
-              }`}
-            >
-              Upcoming
-            </button>
-
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
             <button
               type="button"
               onClick={() => setIsFilterSheetOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E2E8F0] dark:border-[#334155] bg-slate-50 dark:bg-[#172033] text-[#0F172A] dark:text-[#F8FAFC] font-semibold text-xs shrink-0 transition-colors ml-auto cursor-pointer"
+              className="md:hidden flex items-center justify-center gap-2 h-10 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] font-semibold text-xs shrink-0"
             >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
-              <span>Filter</span>
+              <Filter className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
+              <span>Filters</span>
             </button>
-          </div>
-        </div>
 
-        {/* Desktop Filter Bar (>= md) */}
-        <div className="hidden md:block space-y-3">
-          <div className="p-3 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl flex items-center justify-between gap-3 shadow-2xs">
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
-              <span className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Filter by Course:</span>
-            </div>
-
-            <select
-              value={selectedCourseFilter}
-              onChange={(e) => setSelectedCourseFilter(e.target.value)}
-              className="h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] font-medium text-xs focus:ring-2 focus:ring-[#3B82F6]/20 cursor-pointer"
-            >
-              <option value="all" className="bg-white dark:bg-[#111827]">All Academy Courses ({courses.length})</option>
-              {courses.map((c) => (
-                <option key={c.id} value={c.id} className="bg-white dark:bg-[#111827]">
-                  {c.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] p-3 rounded-2xl shadow-2xs">
-            <div className="flex flex-1 items-center gap-2">
-              <div className="flex-1">
-                <Input
-                  placeholder="Search live sessions by title, platform..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  leftIcon={<Search className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />}
-                  className="bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B]"
-                />
-              </div>
+            <div className="hidden md:flex items-center gap-2 flex-wrap min-w-0">
+              <select
+                value={selectedCourseFilter}
+                onChange={(e) => setSelectedCourseFilter(e.target.value)}
+                className="h-10 rounded-xl border border-[#CBD5E1] dark:border-[#334155] px-3 bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] font-medium text-xs focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20 cursor-pointer max-w-[200px] truncate"
+              >
+                <option value="all" className="bg-white dark:bg-[#111827]">All Courses ({courses.length})</option>
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id} className="bg-white dark:bg-[#111827]">
+                    {c.title}
+                  </option>
+                ))}
+              </select>
 
               <select
                 value={platformFilter}
                 onChange={(e) => setPlatformFilter(e.target.value)}
-                className="h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] font-medium text-xs cursor-pointer"
+                className="h-10 rounded-xl border border-[#CBD5E1] dark:border-[#334155] px-3 bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] font-medium text-xs focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20 cursor-pointer"
               >
                 <option value="all" className="bg-white dark:bg-[#111827]">All Providers</option>
                 <option value="Zoom" className="bg-white dark:bg-[#111827]">Zoom</option>
@@ -395,7 +525,7 @@ export const GlobalLiveClassroomPage: React.FC = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] font-medium text-xs cursor-pointer"
+                className="h-10 rounded-xl border border-[#CBD5E1] dark:border-[#334155] px-3 bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] font-medium text-xs focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20 cursor-pointer"
               >
                 <option value="all" className="bg-white dark:bg-[#111827]">All Statuses</option>
                 <option value="upcoming" className="bg-white dark:bg-[#111827]">Upcoming</option>
@@ -403,37 +533,156 @@ export const GlobalLiveClassroomPage: React.FC = () => {
                 <option value="completed" className="bg-white dark:bg-[#111827]">Completed</option>
                 <option value="cancelled" className="bg-white dark:bg-[#111827]">Cancelled</option>
               </select>
-            </div>
 
-            <div className="flex items-center bg-slate-100 dark:bg-[#0F172A] p-1 rounded-xl border border-[#E2E8F0] dark:border-[#334155] shrink-0">
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  viewMode === 'list'
-                    ? 'bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs font-bold'
-                    : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
-                }`}
-              >
-                <List className="w-3.5 h-3.5" />
-                <span>List Feed</span>
-              </button>
+              <div className="flex items-center bg-slate-100 dark:bg-[#0F172A] p-1 rounded-xl border border-[#E2E8F0] dark:border-[#334155] shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('list')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    viewMode === 'list'
+                      ? 'bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs font-bold'
+                      : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span>List Feed</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setViewMode('calendar')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  viewMode === 'calendar'
-                    ? 'bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs font-bold'
-                    : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
-                }`}
-              >
-                <CalendarIcon className="w-3.5 h-3.5" />
-                <span>Calendar View</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('calendar')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    viewMode === 'calendar'
+                      ? 'bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs font-bold'
+                      : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
+                  }`}
+                >
+                  <CalendarIcon className="w-3.5 h-3.5" />
+                  <span>Calendar View</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* MOBILE FILTER SHEET MODAL */}
+        {isFilterSheetOpen && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end md:hidden">
+            <div className="w-full max-w-xs bg-white dark:bg-[#111827] h-full p-4 space-y-4 overflow-y-auto border-l border-[#E2E8F0] dark:border-[#263244] shadow-xl">
+              <div className="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#263244] pb-3">
+                <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
+                  Filter Live Classes
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsFilterSheetOpen(false)}
+                  className="p-1 text-[#64748B] hover:text-[#0F172A] dark:hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] mb-1">Course</label>
+                  <select
+                    value={selectedCourseFilter}
+                    onChange={(e) => setSelectedCourseFilter(e.target.value)}
+                    className="w-full h-10 rounded-xl border border-[#CBD5E1] dark:border-[#334155] px-3 bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] font-medium text-xs focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20"
+                  >
+                    <option value="all">All Courses ({courses.length})</option>
+                    {courses.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] mb-1">Provider</label>
+                  <select
+                    value={platformFilter}
+                    onChange={(e) => setPlatformFilter(e.target.value)}
+                    className="w-full h-10 rounded-xl border border-[#CBD5E1] dark:border-[#334155] px-3 bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] font-medium text-xs focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20"
+                  >
+                    <option value="all">All Providers</option>
+                    <option value="Zoom">Zoom</option>
+                    <option value="Google Meet">Google Meet</option>
+                    <option value="Microsoft Teams">Microsoft Teams</option>
+                    <option value="Jitsi">Jitsi</option>
+                    <option value="Custom">CubixSkill Live</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] mb-1">Status</label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full h-10 rounded-xl border border-[#CBD5E1] dark:border-[#334155] px-3 bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] font-medium text-xs focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="live">Live Now</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] mb-1">View Mode</label>
+                  <div className="flex items-center bg-slate-100 dark:bg-[#0F172A] p-1 rounded-xl border border-[#E2E8F0] dark:border-[#334155]">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('list')}
+                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        viewMode === 'list'
+                          ? 'bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs font-bold'
+                          : 'text-[#64748B] dark:text-[#94A3B8]'
+                      }`}
+                    >
+                      <List className="w-3.5 h-3.5" />
+                      <span>List</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('calendar')}
+                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        viewMode === 'calendar'
+                          ? 'bg-white dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs font-bold'
+                          : 'text-[#64748B] dark:text-[#94A3B8]'
+                      }`}
+                    >
+                      <CalendarIcon className="w-3.5 h-3.5" />
+                      <span>Calendar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-[#E2E8F0] dark:border-[#263244] flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetFilters}
+                  className="flex-1 h-9 text-xs bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1]"
+                >
+                  Reset
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setIsFilterSheetOpen(false)}
+                  className="flex-1 h-9 text-xs bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium"
+                >
+                  Done
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 4. VIEW CONTENT */}
@@ -441,10 +690,7 @@ export const GlobalLiveClassroomPage: React.FC = () => {
         <LiveSessionCalendarView
           sessions={filteredSessions}
           onSelectSession={(s) => navigate(`/live-classroom/${s.id}`)}
-          onCreateNewDate={(_) => {
-            setEditingSession(null);
-            setIsModalOpen(true);
-          }}
+          onCreateNewDate={(_) => navigate('/live-classroom/create')}
         />
       ) : isLoading ? (
         <div className="space-y-3">
@@ -461,10 +707,7 @@ export const GlobalLiveClassroomPage: React.FC = () => {
             <LiveSessionCard
               key={session.id}
               session={session}
-              onEdit={(s) => {
-                setEditingSession(s);
-                setIsModalOpen(true);
-              }}
+              onEdit={(s) => navigate(`/live-classroom/create?sessionId=${s.id}`)}
               onStart={(id) => {
                 startLiveSession(id);
                 navigate(`/live-classroom/${id}`);
@@ -489,10 +732,7 @@ export const GlobalLiveClassroomPage: React.FC = () => {
             </p>
           </div>
           <Button
-            onClick={() => {
-              setEditingSession(null);
-              setIsModalOpen(true);
-            }}
+            onClick={() => navigate('/live-classroom/create')}
             className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-xs px-5 shadow-[0_4px_12px_rgba(37,99,235,0.12)]"
             leftIcon={<Plus className="w-4 h-4" />}
           >
@@ -500,127 +740,6 @@ export const GlobalLiveClassroomPage: React.FC = () => {
           </Button>
         </Card>
       )}
-
-      {/* MOBILE FILTER BOTTOM SHEET */}
-      {isFilterSheetOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end md:hidden bg-[#0F172A]/60 backdrop-blur-xs">
-          <div className="fixed inset-0" onClick={() => setIsFilterSheetOpen(false)} />
-          <div className="relative bg-white dark:bg-[#111827] border-t border-[#E2E8F0] dark:border-[#263244] rounded-t-2xl p-4 space-y-4 max-h-[85vh] overflow-y-auto z-10 shadow-2xl animate-in slide-in-from-bottom duration-200 text-left font-sans text-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] dark:border-[#263244]">
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
-                <h3 className="font-semibold text-[#0F172A] dark:text-[#F8FAFC] text-sm">Filter Live Classes</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsFilterSheetOpen(false)}
-                className="p-1 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] rounded-lg hover:bg-slate-100 dark:hover:bg-[#172033]"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Course Filter */}
-            <div>
-              <label className="block text-xs font-medium text-[#475569] dark:text-[#CBD5E1] mb-1.5">Course</label>
-              <select
-                value={selectedCourseFilter}
-                onChange={(e) => setSelectedCourseFilter(e.target.value)}
-                className="w-full h-10 rounded-xl border border-[#CBD5E1] dark:border-[#334155] px-3 bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] font-medium text-xs focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20"
-              >
-                <option value="all" className="bg-white dark:bg-[#111827]">All Academy Courses ({courses.length})</option>
-                {courses.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-white dark:bg-[#111827]">
-                    {c.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Provider Platform */}
-            <div>
-              <label className="block text-xs font-medium text-[#475569] dark:text-[#CBD5E1] mb-1.5">Provider Platform</label>
-              <select
-                value={platformFilter}
-                onChange={(e) => setPlatformFilter(e.target.value)}
-                className="w-full h-10 rounded-xl border border-[#CBD5E1] dark:border-[#334155] px-3 bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] font-medium text-xs focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20"
-              >
-                <option value="all" className="bg-white dark:bg-[#111827]">All Providers</option>
-                <option value="Zoom" className="bg-white dark:bg-[#111827]">Zoom</option>
-                <option value="Google Meet" className="bg-white dark:bg-[#111827]">Google Meet</option>
-                <option value="Microsoft Teams" className="bg-white dark:bg-[#111827]">Microsoft Teams</option>
-                <option value="Jitsi" className="bg-white dark:bg-[#111827]">Jitsi</option>
-                <option value="Custom" className="bg-white dark:bg-[#111827]">CubixSkill Live</option>
-              </select>
-            </div>
-
-            {/* Status */}
-            <div>
-              <label className="block text-xs font-medium text-[#475569] dark:text-[#CBD5E1] mb-1.5">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full h-10 rounded-xl border border-[#CBD5E1] dark:border-[#334155] px-3 bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] font-medium text-xs focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20"
-              >
-                <option value="all" className="bg-white dark:bg-[#111827]">All Statuses</option>
-                <option value="upcoming" className="bg-white dark:bg-[#111827]">Upcoming</option>
-                <option value="live" className="bg-white dark:bg-[#111827]">Live Now</option>
-                <option value="completed" className="bg-white dark:bg-[#111827]">Completed</option>
-                <option value="cancelled" className="bg-white dark:bg-[#111827]">Cancelled</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-3 pt-3 border-t border-[#E2E8F0] dark:border-[#263244]">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  resetFilters();
-                  setIsFilterSheetOpen(false);
-                }}
-                className="flex-1 h-10 text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] bg-white dark:bg-[#0F172A] border-[#E2E8F0] dark:border-[#334155]"
-              >
-                Reset
-              </Button>
-              <Button
-                onClick={() => setIsFilterSheetOpen(false)}
-                className="flex-1 h-10 text-xs font-semibold bg-[#2563EB] text-white hover:bg-[#1D4ED8]"
-              >
-                Apply Filters
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODALS */}
-      <CreateLiveSessionModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingSession(null);
-        }}
-        onSubmit={handleSaveForm}
-        editingSession={editingSession}
-      />
-
-      <LiveSessionAttendanceModal
-        isOpen={!!activeAttendanceSession}
-        onClose={() => setActiveAttendanceSession(null)}
-        session={activeAttendanceSession}
-      />
-
-      <LiveSessionRecordingModal
-        isOpen={!!activeRecordingSession}
-        onClose={() => setActiveRecordingSession(null)}
-        session={activeRecordingSession}
-        onSaveRecording={uploadRecording}
-      />
-
-      <LiveSessionAnalyticsModal
-        isOpen={isAnalyticsOpen}
-        onClose={() => setIsAnalyticsOpen(false)}
-        sessions={sessions}
-      />
     </div>
   );
 };

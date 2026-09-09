@@ -41,7 +41,6 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
   onOpenRecording,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
-  const [confirmModal, setConfirmModal] = useState<'cancel' | 'delete' | null>(null);
   const [isStarting, setIsStarting] = useState(false);
 
   const handleStartClick = async () => {
@@ -147,7 +146,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                     type="button"
                     onClick={() => {
                       setShowMenu(false);
-                      setConfirmModal('cancel');
+                      onCancel(session.id);
                     }}
                     className="w-full px-3.5 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center gap-2 text-amber-600 dark:text-amber-400 cursor-pointer"
                   >
@@ -160,7 +159,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                   type="button"
                   onClick={() => {
                     setShowMenu(false);
-                    setConfirmModal('delete');
+                    onDelete(session.id);
                   }}
                   className="w-full px-3.5 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center gap-2 text-rose-600 dark:text-[#F87171] cursor-pointer border-t border-slate-100 dark:border-[#263244]"
                 >
@@ -239,46 +238,6 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
           </div>
         </div>
       </Card>
-
-      {/* CONFIRMATION DIALOG FOR CANCEL / DELETE */}
-      {confirmModal && (
-        <div className="fixed inset-0 z-50 bg-[#0F172A]/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#111827] rounded-2xl p-4 sm:p-5 max-w-sm w-full space-y-4 shadow-2xl border border-[#E2E8F0] dark:border-[#263244] text-left font-sans">
-            <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
-              {confirmModal === 'cancel' ? 'Cancel Live Session?' : 'Delete Live Session?'}
-            </h3>
-            <p className="text-xs text-[#64748B] dark:text-[#94A3B8] font-normal leading-relaxed">
-              {confirmModal === 'cancel'
-                ? `Are you sure you want to cancel "${session.title}"? Students will be notified.`
-                : `Are you sure you want to permanently delete "${session.title}"? This cannot be undone.`}
-            </p>
-
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setConfirmModal(null)}
-                className="text-xs font-semibold h-9 px-3 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1]"
-              >
-                Keep Session
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  if (confirmModal === 'cancel') onCancel(session.id);
-                  else onDelete(session.id);
-                  setConfirmModal(null);
-                }}
-                className={`text-xs font-semibold h-9 px-4 text-white ${
-                  confirmModal === 'cancel' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-[#DC2626] hover:bg-rose-700'
-                }`}
-              >
-                {confirmModal === 'cancel' ? 'Yes, Cancel' : 'Yes, Delete'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

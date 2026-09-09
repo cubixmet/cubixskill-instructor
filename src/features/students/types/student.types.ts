@@ -22,7 +22,7 @@ export interface StudentActivityLog {
 }
 
 export interface StudentDetail {
-  id: string;
+  id?: string;
   uuid: string;
   user_id?: string;
   userId?: string;
@@ -31,6 +31,8 @@ export interface StudentDetail {
   display_name?: string;
   email: string;
   phone?: string;
+  countryCode?: string;
+  country?: string;
   student_code?: string;
   studentCode?: string;
   avatarUrl?: string;
@@ -49,12 +51,16 @@ export interface StudentDetail {
 }
 
 export type CreateStudentInput = {
-  full_name: string;
+  name?: string;
+  full_name?: string;
   email: string;
   phone?: string;
+  countryCode?: string;
+  country?: string;
   date_of_birth?: string | null;
   bio?: string;
   status?: string;
+  notes?: string;
 };
 
 export type UpdateStudentInput = Partial<CreateStudentInput> & {

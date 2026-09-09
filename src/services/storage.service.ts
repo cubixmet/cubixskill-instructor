@@ -277,7 +277,7 @@ export interface StorageUsageChargeItem {
   created_at?: string;
 }
 
-export interface StorageBillingPeriodItem extends StorageUsageChargeItem {}
+export type StorageBillingPeriodItem = StorageUsageChargeItem;
 
 export interface MediaUsageReference {
   id: string;

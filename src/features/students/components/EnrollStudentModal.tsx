@@ -19,6 +19,7 @@ import { SearchableSelect } from '../../../components/forms/SearchableSelect';
 import { FormAlert } from '../../../components/forms/FormAlert';
 import { useStudentStore } from '../store/student.store';
 import { useCreditSummary } from '../../../hooks/useCreditSummary';
+import { courseFeaturesService } from '../../../services/courseFeatures.service';
 import type { StudentDetail } from '../types/student.types';
 
 interface EnrollStudentModalProps {
@@ -81,10 +82,11 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
   const [isPricingLoading, setIsPricingLoading] = useState<boolean>(true);
   const [showBreakdown, setShowBreakdown] = useState<boolean>(false);
 
+  const { applyCreditDebitResult } = useCreditSummary();
+
   React.useEffect(() => {
     if (!isOpen) return;
     setIsPricingLoading(true);
-    const { courseFeaturesService } = require('../../../services/courseFeatures.service');
     courseFeaturesService
       .getPerStudentPricing(selectedCourseUuid)
       .then((res: any) => {
@@ -162,7 +164,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
     setIsConfirmModalOpen(true);
   };
 
-  const { applyCreditDebitResult } = useCreditSummary();
+
 
   const handleExecuteEnrollment = () => {
     let studentToEnrollUuid = selectedStudentUuid;
@@ -539,10 +541,6 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
             <div className="flex justify-between text-[var(--text-muted)] dark:text-[#94A3B8]">
               <span>Credits to Deduct:</span>
               <strong className="text-[var(--brand-primary)] font-bold">{creditsRequired} Credits</strong>
-            </div>
-            <div className="flex justify-between text-[var(--text-muted)] dark:text-[#94A3B8]">
-              <span>Remaining Credit Balance:</span>
-              <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{remainingBalance.toLocaleString()} Credits</strong>
             </div>
           </div>
 

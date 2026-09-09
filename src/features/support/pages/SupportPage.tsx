@@ -12,7 +12,6 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  X,
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
@@ -210,9 +209,12 @@ export const SupportPage: React.FC = () => {
   const handleCreateTicket = () => {
     if (!newSubject.trim() || !newDescription.trim()) return;
 
+    const now = Date.now();
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+
     const ticket: ExtendedSupportTicket = {
-      id: `t-${Date.now()}`,
-      ticketNumber: `SUP-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: `t-${now}`,
+      ticketNumber: `SUP-${randomNum}`,
       subject: newSubject.trim(),
       category: newCategory,
       priority: newPriority,
@@ -222,7 +224,7 @@ export const SupportPage: React.FC = () => {
       description: newDescription.trim(),
       replies: [
         {
-          id: `r-init-${Date.now()}`,
+          id: `r-init-${now}`,
           author: 'Vikramaditya Roy (You)',
           role: 'customer',
           message: newDescription.trim(),

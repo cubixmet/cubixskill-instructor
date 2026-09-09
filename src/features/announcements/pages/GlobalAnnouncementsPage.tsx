@@ -12,6 +12,9 @@ import { Badge } from '../../../components/ui/Badge';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { usePlatformStore } from '../../../store/usePlatformStore';
 
+import { discussionService } from '../../../services/discussion.service';
+import { useCreditSummary } from '../../../hooks/useCreditSummary';
+
 import { useAnnouncementStore, type AnnouncementItem } from '../store/announcement.store';
 import { AnnouncementSummaryCards } from '../components/AnnouncementSummaryCards';
 import { AnnouncementFilters } from '../components/AnnouncementFilters';
@@ -22,6 +25,7 @@ import { AnnouncementAnalyticsModal } from '../components/AnnouncementAnalyticsM
 import { ExportAnnouncementsModal } from '../components/ExportAnnouncementsModal';
 
 export const GlobalAnnouncementsPage: React.FC = () => {
+  const { applyCreditDebitResult } = useCreditSummary();
   const courses = usePlatformStore((state) => state.courses || []);
 
   const announcements = useAnnouncementStore((state) => state.announcements);
@@ -134,6 +138,19 @@ export const GlobalAnnouncementsPage: React.FC = () => {
       updateAnnouncement(editingAnnouncement.id, data);
     } else {
       addAnnouncement(data);
+      if (data.courseUuid) {
+        discussionService.createDiscussion({
+          course_id: data.courseUuid,
+          title: data.title || 'Course Announcement',
+          content: data.content || data.summary || '',
+          thread_type: 'ANNOUNCEMENT',
+          send_email: data.sendEmail,
+        }).then((res: any) => {
+          if (res?.credit_balance !== undefined) {
+            applyCreditDebitResult({ serverBalance: res.credit_balance });
+          }
+        }).catch((err) => console.warn('Failed to sync global announcement to backend:', err));
+      }
     }
   };
 
