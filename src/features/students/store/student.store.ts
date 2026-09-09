@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { StudentDetail, CreateStudentInput, UpdateStudentInput } from '../types/student.types';
+import type { StudentDetail, CreateStudentInput, UpdateStudentInput, StudentStatus } from '../types/student.types';
+import { normalizeStudent } from '../types/student.types';
 
 const generateUuid = (): string => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -123,7 +124,7 @@ interface StudentStoreState {
 export const useStudentStore = create<StudentStoreState>()(
   persist(
     (set, get) => ({
-      students: SEED_STUDENTS,
+      students: SEED_STUDENTS.map((s) => normalizeStudent(s)),
 
       getStudents: () => get().students,
 
@@ -132,28 +133,22 @@ export const useStudentStore = create<StudentStoreState>()(
       },
 
       addStudent: (data) => {
-        const newStudent: StudentDetail = {
-          name: data.name || data.full_name || '',
-          ...data,
+        const newStudent = normalizeStudent({
           uuid: generateUuid(),
+          name: data.name || data.full_name || '',
+          full_name: data.full_name || data.name || '',
+          email: data.email,
+          phone: data.phone,
+          countryCode: data.countryCode,
+          country: data.country,
           status: (data.status as StudentStatus) || 'Active',
+          notes: data.notes,
+          date_of_birth: data.date_of_birth,
+          bio: data.bio || undefined,
           enrollmentDate: new Date().toISOString(),
           lastActivity: 'Just now',
           creditsConsumed: 17,
-          enrolledCourses: [
-            {
-              courseUuid: '550e8400-e29b-41d4-a716-446655440000',
-              courseTitle: 'Fullstack React 19 & TypeScript Masterclass',
-              enrolledAt: new Date().toISOString(),
-              progressPercent: 0,
-              lessonsCompleted: 0,
-              totalLessons: 24,
-              quizzesPassed: 0,
-              assignmentsSubmitted: 0,
-              certificatesEarned: 0,
-              creditsConsumed: 17,
-            },
-          ],
+          enrolledCourses: [],
           activityLogs: [
             {
               id: '1',
@@ -162,7 +157,7 @@ export const useStudentStore = create<StudentStoreState>()(
               details: 'Enrolled by instructor.',
             },
           ],
-        };
+        });
 
         set((state) => ({
           students: [newStudent, ...state.students],
@@ -174,7 +169,7 @@ export const useStudentStore = create<StudentStoreState>()(
       updateStudent: (uuid, updates) => {
         set((state) => ({
           students: state.students.map((s) =>
-            s.uuid === uuid ? { ...s, ...updates } : s
+            s.uuid === uuid ? normalizeStudent({ ...s, ...updates }) : s
           ),
         }));
       },
@@ -189,8 +184,8 @@ export const useStudentStore = create<StudentStoreState>()(
         set((state) => ({
           students: state.students.map((s) => {
             if (s.uuid === uuid) {
-              const nextStatus = s.status === 'Active' ? 'Suspended' : 'Active';
-              return { ...s, status: nextStatus };
+              const nextStatus: StudentStatus = s.status === 'Active' ? 'Suspended' : 'Active';
+              return normalizeStudent({ ...s, status: nextStatus });
             }
             return s;
           }),

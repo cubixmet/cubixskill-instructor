@@ -4,6 +4,7 @@ import { Header } from "../components/layout/Header";
 import { Sidebar } from "../components/layout/Sidebar";
 import { MobileBottomNav } from "../components/layout/MobileBottomNav";
 import { MobileProfileDrawer } from "../components/layout/MobileProfileDrawer";
+import { RouteScrollReset } from "../components/layout/RouteScrollReset";
 import { Drawer } from "../components/ui/Drawer";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../lib/cn";
@@ -16,6 +17,7 @@ export const DashboardLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-left overflow-x-hidden relative transition-colors duration-200">
+      <RouteScrollReset scrollContainerSelector="main" />
       {/* Fixed Sidebar for Desktop and Tablet */}
       <div className="hidden md:block">
         <Sidebar
@@ -48,7 +50,7 @@ export const DashboardLayout: React.FC = () => {
       {/* Main Content Area - Left margin equals sidebar width with smooth transition */}
       <div
         className={cn(
-          "flex-1 flex flex-col min-w-0 pb-20 md:pb-0 transition-all duration-300 ease-in-out min-h-screen",
+          "flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out min-h-screen",
           isCollapsed ? "md:ml-20" : "md:ml-64"
         )}
       >
@@ -56,7 +58,7 @@ export const DashboardLayout: React.FC = () => {
         <Header onOpenMobileMenu={() => setMobileSidebarOpen(true)} />
 
         {/* Page Content with Smooth Transition */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto no-scrollbar">
+        <main className="flex-1 px-3 py-4 sm:px-6 lg:p-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8 overflow-y-auto no-scrollbar w-full min-w-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -64,7 +66,7 @@ export const DashboardLayout: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="max-w-7xl mx-auto space-y-6"
+              className="max-w-7xl mx-auto space-y-6 w-full min-w-0"
             >
               <Outlet />
             </motion.div>

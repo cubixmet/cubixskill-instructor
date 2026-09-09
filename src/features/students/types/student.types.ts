@@ -68,3 +68,29 @@ export type UpdateStudentInput = Partial<CreateStudentInput> & {
   display_name?: string;
   notes?: string;
 };
+
+export const normalizeStudent = (
+  raw: Partial<Omit<StudentDetail, 'status'>> & { status?: string | StudentStatus; full_name?: string; name?: string; email?: string }
+): StudentDetail => {
+  const name = raw.name || raw.full_name || raw.email?.split('@')[0] || 'Unknown Student';
+  return {
+    id: raw.id || raw.uuid || '',
+    uuid: raw.uuid || raw.id || '',
+    name,
+    full_name: raw.full_name || name,
+    display_name: raw.display_name || name,
+    email: raw.email || '',
+    phone: raw.phone || '',
+    countryCode: raw.countryCode || '+91',
+    country: raw.country || 'India',
+    status: (raw.status as StudentStatus) || 'Active',
+    enrollmentDate: raw.enrollmentDate || raw.joined_at || new Date().toISOString(),
+    lastActivity: raw.lastActivity || 'Just now',
+    date_of_birth: raw.date_of_birth ?? null,
+    bio: raw.bio || '',
+    notes: raw.notes || '',
+    creditsConsumed: raw.creditsConsumed ?? 0,
+    enrolledCourses: Array.isArray(raw.enrolledCourses) ? raw.enrolledCourses : [],
+    activityLogs: Array.isArray(raw.activityLogs) ? raw.activityLogs : [],
+  };
+};

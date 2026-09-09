@@ -66,6 +66,7 @@ export interface CanvasElement {
   binding?: string;
   static_text?: string;
   text?: string;
+  value?: string;
   imageUrl?: string;
   x: number; // percentage (0-100) relative to canvas width
   y: number; // percentage (0-100) relative to canvas height

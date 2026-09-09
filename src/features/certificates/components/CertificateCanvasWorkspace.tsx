@@ -205,7 +205,7 @@ export const CertificateCanvasWorkspace: React.FC<CertificateCanvasWorkspaceProp
                       <img src={el.image_url || 'https://via.placeholder.com/150'} alt={el.label} className="w-full h-full object-contain pointer-events-none" />
                     ) : el.type === 'qr' || el.binding === 'certificate.verification_url' || el.id === 'system-verification-qr' ? (
                       <div className="w-full h-full flex items-center justify-center bg-white p-[5%] pointer-events-none select-none">
-                        <QRCodeSVG value="http://localhost:5174/verify/certificate/PREVIEW-DEMO" size={256} bgColor="#FFFFFF" fgColor="#000000" level="M" style={{ width: '100%', height: '100%' }} />
+                        <QRCodeSVG value={el.value || `${import.meta.env.VITE_STUDENT_APP_URL || 'https://cubixskill.com'}/verify/certificate/PREVIEW-DEMO`} size={256} bgColor="#FFFFFF" fgColor="#000000" level="M" style={{ width: '100%', height: '100%' }} />
                       </div>
                     ) : (
                       <div className="w-full h-full overflow-hidden pointer-events-none">
