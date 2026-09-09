@@ -4,6 +4,15 @@ import { courseFeaturesService, CourseFeatureItem } from '../services/courseFeat
 import { isValidCourseId } from '../utils/courseValidation.utils';
 import { useAuthStore } from '../store/auth.store';
 
+const ALIAS_MAP: Record<string, string> = {
+  FEES: 'FEE_COLLECTION',
+  LIVE_SESSIONS: 'LIVE_CLASS',
+  ANNOUNCEMENTS: 'COURSE_ANNOUNCEMENT',
+  CERTIFICATES: 'COMPLETION_CERTIFICATE',
+  DISCUSSIONS: 'COURSE_DISCUSSION',
+  ONE_TO_ONE: 'ONE_TO_ONE_SESSION',
+};
+
 export function useCourseFeatures(
   courseUuid?: string | null,
   options: { enabled?: boolean } = {}
@@ -12,10 +21,11 @@ export function useCourseFeatures(
   const validCourseId = isValidCourseId(courseUuid) ? courseUuid.trim() : null;
 
   const query = useQuery<CourseFeatureItem[]>({
-    queryKey: ['course', validCourseId, 'features'],
+    queryKey: ['course-features', validCourseId],
     queryFn: () => courseFeaturesService.list(validCourseId!),
     enabled: Boolean(validCourseId) && (options.enabled ?? true) && isAuthenticated,
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
   const features = query.data || [];
@@ -30,13 +40,16 @@ export function useCourseFeatures(
 
   const isFeatureEnabled = useCallback(
     (featureCode: string): boolean => {
+      if (!validCourseId) return true;
+      let codeUpper = (featureCode || '').trim().toUpperCase();
+      codeUpper = ALIAS_MAP[codeUpper] || codeUpper;
+      if (isLoading) return true;
       if (!features || features.length === 0) return true;
-      const codeUpper = featureCode.toUpperCase();
       const found = features.find((f) => f.code.toUpperCase() === codeUpper);
       if (!found) return true;
       return Boolean(found.effective_enabled);
     },
-    [features]
+    [validCourseId, isLoading, features]
   );
 
   return {

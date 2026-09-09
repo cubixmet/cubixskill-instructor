@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   SlidersHorizontal,
   Search,
@@ -7,15 +8,11 @@ import {
   AlertCircle,
   RefreshCw,
   Video,
-  HelpCircle,
   FileText,
   MessageSquare,
   Bell,
   Award,
-  Tag,
   Wallet,
-  Download,
-  BarChart2,
   Lock,
   ArrowRight,
   Sparkles,
@@ -23,11 +20,13 @@ import {
 import { courseFeaturesService, CourseFeatureItem } from '../../../services/courseFeatures.service';
 import { Button } from '../../../components/ui/Button';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { Modal } from '../../../components/ui/Modal';
 import { parseApiError } from '../../../api/errors';
 import { normalizeCourseId } from '../../../utils/courseValidation.utils';
-import { CreditUsageConfirmationModal } from '../../../components/credits/CreditUsageConfirmationModal';
+import { formatCreditRate } from '../../../utils/creditFormatter';
 
 export const CourseFeaturesPage: React.FC = () => {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const { courseUuid, courseId } = useParams<{ courseUuid?: string; courseId?: string }>();
@@ -67,6 +66,7 @@ export const CourseFeaturesPage: React.FC = () => {
         initialMap[f.code] = f.effective_enabled;
       });
       setLocalSelections(initialMap);
+      queryClient.setQueryData(['course-features', activeCourseId], data);
     } catch (err: any) {
       console.error('Failed to load course features:', err);
       const parsed = parseApiError(err);
@@ -74,28 +74,92 @@ export const CourseFeaturesPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [activeCourseId]);
+  }, [activeCourseId, queryClient]);
 
   useEffect(() => {
     loadFeatures();
   }, [loadFeatures]);
 
-  const handleToggleLocal = (feature: CourseFeatureItem) => {
-    if (!feature.can_configure || !feature.academy_enabled) {
-      showToast('This feature is not included in your Academy plan.');
+  const [confirmDisableFeature, setConfirmDisableFeature] = useState<CourseFeatureItem | null>(null);
+  const [pendingToggleCodes, setPendingToggleCodes] = useState<Set<string>>(new Set());
+
+  const handleToggleLocal = async (feature: CourseFeatureItem) => {
+    if (!feature.can_configure || !feature.academy_enabled || pendingToggleCodes.has(feature.code)) {
+      if (!feature.can_configure || !feature.academy_enabled) {
+        showToast('This feature is not included in your Academy plan.');
+      }
       return;
     }
-    setLocalSelections((prev) => ({
-      ...prev,
-      [feature.code]: !prev[feature.code],
-    }));
+    const currentVal = Boolean(localSelections[feature.code]);
+    if (currentVal) {
+      // Disabling feature: show confirmation modal
+      setConfirmDisableFeature(feature);
+    } else {
+      // Enabling feature: execute PATCH immediately
+      await executeToggleFeature(feature.code, true);
+    }
   };
 
-  const [isCreditConfirmOpen, setIsCreditConfirmOpen] = useState<boolean>(false);
+  const executeToggleFeature = async (code: string, targetState: boolean) => {
+    if (!activeCourseId || pendingToggleCodes.has(code)) return;
+    const prevMap = { ...localSelections };
 
-  const handleOpenCreditConfirm = () => {
-    if (!activeCourseId || isSaving) return;
-    setIsCreditConfirmOpen(true);
+    // Set per-feature pending state to block duplicate conflicting requests on rapid clicking
+    setPendingToggleCodes((prev) => new Set(prev).add(code));
+
+    // 1. Instant UI update in local state
+    setLocalSelections((prev) => ({ ...prev, [code]: targetState }));
+    setConfirmDisableFeature(null);
+
+    // 2. Instant optimistic update in React Query cache (updates navigation tabs & route guards)
+    queryClient.setQueryData<CourseFeatureItem[]>(
+      ['course-features', activeCourseId],
+      (old) => {
+        if (!old) return old;
+        return old.map((f) => (f.code === code ? { ...f, effective_enabled: targetState, is_enabled: targetState } : f));
+      }
+    );
+
+    // 3. Background PATCH execution & reconciliation
+    try {
+      let res: any;
+      if (targetState) {
+        res = await courseFeaturesService.enable(activeCourseId, code);
+      } else {
+        res = await courseFeaturesService.disable(activeCourseId, code);
+      }
+      showToast(`Feature ${targetState ? 'enabled' : 'disabled'} successfully.`);
+
+      // Reconcile with authoritative server response or fresh list
+      const freshList = (res && Array.isArray(res.features)) ? res.features : await courseFeaturesService.list(activeCourseId);
+      setFeatures(freshList);
+      const freshMap: Record<string, boolean> = {};
+      freshList.forEach((f: CourseFeatureItem) => {
+        freshMap[f.code] = f.effective_enabled;
+      });
+      setLocalSelections(freshMap);
+      queryClient.setQueryData(['course-features', activeCourseId], freshList);
+      queryClient.invalidateQueries({ queryKey: ['academy-credits'] });
+    } catch (err: any) {
+      console.error('Failed to toggle course feature:', err);
+      // 4. Safe optimistic rollback on error
+      setLocalSelections(prevMap);
+      queryClient.setQueryData<CourseFeatureItem[]>(
+        ['course-features', activeCourseId],
+        (old) => {
+          if (!old) return old;
+          return old.map((f) => (f.code === code ? { ...f, effective_enabled: !targetState, is_enabled: !targetState } : f));
+        }
+      );
+      const parsed = parseApiError(err);
+      showToast(parsed.message || 'Failed to update feature setting.');
+    } finally {
+      setPendingToggleCodes((prev) => {
+        const next = new Set(prev);
+        next.delete(code);
+        return next;
+      });
+    }
   };
 
   const handleConfirmSave = async () => {
@@ -104,7 +168,6 @@ export const CourseFeaturesPage: React.FC = () => {
     try {
       await courseFeaturesService.saveBulk(activeCourseId, localSelections);
       showToast('Course features saved successfully.');
-      setIsCreditConfirmOpen(false);
       navigate(`/courses/${activeCourseId}/overview`);
     } catch (err: any) {
       console.error('Failed to bulk save course features:', err);
@@ -144,18 +207,6 @@ export const CourseFeaturesPage: React.FC = () => {
     }
     return list;
   }, [features, activeCategory, searchQuery]);
-
-  const baseCreditsPerStudent = 1;
-  const activeFeatureCreditsSum = useMemo(() => {
-    return features.reduce((sum, f) => {
-      if (localSelections[f.code]) {
-        return sum + (f.credit_cost ?? f.pricing?.credit_cost ?? 0);
-      }
-      return sum;
-    }, 0);
-  }, [features, localSelections]);
-
-  const totalCourseCreditsPerStudent = baseCreditsPerStudent + activeFeatureCreditsSum;
 
   const getFeatureIcon = (code: string) => {
     switch (code) {
@@ -262,45 +313,7 @@ export const CourseFeaturesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* PER STUDENT PRICING CALCULATOR BANNER */}
-      <div className="bg-white dark:bg-[#111827] p-4 rounded-2xl border border-blue-200 dark:border-blue-900/50 shadow-2xs space-y-3 font-normal">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#263244] pb-3">
-          <div>
-            <h2 className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              Course Credit Pricing Calculator
-            </h2>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal mt-0.5">
-              Platform usage is charged per enrolled student (Base Student Access + Enabled Features).
-            </p>
-          </div>
-          <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 px-3.5 py-1.5 rounded-xl shrink-0 text-right">
-            <span className="text-[10px] text-blue-600 dark:text-blue-400 block font-normal">Per Student Credit Rate</span>
-            <span className="text-sm font-bold text-blue-700 dark:text-blue-300">
-              {totalCourseCreditsPerStudent} Credits / Student
-            </span>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-normal">
-          <div className="bg-slate-50 dark:bg-[#0F172A] p-2.5 rounded-xl border border-slate-200 dark:border-[#263244]">
-            <span className="text-slate-500 block text-[10px]">Base Student Access</span>
-            <strong className="text-slate-900 dark:text-white font-semibold">{baseCreditsPerStudent} Cr / Student</strong>
-          </div>
-          <div className="bg-slate-50 dark:bg-[#0F172A] p-2.5 rounded-xl border border-slate-200 dark:border-[#263244]">
-            <span className="text-slate-500 block text-[10px]">Active Features Sum</span>
-            <strong className="text-slate-900 dark:text-white font-semibold">+{activeFeatureCreditsSum} Cr / Student</strong>
-          </div>
-          <div className="bg-slate-50 dark:bg-[#0F172A] p-2.5 rounded-xl border border-slate-200 dark:border-[#263244]">
-            <span className="text-slate-500 block text-[10px]">10 Enrolled Students</span>
-            <strong className="text-slate-900 dark:text-white font-semibold">{totalCourseCreditsPerStudent * 10} Credits Total</strong>
-          </div>
-          <div className="bg-slate-50 dark:bg-[#0F172A] p-2.5 rounded-xl border border-slate-200 dark:border-[#263244]">
-            <span className="text-slate-500 block text-[10px]">100 Enrolled Students</span>
-            <strong className="text-slate-900 dark:text-white font-semibold">{totalCourseCreditsPerStudent * 100} Credits Total</strong>
-          </div>
-        </div>
-      </div>
 
       {/* Search & Category Filter */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-[#111827] p-3.5 rounded-2xl border border-slate-200 dark:border-[#263244] shadow-2xs">
@@ -394,7 +407,10 @@ export const CourseFeaturesPage: React.FC = () => {
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
-                          {feat.display_text || feat.pricing?.display_text || `${(feat.credit_cost ?? feat.pricing?.credit_cost ?? 0) > 0 ? '+' : ''}${feat.credit_cost ?? feat.pricing?.credit_cost ?? 0} Credits / ${feat.billing_unit || feat.pricing?.billing_unit}`}
+                          {formatCreditRate(
+                            feat.credit_cost ?? feat.pricing?.credit_cost ?? 0,
+                            feat.billing_unit_label || feat.billing_unit || feat.pricing?.billing_unit
+                          )}
                         </span>
                       )}
                     </div>
@@ -412,7 +428,7 @@ export const CourseFeaturesPage: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      disabled={isAcademyDisabled}
+                      disabled={isAcademyDisabled || pendingToggleCodes.has(feat.code)}
                       onChange={() => handleToggleLocal(feat)}
                       className="sr-only peer"
                     />
@@ -440,7 +456,7 @@ export const CourseFeaturesPage: React.FC = () => {
           <Button
             size="sm"
             disabled={isSaving}
-            onClick={handleOpenCreditConfirm}
+            onClick={handleConfirmSave}
             className="h-10 font-normal bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 flex-1 sm:flex-initial justify-center shadow-xs"
             rightIcon={<ArrowRight className="w-4 h-4" />}
           >
@@ -449,19 +465,43 @@ export const CourseFeaturesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Credit Usage Confirmation Modal */}
-      <CreditUsageConfirmationModal
-        isOpen={isCreditConfirmOpen}
-        onClose={() => setIsCreditConfirmOpen(false)}
-        onConfirm={handleConfirmSave}
-        resourceType="COURSE_FEATURE"
-        resourceId="LIVE_CLASS"
-        courseId={activeCourseId || undefined}
-        dailyCost={totalCourseCreditsPerStudent}
-        isSubmitting={isSaving}
-        title="Daily Credit Usage"
-        description="Course features and storage consumption are billed daily based on active Academy usage."
-      />
+      {/* Feature Disable Confirmation Modal */}
+      {confirmDisableFeature && (
+        <Modal
+          isOpen={Boolean(confirmDisableFeature)}
+          onClose={() => setConfirmDisableFeature(null)}
+          title={`Disable ${confirmDisableFeature.name}?`}
+          subtitle="Please confirm if you want to turn off this feature for this course."
+          size="sm"
+        >
+          <div className="space-y-4 pt-1 text-xs text-slate-600 dark:text-slate-300 font-normal">
+            <p>
+              Disabling <strong>{confirmDisableFeature.name}</strong> will hide this functionality from enrolled students and instructors.
+            </p>
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl text-amber-800 dark:text-amber-300 text-[11px] leading-relaxed">
+              <strong>Note:</strong> Existing data (such as published lessons, discussions, or previously issued certificates) will not be deleted.
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmDisableFeature(null)}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="bg-rose-600 hover:bg-rose-700 text-white"
+                disabled={isSaving}
+                onClick={() => executeToggleFeature(confirmDisableFeature.code, false)}
+              >
+                {isSaving ? 'Disabling...' : 'Disable Feature'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

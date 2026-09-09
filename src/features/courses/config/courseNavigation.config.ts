@@ -54,6 +54,7 @@ export const COURSE_NAV_SECTIONS: CourseNavSection[] = [
     route: 'curriculum',
     group: 'CORE',
     priority: 1,
+    requiredFeature: 'LESSONS',
     matchPatterns: [
       '/courses/:courseId/curriculum',
       '/courses/:courseId/curriculum/modules/new',
@@ -97,7 +98,7 @@ export const COURSE_NAV_SECTIONS: CourseNavSection[] = [
     route: 'live-sessions',
     group: 'LEARNING',
     priority: 1,
-    requiredFeature: 'LIVE_SESSIONS',
+    requiredFeature: 'LIVE_CLASS',
     matchPatterns: [
       '/courses/:courseId/live-sessions',
       '/courses/:courseId/live-sessions/new',
@@ -111,7 +112,7 @@ export const COURSE_NAV_SECTIONS: CourseNavSection[] = [
     route: 'fees',
     group: 'MANAGEMENT',
     priority: 1,
-    requiredFeature: 'FEES',
+    requiredFeature: 'FEE_COLLECTION',
     matchPatterns: [
       '/courses/:courseId/fees',
     ],

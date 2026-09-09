@@ -3,8 +3,6 @@ import { CreditCard, CheckCircle2, ChevronRight, X } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 
 export interface FeatureCreditSummaryBarProps {
-  baseCredit: number;
-  featureAddonsCost: number;
   finalCreditsPerStudent: number;
   enabledFeaturesCount: number;
   unsavedCount?: number;
@@ -12,10 +10,8 @@ export interface FeatureCreditSummaryBarProps {
 }
 
 export const FeatureCreditSummaryBar: React.FC<FeatureCreditSummaryBarProps> = ({
-  baseCredit = 10,
-  featureAddonsCost = 8,
-  finalCreditsPerStudent = 18,
-  enabledFeaturesCount = 12,
+  finalCreditsPerStudent = 0,
+  enabledFeaturesCount = 0,
   unsavedCount = 0,
   enabledFeaturesList = [],
 }) => {
@@ -49,30 +45,16 @@ export const FeatureCreditSummaryBar: React.FC<FeatureCreditSummaryBarProps> = (
             </div>
           </div>
 
-          {/* Breakdown Pills */}
+          {/* Breakdown Button */}
           <div className="flex flex-wrap items-center gap-2 text-xs font-sans">
-            <div className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-xl">
-              <span className="text-slate-500 font-bold block text-[10px]">Mandatory Base</span>
-              <span className="font-extrabold text-slate-900">{baseCredit} Credits</span>
-            </div>
-
-            <span className="text-slate-400 font-bold text-sm">+</span>
-
-            <div className="px-3 py-1 bg-blue-50 border border-blue-200 rounded-xl">
-              <span className="text-blue-700 font-bold block text-[10px]">Feature Add-ons</span>
-              <span className="font-extrabold text-blue-950">+{featureAddonsCost} Credits</span>
-            </div>
-
-            <span className="text-slate-400 font-bold text-sm">=</span>
-
             <button
               type="button"
               onClick={() => setShowBreakdown(true)}
-              className="px-3.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl cursor-pointer transition-colors flex items-center gap-1.5"
+              className="px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl cursor-pointer transition-colors flex items-center gap-1.5"
             >
               <div>
                 <span className="text-emerald-700 font-bold block text-[10px]">Total Per Student</span>
-                <span className="font-black text-emerald-950">{finalCreditsPerStudent} Credits</span>
+                <span className="font-black text-emerald-950">{finalCreditsPerStudent} Credits / Student</span>
               </div>
               <ChevronRight className="w-3.5 h-3.5 text-emerald-700" />
             </button>
@@ -101,7 +83,7 @@ export const FeatureCreditSummaryBar: React.FC<FeatureCreditSummaryBarProps> = (
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-blue-600" />
-                Credit Estimate Breakdown
+                Per-Student Credit Breakdown
               </h3>
               <button
                 type="button"
@@ -113,21 +95,16 @@ export const FeatureCreditSummaryBar: React.FC<FeatureCreditSummaryBarProps> = (
             </div>
 
             <div className="space-y-2 text-xs">
-              <div className="flex justify-between py-1 border-b border-slate-100 font-bold text-slate-900">
-                <span>Base Course Access</span>
-                <span>{baseCredit} Credits</span>
-              </div>
-
               {enabledFeaturesList.map((f, i) => (
                 <div key={i} className="flex justify-between py-1 text-slate-600 font-medium">
                   <span>{f.name}</span>
-                  <span className="font-bold text-blue-600">+{f.cost} Credits</span>
+                  <span className="font-bold text-blue-600">{f.cost} Credits / Student</span>
                 </div>
               ))}
 
               <div className="flex justify-between pt-2 border-t border-slate-200 font-black text-sm text-slate-900">
-                <span>Total Per Enrolled Student</span>
-                <span className="text-emerald-600">⚡ {finalCreditsPerStudent} Credits</span>
+                <span>Total Per Student</span>
+                <span className="text-emerald-600">⚡ {finalCreditsPerStudent} Credits / Student</span>
               </div>
             </div>
 

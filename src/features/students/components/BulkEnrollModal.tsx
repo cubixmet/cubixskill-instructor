@@ -13,6 +13,7 @@ import { Badge } from '../../../components/ui/Badge';
 import { Modal } from '../../../components/ui/Modal';
 import { FormAlert } from '../../../components/forms/FormAlert';
 import { useStudentStore } from '../store/student.store';
+import { useCreditSummary } from '../../../hooks/useCreditSummary';
 import type { StudentDetail } from '../types/student.types';
 
 export interface BulkEnrollModalProps {
@@ -128,15 +129,28 @@ export const BulkEnrollModal: React.FC<BulkEnrollModalProps> = ({
     return parsedEmailEntries.filter((e) => e.status === 'valid_existing' || e.status === 'valid_new');
   }, [method, selectedUuids, students, parsedEmailEntries]);
 
+  // Real Backend Credit Pricing state
+  const [creditsPerStudent, setCreditsPerStudent] = useState<number>(0);
+  const [isPricingLoading, setIsPricingLoading] = useState<boolean>(true);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    setIsPricingLoading(true);
+    const { courseFeaturesService } = require('../../../services/courseFeatures.service');
+    courseFeaturesService
+      .getPerStudentPricing(courseUuid)
+      .then((res: any) => {
+        setCreditsPerStudent(res.total_per_student_credits || 0);
+      })
+      .finally(() => {
+        setIsPricingLoading(false);
+      });
+  }, [isOpen, courseUuid]);
+
   // Credit calculation
-  const creditsPerStudent = 17;
   const validCount = validStudentsToEnroll.length;
   const totalCreditsRequired = validCount * creditsPerStudent;
-  const availableWalletBalance = 12450;
-  const remainingWalletBalance = availableWalletBalance - totalCreditsRequired;
-
-  const isCreditSufficient = remainingWalletBalance >= 0;
-  const canProceedToReview = validCount > 0 && isCreditSufficient;
+  const canProceedToReview = validCount > 0;
 
   if (!isOpen) return null;
 
@@ -160,6 +174,8 @@ export const BulkEnrollModal: React.FC<BulkEnrollModalProps> = ({
       setSelectedUuids([...selectedUuids, uuid]);
     }
   };
+
+  const { applyCreditDebitResult } = useCreditSummary();
 
   const handleConfirmBulkEnrollment = () => {
     setIsSubmitting(true);
@@ -191,6 +207,11 @@ export const BulkEnrollModal: React.FC<BulkEnrollModalProps> = ({
             enrolledCount++;
           }
         });
+      }
+
+      const totalOptimisticDebit = enrolledCount * creditsPerStudent;
+      if (totalOptimisticDebit > 0) {
+        applyCreditDebitResult({ optimisticDebit: totalOptimisticDebit });
       }
 
       setResultSummary({
@@ -370,39 +391,27 @@ export const BulkEnrollModal: React.FC<BulkEnrollModalProps> = ({
             <div className="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[14px] space-y-2.5">
               <div className="flex items-center justify-between font-semibold text-xs text-[#0F172A]">
                 <span className="flex items-center gap-1.5">
-                  <CreditCard className="w-4 h-4 text-[#2563EB]" /> Bulk Credit Calculator
+                  <CreditCard className="w-4 h-4 text-[#2563EB]" /> Bulk Credit Requirement
                 </span>
-                <strong className="text-[#2563EB] text-sm">{totalCreditsRequired.toLocaleString()} Credits</strong>
+                <strong className="text-[#2563EB] text-sm">
+                  {isPricingLoading ? 'Loading...' : `${totalCreditsRequired.toLocaleString()} Total Credits`}
+                </strong>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center pt-1 text-[11px]">
+              <div className="grid grid-cols-3 gap-2 text-center pt-1 text-[11px]">
                 <div className="p-2 bg-white rounded-lg border border-[#E2E8F0]">
-                  <span className="text-[#64748B] block">Valid Students</span>
+                  <span className="text-[#64748B] block">Per Student</span>
+                  <strong className="text-[#2563EB] font-bold text-xs">{creditsPerStudent} Credits</strong>
+                </div>
+                <div className="p-2 bg-white rounded-lg border border-[#E2E8F0]">
+                  <span className="text-[#64748B] block">New Billable Students</span>
                   <strong className="text-[#0F172A] font-bold text-xs">{validCount}</strong>
                 </div>
                 <div className="p-2 bg-white rounded-lg border border-[#E2E8F0]">
-                  <span className="text-[#64748B] block">Per Student</span>
-                  <strong className="text-[#2563EB] font-bold text-xs">17 Credits</strong>
-                </div>
-                <div className="p-2 bg-white rounded-lg border border-[#E2E8F0]">
-                  <span className="text-[#64748B] block">Available Wallet</span>
-                  <strong className="text-[#0F172A] font-bold text-xs">12,450</strong>
-                </div>
-                <div className="p-2 bg-white rounded-lg border border-[#E2E8F0]">
-                  <span className="text-[#64748B] block">Remaining</span>
-                  <strong className={remainingWalletBalance >= 0 ? 'text-emerald-600 font-bold text-xs' : 'text-rose-600 font-bold text-xs'}>
-                    {remainingWalletBalance.toLocaleString()}
-                  </strong>
+                  <span className="text-[#64748B] block">Total Required</span>
+                  <strong className="text-emerald-600 font-bold text-xs">{totalCreditsRequired.toLocaleString()} Credits</strong>
                 </div>
               </div>
-
-              {!isCreditSufficient && (
-                <FormAlert
-                  variant="error"
-                  title="Insufficient Credit Balance"
-                  description={`You need ${Math.abs(remainingWalletBalance).toLocaleString()} more credits to complete this enrollment.`}
-                />
-              )}
             </div>
 
             {/* FOOTER ACTIONS */}

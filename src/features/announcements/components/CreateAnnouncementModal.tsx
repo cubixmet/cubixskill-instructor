@@ -17,6 +17,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { useCourseFeaturesStore } from '../../courses/store/courseFeatures.store';
+import { useCourseFeatures } from '../../../hooks/useCourseFeatures';
 import { useLiveSessionStore } from '../../live-sessions/store/liveSession.store';
 import { usePlatformStore } from '../../../store/usePlatformStore';
 import type { AnnouncementItem, AnnouncementAttachment } from '../store/announcement.store';
@@ -66,6 +67,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
   const [pendingFile, setPendingFile] = useState<AnnouncementAttachment | null>(null);
 
   const activeCourseUuid = defaultCourseUuid || selectedCourseUuid;
+  const { isFeatureEnabled } = useCourseFeatures(activeCourseUuid);
   const courseFeatures = getCourseFeatures ? getCourseFeatures(activeCourseUuid) : { liveSessions: true };
 
   const availableLiveSessions = liveSessions.filter((s) => s.courseUuid === activeCourseUuid);
@@ -87,7 +89,6 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
       setAllowComments(editingAnnouncement.allowComments);
       setLinkedLiveSessionId(editingAnnouncement.linkedLiveSessionId || '');
       setAttachments(editingAnnouncement.attachments || []);
-      setTargetSegment((editingAnnouncement.targetSegment as 'all_students' | 'enrolled_only' | 'interested_only') || 'all_students');
     } else {
       setSelectedCourseUuid(defaultCourseUuid || (courses[0]?.id || ''));
       setTitle('');
@@ -366,15 +367,17 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
           <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
             <label className="block font-extrabold text-slate-900 text-xs">Notification Channels</label>
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-1.5 font-bold text-slate-800 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={sendEmail}
-                  onChange={(e) => setSendEmail(e.target.checked)}
-                  className="rounded text-blue-600 focus:ring-blue-500"
-                />
-                <Mail className="w-3.5 h-3.5 text-blue-600" /> Send Email
-              </label>
+              {isFeatureEnabled('EMAIL_DELIVERY') && (
+                <label className="flex items-center gap-1.5 font-bold text-slate-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sendEmail}
+                    onChange={(e) => setSendEmail(e.target.checked)}
+                    className="rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <Mail className="w-3.5 h-3.5 text-blue-600" /> Send Email
+                </label>
+              )}
 
               <label className="flex items-center gap-1.5 font-bold text-slate-800 cursor-pointer">
                 <input

@@ -183,10 +183,11 @@ export const creditService = {
   },
 
   async getUsagePreview(payload: {
-    resource_type: string;
-    resource_id: string;
+    feature_code?: string;
+    resource_type?: string;
+    resource_id?: string;
     course_id?: string;
-  }): Promise<CreditUsagePreviewResponse> {
+  }): Promise<any> {
     const res = await apiClient.post('/api/v1/credits/usage-preview/', payload);
     return res.data?.data || res.data;
   },

@@ -22,6 +22,7 @@ export interface CourseFeatureItem {
   disabled_at?: string | null;
   credit_cost?: number;
   billing_unit?: string;
+  billing_unit_label?: string;
   is_included_in_base?: boolean;
   display_text?: string;
   pricing?: {
@@ -60,23 +61,27 @@ export const courseFeaturesService = {
         return (Array.isArray(body) ? body : []) as CourseFeatureItem[];
       })
       .finally(() => {
-        setTimeout(() => {
-          pendingFeaturesPromises.delete(validId);
-        }, 2000);
+        pendingFeaturesPromises.delete(validId);
       });
 
     pendingFeaturesPromises.set(validId, promise);
     return promise;
   },
 
-  async enable(courseUuid?: string | null, featureCode?: string): Promise<void> {
-    if (!isValidCourseId(courseUuid) || !featureCode) return;
-    await apiClient.post(`/api/v1/courses/${encodeURIComponent(courseUuid.trim())}/features/${encodeURIComponent(featureCode)}/enable/`);
+  async enable(courseUuid?: string | null, featureCode?: string): Promise<any> {
+    const validId = normalizeCourseId(courseUuid);
+    if (!validId || !featureCode) return null;
+    if (validId) pendingFeaturesPromises.delete(validId);
+    const res = await apiClient.post(`/api/v1/courses/${encodeURIComponent(validId)}/features/${encodeURIComponent(featureCode)}/enable/`);
+    return res.data;
   },
 
-  async disable(courseUuid?: string | null, featureCode?: string): Promise<void> {
-    if (!isValidCourseId(courseUuid) || !featureCode) return;
-    await apiClient.post(`/api/v1/courses/${encodeURIComponent(courseUuid.trim())}/features/${encodeURIComponent(featureCode)}/disable/`);
+  async disable(courseUuid?: string | null, featureCode?: string): Promise<any> {
+    const validId = normalizeCourseId(courseUuid);
+    if (!validId || !featureCode) return null;
+    if (validId) pendingFeaturesPromises.delete(validId);
+    const res = await apiClient.post(`/api/v1/courses/${encodeURIComponent(validId)}/features/${encodeURIComponent(featureCode)}/disable/`);
+    return res.data;
   },
 
   async toggle(courseUuid?: string | null, featureCode?: string, currentlyEnabled?: boolean): Promise<void> {
@@ -101,5 +106,32 @@ export const courseFeaturesService = {
           ? data.data
           : data;
     return (Array.isArray(body) ? body : []) as CourseFeatureItem[];
+  },
+
+  async getPerStudentPricing(courseUuid?: string | null): Promise<{
+    total_per_student_credits: number;
+    per_student_features: Array<{
+      key: string;
+      code: string;
+      name: string;
+      credit_rate: number;
+      billing_unit: string;
+      billing_unit_label: string;
+    }>;
+  }> {
+    const validId = normalizeCourseId(courseUuid);
+    if (!validId) {
+      return { total_per_student_credits: 0, per_student_features: [] };
+    }
+
+    try {
+      const res = await apiClient.get(`/api/v1/courses/${encodeURIComponent(validId)}/features/`);
+      const data = res.data || {};
+      const total = data.total_per_student_credits ?? 0;
+      const list = data.per_student_features || [];
+      return { total_per_student_credits: total, per_student_features: list };
+    } catch {
+      return { total_per_student_credits: 0, per_student_features: [] };
+    }
   },
 };

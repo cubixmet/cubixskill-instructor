@@ -72,11 +72,23 @@ export function useAcademyEventsSocket() {
           if (disposedRef.current || socketRef.current !== socket) return;
           try {
             const payload = JSON.parse(event.data);
-            if (payload?.type === 'academy.credit_balance.updated' && payload?.reason === 'STORAGE_SETTLEMENT') {
+            if (payload?.type === 'academy.credit_balance.updated' || payload?.type === 'credit_balance_updated') {
+              if (payload?.balance !== undefined && payload?.balance !== null) {
+                const newBalStr = String(payload.balance);
+                queryClient.setQueryData<any>(CREDIT_SUMMARY_QUERY_KEY, (old: any) => {
+                  if (!old) return old;
+                  return {
+                    ...old,
+                    balance: newBalStr,
+                  };
+                });
+              }
               queryClient.invalidateQueries({ queryKey: CREDIT_SUMMARY_QUERY_KEY });
-              queryClient.invalidateQueries({ queryKey: ['storage-summary'] });
-              queryClient.invalidateQueries({ queryKey: ['storage-settlements'] });
-              queryClient.invalidateQueries({ queryKey: ['storage-meter-logs'] });
+              if (payload?.reason === 'STORAGE_SETTLEMENT') {
+                queryClient.invalidateQueries({ queryKey: ['storage-summary'] });
+                queryClient.invalidateQueries({ queryKey: ['storage-settlements'] });
+                queryClient.invalidateQueries({ queryKey: ['storage-meter-logs'] });
+              }
             }
           } catch (err) {
             console.warn('[AcademyEvents] Failed to parse websocket event:', err);

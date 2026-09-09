@@ -24,7 +24,7 @@ export const CourseSingleViewLayout: React.FC = () => {
   const params = useParams<{ courseId?: string; courseUuid?: string }>();
   const rawCourseId = params.courseId || params.courseUuid;
   const validCourseUuid = normalizeCourseId(rawCourseId);
-  const { isFeatureEnabled } = useCourseFeatures(validCourseUuid);
+  const { isFeatureEnabled, isLoading: isFeaturesLoading } = useCourseFeatures(validCourseUuid);
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,6 +62,17 @@ export const CourseSingleViewLayout: React.FC = () => {
   useEffect(() => {
     fetchCourseDetail();
   }, [fetchCourseDetail]);
+
+  useEffect(() => {
+    if (!isFeaturesLoading && validCourseUuid) {
+      const activeDisabledSec = COURSE_NAV_SECTIONS.find(
+        (sec) => sec.requiredFeature && !isFeatureEnabled(sec.requiredFeature) && isCourseTabActive(sec, location.pathname)
+      );
+      if (activeDisabledSec) {
+        navigate(`/courses/${validCourseUuid}/overview`, { replace: true });
+      }
+    }
+  }, [location.pathname, isFeatureEnabled, isFeaturesLoading, validCourseUuid, navigate]);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);

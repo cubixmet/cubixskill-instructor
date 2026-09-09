@@ -18,6 +18,7 @@ import { PhoneInput } from '../../../components/forms/PhoneInput';
 import { SearchableSelect } from '../../../components/forms/SearchableSelect';
 import { FormAlert } from '../../../components/forms/FormAlert';
 import { useStudentStore } from '../store/student.store';
+import { useCreditSummary } from '../../../hooks/useCreditSummary';
 import type { StudentDetail } from '../types/student.types';
 
 interface EnrollStudentModalProps {
@@ -72,6 +73,28 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
   // Confirmation Modal state
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
+  // Real Backend Credit Pricing state
+  const [pricingInfo, setPricingInfo] = useState<{
+    total_per_student_credits: number;
+    per_student_features: Array<{ name: string; credit_rate: number }>;
+  }>({ total_per_student_credits: 0, per_student_features: [] });
+  const [isPricingLoading, setIsPricingLoading] = useState<boolean>(true);
+  const [showBreakdown, setShowBreakdown] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    setIsPricingLoading(true);
+    const { courseFeaturesService } = require('../../../services/courseFeatures.service');
+    courseFeaturesService
+      .getPerStudentPricing(selectedCourseUuid)
+      .then((res: any) => {
+        setPricingInfo(res);
+      })
+      .finally(() => {
+        setIsPricingLoading(false);
+      });
+  }, [isOpen, selectedCourseUuid]);
+
   if (!isOpen) return null;
 
   // Selected Student
@@ -108,12 +131,8 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
       (s.phone && s.phone.includes(studentSearch))
   );
 
-  // Credit calculation
-  const baseCredit = 10;
-  const featureCredits = 7;
-  const creditsRequired = baseCredit + featureCredits; // 17 Credits
-  const availableBalance = 12450;
-  const remainingBalance = availableBalance - creditsRequired;
+  // Real Credit calculation
+  const creditsRequired = pricingInfo.total_per_student_credits;
 
   const isFormValid =
     enrollMethod === 'existing'
@@ -143,6 +162,8 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
     setIsConfirmModalOpen(true);
   };
 
+  const { applyCreditDebitResult } = useCreditSummary();
+
   const handleExecuteEnrollment = () => {
     let studentToEnrollUuid = selectedStudentUuid;
 
@@ -166,6 +187,9 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
         selectedCourseTitle,
         creditsRequired
       );
+      if (creditsRequired > 0) {
+        applyCreditDebitResult({ optimisticDebit: creditsRequired });
+      }
     }
 
     setIsConfirmModalOpen(false);
@@ -436,25 +460,39 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({
           <div className="p-4 bg-[var(--surface-secondary)] dark:bg-[#172033] border border-[var(--border)] dark:border-[#263244] rounded-[14px] space-y-2">
             <div className="flex items-center justify-between font-semibold text-xs text-[var(--text-primary)] dark:text-[#F8FAFC]">
               <span className="flex items-center gap-1.5">
-                <CreditCard className="w-4 h-4 text-[var(--brand-primary)]" /> Enrollment Credit Breakdown
+                <CreditCard className="w-4 h-4 text-[var(--brand-primary)]" /> Credit Usage
               </span>
-              <strong className="text-[var(--brand-primary)]">{creditsRequired} Credits</strong>
+              <strong className="text-[var(--brand-primary)]">
+                {isPricingLoading ? 'Loading...' : `${creditsRequired} Credits / Student`}
+              </strong>
             </div>
 
-            <div className="space-y-1 text-[11px] text-[var(--text-muted)] dark:text-[#94A3B8]">
-              <div className="flex justify-between">
-                <span>Base Student Credit</span>
-                <span className="font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC]">{baseCredit} Credits</span>
+            {pricingInfo.per_student_features.length > 0 && (
+              <div className="pt-1 space-y-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowBreakdown(!showBreakdown)}
+                  className="text-[11px] font-semibold text-blue-600 hover:underline cursor-pointer"
+                >
+                  {showBreakdown ? 'Hide Breakdown' : 'Show Feature Breakdown'}
+                </button>
+
+                {showBreakdown && (
+                  <div className="mt-2 space-y-1.5 pt-2 border-t border-[var(--border)] dark:border-[#263244] text-[11px]">
+                    {pricingInfo.per_student_features.map((f, idx) => (
+                      <div key={idx} className="flex justify-between text-[var(--text-muted)] dark:text-[#94A3B8]">
+                        <span>{f.name}</span>
+                        <span className="font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC]">{f.credit_rate} Credits</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between pt-1 border-t border-[var(--border)] dark:border-[#263244] font-bold text-[var(--text-primary)] dark:text-[#F8FAFC]">
+                      <span>Total</span>
+                      <span className="text-emerald-600 dark:text-emerald-400">{creditsRequired} Credits / Student</span>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between">
-                <span>Enabled Feature Add-ons</span>
-                <span className="font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC]">+{featureCredits} Credits</span>
-              </div>
-              <div className="flex justify-between pt-1 border-t border-[var(--border)] dark:border-[#263244] font-semibold text-[var(--text-primary)] dark:text-[#F8FAFC]">
-                <span>Remaining Balance After Enrollment</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{remainingBalance.toLocaleString()} Credits</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* FOOTER ACTIONS & EXPLANATION */}

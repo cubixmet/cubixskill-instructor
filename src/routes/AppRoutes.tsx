@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { PublicRoute } from './PublicRoute';
 import { ProtectedRoute } from './ProtectedRoute';
+import { CourseFeatureGuard } from '../components/CourseFeatureGuard';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { isValidCourseId, isValidModuleUuid } from '../utils/courseValidation.utils';
@@ -182,30 +183,30 @@ export const AppRoutes: React.FC = () => {
             <Route path="/courses/:courseId" element={<CourseSingleViewLayout />}>
               <Route index element={<Navigate to="overview" replace />} />
               <Route path="overview" element={<CourseOverviewPage />} />
-              <Route path="curriculum" element={<CourseCurriculumPage />} />
+              <Route path="curriculum" element={<CourseFeatureGuard featureCode="LESSONS"><CourseCurriculumPage /></CourseFeatureGuard>} />
               <Route path="students" element={<CourseStudentsPage />} />
               <Route path="students/enroll" element={<EnrollStudentPage />} />
               <Route path="students/bulk-upload" element={<BulkUploadStudentsPage />} />
               <Route path="students/:studentId" element={<StudentSinglePage />} />
               <Route path="students/:studentId/overview" element={<StudentSinglePage />} />
-              <Route path="assignments" element={<CourseAssignmentsPage />} />
-              <Route path="assignments/:assignmentUuid" element={<CourseAssignmentsPage />} />
-              <Route path="assignments/:assignmentUuid/submissions/:submissionUuid" element={<CourseAssignmentsPage />} />
-              <Route path="quizzes" element={<CourseQuizzesPage />} />
-              <Route path="certificates" element={<CourseCertificatesPage />} />
-              <Route path="discussions" element={<CourseDiscussionsPage />} />
-              <Route path="discussions/community" element={<CourseDiscussionsPage />} />
-              <Route path="discussions/community/:threadId" element={<CourseDiscussionsPage />} />
-              <Route path="discussions/community-chat" element={<CommunityChatListPage />} />
-              <Route path="discussions/community-chat/:courseId" element={<CommunityChatCoursePage />} />
-              <Route path="discussions/personal" element={<PersonalChatListPage />} />
-              <Route path="discussions/personal/:studentId" element={<PersonalChatStudentPage />} />
-              <Route path="discussions/*" element={<CourseDiscussionsPage />} />
-              <Route path="announcements" element={<CourseAnnouncementsPage />} />
-              <Route path="announcements/*" element={<CourseAnnouncementsPage />} />
-              <Route path="live-sessions" element={<CourseLiveSessionsPage />} />
-              <Route path="live-sessions/new" element={<CreateLiveSessionPage />} />
-              <Route path="fees" element={<CourseFeesPage />} />
+              <Route path="assignments" element={<CourseFeatureGuard featureCode="LESSONS"><CourseAssignmentsPage /></CourseFeatureGuard>} />
+              <Route path="assignments/:assignmentUuid" element={<CourseFeatureGuard featureCode="LESSONS"><CourseAssignmentsPage /></CourseFeatureGuard>} />
+              <Route path="assignments/:assignmentUuid/submissions/:submissionUuid" element={<CourseFeatureGuard featureCode="LESSONS"><CourseAssignmentsPage /></CourseFeatureGuard>} />
+              <Route path="quizzes" element={<CourseFeatureGuard featureCode="LESSONS"><CourseQuizzesPage /></CourseFeatureGuard>} />
+              <Route path="certificates" element={<CourseFeatureGuard featureCode="COMPLETION_CERTIFICATE"><CourseCertificatesPage /></CourseFeatureGuard>} />
+              <Route path="discussions" element={<CourseFeatureGuard featureCode="COURSE_DISCUSSION"><CourseDiscussionsPage /></CourseFeatureGuard>} />
+              <Route path="discussions/community" element={<CourseFeatureGuard featureCode="COURSE_DISCUSSION"><CourseDiscussionsPage /></CourseFeatureGuard>} />
+              <Route path="discussions/community/:threadId" element={<CourseFeatureGuard featureCode="COURSE_DISCUSSION"><CourseDiscussionsPage /></CourseFeatureGuard>} />
+              <Route path="discussions/community-chat" element={<CourseFeatureGuard featureCode="COURSE_DISCUSSION"><CommunityChatListPage /></CourseFeatureGuard>} />
+              <Route path="discussions/community-chat/:courseId" element={<CourseFeatureGuard featureCode="COURSE_DISCUSSION"><CommunityChatCoursePage /></CourseFeatureGuard>} />
+              <Route path="discussions/personal" element={<CourseFeatureGuard featureCode="ONE_TO_ONE_SESSION"><PersonalChatListPage /></CourseFeatureGuard>} />
+              <Route path="discussions/personal/:studentId" element={<CourseFeatureGuard featureCode="ONE_TO_ONE_SESSION"><PersonalChatStudentPage /></CourseFeatureGuard>} />
+              <Route path="discussions/*" element={<CourseFeatureGuard featureCode="COURSE_DISCUSSION"><CourseDiscussionsPage /></CourseFeatureGuard>} />
+              <Route path="announcements" element={<CourseFeatureGuard featureCode="COURSE_ANNOUNCEMENT"><CourseAnnouncementsPage /></CourseFeatureGuard>} />
+              <Route path="announcements/*" element={<CourseFeatureGuard featureCode="COURSE_ANNOUNCEMENT"><CourseAnnouncementsPage /></CourseFeatureGuard>} />
+              <Route path="live-sessions" element={<CourseFeatureGuard featureCode="LIVE_CLASS"><CourseLiveSessionsPage /></CourseFeatureGuard>} />
+              <Route path="live-sessions/new" element={<CourseFeatureGuard featureCode="LIVE_CLASS"><CreateLiveSessionPage /></CourseFeatureGuard>} />
+              <Route path="fees" element={<CourseFeatureGuard featureCode="FEE_COLLECTION"><CourseFeesPage /></CourseFeatureGuard>} />
               <Route path="coupons" element={<CouponListPage />} />
               <Route path="coupons/*" element={<CouponListPage />} />
               <Route path="features" element={<CourseFeaturesPage />} />

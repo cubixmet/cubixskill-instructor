@@ -42,7 +42,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   const location = useLocation();
 
   const { summary } = useCreditSummary();
-  const creditBalance = summary ? Math.floor(Number(summary.balance || 0)).toLocaleString() : "0";
+  const rawBalanceNum = Number(summary?.balance || 0);
+  const creditBalance = summary ? rawBalanceNum.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0";
   const isLowBalance = Boolean(summary?.is_low_balance);
 
   const [profileOpen, setProfileOpen] = useState(false);
