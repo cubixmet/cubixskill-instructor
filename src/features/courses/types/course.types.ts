@@ -87,6 +87,7 @@ export interface CourseDetail {
   demo_enabled: boolean;
   demo_duration_days: number;
   certificate_enabled: boolean;
+  allow_data_export?: boolean;
   modules: CourseModule[];
   created_at: string;
   updated_at: string;
@@ -113,6 +114,8 @@ export interface CreateCoursePayload {
   demo_enabled?: boolean;
   demo_duration_days?: number;
   certificate_enabled?: boolean;
+  allow_data_export?: boolean;
+  data_export?: boolean;
 }
 
 

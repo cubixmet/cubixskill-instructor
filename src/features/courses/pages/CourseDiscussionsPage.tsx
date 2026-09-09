@@ -32,10 +32,10 @@ import { coursesService } from '../../../services/courses.service';
 import { discussionService } from '../../../services/discussion.service';
 
 export const CourseDiscussionsPage: React.FC = () => {
-  const params = useParams<{ courseUuid?: string; '*': string }>();
+  const params = useParams<{ courseId?: string; courseUuid?: string; '*': string }>();
   const navigate = useNavigate();
 
-  const rawCourseUuid = params.courseUuid;
+  const rawCourseUuid = params.courseId || params.courseUuid;
   const courseUuid = normalizeCourseId(rawCourseUuid);
 
   // Connect to Real WebSocket for Community Discussions

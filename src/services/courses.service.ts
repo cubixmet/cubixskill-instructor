@@ -249,4 +249,13 @@ export const coursesService = {
     );
     return (response.data as any)?.data || response.data;
   },
+
+  async exportCourseData(id: string): Promise<Blob> {
+    const validId = normalizeCourseId(id);
+    if (!validId) throw new Error("Invalid course ID provided.");
+    const response = await apiClient.get(`/api/v1/courses/courses/${validId}/export/`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };

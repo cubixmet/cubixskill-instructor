@@ -217,6 +217,7 @@ export const CourseFeaturesPage: React.FC = () => {
       case 'EMAIL_DELIVERY': return <MessageSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />;
       case 'COMPLETION_CERTIFICATE': return <Award className="w-4 h-4 text-amber-500" />;
       case 'COURSE_DISCUSSION': return <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
+      case 'LESSON_LOCKING_REPORT': return <Lock className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
       case 'ONE_TO_ONE_SESSION': return <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />;
       default: return <SlidersHorizontal className="w-4 h-4 text-slate-500" />;
     }

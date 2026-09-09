@@ -79,6 +79,9 @@ export interface CourseSettingsConfig {
   status: 'published' | 'draft' | 'scheduled' | 'archived';
   scheduledPublishDate?: string;
 
+  // 16. Data Export
+  allowDataExport: boolean;
+
   updatedAt: string;
 }
 
@@ -143,6 +146,7 @@ export const DEFAULT_COURSE_SETTINGS: CourseSettingsConfig = {
   keywords: 'fullstack, react, typescript, nodejs, cubixskill',
 
   status: 'published',
+  allowDataExport: true,
   updatedAt: new Date().toISOString(),
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Users,
   Search,
@@ -26,11 +26,11 @@ import { Badge } from '../../../components/ui/Badge';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
 import { Skeleton } from '../../../components/ui/Skeleton';
-import { EnrollStudentModal } from '../../students/components/EnrollStudentModal';
-import { BulkEnrollModal } from '../../students/components/BulkEnrollModal';
 import { exportToCsv, slugify, type CsvColumn } from '../../../utils/export-csv';
 import { studentsService } from '../../../services/students.service';
 import { coursesService } from '../../../services/courses.service';
+import { courseFeaturesService } from '../../../services/courseFeatures.service';
+import { authService } from '../../../services/auth.service';
 
 interface StudentRecord {
   id: string;
@@ -54,7 +54,6 @@ interface StudentRecord {
 
 export const CourseStudentsPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const params = useParams<{ courseId?: string; courseUuid?: string }>();
   const courseUuid = params.courseId || params.courseUuid;
 
@@ -94,6 +93,8 @@ export const CourseStudentsPage: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const [studentReportsEnabled, setStudentReportsEnabled] = useState<boolean>(true);
+
   const fetchCourseStudents = useCallback(async () => {
     if (!courseUuid || courseUuid === 'undefined') return;
     setIsLoading(true);
@@ -101,14 +102,19 @@ export const CourseStudentsPage: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      const [data, courseData] = await Promise.all([
+      const [data, courseData, featuresData] = await Promise.all([
         studentsService.listCourseEnrollments(courseUuid),
         coursesService.getCourse(courseUuid).catch(() => null),
+        courseFeaturesService.list(courseUuid).catch(() => []),
       ]);
 
       if (courseData && courseData.title) {
         setCourseTitle(courseData.title);
       }
+
+      const lockingReportFeature = featuresData.find((f: any) => f.code === 'LESSON_LOCKING_REPORT');
+      const isFeatureEnabled = lockingReportFeature ? lockingReportFeature.effective_enabled : false;
+      setStudentReportsEnabled(isFeatureEnabled);
 
       const mapped: StudentRecord[] = data.map((item: any, idx: number) => {
         const studentObj = item.student || {};
@@ -123,6 +129,11 @@ export const CourseStudentsPage: React.FC = () => {
         else if (item.status === 'COMPLETED') st = 'Completed';
         else if (item.status === 'PENDING') st = 'Pending';
 
+        const completed = item.completed_lessons ?? item.completed_lessons_count ?? 0;
+        const total = item.total_lessons ?? item.total_lessons_count ?? 0;
+        const rawPct = item.progress_percentage ?? item.progress_percent ?? (total > 0 ? (completed / total) * 100 : 0);
+        const progressPercent = Math.min(100, Math.max(0, Math.round(Number(rawPct) || 0)));
+
         return {
           id: String(item.id || idx + 1),
           uuid: String(item.id || studentObj.id || idx + 1),
@@ -130,12 +141,12 @@ export const CourseStudentsPage: React.FC = () => {
           name: fullName,
           email,
           phone,
-          enrollmentDate: item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : '—',
+          enrollmentDate: item.enrolled_at ? new Date(item.enrolled_at).toISOString().split('T')[0] : (item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : '—'),
           expiryDate: item.access_expires_at ? new Date(item.access_expires_at).toISOString().split('T')[0] : 'Lifetime Access',
-          progressPercent: typeof item.progress_percent === 'number' ? item.progress_percent : 0,
+          progressPercent,
           status: st,
-          lessonsCompleted: item.completed_lessons_count || 0,
-          totalLessons: item.total_lessons_count || 0,
+          lessonsCompleted: completed,
+          totalLessons: total,
           quizzesTaken: 0,
           assignmentsSubmitted: 0,
           certificatesIssued: 0,
@@ -286,7 +297,7 @@ export const CourseStudentsPage: React.FC = () => {
       case 'Expired':
         return 'warning';
       case 'Suspended':
-        return 'danger';
+        return 'error';
       default:
         return 'secondary';
     }
@@ -387,8 +398,8 @@ export const CourseStudentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. SUMMARY STATS (2-Column Mobile, 4-Column Desktop Grid) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5 w-full min-w-0">
+      {/* 2. SUMMARY STATS */}
+      <div className={`grid grid-cols-2 ${studentReportsEnabled ? 'sm:grid-cols-4' : 'sm:grid-cols-3'} gap-2.5 sm:gap-3.5 w-full min-w-0`}>
         {/* Card 1: Total Students */}
         <div className="p-3 sm:p-4 bg-white dark:bg-[#111827] rounded-[14px] border border-slate-200 dark:border-[#263244] space-y-1.5 shadow-2xs min-w-0">
           <div className="flex items-center justify-between">
@@ -437,19 +448,21 @@ export const CourseStudentsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 4: Average Progress */}
-        <div className="p-3 sm:p-4 bg-white dark:bg-[#111827] rounded-[14px] border border-slate-200 dark:border-[#263244] space-y-1.5 shadow-2xs min-w-0">
-          <div className="flex items-center justify-between">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-800/40 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center shrink-0">
-              <BarChart3 className="w-4 h-4" />
+        {/* Card 4: Average Progress (Only if studentReportsEnabled) */}
+        {studentReportsEnabled && (
+          <div className="p-3 sm:p-4 bg-white dark:bg-[#111827] rounded-[14px] border border-slate-200 dark:border-[#263244] space-y-1.5 shadow-2xs min-w-0">
+            <div className="flex items-center justify-between">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-800/40 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center shrink-0">
+                <BarChart3 className="w-4 h-4" />
+              </div>
+              <span className="text-[10px] font-semibold text-slate-500 dark:text-[#94A3B8]">Overall</span>
             </div>
-            <span className="text-[10px] font-semibold text-slate-500 dark:text-[#94A3B8]">Overall</span>
+            <div>
+              <span className="text-[11px] sm:text-xs text-slate-500 dark:text-[#94A3B8] block font-medium">Avg. Progress</span>
+              <strong className="text-lg sm:text-2xl font-bold text-[#2563EB] dark:text-[#60A5FA] tracking-tight">{avgProgress}%</strong>
+            </div>
           </div>
-          <div>
-            <span className="text-[11px] sm:text-xs text-slate-500 dark:text-[#94A3B8] block font-medium">Avg. Progress</span>
-            <strong className="text-lg sm:text-2xl font-bold text-[#2563EB] dark:text-[#60A5FA] tracking-tight">{avgProgress}%</strong>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* 3. SEARCH & FILTER TOOLBAR */}
@@ -492,17 +505,19 @@ export const CourseStudentsPage: React.FC = () => {
                 <option value="Suspended">Suspended</option>
               </select>
 
-              <select
-                value={progressFilter}
-                onChange={(e) => setProgressFilter(e.target.value)}
-                className="h-10 px-3 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl font-medium text-slate-900 dark:text-[#F8FAFC] text-xs focus:outline-none focus:border-[#3B82F6]"
-              >
-                <option value="All">All Progress</option>
-                <option value="0-25">0 – 25%</option>
-                <option value="26-50">26 – 50%</option>
-                <option value="51-75">51 – 75%</option>
-                <option value="76-100">76 – 100%</option>
-              </select>
+              {studentReportsEnabled && (
+                <select
+                  value={progressFilter}
+                  onChange={(e) => setProgressFilter(e.target.value)}
+                  className="h-10 px-3 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] rounded-xl font-medium text-slate-900 dark:text-[#F8FAFC] text-xs focus:outline-none focus:border-[#3B82F6]"
+                >
+                  <option value="All">All Progress</option>
+                  <option value="0-25">0 – 25%</option>
+                  <option value="26-50">26 – 50%</option>
+                  <option value="51-75">51 – 75%</option>
+                  <option value="76-100">76 – 100%</option>
+                </select>
+              )}
 
               <select
                 value={sortBy}
@@ -512,8 +527,8 @@ export const CourseStudentsPage: React.FC = () => {
                 <option value="recent">Recently Enrolled</option>
                 <option value="name-asc">Name A–Z</option>
                 <option value="name-desc">Name Z–A</option>
-                <option value="highest-progress">Highest Progress</option>
-                <option value="lowest-progress">Lowest Progress</option>
+                {studentReportsEnabled && <option value="highest-progress">Highest Progress</option>}
+                {studentReportsEnabled && <option value="lowest-progress">Lowest Progress</option>}
               </select>
             </div>
 
@@ -610,7 +625,7 @@ export const CourseStudentsPage: React.FC = () => {
                     <th className="py-3 px-4">Student</th>
                     <th className="py-3 px-4">Email</th>
                     <th className="py-3 px-4">Enrolled On</th>
-                    <th className="py-3 px-4">Progress</th>
+                    {studentReportsEnabled && <th className="py-3 px-4">Progress</th>}
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
@@ -642,26 +657,28 @@ export const CourseStudentsPage: React.FC = () => {
                         {student.enrollmentDate}
                       </td>
 
-                      <td className="py-3 px-4 w-44">
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-slate-500 dark:text-[#94A3B8] font-normal">
-                              {student.lessonsCompleted}/{student.totalLessons}
-                            </span>
-                            <strong className="text-[#2563EB] dark:text-[#60A5FA] font-medium">
-                              {student.progressPercent}%
-                            </strong>
+                      {studentReportsEnabled && (
+                        <td className="py-3 px-4 w-44">
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="text-slate-500 dark:text-[#94A3B8] font-normal">
+                                {student.lessonsCompleted}/{student.totalLessons}
+                              </span>
+                              <strong className="text-[#2563EB] dark:text-[#60A5FA] font-medium">
+                                {student.progressPercent}%
+                              </strong>
+                            </div>
+                            <div className="w-full bg-slate-200 dark:bg-[#334155] h-1.5 rounded-full overflow-hidden">
+                              <div
+                                style={{ width: `${student.progressPercent}%` }}
+                                className={`h-full rounded-full ${
+                                  student.progressPercent === 100 ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-[#3B82F6]'
+                                }`}
+                              />
+                            </div>
                           </div>
-                          <div className="w-full bg-slate-200 dark:bg-[#334155] h-1.5 rounded-full overflow-hidden">
-                            <div
-                              style={{ width: `${student.progressPercent}%` }}
-                              className={`h-full rounded-full ${
-                                student.progressPercent === 100 ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-[#3B82F6]'
-                              }`}
-                            />
-                          </div>
-                        </div>
-                      </td>
+                        </td>
+                      )}
 
                       <td className="py-3 px-4">
                         <Badge variant={getStatusVariant(student.status)} size="sm" dot>
@@ -826,22 +843,24 @@ export const CourseStudentsPage: React.FC = () => {
                 </div>
 
                 {/* Progress Bar & Percentage */}
-                <div className="space-y-1 pt-1 w-full min-w-0">
-                  <div className="w-full bg-slate-100 dark:bg-[#334155] h-1.5 rounded-full overflow-hidden flex items-center">
-                    <div
-                      style={{ width: `${student.progressPercent}%` }}
-                      className={`h-full rounded-full ${
-                        student.progressPercent === 100 ? 'bg-emerald-500' : 'bg-[#3B82F6]'
-                      }`}
-                    />
+                {studentReportsEnabled && (
+                  <div className="space-y-1 pt-1 w-full min-w-0">
+                    <div className="w-full bg-slate-100 dark:bg-[#334155] h-1.5 rounded-full overflow-hidden flex items-center">
+                      <div
+                        style={{ width: `${student.progressPercent}%` }}
+                        className={`h-full rounded-full ${
+                          student.progressPercent === 100 ? 'bg-emerald-500' : 'bg-[#3B82F6]'
+                        }`}
+                      />
+                    </div>
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-slate-500 dark:text-[#94A3B8]">
+                        {student.lessonsCompleted}/{student.totalLessons} lessons
+                      </span>
+                      <strong className="text-[#2563EB] dark:text-[#60A5FA] font-bold">{student.progressPercent}%</strong>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center text-[10px]">
-                    <span className="text-slate-500 dark:text-[#94A3B8]">
-                      {student.lessonsCompleted}/{student.totalLessons} lessons
-                    </span>
-                    <strong className="text-[#2563EB] dark:text-[#60A5FA] font-bold">{student.progressPercent}%</strong>
-                  </div>
-                </div>
+                )}
               </div>
             ))}
           </div>

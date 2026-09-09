@@ -28,11 +28,11 @@ import { ExportAnnouncementsModal } from '../../announcements/components/ExportA
 
 export const CourseAnnouncementsPage: React.FC = () => {
   const { applyCreditDebitResult } = useCreditSummary();
-  const params = useParams<{ courseUuid?: string; '*': string }>();
+  const params = useParams<{ courseId?: string; courseUuid?: string; '*': string }>();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const courseUuid = params.courseUuid || '';
+  const courseUuid = params.courseId || params.courseUuid || '';
 
   // Subroute action handling
   const subPath = (params['*'] || '').replace(/^\/+/, '');

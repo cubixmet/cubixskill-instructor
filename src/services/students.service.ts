@@ -23,6 +23,10 @@ export interface StudentData {
   joined_at?: string;
   date_of_birth?: string;
   bio?: string;
+  profile_photo?: any;
+  profile_photo_url?: string;
+  avatar_url?: string;
+  avatarUrl?: string;
   enrollments_count?: number;
   enrolledCoursesCount?: number;
 }
@@ -47,6 +51,88 @@ export interface BulkUploadRowResult {
   status: 'valid' | 'invalid' | 'duplicate';
   message?: string;
   errorMessage?: string;
+}
+
+export interface ModuleProgressItem {
+  uuid: string;
+  title: string;
+  completed_lessons: number;
+  total_lessons: number;
+  percentage: number;
+}
+
+export interface LessonProgressItem {
+  uuid: string;
+  module_uuid?: string;
+  title: string;
+  type: string;
+  completed: boolean;
+  completed_at?: string | null;
+}
+
+export interface QuizAttemptItem {
+  id: string;
+  quiz_title?: string;
+  score?: number;
+  passed?: boolean;
+  attempt_date?: string;
+}
+
+export interface AssignmentSubmissionItem {
+  id: string;
+  assignment_title?: string;
+  status?: string;
+  grade?: string | number;
+  submitted_date?: string;
+}
+
+export interface ActivityItem {
+  id: string;
+  activity_type: string;
+  lesson_title?: string;
+  details?: Record<string, any>;
+  timestamp?: string | null;
+}
+
+export interface CertificateItem {
+  id: string;
+  certificate_number: string;
+  issued_at?: string | null;
+  status: string;
+}
+
+export interface StudentCourseOverview {
+  student: {
+    uuid: string;
+    profile_uuid?: string | null;
+    full_name: string;
+    email: string;
+    phone?: string;
+    student_code: string;
+    avatar?: string | null;
+    status: string;
+  };
+  course: {
+    uuid: string;
+    title: string;
+  };
+  enrollment: {
+    uuid: string;
+    status: string;
+    enrolled_at: string;
+    completed_at?: string | null;
+  };
+  progress: {
+    completed_lessons: number;
+    total_lessons: number;
+    percentage: number;
+  };
+  modules: ModuleProgressItem[];
+  lessons: LessonProgressItem[];
+  quiz_attempts: QuizAttemptItem[];
+  assignment_submissions: AssignmentSubmissionItem[];
+  activities: ActivityItem[];
+  certificates: CertificateItem[];
 }
 
 export interface BulkUploadResponse {
@@ -185,5 +271,12 @@ export const studentsService = {
       payload
     );
     return response.data?.data || response.data;
+  },
+
+  async getStudentCourseOverview(courseUuid: string, studentUuid: string): Promise<StudentCourseOverview> {
+    const response = await apiClient.get<BackendApiResponse<StudentCourseOverview> | StudentCourseOverview>(
+      `/api/v1/courses/${courseUuid}/students/${studentUuid}/overview/`
+    );
+    return (response.data as any)?.data || (response.data as unknown as StudentCourseOverview);
   },
 };

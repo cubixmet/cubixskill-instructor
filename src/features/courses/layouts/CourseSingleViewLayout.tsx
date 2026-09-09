@@ -39,6 +39,8 @@ export const CourseSingleViewLayout: React.FC = () => {
   const mobileTabNavRef = useRef<HTMLDivElement>(null);
   const activeMobileTabRef = useRef<HTMLAnchorElement>(null);
 
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
+
   const fetchCourseDetail = useCallback(async () => {
     if (!validCourseUuid) {
       setIsLoading(false);
@@ -46,6 +48,7 @@ export const CourseSingleViewLayout: React.FC = () => {
     }
     setIsLoading(true);
     setIsError(false);
+    setErrorStatus(null);
     setErrorMessage(null);
 
     try {
@@ -53,7 +56,17 @@ export const CourseSingleViewLayout: React.FC = () => {
       setCourse(data);
     } catch (err: any) {
       setIsError(true);
-      setErrorMessage(err?.message || "Failed to load course details from server.");
+      const st = err?.response?.status;
+      setErrorStatus(st || 500);
+      if (st === 404) {
+        setErrorMessage("Course Not Found — The requested course does not exist.");
+      } else if (st === 401) {
+        setErrorMessage("Authentication required — Please sign in again.");
+      } else if (st === 403) {
+        setErrorMessage("You do not have access to this course.");
+      } else {
+        setErrorMessage(err?.response?.data?.message || err?.message || "Unable to load course settings. Please check your internet connection.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -123,16 +136,24 @@ export const CourseSingleViewLayout: React.FC = () => {
   }
 
   if (isError || !course) {
+    const errorTitle = errorStatus === 404
+      ? "Course Not Found"
+      : errorStatus === 403
+      ? "Access Denied"
+      : errorStatus === 401
+      ? "Authentication Required"
+      : "Unable to Load Course Settings";
+
     return (
       <div className="p-8 text-center bg-white dark:bg-[#111827] rounded-2xl border border-rose-200 dark:border-rose-900/50 space-y-4 max-w-lg mx-auto mt-12 shadow-xl">
         <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
         <div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">Course Not Found</h3>
-          <p className="text-xs text-slate-500 dark:text-[#94A3B8]">{errorMessage || "The requested course could not be loaded."}</p>
+          <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">{errorTitle}</h3>
+          <p className="text-xs text-slate-500 dark:text-[#94A3B8]">{errorMessage || "Unable to load course settings."}</p>
         </div>
         <div className="flex items-center justify-center gap-2">
           <Button variant="outline" size="sm" onClick={fetchCourseDetail} leftIcon={<RefreshCw className="w-4 h-4" />}>
-            Retry API
+            Retry Loading
           </Button>
           <Link to="/courses">
             <Button variant="outline" size="sm">

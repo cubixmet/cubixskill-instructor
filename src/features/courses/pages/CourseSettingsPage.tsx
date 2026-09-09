@@ -21,15 +21,17 @@ import { DeleteCourseModal } from '../components/settings/DeleteCourseModal';
 import { coursesService } from '../../../services/courses.service';
 import { queryClient } from '../../../lib/query-client';
 import type { CourseDetail } from '../types/course.types';
+import { normalizeCourseId } from '../../../utils/courseValidation.utils';
 
 
 export const CourseSettingsPage: React.FC = () => {
-  const params = useParams<{ courseUuid?: string }>();
+  const params = useParams<{ courseId?: string; courseUuid?: string }>();
   const navigate = useNavigate();
   const outletContext = useOutletContext<{ course?: CourseDetail; fetchCourseDetail?: () => Promise<void> }>();
 
-  const courseUuid = params.courseUuid || '';
   const parentCourse = outletContext?.course;
+  const rawCourseId = params.courseId || params.courseUuid || parentCourse?.id || '';
+  const courseUuid = normalizeCourseId(rawCourseId) || rawCourseId;
 
   const getCourseSettings = useCourseSettingsStore((state) => state.getCourseSettings);
   const updateCourseSettings = useCourseSettingsStore((state) => state.updateCourseSettings);
@@ -52,6 +54,7 @@ export const CourseSettingsPage: React.FC = () => {
       visibility: parentCourse.visibility || storeSettings.visibility,
       isFree: parentCourse.is_free ?? storeSettings.isFree,
       price: parentCourse.price ?? storeSettings.price,
+      allowDataExport: parentCourse.allow_data_export ?? storeSettings.allowDataExport ?? true,
     };
   }, [parentCourse, courseUuid, getCourseSettings]);
 
@@ -98,6 +101,7 @@ export const CourseSettingsPage: React.FC = () => {
         visibility: (localSettings.visibility?.toUpperCase() as any) || "PUBLIC",
         is_free: localSettings.isFree || false,
         price: localSettings.isFree ? 0 : localSettings.price || 0,
+        allow_data_export: localSettings.allowDataExport,
       });
 
       updateCourseSettings(courseUuid, localSettings);
@@ -140,23 +144,23 @@ export const CourseSettingsPage: React.FC = () => {
     <div className="space-y-6 text-left font-sans pb-24">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-20 right-6 z-50 bg-slate-900 text-white font-extrabold text-xs px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-800 animate-bounce">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="fixed bottom-20 right-6 z-50 bg-[var(--surface-secondary)] text-[var(--text-primary)] font-semibold text-xs px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-[var(--border)] animate-bounce">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* 1. PAGE HEADER */}
-      <Card padding="md" className="bg-white border border-slate-200/90 shadow-2xs">
+      <Card padding="md" className="bg-[var(--surface)] border border-[var(--border)] shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">Course Settings &amp; Configuration</h1>
-              <Badge variant="info" size="sm" className="font-bold">
+              <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">Course Settings &amp; Configuration</h1>
+              <Badge variant="info" size="sm" className="font-semibold">
                 {localSettings.visibility}
               </Badge>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
+            <p className="text-xs text-[var(--text-secondary)] font-normal mt-0.5">
               Configure course metadata, enrollment options, pricing, access rules, and SEO settings.
             </p>
           </div>
@@ -166,8 +170,8 @@ export const CourseSettingsPage: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={handleResetSettings}
-              className="h-9 text-xs font-semibold text-slate-700"
-              leftIcon={<RotateCcw className="w-3.5 h-3.5 text-slate-500" />}
+              className="h-9 text-xs font-semibold"
+              leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
             >
               Reset Defaults
             </Button>
@@ -176,11 +180,7 @@ export const CourseSettingsPage: React.FC = () => {
               size="sm"
               onClick={handleSaveChanges}
               disabled={unsavedCount === 0}
-              className={`h-9 font-extrabold text-xs px-5 shadow-xs transition-all ${
-                unsavedCount > 0
-                  ? 'bg-[#2563EB] text-white hover:bg-blue-700'
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-              }`}
+              className="h-9 font-semibold text-xs px-5 shadow-xs transition-all"
               leftIcon={<Save className="w-4 h-4" />}
             >
               Save Changes {unsavedCount > 0 ? `(${unsavedCount})` : ''}
@@ -189,11 +189,11 @@ export const CourseSettingsPage: React.FC = () => {
         </div>
       </Card>
 
-      {/* 2. MAIN LAYOUT: DESKTOP (260px Left Nav + Form) vs MOBILE (Accordions) */}
+      {/* 2. MAIN LAYOUT: DESKTOP SIDEBAR + FORM vs MOBILE ACCORDION */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* DESKTOP LEFT SIDEBAR NAV (4 cols md, 3 cols lg = ~260px) */}
+        {/* DESKTOP LEFT SIDEBAR NAV */}
         <div className="hidden md:block md:col-span-4 lg:col-span-3 space-y-2 shrink-0">
-          <Card padding="sm" className="bg-white border border-slate-200 sticky top-4">
+          <Card padding="sm" className="bg-[var(--surface)] border border-[var(--border)] sticky top-4">
             <CourseSettingsNav
               activeSection={activeSection}
               onSelectSection={(id) => setActiveSection(id)}
@@ -202,7 +202,7 @@ export const CourseSettingsPage: React.FC = () => {
           </Card>
         </div>
 
-        {/* DESKTOP ACTIVE FORM VIEW (8 cols md, 9 cols lg) */}
+        {/* DESKTOP ACTIVE FORM VIEW */}
         <div className="hidden md:block md:col-span-8 lg:col-span-9">
           <CourseSettingsSections
             sectionId={activeSection}
@@ -214,7 +214,7 @@ export const CourseSettingsPage: React.FC = () => {
           />
         </div>
 
-        {/* MOBILE ACCORDION VIEW (Block on mobile) */}
+        {/* MOBILE ACCORDION VIEW */}
         <div className="block md:hidden col-span-1 space-y-3 font-sans text-xs">
           {SETTINGS_SECTIONS.map((sec) => {
             const Icon = sec.icon;
@@ -222,20 +222,20 @@ export const CourseSettingsPage: React.FC = () => {
             const isDisabledFeature = sec.featureKey ? (courseFeatures as unknown as Record<string, boolean>)[sec.featureKey] === false : false;
 
             return (
-              <Card key={sec.id} padding="none" className="bg-white border border-slate-200 overflow-hidden">
+              <Card key={sec.id} padding="none" className="bg-[var(--surface)] border border-[var(--border)] overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setMobileExpandedSection(isExpanded ? null : sec.id)}
-                  className="w-full p-3.5 flex items-center justify-between font-extrabold text-slate-900 bg-slate-50 border-b border-slate-100"
+                  className="w-full p-3.5 flex items-center justify-between font-semibold text-[var(--text-primary)] bg-[var(--surface-secondary)] border-b border-[var(--border)]"
                 >
                   <div className="flex items-center gap-2">
-                    <Icon className="w-4 h-4 text-blue-600" />
+                    <Icon className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
                     <span>{sec.label}</span>
                     {isDisabledFeature && (
                       <Badge variant="warning" size="sm">Disabled</Badge>
                     )}
                   </div>
-                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4 text-[var(--text-muted)]" />}
                 </button>
 
                 {isExpanded && (
@@ -258,10 +258,10 @@ export const CourseSettingsPage: React.FC = () => {
 
       {/* 3. STICKY SAVE FOOTER */}
       {unsavedCount > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 shadow-lg flex items-center justify-between font-sans text-xs max-w-7xl mx-auto px-4">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface)]/95 backdrop-blur-md border-t border-[var(--border)] p-3 shadow-lg flex items-center justify-between font-sans text-xs max-w-7xl mx-auto px-4">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-600" />
-            <span className="font-extrabold text-slate-900">
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <span className="font-semibold text-[var(--text-primary)]">
               You have {unsavedCount} unsaved configuration change(s)
             </span>
           </div>
@@ -277,7 +277,7 @@ export const CourseSettingsPage: React.FC = () => {
             <Button
               size="sm"
               onClick={handleSaveChanges}
-              className="bg-[#2563EB] text-white font-extrabold px-6 hover:bg-blue-700"
+              className="font-semibold px-6"
               leftIcon={<Save className="w-4 h-4" />}
             >
               Save Changes

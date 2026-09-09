@@ -95,12 +95,12 @@ export const authService = {
     return response.data?.data || response.data;
   },
 
-  async getAcademySettings(): Promise<{ hls_video_enabled: boolean; personal_chat_file_upload_enabled: boolean; community_chat_file_upload_enabled: boolean; academy_id: string }> {
+  async getAcademySettings(): Promise<{ hls_video_enabled: boolean; personal_chat_file_upload_enabled: boolean; community_chat_file_upload_enabled: boolean; lesson_locking?: boolean; student_reports?: boolean; academy_id: string }> {
     const response = await apiClient.get('/api/v1/academy/settings/');
     return response.data?.data || response.data;
   },
 
-  async updateAcademySettings(payload: { hls_video_enabled?: boolean; personal_chat_file_upload_enabled?: boolean; community_chat_file_upload_enabled?: boolean }): Promise<{ hls_video_enabled: boolean; personal_chat_file_upload_enabled: boolean; community_chat_file_upload_enabled: boolean; academy_id: string }> {
+  async updateAcademySettings(payload: { hls_video_enabled?: boolean; personal_chat_file_upload_enabled?: boolean; community_chat_file_upload_enabled?: boolean; lesson_locking?: boolean; student_reports?: boolean }): Promise<{ hls_video_enabled: boolean; personal_chat_file_upload_enabled: boolean; community_chat_file_upload_enabled: boolean; lesson_locking?: boolean; student_reports?: boolean; academy_id: string }> {
     const response = await apiClient.patch('/api/v1/academy/settings/', payload);
     return response.data?.data || response.data;
   },

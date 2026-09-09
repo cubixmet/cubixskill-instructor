@@ -60,11 +60,16 @@ export const SettingsPage: React.FC = () => {
   const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
   const [timeFormat, setTimeFormat] = useState('12h');
 
-  // Video Processing & Chat Settings State
+  // Video Processing & Feature Settings State
   const [hlsVideoEnabled, setHlsVideoEnabled] = useState<boolean>(true);
   const [personalChatFileUploadEnabled, setPersonalChatFileUploadEnabled] = useState<boolean>(true);
+  const [lessonLockingEnabled, setLessonLockingEnabled] = useState<boolean>(true);
+  const [studentReportsEnabled, setStudentReportsEnabled] = useState<boolean>(true);
+
   const [isSavingHls, setIsSavingHls] = useState<boolean>(false);
   const [isSavingChatUpload, setIsSavingChatUpload] = useState<boolean>(false);
+  const [isSavingLessonLocking, setIsSavingLessonLocking] = useState<boolean>(false);
+  const [isSavingStudentReports, setIsSavingStudentReports] = useState<boolean>(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -118,6 +123,12 @@ export const SettingsPage: React.FC = () => {
             if (typeof settingsData.personal_chat_file_upload_enabled === 'boolean') {
               setPersonalChatFileUploadEnabled(settingsData.personal_chat_file_upload_enabled);
             }
+            if (typeof settingsData.lesson_locking === 'boolean') {
+              setLessonLockingEnabled(settingsData.lesson_locking);
+            }
+            if (typeof settingsData.student_reports === 'boolean') {
+              setStudentReportsEnabled(settingsData.student_reports);
+            }
           }
         }
       } catch (err: any) {
@@ -161,6 +172,36 @@ export const SettingsPage: React.FC = () => {
       setErrorMessage('Failed to update Personal Chat file upload setting.');
     } finally {
       setIsSavingChatUpload(false);
+    }
+  };
+
+  const handleToggleLessonLocking = async (nextVal: boolean) => {
+    const prevVal = lessonLockingEnabled;
+    setLessonLockingEnabled(nextVal);
+    try {
+      setIsSavingLessonLocking(true);
+      await authService.updateAcademySettings({ lesson_locking: nextVal });
+      showToast(`Lesson Locking turned ${nextVal ? 'ON' : 'OFF'}.`);
+    } catch {
+      setLessonLockingEnabled(prevVal);
+      setErrorMessage('Failed to update Lesson Locking setting.');
+    } finally {
+      setIsSavingLessonLocking(false);
+    }
+  };
+
+  const handleToggleStudentReports = async (nextVal: boolean) => {
+    const prevVal = studentReportsEnabled;
+    setStudentReportsEnabled(nextVal);
+    try {
+      setIsSavingStudentReports(true);
+      await authService.updateAcademySettings({ student_reports: nextVal });
+      showToast(`Student Reports turned ${nextVal ? 'ON' : 'OFF'}.`);
+    } catch {
+      setStudentReportsEnabled(prevVal);
+      setErrorMessage('Failed to update Student Reports setting.');
+    } finally {
+      setIsSavingStudentReports(false);
     }
   };
 
@@ -596,37 +637,76 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* PERSONAL CHAT FILE UPLOADS SETTING */}
+          {/* LESSON LOCKING FEATURE SETTING */}
           <div className="bg-white dark:bg-[#111827] rounded-2xl border border-[#E2E8F0] dark:border-[#263244] p-5 shadow-2xs space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Personal Chat File Upload</h3>
-                  {personalChatFileUploadEnabled ? (
+                  <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Lesson Locking</h3>
+                  {lessonLockingEnabled ? (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
-                      ON
+                      ON (Sequential Unlock)
                     </span>
                   ) : (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
-                      OFF
+                      OFF (Free Access)
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-[#64748B] dark:text-[#94A3B8] font-normal leading-relaxed max-w-xl">
-                  Allow files and attachments to be sent in personal chat.
+                  Require students to complete lessons sequentially before unlocking subsequent lessons.
                 </p>
               </div>
 
               <div className="flex items-center gap-3 shrink-0 pt-1 sm:pt-0">
                 <span className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1]">
-                  File Uploads
+                  Lesson Locking
                 </span>
                 <label className="relative inline-flex items-center cursor-pointer select-none">
                   <input
                     type="checkbox"
-                    checked={personalChatFileUploadEnabled}
-                    disabled={isSavingChatUpload}
-                    onChange={(e) => handleTogglePersonalChatFileUpload(e.target.checked)}
+                    checked={lessonLockingEnabled}
+                    disabled={isSavingLessonLocking}
+                    onChange={(e) => handleToggleLessonLocking(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-12 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* STUDENT REPORTS FEATURE SETTING */}
+          <div className="bg-white dark:bg-[#111827] rounded-2xl border border-[#E2E8F0] dark:border-[#263244] p-5 shadow-2xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Student Reports & Progress Visibility</h3>
+                  {studentReportsEnabled ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
+                      ON (Progress Visible)
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                      OFF (Progress Hidden)
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[#64748B] dark:text-[#94A3B8] font-normal leading-relaxed max-w-xl">
+                  Display course completion percentages and progress bars in instructor student tables and student portals.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0 pt-1 sm:pt-0">
+                <span className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1]">
+                  Student Reports
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={studentReportsEnabled}
+                    disabled={isSavingStudentReports}
+                    onChange={(e) => handleToggleStudentReports(e.target.checked)}
                     className="sr-only peer"
                   />
                   <div className="w-12 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]" />
