@@ -58,6 +58,8 @@ interface CertificateCanvasWorkspaceProps {
   backgroundImageUrl: string;
   bgFit?: BackgroundFit;
   bgPosition?: BackgroundPosition;
+  bgOpacity?: number;
+  bgColor?: string;
   pageSize?: string;
   orientation?: 'LANDSCAPE' | 'PORTRAIT';
   customWidth?: number;
@@ -81,6 +83,8 @@ export const CertificateCanvasWorkspace: React.FC<CertificateCanvasWorkspaceProp
   backgroundImageUrl,
   bgFit = 'cover',
   bgPosition = 'center',
+  bgOpacity = 100,
+  bgColor = '#ffffff',
   pageSize = 'CERTIFICATE_LANDSCAPE',
   orientation = 'LANDSCAPE',
   customWidth,
@@ -95,6 +99,36 @@ export const CertificateCanvasWorkspace: React.FC<CertificateCanvasWorkspaceProp
   const resolved = resolvePageDimensions(pageSize, orientation, customWidth, customHeight, customUnit);
   const canvasWidth = resolved.canvasWidthPx;
   const canvasHeight = resolved.canvasHeightPx;
+
+  const handleCalculateFit = React.useCallback(() => {
+    if (!workspaceRef.current) return;
+    const rect = workspaceRef.current.getBoundingClientRect();
+    const availableWidth = rect.width > 32 ? rect.width - 32 : rect.width;
+    const availableHeight = rect.height > 32 ? rect.height - 32 : rect.height;
+    if (availableWidth <= 0 || availableHeight <= 0) return;
+
+    const scaleX = availableWidth / canvasWidth;
+    const scaleY = availableHeight / canvasHeight;
+    const fitRatio = Math.min(scaleX, scaleY);
+    // Limit fit scale between 0.15 and 1.25 for clean display
+    const safeFit = parseFloat(Math.max(0.15, Math.min(1.25, fitRatio)).toFixed(2));
+    setZoomScale(safeFit);
+  }, [canvasWidth, canvasHeight, setZoomScale, workspaceRef]);
+
+  // Recalculate fit on initial load, orientation change, or container resize
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      handleCalculateFit();
+    }, 50);
+
+    const handleResize = () => handleCalculateFit();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [handleCalculateFit, canvasWidth, canvasHeight, orientation, pageSize]);
+
   return (
     <div className="w-full order-1 lg:order-2 space-y-3">
       <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 rounded-2xl shadow-2xs space-y-3">
@@ -110,7 +144,7 @@ export const CertificateCanvasWorkspace: React.FC<CertificateCanvasWorkspaceProp
           <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
             <button
               type="button"
-              onClick={() => setZoomScale((prev) => Math.max(0.35, parseFloat((prev - 0.1).toFixed(2))))}
+              onClick={() => setZoomScale((prev) => Math.max(0.15, parseFloat((prev - 0.05).toFixed(2))))}
               className="w-8 h-8 flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm cursor-pointer"
             >
               -
@@ -120,14 +154,14 @@ export const CertificateCanvasWorkspace: React.FC<CertificateCanvasWorkspaceProp
             </span>
             <button
               type="button"
-              onClick={() => setZoomScale((prev) => Math.min(2.0, parseFloat((prev + 0.1).toFixed(2))))}
+              onClick={() => setZoomScale((prev) => Math.min(2.5, parseFloat((prev + 0.05).toFixed(2))))}
               className="w-8 h-8 flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm cursor-pointer"
             >
               +
             </button>
             <button
               type="button"
-              onClick={() => setZoomScale(0.65)}
+              onClick={handleCalculateFit}
               className="h-8 px-2.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg cursor-pointer"
             >
               Fit
@@ -137,7 +171,7 @@ export const CertificateCanvasWorkspace: React.FC<CertificateCanvasWorkspaceProp
 
         <div
           ref={workspaceRef}
-          className="w-full min-h-[55vh] sm:min-h-[600px] overflow-auto overscroll-contain bg-slate-200/70 dark:bg-slate-950 rounded-xl p-3 sm:p-6 flex items-center justify-center border border-slate-300/60 dark:border-slate-800 touch-pan-x touch-pan-y"
+          className="w-full max-h-[50vh] sm:max-h-[60vh] lg:max-h-[70vh] min-h-[300px] sm:min-h-[450px] overflow-auto overscroll-contain bg-slate-200/70 dark:bg-slate-950 rounded-xl p-3 sm:p-6 flex items-center justify-center border border-slate-300/60 dark:border-slate-800 touch-pan-x touch-pan-y"
         >
           <div
             style={{
@@ -164,14 +198,16 @@ export const CertificateCanvasWorkspace: React.FC<CertificateCanvasWorkspaceProp
                 height: `${canvasHeight}px`,
                 transform: `scale(${zoomScale})`,
                 transformOrigin: 'top left',
+                backgroundColor: bgColor,
                 backgroundImage: backgroundImageUrl
                   ? `url(${backgroundImageUrl})`
-                  : `radial-gradient(#CBD5E1 1px, transparent 1px), radial-gradient(#CBD5E1 1px, #FFFFFF 1px)`,
+                  : `radial-gradient(#CBD5E1 1px, transparent 1px), radial-gradient(#CBD5E1 1px, ${bgColor} 1px)`,
                 backgroundSize: backgroundImageUrl ? getCssBackgroundSize(bgFit) : '20px 20px',
                 backgroundPosition: backgroundImageUrl ? getCssBackgroundPosition(bgPosition) : '0 0, 10px 10px',
                 backgroundRepeat: 'no-repeat',
+                opacity: backgroundImageUrl ? bgOpacity / 100 : 1,
               }}
-              className="canvas-backdrop bg-white text-slate-900 border-8 border-slate-800 shadow-2xl rounded-xl absolute top-0 left-0 overflow-hidden font-sans select-none touch-none"
+              className="canvas-backdrop text-slate-900 border-8 border-slate-800 shadow-2xl rounded-xl absolute top-0 left-0 overflow-hidden font-sans select-none touch-none"
             >
               <div className="absolute inset-2 border-2 border-amber-500/40 pointer-events-none" />
               {elements.map((el) => {

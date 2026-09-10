@@ -43,18 +43,43 @@ export const CourseSettingsPage: React.FC = () => {
   const initialSettings = useMemo(() => {
     const storeSettings = getCourseSettings(courseUuid);
     if (!parentCourse) return storeSettings;
+
+    const levelMap: Record<string, 'Beginner' | 'Intermediate' | 'Advanced' | 'All Levels'> = {
+      BEGINNER: 'Beginner',
+      INTERMEDIATE: 'Intermediate',
+      ADVANCED: 'Advanced',
+      ALL_LEVELS: 'All Levels',
+    };
+
+    const categoryObj = parentCourse.category;
+    const thumbnailObj = parentCourse.thumbnail;
+    const promoVideoObj = parentCourse.promo_video;
+
+    const thumbUrl = parentCourse.thumbnail_url || (thumbnailObj ? (thumbnailObj.url || thumbnailObj.file_url) : null);
+    const promoUrl = parentCourse.promo_video_url || (promoVideoObj ? (promoVideoObj.url || promoVideoObj.file_url) : null);
+
     return {
       ...storeSettings,
       title: parentCourse.title || storeSettings.title,
       subtitle: parentCourse.subtitle || storeSettings.subtitle,
       shortDescription: parentCourse.short_description || storeSettings.shortDescription,
       fullDescription: parentCourse.description || storeSettings.fullDescription,
-      level: parentCourse.level || storeSettings.level,
-      language: parentCourse.language || storeSettings.language,
+      category: categoryObj?.name || storeSettings.category || '',
+      categoryId: categoryObj?.id || storeSettings.categoryId || null,
+      level: (levelMap[parentCourse.level] || parentCourse.level || storeSettings.level) as any,
+      language: parentCourse.language || storeSettings.language || 'English',
       visibility: parentCourse.visibility || storeSettings.visibility,
       isFree: parentCourse.is_free ?? storeSettings.isFree,
       price: parentCourse.price ?? storeSettings.price,
       allowDataExport: parentCourse.allow_data_export ?? storeSettings.allowDataExport ?? true,
+      thumbnailMediaId: thumbnailObj?.id || storeSettings.thumbnailMediaId || null,
+      thumbnailPreviewUrl: thumbUrl || storeSettings.thumbnailPreviewUrl || null,
+      customThumbnailUrl: (!thumbnailObj && thumbUrl) ? thumbUrl : storeSettings.customThumbnailUrl || '',
+      thumbnailMode: (!thumbnailObj && thumbUrl) ? 'URL' : (storeSettings.thumbnailMode || 'UPLOAD'),
+      promoVideoMediaId: promoVideoObj?.id || storeSettings.promoVideoMediaId || null,
+      promoVideoPreviewUrl: promoUrl || storeSettings.promoVideoPreviewUrl || null,
+      customPromoVideoUrl: (!promoVideoObj && promoUrl) ? promoUrl : storeSettings.customPromoVideoUrl || '',
+      promoVideoMode: (!promoVideoObj && promoUrl) ? 'URL' : (storeSettings.promoVideoMode || 'UPLOAD'),
     };
   }, [parentCourse, courseUuid, getCourseSettings]);
 
@@ -91,18 +116,54 @@ export const CourseSettingsPage: React.FC = () => {
     if (!courseUuid) return;
     setIsSaving(true);
     try {
-      await coursesService.patchCourse(courseUuid, {
+      const levelUpperMap: Record<string, string> = {
+        'Beginner': 'BEGINNER',
+        'Intermediate': 'INTERMEDIATE',
+        'Advanced': 'ADVANCED',
+        'All Levels': 'ALL_LEVELS',
+      };
+
+      const payload: Record<string, any> = {
         title: localSettings.title,
         subtitle: localSettings.subtitle || "",
         short_description: localSettings.shortDescription || "",
         description: localSettings.fullDescription || "",
-        level: (localSettings.level?.toUpperCase() as any) || "BEGINNER",
+        category: localSettings.categoryId || null,
+        level: levelUpperMap[localSettings.level] || (localSettings.level?.toUpperCase() as any) || "BEGINNER",
         language: localSettings.language || "English",
         visibility: (localSettings.visibility?.toUpperCase() as any) || "PUBLIC",
         is_free: localSettings.isFree || false,
         price: localSettings.isFree ? 0 : localSettings.price || 0,
         allow_data_export: localSettings.allowDataExport,
-      });
+      };
+
+      // Handle Thumbnail Media vs Custom URL
+      if (localSettings.thumbnailMode === 'UPLOAD') {
+        if (localSettings.thumbnailMediaId) {
+          payload.thumbnail = localSettings.thumbnailMediaId;
+        } else if (localSettings.thumbnailPreviewUrl === null) {
+          payload.thumbnail = null;
+          payload.thumbnail_url = "";
+        }
+      } else if (localSettings.thumbnailMode === 'URL') {
+        payload.thumbnail = null;
+        payload.thumbnail_url = localSettings.customThumbnailUrl?.trim() || "";
+      }
+
+      // Handle Promo Video Media vs Custom URL
+      if (localSettings.promoVideoMode === 'UPLOAD') {
+        if (localSettings.promoVideoMediaId) {
+          payload.promo_video = localSettings.promoVideoMediaId;
+        } else if (localSettings.promoVideoPreviewUrl === null) {
+          payload.promo_video = null;
+          payload.promo_video_url = "";
+        }
+      } else if (localSettings.promoVideoMode === 'URL') {
+        payload.promo_video = null;
+        payload.promo_video_url = localSettings.customPromoVideoUrl?.trim() || "";
+      }
+
+      await coursesService.patchCourse(courseUuid, payload);
 
       updateCourseSettings(courseUuid, localSettings);
 

@@ -33,8 +33,26 @@ export function useCertificateCourses() {
   return useQuery({
     queryKey: certificateKeys.courses(academyId),
     queryFn: async () => {
-      const res = await coursesService.listCourses({ page_size: 100 });
-      return Array.isArray(res) ? res : res?.results || [];
+      let allCourses: any[] = [];
+      let page = 1;
+      let hasMore = true;
+      while (hasMore) {
+        const res = await coursesService.listCourses({ page, page_size: 100 });
+        if (Array.isArray(res)) {
+          allCourses = [...allCourses, ...res];
+          hasMore = false;
+        } else if (res && Array.isArray(res.results)) {
+          allCourses = [...allCourses, ...res.results];
+          if (res.next && res.results.length > 0) {
+            page += 1;
+          } else {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+      return allCourses;
     },
     enabled: canFetch,
     staleTime: 5 * 60 * 1000,

@@ -88,7 +88,7 @@ export const MobileProfileDrawer: React.FC<MobileProfileDrawerProps> = ({
 
         {/* Quick Menu Links */}
         <div className="space-y-2">
-          <p className="px-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          <p className="px-1 text-[11px] font-bold text-slate-400 dark:text-[#7CA9DB] uppercase tracking-wider">
             Preferences & Tools
           </p>
           <div className="space-y-1">
@@ -97,7 +97,7 @@ export const MobileProfileDrawer: React.FC<MobileProfileDrawerProps> = ({
                 key={item.href}
                 to={item.href}
                 onClick={onClose}
-                className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 border border-transparent hover:border-slate-200/80 transition-all group"
+                className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-[#172033] border border-transparent hover:border-slate-200/80 dark:hover:border-[#263244] transition-all group min-h-[44px]"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
@@ -106,29 +106,29 @@ export const MobileProfileDrawer: React.FC<MobileProfileDrawerProps> = ({
                     <item.icon className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                    <p className="text-xs font-bold text-slate-900 dark:text-slate-50 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
                       {item.label}
                     </p>
-                    <p className="text-[10px] text-slate-500 truncate">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
                       {item.description}
                     </p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors shrink-0" />
+                <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors shrink-0" />
               </Link>
             ))}
           </div>
         </div>
 
         {/* Sign Out Button */}
-        <div className="pt-4 border-t border-slate-100">
+        <div className="pt-4 border-t border-slate-100 dark:border-[#1E293B]">
           <button
             type="button"
             onClick={() => {
               onClose();
               logout();
             }}
-            className="w-full h-11 px-4 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            className="w-full min-h-[44px] px-4 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-[rgba(239,68,68,0.08)] dark:hover:bg-[rgba(239,68,68,0.14)] dark:text-rose-400 dark:border dark:border-[rgba(239,68,68,0.20)] font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             <span>Sign Out Account</span>
@@ -138,4 +138,5 @@ export const MobileProfileDrawer: React.FC<MobileProfileDrawerProps> = ({
     </Drawer>
   );
 };
+
 

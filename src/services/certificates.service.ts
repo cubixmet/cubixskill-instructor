@@ -44,6 +44,8 @@ export interface CertificateTemplateData {
   student_photo_shape?: string;
   is_default?: boolean;
   is_active?: boolean;
+  course_id?: string;
+  course_name?: string;
   created_at?: string;
 }
 

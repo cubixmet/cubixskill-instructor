@@ -5,6 +5,7 @@ import type { CanvasElement } from '../../../types/certificate.types';
 import {
   certificatesService,
   type CertificateBinding,
+  type CertificateTemplateData,
 } from '../../../services/certificates.service';
 import { coursesService } from '../../../services/courses.service';
 import { useAuthStore } from '../../../store/auth.store';
@@ -19,6 +20,7 @@ import {
 } from '../utils/fontRegistry';
 import {
   useCertificateCourses,
+  useCertificateTemplates,
   useCertificateFonts,
   useCertificateTemplateDetail,
   certificateKeys,
@@ -51,7 +53,14 @@ export function useCertificateBuilder() {
   const {
     data: queriedCourses = [],
     isLoading: isLoadingCoursesQuery,
+    refetch: refetchCourses,
   } = useCertificateCourses();
+
+  const {
+    data: existingTemplates = [],
+    isLoading: isLoadingTemplatesQuery,
+    refetch: refetchTemplates,
+  } = useCertificateTemplates();
 
   const { data: queriedFonts = FALLBACK_SYSTEM_FONTS } = useCertificateFonts();
 
@@ -65,8 +74,27 @@ export function useCertificateBuilder() {
   // Step Control
   const [step, setStep] = useState<1 | 2>(templateId ? 2 : 1);
 
-  // Course State
+  // Course Selection State
   const [selectedCourseId, setSelectedCourseId] = useState<string>(routeCourseId || '');
+
+  // Compute configured course IDs (excluding currently edited template's course if in edit mode)
+  const configuredCourseIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of existingTemplates) {
+      if (isEditMode && t.id === templateId) continue;
+      const cId = t.course_id || t.template_data?.selected_course_id;
+      if (cId) set.add(String(cId));
+    }
+    return set;
+  }, [existingTemplates, isEditMode, templateId]);
+
+  const eligibleCourses = useMemo(() => {
+    return queriedCourses.filter((c: any) => !configuredCourseIds.has(String(c.id)));
+  }, [queriedCourses, configuredCourseIds]);
+
+  const refreshCourseEligibility = async () => {
+    await Promise.all([refetchCourses(), refetchTemplates()]);
+  };
 
   // Dynamic Fields Discovery State
   const [availableBindings, setAvailableBindings] = useState<CertificateBinding[]>([]);
@@ -89,6 +117,10 @@ export function useCertificateBuilder() {
   const [customUnit, setCustomUnit] = useState<'MM' | 'CM' | 'INCH'>('MM');
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string>('');
   const [backgroundAssetId, setBackgroundAssetId] = useState<string | null>(null);
+  const [bgFit, setBgFit] = useState<BackgroundFit>('cover');
+  const [bgPosition, setBgPosition] = useState<BackgroundPosition>('center');
+  const [bgOpacity, setBgOpacity] = useState<number>(100);
+  const [bgColor, setBgColor] = useState<string>('#ffffff');
 
   // Canvas Elements
   const [elements, setElements] = useState<CanvasElement[]>([]);
@@ -330,14 +362,6 @@ export function useCertificateBuilder() {
     if (queriedFonts && queriedFonts.length > 0) setAvailableFonts(queriedFonts);
   }, [queriedFonts]);
 
-  const courses = useMemo(() => {
-    return Array.isArray(queriedCourses) ? queriedCourses : (queriedCourses as any)?.results ?? [];
-  }, [queriedCourses]);
-
-  useEffect(() => {
-    if (courses.length > 0 && !selectedCourseId) setSelectedCourseId(courses[0].id);
-  }, [courses, selectedCourseId]);
-
   useEffect(() => {
     if (!selectedCourseId) return;
     setIsLoadingFields(true);
@@ -365,6 +389,10 @@ export function useCertificateBuilder() {
       setCustomUnit('MM');
       setBackgroundImageUrl('');
       setBackgroundAssetId(null);
+      setBgFit('cover');
+      setBgPosition('center');
+      setBgOpacity(100);
+      setBgColor('#ffffff');
       setElements([{
         id: 'system-verification-qr',
         type: 'qr',
@@ -399,6 +427,10 @@ export function useCertificateBuilder() {
       if (deserialized.customUnit) setCustomUnit(deserialized.customUnit);
       setBackgroundImageUrl(deserialized.backgroundImageUrl);
       setBackgroundAssetId(deserialized.backgroundAssetId ?? null);
+      if (deserialized.bgFit) setBgFit(deserialized.bgFit);
+      if (deserialized.bgPosition) setBgPosition(deserialized.bgPosition);
+      if (typeof deserialized.bgOpacity === 'number') setBgOpacity(deserialized.bgOpacity);
+      if (deserialized.bgColor) setBgColor(deserialized.bgColor);
       if (deserialized.selectedCourseId) setSelectedCourseId(deserialized.selectedCourseId);
       setStep(2);
       (async () => {
@@ -758,11 +790,15 @@ export function useCertificateBuilder() {
         customUnit,
         backgroundImageUrl,
         backgroundAssetId,
+        bgFit,
+        bgPosition,
+        bgOpacity,
+        bgColor,
         elements,
         isEditMode,
         existingTemplateDetail: templateDetail,
       });
-      let saved;
+      let saved: CertificateTemplateData;
       if (isEditMode && templateId) {
         saved = await certificatesService.updateTemplate(templateId, payload);
       } else {
@@ -774,7 +810,26 @@ export function useCertificateBuilder() {
         navigate(routeCourseId ? `/courses/${routeCourseId}/certificates` : '/certificates');
       }, 800);
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to save certificate template.';
+      await refreshCourseEligibility();
+      const data = err?.response?.data;
+      let msg = 'Failed to save certificate template.';
+      if (typeof data === 'string') {
+        msg = data;
+      } else if (data?.detail) {
+        msg = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
+      } else if (data?.message) {
+        msg = data.message;
+      } else if (Array.isArray(data) && data.length > 0) {
+        msg = data[0];
+      } else if (data && typeof data === 'object') {
+        const firstKey = Object.keys(data)[0];
+        if (firstKey) {
+          const val = data[firstKey];
+          msg = Array.isArray(val) ? val[0] : String(val);
+        }
+      } else if (err?.message) {
+        msg = err.message;
+      }
       showToast(msg, 'error');
     } finally {
       setIsSaving(false);
@@ -791,12 +846,15 @@ export function useCertificateBuilder() {
     routeCourseId,
     isEditMode,
     academyName,
-    queriedCourses,
-    isLoadingCoursesQuery,
     templateDetail,
     isLoadingTemplate,
     step,
     setStep,
+    queriedCourses,
+    eligibleCourses,
+    isLoadingCoursesQuery,
+    isLoadingTemplatesQuery,
+    refreshCourseEligibility,
     selectedCourseId,
     setSelectedCourseId,
     availableBindings,
@@ -823,6 +881,14 @@ export function useCertificateBuilder() {
     setBackgroundImageUrl,
     backgroundAssetId,
     setBackgroundAssetId,
+    bgFit,
+    setBgFit,
+    bgPosition,
+    setBgPosition,
+    bgOpacity,
+    setBgOpacity,
+    bgColor,
+    setBgColor,
     elements,
     setElements,
     selectedElementId,

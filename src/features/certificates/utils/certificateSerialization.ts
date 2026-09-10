@@ -14,6 +14,8 @@ export interface BuilderStageState {
   backgroundAssetId?: string | null;
   bgFit?: any;
   bgPosition?: any;
+  bgOpacity?: number;
+  bgColor?: string;
   elements: CanvasElement[];
   selectedCourseId?: string;
   requiredStudentFields?: string[];
@@ -165,6 +167,8 @@ export function serializeCertificateTemplate(
 
   const bgFitVal = state.bgFit || 'cover';
   const bgPosVal = state.bgPosition || 'center';
+  const bgOpacityVal = typeof state.bgOpacity === 'number' ? state.bgOpacity : 100;
+  const bgColorVal = state.bgColor || '#ffffff';
 
   return {
     name: state.templateName,
@@ -188,9 +192,15 @@ export function serializeCertificateTemplate(
       bgFit: bgFitVal,
       bg_position: bgPosVal,
       bgPosition: bgPosVal,
+      bg_opacity: bgOpacityVal,
+      bgOpacity: bgOpacityVal,
+      bg_color: bgColorVal,
+      bgColor: bgColorVal,
       background: {
         fit: bgFitVal,
         position: bgPosVal,
+        opacity: bgOpacityVal,
+        color: bgColorVal,
         url: validBgUrl,
         mediaId: state.backgroundAssetId ?? null,
       },
@@ -361,6 +371,8 @@ export function deserializeCertificateTemplate(apiTemplate: CertificateTemplateD
 
   const bgFitVal = templateData.background?.fit ?? templateData.bgFit ?? templateData.bg_fit ?? 'cover';
   const bgPosVal = templateData.background?.position ?? templateData.bgPosition ?? templateData.bg_position ?? 'center';
+  const bgOpacityVal = templateData.background?.opacity ?? templateData.bgOpacity ?? templateData.bg_opacity ?? 100;
+  const bgColorVal = templateData.background?.color ?? templateData.bgColor ?? templateData.bg_color ?? '#ffffff';
 
   let resolvedPageSize: 'A4' | 'LETTER' | 'CUSTOM' = 'LETTER';
   const rawOrientation = apiTemplate.orientation ?? 'LANDSCAPE';
@@ -385,6 +397,8 @@ export function deserializeCertificateTemplate(apiTemplate: CertificateTemplateD
     backgroundAssetId: bgAssetId ?? null,
     bgFit: bgFitVal,
     bgPosition: bgPosVal,
+    bgOpacity: bgOpacityVal,
+    bgColor: bgColorVal,
     elements: finalElements,
     selectedCourseId: templateData.selected_course_id,
     requiredStudentFields: templateData.required_student_fields ?? [],

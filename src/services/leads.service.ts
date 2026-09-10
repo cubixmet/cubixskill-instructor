@@ -92,11 +92,21 @@ export const leadsService = {
     email?: string;
     phone?: string;
     source?: string;
+    source_detail?: string;
     priority?: string;
+    preferred_contact_method?: string;
     course_id?: string;
   }): Promise<LeadData> {
     const response = await apiClient.post<BackendApiResponse<LeadData>>(
       '/api/v1/leads/leads/',
+      payload
+    );
+    return response.data?.data || (response.data as unknown as LeadData);
+  },
+
+  async updateLead(id: string, payload: Partial<LeadData & { assigned_to_id?: string }>): Promise<LeadData> {
+    const response = await apiClient.patch<BackendApiResponse<LeadData>>(
+      `/api/v1/leads/leads/${id}/`,
       payload
     );
     return response.data?.data || (response.data as unknown as LeadData);

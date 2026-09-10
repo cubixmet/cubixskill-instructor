@@ -35,11 +35,12 @@ export const Drawer: React.FC<DrawerProps> = ({
     };
   }, [isOpen]);
 
-  // Desktop Drawer Width 480px - 560px
+  // Responsive Drawer Width Classes
   const sizeClasses = {
-    sm: "max-w-[440px]",
-    md: "max-w-[520px]",
-    lg: "max-w-[560px]",
+    sm: "w-full max-w-full sm:max-w-[440px]",
+    md: "w-full max-w-full sm:max-w-[520px]",
+    lg: "w-full max-w-full sm:max-w-[560px]",
+    full: "w-full max-w-full",
   };
 
   const variants = {
@@ -63,7 +64,7 @@ export const Drawer: React.FC<DrawerProps> = ({
 
           <div
             className={cn(
-              "fixed inset-y-0 flex max-w-full w-full sm:w-auto",
+              "fixed inset-y-0 flex max-w-full w-full sm:w-auto h-full h-[100dvh]",
               side === "right" ? "right-0" : "left-0"
             )}
           >
@@ -74,37 +75,48 @@ export const Drawer: React.FC<DrawerProps> = ({
               exit="hidden"
               transition={{ type: "spring", damping: 25, stiffness: 220, duration: 0.25 }}
               className={cn(
-                "w-screen bg-white shadow-2xl flex flex-col border-l border-[#E2E8F0] text-left h-full",
+                "w-full max-w-full bg-white dark:bg-[#0B1120] text-slate-900 dark:text-slate-50 shadow-2xl flex flex-col border-slate-200/80 dark:border-[#1E293B] text-left h-full h-[100dvh] max-h-[100dvh] overflow-hidden",
+                side === "right" ? "border-l" : "border-r",
                 sizeClasses[size]
               )}
             >
               {/* Drawer Header */}
-              <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-[#E2E8F0] bg-white shrink-0">
-                <div className="flex items-center gap-2.5">
+              {title && (
+                <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-200/80 dark:border-[#1E293B] bg-white dark:bg-[#0B1120] shrink-0 min-h-[56px]">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="p-2 -ml-1.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                      aria-label="Close drawer"
+                    >
+                      <ArrowLeft className="w-5 h-5 sm:hidden" />
+                      <X className="w-5 h-5 hidden sm:block" />
+                    </button>
+                    <div className="min-w-0">
+                      {title && <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50 truncate leading-tight">{title}</h3>}
+                      {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5 truncate">{subtitle}</p>}
+                    </div>
+                  </div>
+
                   <button
                     type="button"
                     onClick={onClose}
-                    className="sm:hidden p-1.5 -ml-1.5 rounded-lg text-[#0F172A] hover:bg-slate-100"
+                    className="hidden sm:flex p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0 min-w-[44px] min-h-[44px] items-center justify-center"
+                    aria-label="Close drawer"
                   >
-                    <ArrowLeft className="w-5 h-5" />
+                    <X className="w-5 h-5" />
                   </button>
-                  <div>
-                    {title && <h3 className="text-[18px] font-semibold text-[#0F172A]">{title}</h3>}
-                    {subtitle && <p className="text-[13px] text-[#64748B] font-normal mt-0.5">{subtitle}</p>}
-                  </div>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="hidden sm:flex p-2 rounded-xl text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100 transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+              )}
 
               {/* Drawer Body */}
-              <div className={cn("flex-1 overflow-y-auto no-scrollbar pb-[calc(24px+env(safe-area-inset-bottom))]", !noPadding && "p-5 sm:p-6")}>
+              <div
+                className={cn(
+                  "flex-1 min-h-0 overflow-y-auto no-scrollbar flex flex-col w-full",
+                  !noPadding && "p-4 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]"
+                )}
+              >
                 {children}
               </div>
             </motion.div>
@@ -114,3 +126,4 @@ export const Drawer: React.FC<DrawerProps> = ({
     </AnimatePresence>
   );
 };
+

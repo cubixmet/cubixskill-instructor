@@ -7,11 +7,22 @@ export interface CourseSettingsConfig {
   shortDescription: string;
   fullDescription: string;
   category: string;
+  categoryId?: string | null;
   subcategory: string;
   level: 'Beginner' | 'Intermediate' | 'Advanced' | 'All Levels';
   language: string;
   estimatedDurationHours: number;
   instructorName: string;
+
+  // Category & Media Management
+  thumbnailMediaId?: string | null;
+  thumbnailPreviewUrl?: string | null;
+  thumbnailMode?: 'UPLOAD' | 'URL';
+  customThumbnailUrl?: string;
+  promoVideoMediaId?: string | null;
+  promoVideoPreviewUrl?: string | null;
+  promoVideoMode?: 'UPLOAD' | 'URL';
+  customPromoVideoUrl?: string;
 
   // 2. Access & Visibility
   visibility: 'Public' | 'Unlisted' | 'Private';
@@ -90,11 +101,21 @@ export const DEFAULT_COURSE_SETTINGS: CourseSettingsConfig = {
   shortDescription: 'Master modern React 19, Node.js, and Cloud Infrastructure.',
   fullDescription: 'Comprehensive end-to-end full stack architecture masterclass covering frontend, backend, databases, and DevOps.',
   category: 'Web Development',
+  categoryId: null,
   subcategory: 'Full Stack',
   level: 'Intermediate',
   language: 'English',
   estimatedDurationHours: 42,
   instructorName: 'Dr. Vikramaditya Rao',
+
+  thumbnailMediaId: null,
+  thumbnailPreviewUrl: null,
+  thumbnailMode: 'UPLOAD',
+  customThumbnailUrl: '',
+  promoVideoMediaId: null,
+  promoVideoPreviewUrl: null,
+  promoVideoMode: 'UPLOAD',
+  customPromoVideoUrl: '',
 
   visibility: 'Public',
   accessType: 'Paid',

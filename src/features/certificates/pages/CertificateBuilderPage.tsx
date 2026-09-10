@@ -28,7 +28,7 @@ export const CertificateBuilderPage: React.FC = () => {
   const b = useCertificateBuilder();
 
   return (
-    <div className="space-y-6 font-sans text-left pb-16 max-w-7xl mx-auto px-4 sm:px-6">
+    <div className="space-y-4 sm:space-y-6 font-sans text-left pb-32 sm:pb-16 max-w-7xl mx-auto px-3 sm:px-6">
       {/* Toast Alert */}
       {b.toastState && (
         <div
@@ -52,46 +52,51 @@ export const CertificateBuilderPage: React.FC = () => {
       )}
 
       {/* Navigation & Header Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+        <div className="flex items-start sm:items-center gap-3 min-w-0">
           <button
             type="button"
             onClick={() => b.navigate(b.routeCourseId ? `/courses/${b.routeCourseId}/certificates` : '/certificates')}
-            className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center mt-1 sm:mt-0"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                {b.isEditMode ? 'Edit Certificate Template' : 'New Certificate Template'}
-              </span>
+          <div className="min-w-0 flex-1 space-y-1.5 w-full">
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+              <span>{b.isEditMode ? 'Edit Certificate Template' : 'New Certificate Template'}</span>
               <span className="text-slate-300 dark:text-slate-700">•</span>
-              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[180px] sm:max-w-[260px]">
+              <span className="font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[200px] sm:max-w-[300px]">
                 {b.academyName}
               </span>
             </div>
-            <input
-              type="text"
-              value={b.templateName}
-              onChange={(e) => b.setTemplateName(e.target.value)}
-              placeholder="Template Name..."
-              className="text-base sm:text-lg font-bold bg-transparent border-b border-transparent hover:border-slate-300 dark:hover:border-slate-700 focus:border-blue-600 focus:outline-none px-1 py-0.5 rounded text-slate-900 dark:text-slate-100 w-full max-w-[300px] sm:max-w-[400px]"
-            />
+            <div className="space-y-1 min-w-0 w-full">
+              <label htmlFor="certificate-template-name-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Certificate Template Name *
+              </label>
+              <input
+                id="certificate-template-name-input"
+                type="text"
+                value={b.templateName}
+                onChange={(e) => b.setTemplateName(e.target.value)}
+                placeholder="Enter template name..."
+                className="w-full min-w-0 min-h-[44px] px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[10px] text-base sm:text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 transition-all box-border"
+              />
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 self-end md:self-auto flex-wrap">
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto shrink-0">
           {b.step === 2 && (
             <button
               type="button"
               onClick={() => b.setIsPreview(!b.isPreview)}
-              className={`h-10 px-3.5 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all border ${
+              className={`min-h-[44px] px-3.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all border w-full sm:w-auto ${
                 b.isPreview
                   ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
               }`}
             >
-              <Eye className="w-4 h-4" />
+              <Eye className="w-4 h-4 shrink-0" />
               <span>{b.isPreview ? 'Back to Editor' : 'Preview Mode'}</span>
             </button>
           )}
@@ -100,21 +105,28 @@ export const CertificateBuilderPage: React.FC = () => {
               type="button"
               variant="primary"
               size="md"
+              disabled={!b.selectedCourseId}
               onClick={() => {
                 if (!b.selectedCourseId) {
-                  b.showToast('Please select a course before proceeding.');
+                  b.showToast('Please select a valid eligible course before proceeding.');
                   return;
                 }
                 b.setStep(2);
               }}
-              className="h-10 px-4 text-xs font-semibold flex items-center gap-2"
+              className="w-full sm:w-auto min-h-[44px] px-4 text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-xs"
             >
               <span>Next: Visual Canvas</span>
               <ChevronRight className="w-4 h-4" />
             </Button>
           ) : (
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" size="md" onClick={() => b.setStep(1)} className="h-10 px-3 text-xs font-semibold">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                size="md"
+                onClick={() => b.setStep(1)}
+                className="w-full sm:w-auto min-h-[44px] px-3 text-xs font-semibold"
+              >
                 Step 1: Settings
               </Button>
               <Button
@@ -123,16 +135,16 @@ export const CertificateBuilderPage: React.FC = () => {
                 size="md"
                 disabled={b.isSaving}
                 onClick={b.handleSaveTemplate}
-                className="h-10 px-4 text-xs font-semibold flex items-center gap-2"
+                className="w-full sm:w-auto min-h-[44px] px-4 text-xs font-bold flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-xs"
               >
                 {b.isSaving ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                     <span>Saving...</span>
                   </>
                 ) : (
                   <>
-                    <Save className="w-4 h-4" />
+                    <Save className="w-4 h-4 shrink-0" />
                     <span>Save Template</span>
                   </>
                 )}
@@ -145,7 +157,7 @@ export const CertificateBuilderPage: React.FC = () => {
       {/* Step 1: Settings Setup */}
       {b.step === 1 && (
         <div className="space-y-5">
-          <Card className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-2xs space-y-4">
+          <Card className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 p-4 sm:p-5 rounded-2xl shadow-2xs space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span>Step 1: Certificate & Course Setup</span>
@@ -157,27 +169,50 @@ export const CertificateBuilderPage: React.FC = () => {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1.5">Target Course</label>
-                    <select
-                      value={b.selectedCourseId}
-                      onChange={(e) => b.setSelectedCourseId(e.target.value)}
-                      className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 cursor-pointer"
-                    >
-                      {b.queriedCourses.map((c: any) => (
-                        <option key={c.id} value={c.id}>
-                          {c.title || c.name}
-                        </option>
-                      ))}
-                    </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5 min-w-0">
+                    <label className="block text-xs font-semibold text-slate-900 dark:text-slate-100">Target Course *</label>
+                    {b.isLoadingCoursesQuery || b.isLoadingTemplatesQuery ? (
+                      <div className="flex items-center gap-2 min-h-[44px] px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-500">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        <span>Loading eligible courses...</span>
+                      </div>
+                    ) : b.eligibleCourses.length === 0 && !b.isEditMode ? (
+                      <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-medium flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span>All your courses already have certificate templates.</span>
+                      </div>
+                    ) : (
+                      <select
+                        value={b.selectedCourseId}
+                        onChange={(e) => b.setSelectedCourseId(e.target.value)}
+                        className="w-full min-h-[44px] px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 cursor-pointer text-ellipsis overflow-hidden"
+                      >
+                        <option value="">Select a course...</option>
+                        {/* If in edit mode, ensure currently assigned course remains visible */}
+                        {b.isEditMode && b.selectedCourseId && !b.eligibleCourses.some((c: any) => String(c.id) === String(b.selectedCourseId)) && (() => {
+                          const curr = b.queriedCourses.find((c: any) => String(c.id) === String(b.selectedCourseId));
+                          return curr ? (
+                            <option value={curr.id}>
+                              {curr.title || curr.name}
+                            </option>
+                          ) : null;
+                        })()}
+                        {b.eligibleCourses.map((c: any) => (
+                          <option key={c.id} value={c.id}>
+                            {c.title || c.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1.5">Page Size</label>
+
+                  <div className="space-y-1.5 min-w-0">
+                    <label className="block text-xs font-semibold text-slate-900 dark:text-slate-100">Page Size</label>
                     <select
                       value={b.pageSize}
                       onChange={(e) => b.setPageSize(e.target.value)}
-                      className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 cursor-pointer"
+                      className="w-full min-h-[44px] px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 cursor-pointer text-ellipsis overflow-hidden"
                     >
                       {CERTIFICATE_PAGE_PRESET_OPTIONS.map((opt) => (
                         <option key={opt.key} value={opt.key}>
@@ -189,13 +224,13 @@ export const CertificateBuilderPage: React.FC = () => {
                 </div>
 
                 {b.pageSize === 'CUSTOM' && (
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-                    <span className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                    <span className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                       Custom Dimensions Settings
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <div className="space-y-1 min-w-0">
+                        <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                           Width
                         </label>
                         <input
@@ -216,11 +251,11 @@ export const CertificateBuilderPage: React.FC = () => {
                             }
                           }}
                           placeholder="210"
-                          className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600"
+                          className="w-full min-h-[44px] px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600"
                         />
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <div className="space-y-1 min-w-0">
+                        <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                           Height
                         </label>
                         <input
@@ -241,17 +276,17 @@ export const CertificateBuilderPage: React.FC = () => {
                             }
                           }}
                           placeholder="297"
-                          className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600"
+                          className="w-full min-h-[44px] px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600"
                         />
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <div className="space-y-1 min-w-0">
+                        <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                           Unit
                         </label>
                         <select
                           value={b.customUnit ?? 'MM'}
                           onChange={(e) => b.setCustomUnit(e.target.value as any)}
-                          className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 cursor-pointer font-mono"
+                          className="w-full min-h-[44px] px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 cursor-pointer font-mono"
                         >
                           <option value="MM">mm</option>
                           <option value="CM">cm</option>
@@ -296,6 +331,137 @@ export const CertificateBuilderPage: React.FC = () => {
               </div>
             </Card>
 
+            {/* Background Image Settings Card */}
+            <Card className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-2xs space-y-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <ImageIcon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <span>Background Image</span>
+                </span>
+                {b.backgroundImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      b.setBackgroundImageUrl('');
+                      b.setBackgroundAssetId(null);
+                    }}
+                    className="text-xs text-rose-600 hover:text-rose-700 font-semibold cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                )}
+              </h3>
+
+              {/* Upload & Preview */}
+              {b.backgroundImageUrl ? (
+                <div className="space-y-3">
+                  <div className="relative w-full h-24 bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 flex items-center justify-center">
+                    <img src={b.backgroundImageUrl} alt="Background Preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => b.bgFileInputRef.current?.click()}
+                        className="px-2.5 py-1 bg-white text-slate-900 rounded-lg text-xs font-semibold hover:bg-slate-100 cursor-pointer"
+                      >
+                        Replace
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          b.setBackgroundImageUrl('');
+                          b.setBackgroundAssetId(null);
+                        }}
+                        className="px-2.5 py-1 bg-rose-600 text-white rounded-lg text-xs font-semibold hover:bg-rose-700 cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => b.bgFileInputRef.current?.click()}
+                  className="w-full min-h-[44px] p-3 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-600 cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-900/40"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Upload Background Image (JPG, PNG, WEBP)</span>
+                </button>
+              )}
+
+              {/* Controls */}
+              <div className="space-y-3 pt-1 border-t border-slate-100 dark:border-slate-800">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1 min-w-0">
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300">Fit Mode</label>
+                    <select
+                      value={b.bgFit}
+                      onChange={(e) => b.setBgFit(e.target.value as any)}
+                      className="w-full min-h-[44px] px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 cursor-pointer"
+                    >
+                      <option value="cover">Cover (Fill & Crop)</option>
+                      <option value="contain">Contain (Fit Whole)</option>
+                      <option value="stretch">Stretch (Exact Fill)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 min-w-0">
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300">Position</label>
+                    <select
+                      value={b.bgPosition}
+                      onChange={(e) => b.setBgPosition(e.target.value as any)}
+                      className="w-full min-h-[44px] px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 cursor-pointer"
+                    >
+                      <option value="center">Center</option>
+                      <option value="top">Top</option>
+                      <option value="bottom">Bottom</option>
+                      <option value="left">Left</option>
+                      <option value="right">Right</option>
+                      <option value="top-left">Top Left</option>
+                      <option value="top-right">Top Right</option>
+                      <option value="bottom-left">Bottom Left</option>
+                      <option value="bottom-right">Bottom Right</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                      <span>Opacity</span>
+                      <span className="font-mono text-slate-500">{b.bgOpacity}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={b.bgOpacity}
+                      onChange={(e) => b.setBgOpacity(Number(e.target.value))}
+                      className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    />
+                  </div>
+
+                  <div className="space-y-1 min-w-0">
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300">Background Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={b.bgColor}
+                        onChange={(e) => b.setBgColor(e.target.value)}
+                        className="w-10 min-h-[44px] p-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={b.bgColor}
+                        onChange={(e) => b.setBgColor(e.target.value)}
+                        className="flex-1 min-h-[44px] px-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
             <Card className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-2xs space-y-3">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
@@ -320,7 +486,7 @@ export const CertificateBuilderPage: React.FC = () => {
               </div>
             </Card>
 
-            <Card className="hidden lg:block bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-2xs space-y-4">
+            <Card className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-2xs space-y-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -360,6 +526,10 @@ export const CertificateBuilderPage: React.FC = () => {
             setZoomScale={b.setZoomScale}
             isPreview={b.isPreview}
             backgroundImageUrl={b.backgroundImageUrl}
+            bgFit={b.bgFit}
+            bgPosition={b.bgPosition}
+            bgOpacity={b.bgOpacity}
+            bgColor={b.bgColor}
             pageSize={b.pageSize}
             orientation={b.orientation}
             customWidth={b.customWidth}

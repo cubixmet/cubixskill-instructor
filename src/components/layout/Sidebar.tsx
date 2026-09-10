@@ -70,16 +70,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside
       className={cn(
-        "bg-white dark:bg-[#0B1120] border-r border-slate-200/80 dark:border-[#1E293B] flex flex-col shrink-0 select-none text-left transition-all duration-300 ease-in-out z-40",
+        "bg-white dark:bg-[#0B1120] flex flex-col shrink-0 select-none text-left transition-all duration-300 ease-in-out z-40 overflow-hidden",
         isMobileDrawer
-          ? "w-full h-full"
-          : "fixed top-0 left-0 bottom-0 h-screen",
-        collapsed ? "w-20" : "w-64"
+          ? "w-full max-w-none h-full h-[100dvh]"
+          : cn(
+              "border-r border-slate-200/80 dark:border-[#1E293B] fixed top-0 left-0 bottom-0 h-screen",
+              collapsed ? "w-20" : "w-64"
+            )
       )}
     >
-      {/* Brand Header */}
-      <div className="h-16 px-4 flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] shrink-0">
-        <div className={cn("flex items-center gap-3 min-w-0", collapsed && "justify-center w-full")}>
+      {/* Brand Header / Academy Profile */}
+      <div className="h-16 px-4 flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] shrink-0 bg-white dark:bg-[#0B1120]">
+        <div className={cn("flex items-center gap-3 min-w-0", collapsed && !isMobileDrawer && "justify-center w-full")}>
           {academy?.logo_url ? (
             <img
               src={academy.logo_url}
@@ -92,8 +94,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
 
-          {!collapsed && (
-            <div className="min-w-0 transition-opacity duration-200">
+          {(!collapsed || isMobileDrawer) && (
+            <div className="min-w-0 flex-1">
               {isLoadingBranding ? (
                 <div className="space-y-1 py-1">
                   <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700 animate-pulse rounded" />
@@ -104,7 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 tracking-tight block leading-tight truncate">
                     {academy?.name || "CubixSkill Academy"}
                   </h3>
-                  <p className="text-[10px] font-medium text-blue-600 dark:text-blue-300 uppercase tracking-wider block truncate">
+                  <p className="text-[10px] font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider block truncate mt-0.5">
                     Academy Workspace
                   </p>
                 </>
@@ -118,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             type="button"
             onClick={onToggleCollapse}
             className={cn(
-              "hidden md:flex items-center justify-center p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 transition-colors cursor-pointer shrink-0",
+              "hidden md:flex items-center justify-center p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 transition-colors cursor-pointer shrink-0 min-w-[36px] min-h-[36px]",
               collapsed && "absolute right-2 top-4"
             )}
             title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
@@ -129,11 +131,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navigation Groups */}
-      <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto no-scrollbar">
+      <nav className="flex-1 min-h-0 px-3 py-4 space-y-5 overflow-y-auto no-scrollbar">
         {navSections.map((section, idx) => (
           <div key={idx} className="space-y-1">
-            {!collapsed ? (
-              <h4 className="px-3 text-[11px] font-semibold text-slate-400 dark:text-[#7CA9DB] uppercase tracking-wider mb-2">
+            {(!collapsed || isMobileDrawer) ? (
+              <h4 className="px-3 text-[11px] font-semibold text-slate-400 dark:text-[#7CA9DB] uppercase tracking-wider mb-2 truncate">
                 {section.group}
               </h4>
             ) : (
@@ -147,11 +149,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <NavLink
                     to={item.href}
                     onClick={onCloseMobile}
-                    title={collapsed ? item.label : undefined}
+                    title={collapsed && !isMobileDrawer ? item.label : undefined}
                     className={() =>
                       cn(
-                        "flex items-center gap-3 min-h-[40px] px-3 rounded-xl text-xs font-medium transition-all duration-200 group cursor-pointer",
-                        collapsed && "justify-center",
+                        "flex items-center gap-3 min-h-[44px] px-3.5 rounded-xl text-xs font-medium transition-all duration-200 group cursor-pointer select-none",
+                        collapsed && !isMobileDrawer && "justify-center",
                         active
                           ? "bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-600/15 dark:text-blue-400 dark:border-blue-500/30 font-semibold"
                           : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white border border-transparent"
@@ -168,13 +170,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         )}
                       />
                     </div>
-                    {!collapsed && (
-                      <span className="flex-1 leading-none truncate">{item.label}</span>
+                    {(!collapsed || isMobileDrawer) && (
+                      <span className="flex-1 leading-normal truncate min-w-0">{item.label}</span>
                     )}
                   </NavLink>
 
                   {/* Sub-items for expanded menu */}
-                  {!collapsed && active && item.children && item.children.length > 0 && (
+                  {(!collapsed || isMobileDrawer) && active && item.children && item.children.length > 0 && (
                     <div className="pl-9 pr-2 space-y-1 py-1">
                       {item.children.map((child) => {
                         const childActive = location.pathname === child.href;
@@ -184,13 +186,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             to={child.href}
                             onClick={onCloseMobile}
                             className={cn(
-                              "block px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer",
+                              "flex items-center min-h-[44px] px-3 py-2 rounded-lg text-[11px] font-medium transition-colors cursor-pointer min-w-0",
                               childActive
                                 ? "bg-blue-100/60 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 font-semibold"
                                 : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-white/5"
                             )}
                           >
-                            {child.label}
+                            <span className="truncate flex-1 min-w-0">{child.label}</span>
                           </NavLink>
                         );
                       })}
@@ -204,24 +206,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       {/* User Profile & Logout Footer */}
-      <div className="p-3 border-t border-slate-100 dark:border-[#1E293B] bg-transparent space-y-2 shrink-0 mt-auto">
+      <div className="p-3 border-t border-slate-100 dark:border-[#1E293B] bg-white dark:bg-[#0B1120] space-y-2 shrink-0 mt-auto pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
         <div
           className={cn(
-            "flex items-center rounded-2xl bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#334155] shadow-xs",
-            collapsed ? "justify-center p-2" : "gap-3 p-2.5"
+            "flex items-center rounded-2xl bg-slate-50 dark:bg-[#111827] border border-slate-200/80 dark:border-[#334155] shadow-xs min-h-[48px]",
+            collapsed && !isMobileDrawer ? "justify-center p-2" : "gap-3 p-2.5"
           )}
-          title={collapsed ? user?.full_name || "Maggie Mclaughlin" : undefined}
+          title={collapsed && !isMobileDrawer ? user?.full_name || "Academy User" : undefined}
         >
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
             {getUserInitials(user?.full_name)}
           </div>
-          {!collapsed && (
+          {(!collapsed || isMobileDrawer) && (
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-slate-900 dark:text-slate-50 truncate">
+              <p className="text-xs font-semibold text-slate-900 dark:text-slate-50 truncate">
                 {user?.full_name || "Maggie Mclaughlin"}
               </p>
               <p className="text-[10px] font-normal text-slate-500 dark:text-slate-400 truncate">
-                {getRoleLabel(user?.role, user?.assigned_role_name)}
+                {user?.email || getRoleLabel(user?.role, user?.assigned_role_name)}
               </p>
             </div>
           )}
@@ -229,18 +231,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <motion.button
           type="button"
-          onClick={logout}
+          onClick={() => {
+            if (onCloseMobile) onCloseMobile();
+            logout();
+          }}
           whileTap={{ scale: 0.98 }}
-          title={collapsed ? "Sign Out" : undefined}
+          title={collapsed && !isMobileDrawer ? "Sign Out" : undefined}
           className={cn(
-            "w-full flex items-center rounded-xl text-xs font-bold bg-[#FFF7F7] border border-[#FECACA] text-[#DC2626] dark:bg-[rgba(239,68,68,0.08)] dark:border-[rgba(239,68,68,0.20)] dark:text-[#F87171] hover:bg-rose-100 dark:hover:bg-[rgba(239,68,68,0.14)] transition-colors cursor-pointer",
-            collapsed ? "justify-center p-2.5" : "justify-center gap-2 px-3 py-2"
+            "w-full flex items-center rounded-xl text-xs font-bold bg-[#FFF7F7] border border-[#FECACA] text-[#DC2626] dark:bg-[rgba(239,68,68,0.08)] dark:border-[rgba(239,68,68,0.20)] dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-[rgba(239,68,68,0.14)] transition-colors cursor-pointer min-h-[44px]",
+            collapsed && !isMobileDrawer ? "justify-center p-2.5" : "justify-center gap-2 px-3 py-2.5"
           )}
         >
-          <LogOut className="w-3.5 h-3.5 shrink-0" />
-          {!collapsed && <span>Sign Out</span>}
+          <LogOut className="w-4 h-4 shrink-0" />
+          {(!collapsed || isMobileDrawer) && <span>Sign Out</span>}
         </motion.button>
       </div>
     </aside>
   );
 };
+

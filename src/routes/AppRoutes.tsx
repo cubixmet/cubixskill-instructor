@@ -70,6 +70,9 @@ const CouponEditPage = lazy(() => import('../features/coupons/pages/CouponEditPa
 const CouponDetailPage = lazy(() => import('../features/coupons/pages/CouponDetailPage').then(m => ({ default: m.CouponDetailPage })));
 
 const DemoLeadsPage = lazy(() => import('../features/demo-leads/pages/DemoLeadsPage').then(m => ({ default: m.DemoLeadsPage })));
+const LeadCreatePage = lazy(() => import('../features/demo-leads/pages/LeadCreatePage').then(m => ({ default: m.LeadCreatePage })));
+const LeadDetailPage = lazy(() => import('../features/demo-leads/pages/LeadDetailPage').then(m => ({ default: m.LeadDetailPage })));
+const LeadEditPage = lazy(() => import('../features/demo-leads/pages/LeadEditPage').then(m => ({ default: m.LeadEditPage })));
 
 const StaffDirectoryPage = lazy(() => import('../features/staff/pages/StaffDirectoryPage').then(m => ({ default: m.StaffDirectoryPage })));
 const StaffCreatePage = lazy(() => import('../features/staff/pages/StaffCreatePage').then(m => ({ default: m.StaffCreatePage })));
@@ -262,7 +265,9 @@ export const AppRoutes: React.FC = () => {
 
             {/* 7. Demo Leads CRM */}
             <Route path="/demo-leads" element={<DemoLeadsPage />} />
-            <Route path="/demo-leads/*" element={<DemoLeadsPage />} />
+            <Route path="/demo-leads/new" element={<LeadCreatePage />} />
+            <Route path="/demo-leads/:leadId" element={<LeadDetailPage />} />
+            <Route path="/demo-leads/:leadId/edit" element={<LeadEditPage />} />
 
             {/* 8. Dual Payment Architecture */}
             <Route path="/payments" element={<PaymentsOverviewPage />} />
