@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, Check, Lock } from 'lucide-react';
-import { Button } from '../../../components/ui/Button';
+import { ArrowLeft, ShieldCheck, Search, CheckSquare, Square, MinusSquare } from 'lucide-react';
 import { Input } from '../../../components/ui/Input';
 import { staffService, PermissionGroup } from '../../../services/staff.service';
 
@@ -57,6 +56,8 @@ export const RoleCreatePage: React.FC = () => {
   const [selectedPermCodes, setSelectedPermCodes] = useState<string[]>([
     'courses.view', 'students.view', 'live_classes.view'
   ]);
+
+  const [permSearch, setPermSearch] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -72,6 +73,19 @@ export const RoleCreatePage: React.FC = () => {
     setSelectedPermCodes((prev) =>
       prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
     );
+  };
+
+  const toggleModuleGroup = (group: PermissionGroup) => {
+    const groupCodes = group.permissions.map((p) => p.code);
+    const allSelected = groupCodes.every((c) => selectedPermCodes.includes(c));
+
+    if (allSelected) {
+      // Unselect all in this group
+      setSelectedPermCodes((prev) => prev.filter((c) => !groupCodes.includes(c)));
+    } else {
+      // Select all in this group
+      setSelectedPermCodes((prev) => Array.from(new Set([...prev, ...groupCodes])));
+    }
   };
 
   const handleCreateRole = async () => {
@@ -97,11 +111,11 @@ export const RoleCreatePage: React.FC = () => {
   };
 
   return (
-    <div className="w-full min-w-0 max-w-[900px] mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 text-left font-sans text-xs bg-[var(--page-background)] text-[var(--text-primary)] min-h-screen">
+    <div className="w-full min-w-0 max-w-[900px] mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-5 sm:space-y-6 text-left font-sans text-xs bg-[var(--page-background)] text-[var(--text-primary)] min-h-screen pb-28 sm:pb-12">
       {/* BREADCRUMB / BACK */}
       <nav className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-        <Link to="/roles" className="hover:text-[var(--brand-primary)] flex items-center gap-1 font-medium text-[var(--text-secondary)]">
-          <ArrowLeft className="w-3.5 h-3.5" />
+        <Link to="/roles" className="hover:text-[var(--brand-primary)] flex items-center gap-1 font-medium text-[var(--text-secondary)] min-h-[36px] items-center">
+          <ArrowLeft className="w-4 h-4" />
           <span>Roles &amp; Permissions</span>
         </Link>
         <span>/</span>
@@ -109,9 +123,9 @@ export const RoleCreatePage: React.FC = () => {
       </nav>
 
       {/* PAGE HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border)] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border)] pb-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] tracking-tight">Create Custom Access Role</h1>
+          <h1 className="text-lg sm:text-2xl font-bold text-[var(--text-primary)] tracking-tight">Create Custom Access Role</h1>
           <p className="text-xs sm:text-sm text-[var(--text-muted)] font-normal mt-0.5">
             Configure granular RBAC permissions across all academy modules.
           </p>
@@ -125,72 +139,131 @@ export const RoleCreatePage: React.FC = () => {
       )}
 
       {/* FORM CARD */}
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 sm:p-6 shadow-2xs space-y-6">
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-4 sm:p-6 shadow-2xs space-y-6">
         <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider">Role Info</h2>
+          <h2 className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider">Role Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               label="Role Name *"
               placeholder="e.g. Teaching Assistant"
               value={newRoleName}
               onChange={(e) => setNewRoleName(e.target.value)}
-              className="bg-[var(--surface-secondary)] border-[var(--input-border)] text-[var(--text-primary)]"
+              className="bg-[var(--surface-secondary)] border-[var(--input-border)] text-[var(--text-primary)] text-base sm:text-sm min-h-[44px]"
             />
             <Input
               label="Description"
               placeholder="e.g. Can manage student submissions and view courses."
               value={newRoleDesc}
               onChange={(e) => setNewRoleDesc(e.target.value)}
-              className="bg-[var(--surface-secondary)] border-[var(--input-border)] text-[var(--text-primary)]"
+              className="bg-[var(--surface-secondary)] border-[var(--input-border)] text-[var(--text-primary)] text-base sm:text-sm min-h-[44px]"
             />
           </div>
         </div>
 
         {/* PERMISSIONS MATRIX */}
         <div className="space-y-4 pt-4 border-t border-[var(--border)]">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider">Module Capabilities &amp; Permissions</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h2 className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider">Module Capabilities &amp; Permissions</h2>
+            <div className="w-full sm:w-64">
+              <Input
+                placeholder="Search capabilities..."
+                value={permSearch}
+                onChange={(e) => setPermSearch(e.target.value)}
+                leftIcon={<Search className="w-4 h-4 text-[var(--text-muted)]" />}
+                className="bg-[var(--surface-secondary)] border-[var(--input-border)] text-[var(--text-primary)] text-base sm:text-xs min-h-[44px] sm:min-h-[36px]"
+              />
+            </div>
+          </div>
+
           <div className="space-y-4">
-            {permissionGroups.map((group) => (
-              <div key={group.module} className="bg-[var(--surface-secondary)] p-4 rounded-xl border border-[var(--border)] space-y-3">
-                <h3 className="font-semibold text-xs text-[var(--text-primary)]">{group.module}</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {group.permissions.map((perm) => {
-                    const isChecked = selectedPermCodes.includes(perm.code);
-                    return (
-                      <label
-                        key={perm.id}
-                        onClick={() => togglePermission(perm.code)}
-                        className={`p-3 rounded-lg border cursor-pointer flex items-start gap-3 transition-colors ${
-                          isChecked
-                            ? 'bg-[color-mix(in_srgb,var(--brand-primary)_10%,var(--surface))] border-[var(--brand-primary)]'
-                            : 'bg-[var(--surface)] border-[var(--border)] hover:bg-[var(--surface-hover)]'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => togglePermission(perm.code)}
-                          className="mt-0.5 accent-[var(--brand-primary)] w-4 h-4 rounded cursor-pointer shrink-0"
-                        />
-                        <div>
-                          <strong className="text-xs font-semibold text-[var(--text-primary)] block">{perm.name}</strong>
-                          <span className="text-[11px] text-[var(--text-muted)] block mt-0.5">{perm.description}</span>
-                        </div>
-                      </label>
-                    );
-                  })}
+            {permissionGroups.map((group) => {
+              const filteredPerms = group.permissions.filter((p) =>
+                !permSearch ||
+                p.name.toLowerCase().includes(permSearch.toLowerCase()) ||
+                p.description.toLowerCase().includes(permSearch.toLowerCase()) ||
+                p.code.toLowerCase().includes(permSearch.toLowerCase())
+              );
+
+              if (permSearch && filteredPerms.length === 0) return null;
+
+              const groupCodes = group.permissions.map((p) => p.code);
+              const selectedCount = groupCodes.filter((c) => selectedPermCodes.includes(c)).length;
+              const isAll = selectedCount === groupCodes.length && groupCodes.length > 0;
+              const isPartial = selectedCount > 0 && !isAll;
+
+              return (
+                <div key={group.module} className="bg-[var(--surface-secondary)] p-4 rounded-xl border border-[var(--border)] space-y-3">
+                  <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-xs text-[var(--text-primary)]">{group.module}</h3>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface)] border border-[var(--border)] font-medium text-[var(--text-muted)]">
+                        {selectedCount}/{groupCodes.length} selected
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleModuleGroup(group)}
+                      className="text-xs font-semibold text-[var(--brand-primary)] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      {isAll ? (
+                        <>
+                          <CheckSquare className="w-4 h-4" />
+                          <span>Deselect All</span>
+                        </>
+                      ) : isPartial ? (
+                        <>
+                          <MinusSquare className="w-4 h-4" />
+                          <span>Select All ({groupCodes.length})</span>
+                        </>
+                      ) : (
+                        <>
+                          <Square className="w-4 h-4" />
+                          <span>Select All ({groupCodes.length})</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {filteredPerms.map((perm) => {
+                      const isChecked = selectedPermCodes.includes(perm.code);
+                      return (
+                        <label
+                          key={perm.id}
+                          onClick={() => togglePermission(perm.code)}
+                          className={`p-3.5 rounded-xl border cursor-pointer flex items-start gap-3 transition-colors min-h-[44px] ${
+                            isChecked
+                              ? 'bg-[color-mix(in_srgb,var(--brand-primary)_10%,var(--surface))] border-[var(--brand-primary)]'
+                              : 'bg-[var(--surface)] border-[var(--border)] hover:bg-[var(--surface-hover)]'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => togglePermission(perm.code)}
+                            className="mt-0.5 accent-[var(--brand-primary)] w-4 h-4 rounded cursor-pointer shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <strong className="text-xs font-semibold text-[var(--text-primary)] block truncate">{perm.name}</strong>
+                            <span className="text-[11px] text-[var(--text-muted)] block mt-0.5 leading-snug">{perm.description}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         {/* FOOTER ACTIONS */}
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-[var(--border)]">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 pt-4 border-t border-[var(--border)]">
           <button
             type="button"
             onClick={() => navigate('/roles')}
-            className="h-11 px-5 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] font-semibold text-xs cursor-pointer transition-colors w-full sm:w-auto"
+            className="h-11 px-5 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] font-semibold text-xs cursor-pointer transition-colors w-full sm:w-auto min-h-[44px] flex items-center justify-center"
           >
             Cancel
           </button>
@@ -198,7 +271,7 @@ export const RoleCreatePage: React.FC = () => {
             type="button"
             onClick={handleCreateRole}
             disabled={isSubmitting}
-            className="h-11 px-6 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-semibold text-xs cursor-pointer transition-colors w-full sm:w-auto shadow-xs disabled:opacity-50 flex items-center justify-center gap-2"
+            className="h-11 px-6 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-semibold text-xs cursor-pointer transition-colors w-full sm:w-auto shadow-xs disabled:opacity-50 min-h-[44px] flex items-center justify-center gap-2"
           >
             <ShieldCheck className="w-4 h-4" />
             <span>{isSubmitting ? 'Creating Role...' : 'Create Access Role'}</span>

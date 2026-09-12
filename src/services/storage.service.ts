@@ -87,6 +87,7 @@ export interface MediaFileApiItem {
   height?: number;
   stream_manifest_key?: string;
   url: string;
+  file_url?: string;
   stream_url?: string;
   renditions?: VideoRenditionItem[];
   created_at: string;
@@ -142,20 +143,6 @@ export interface StorageMonthlyBillingStatement {
   status: string;
   calculated_at: string;
   charged_at?: string;
-}
-
-export interface StorageUsageChargeItem {
-  id: string;
-  billing_started_at: string;
-  billing_ended_at: string;
-  interval: string;
-  interval_label: string;
-  used_bytes: number;
-  used_gb: string;
-  rate_per_gb: string;
-  charged_credits: string;
-  status: string;
-  created_at: string;
 }
 
 export interface StorageSummaryDashboard {
@@ -529,6 +516,53 @@ export const storageService = {
   async deleteMediaFile(id: string, force: boolean = false): Promise<void> {
     const query = force ? '?force=true' : '';
     await apiClient.delete(`/api/v1/storage/files/${id}/${query}`);
+  },
+
+  async bulkDeleteMediaFiles(fileIds: string[]): Promise<{
+    deleted_ids: string[];
+    deleted_count: number;
+    blocked_items: Array<{
+      id: string;
+      filename: string;
+      reason: string;
+      references: any[];
+    }>;
+    blocked_count: number;
+    failed_count: number;
+    total_requested: number;
+  }> {
+    const response = await apiClient.post('/api/v1/storage/files/bulk-delete/', { file_ids: fileIds });
+    return response.data?.data || response.data;
+  },
+
+  async getMeterRecordFiles(meterId: string): Promise<{
+    has_file_history: boolean;
+    message: string;
+    meter_record: {
+      id: string;
+      metered_at: string;
+      used_bytes: number;
+      used_gb: string;
+      calculated_credits: string;
+    };
+    total_files: number;
+    total_storage_bytes: number;
+    formatted_total_storage: string;
+    accounting_difference_bytes: number;
+    files: Array<{
+      id: string;
+      original_filename: string;
+      display_name: string;
+      file_type: string;
+      media_type: string;
+      size_bytes: number;
+      formatted_size: string;
+      created_at: string | null;
+      uploaded_at: string | null;
+    }>;
+  }> {
+    const response = await apiClient.get(`/api/v1/storage/meter-logs/${meterId}/files/`);
+    return response.data?.data || response.data;
   },
 };
 

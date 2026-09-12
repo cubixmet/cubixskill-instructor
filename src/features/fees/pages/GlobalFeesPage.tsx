@@ -159,7 +159,7 @@ export const GlobalFeesPage: React.FC = () => {
   }, [courseWiseStats, search, statusFilter]);
 
   return (
-    <div className="space-y-4 sm:space-y-6 font-sans text-xs text-[#0F172A] dark:text-[#F8FAFC] text-left pb-24 md:pb-8 min-w-0 w-full max-w-full overflow-x-hidden">
+    <div className="space-y-4 sm:space-y-6 font-sans text-xs text-[#0F172A] dark:text-[#F8FAFC] text-left pb-24 md:pb-8 min-w-0 w-full max-w-full overflow-x-hidden px-1 sm:px-0">
       {/* 1. HEADER */}
       <Card padding="md" className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] shadow-2xs w-full max-w-full min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
@@ -182,7 +182,7 @@ export const GlobalFeesPage: React.FC = () => {
             <span className="text-[11px] truncate">Total Expected</span>
             <TrendingUp className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
           </div>
-          <p className="text-sm sm:text-xl font-semibold text-[#0F172A] dark:text-[#F8FAFC] truncate">
+          <p className="text-sm sm:text-xl font-semibold text-[#0F172A] dark:text-[#F8FAFC] truncate break-all">
             ₹{summary.totalExpected.toLocaleString('en-IN')}
           </p>
         </div>
@@ -193,7 +193,7 @@ export const GlobalFeesPage: React.FC = () => {
             <span className="text-[11px] truncate">Collected Fees</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-[#10B981] shrink-0" />
           </div>
-          <p className="text-sm sm:text-xl font-semibold text-emerald-600 dark:text-[#10B981] truncate">
+          <p className="text-sm sm:text-xl font-semibold text-emerald-600 dark:text-[#10B981] truncate break-all">
             ₹{summary.totalCollected.toLocaleString('en-IN')}
           </p>
         </div>
@@ -204,7 +204,7 @@ export const GlobalFeesPage: React.FC = () => {
             <span className="text-[11px] truncate">Pending Fees</span>
             <Clock className="w-4 h-4 text-amber-600 dark:text-[#F59E0B] shrink-0" />
           </div>
-          <p className="text-sm sm:text-xl font-semibold text-amber-600 dark:text-[#F59E0B] truncate">
+          <p className="text-sm sm:text-xl font-semibold text-amber-600 dark:text-[#F59E0B] truncate break-all">
             ₹{summary.totalPending.toLocaleString('en-IN')}
           </p>
         </div>
@@ -215,7 +215,7 @@ export const GlobalFeesPage: React.FC = () => {
             <span className="text-[11px] truncate">Overdue Fees</span>
             <AlertCircle className="w-4 h-4 text-rose-600 dark:text-[#F87171] shrink-0" />
           </div>
-          <p className="text-sm sm:text-xl font-semibold text-rose-600 dark:text-[#F87171] truncate">
+          <p className="text-sm sm:text-xl font-semibold text-rose-600 dark:text-[#F87171] truncate break-all">
             ₹{summary.totalOverdue.toLocaleString('en-IN')}
           </p>
         </div>
@@ -224,13 +224,13 @@ export const GlobalFeesPage: React.FC = () => {
       {/* 3. SEARCH & FILTERS BAR */}
       <div className="bg-white dark:bg-[#111827] p-3 sm:p-4 rounded-2xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between min-w-0">
         <div className="relative flex-1 min-w-0">
-          <Search className="w-3.5 h-3.5 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Search className="w-4 h-4 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             placeholder="Search course title..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-9.5 pl-9 pr-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/10"
+            className="w-full h-11 sm:h-9.5 pl-9 pr-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/10 min-h-[44px] sm:min-h-0"
           />
         </div>
 
@@ -238,7 +238,7 @@ export const GlobalFeesPage: React.FC = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9.5 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6] w-full sm:w-auto cursor-pointer"
+            className="h-11 sm:h-9.5 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6] w-full sm:w-auto cursor-pointer min-h-[44px] sm:min-h-0"
           >
             <option value="all">All Fee States</option>
             <option value="Paid">Fully Paid</option>
@@ -327,7 +327,7 @@ export const GlobalFeesPage: React.FC = () => {
                     size="sm"
                     variant="outline"
                     onClick={() => navigate(`/courses/${c.courseUuid}/fees`)}
-                    className="w-full font-medium h-9 rounded-xl border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#1E293B] dark:hover:border-[#3B82F6] dark:hover:text-[#F8FAFC] justify-center text-xs"
+                    className="w-full font-medium h-11 sm:h-9 min-h-[44px] sm:min-h-0 rounded-xl border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#1E293B] dark:hover:border-[#3B82F6] dark:hover:text-[#F8FAFC] justify-center text-xs"
                     rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
                   >
                     View Course Fees

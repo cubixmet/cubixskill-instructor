@@ -9,6 +9,7 @@ import {
   Download,
   Upload,
   FileSpreadsheet,
+  CheckCircle2,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
@@ -754,8 +755,9 @@ export const QuizFormWizardModal: React.FC<QuizFormWizardModalProps> = ({
                     </div>
 
                     {parseNotice && (
-                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 font-medium">
-                        ✓ {parseNotice}
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 font-medium flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden="true" />
+                        <span>{parseNotice}</span>
                       </div>
                     )}
 

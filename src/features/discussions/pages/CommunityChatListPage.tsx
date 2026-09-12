@@ -1,49 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Users, Search, MessageSquare, RefreshCw, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, Search, MessageSquare, RefreshCw } from 'lucide-react';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { discussionService } from '../../../services/discussion.service';
 import { authStore } from '../../../store/auth.store';
+import { ConversationRowItem } from '../components/ConversationRowItem';
 
-function formatMessageTime(dateString?: string): string {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return '';
-  const now = new Date();
-  if (date.toDateString() === now.toDateString()) {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (date.toDateString() === yesterday.toDateString()) {
-    return 'Yesterday';
-  }
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-}
 
-function getLatestMessagePreview(item: any, currentUserId: string): string {
-  const room = item.room;
-  if (!room) return 'No messages yet';
-
-  const lastMsg = room.last_message;
-  if (!lastMsg) return 'No messages yet';
-
-  let content = (lastMsg.content || '').trim();
-  if (!content) return 'No messages yet';
-
-  const senderId = String(lastMsg.sender_id || '');
-  const senderName = lastMsg.sender_name || '';
-
-  if (currentUserId && senderId === currentUserId) {
-    return `You: ${content}`;
-  }
-  return senderName ? `${senderName}: ${content}` : content;
-}
 
 export const CommunityChatListPage: React.FC = () => {
-  const navigate = useNavigate();
   const currentUser = authStore.getState().user;
   const currentUserId = String(currentUser?.id || (currentUser as any)?.user_id || '');
 
@@ -156,62 +123,37 @@ export const CommunityChatListPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="grid gap-3">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800/60 rounded-xl overflow-hidden bg-white dark:bg-[#1E293B]/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs">
             {filteredGroups.map((group) => {
               const course = group.course;
               const room = group.room;
               const unreadCount = room?.unread_count || 0;
-              const previewText = getLatestMessagePreview(group, currentUserId);
-              const timestamp = room?.last_message?.created_at || room?.last_message_at;
-              const timeDisplay = formatMessageTime(timestamp);
+              const lastMsgObj = room?.last_message;
+              const lastMsgContent = lastMsgObj?.content || room?.last_message_preview || room?.latest_message;
+              const senderName = lastMsgObj?.sender_name || lastMsgObj?.sender?.full_name;
+              const senderId = lastMsgObj?.sender_id || lastMsgObj?.sender?.id;
+              const attachments = lastMsgObj?.attachments || lastMsgObj?.media_files;
+              const timestamp = lastMsgObj?.created_at || room?.last_message_at;
 
               return (
                 <Link
                   key={course.id}
                   to={`/discussions/community/${course.id}`}
-                  className="group relative p-4 rounded-xl bg-white dark:bg-[#1E293B]/60 hover:bg-slate-50 dark:hover:bg-[#1E293B] border border-slate-200/80 dark:border-slate-800/80 hover:border-blue-500/30 dark:hover:border-blue-500/30 transition-all duration-200 flex items-center gap-4 shadow-sm hover:shadow"
+                  className="block no-underline"
                 >
-                  {/* Thumbnail / Avatar */}
-                  <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center shrink-0 shadow-xs">
-                    {course.thumbnail ? (
-                      <img
-                        src={course.thumbnail}
-                        alt={course.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-sm tracking-wider uppercase">
-                        {course.title ? course.title.substring(0, 2) : 'CC'}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Course Details */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
-                        {course.title}
-                      </h3>
-                      {timeDisplay && (
-                        <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 shrink-0">
-                          {timeDisplay}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between gap-2 mt-1">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate pr-2">
-                        {previewText}
-                      </p>
-                      {unreadCount > 0 && (
-                        <span className="px-2 py-0.5 text-[10px] font-bold text-white bg-blue-600 rounded-full shrink-0">
-                          {unreadCount}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <ArrowRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ConversationRowItem
+                    id={course.id}
+                    title={course.title}
+                    courseThumbnail={course.thumbnail}
+                    lastMessageContent={lastMsgContent}
+                    lastMessageSenderName={senderName}
+                    lastMessageSenderId={senderId}
+                    lastMessageAttachments={attachments}
+                    timestamp={timestamp}
+                    unreadCount={unreadCount}
+                    isCommunity={true}
+                    currentUserId={currentUserId}
+                  />
                 </Link>
               );
             })}

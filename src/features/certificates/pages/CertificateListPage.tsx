@@ -16,11 +16,11 @@ import {
   CheckCircle2,
   FileCheck,
   Layout,
-  Copy,
   Pencil,
   BookOpen,
   Layers,
   Trash2,
+  Copy,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -827,19 +827,40 @@ export const CertificateListPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-[#E2E8F0] dark:border-[#263244] flex flex-wrap items-center justify-between gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/certificates/${tmpl.id}/edit`)}
-                      leftIcon={<Pencil className="w-4 h-4" />}
-                      className="min-h-[44px] text-xs font-semibold px-3 shrink-0 border-slate-300 dark:border-slate-700 text-[#0F172A] dark:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033]"
-                    >
-                      Edit
-                    </Button>
+                    <div className="pt-3 border-t border-[#E2E8F0] dark:border-[#263244] flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/certificates/${tmpl.id}/canvas`)}
+                          leftIcon={<Pencil className="w-4 h-4" />}
+                          className="min-h-[44px] text-xs font-semibold px-3 shrink-0 border-slate-300 dark:border-slate-700 text-[#0F172A] dark:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033]"
+                        >
+                          Canvas
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/certificates/${tmpl.id}/setup`)}
+                          className="min-h-[44px] text-xs font-semibold px-2.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                        >
+                          Setup / Fields
+                        </Button>
+                      </div>
 
                     <div className="flex items-center gap-1 flex-wrap shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleDuplicateTemplate(tmpl.id)}
+                        title="Duplicate Template"
+                        aria-label="Duplicate template"
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 text-indigo-600 hover:text-indigo-700 rounded-xl hover:bg-indigo-50 dark:hover:bg-[#1e1b4b] cursor-pointer transition-colors shrink-0"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => handlePublishTemplate(tmpl.id)}

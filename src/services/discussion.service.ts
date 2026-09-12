@@ -225,4 +225,19 @@ export const discussionService = {
     const res = await apiClient.post(`/api/v1/chat/rooms/${roomId}/read/`);
     return res.data;
   },
+
+  async listEligibleUsers(search?: string): Promise<any[]> {
+    const params = search ? { search } : {};
+    const res = await apiClient.get('/api/v1/chat/rooms/eligible-users/', { params });
+    const data = res.data;
+    if (Array.isArray(data)) return data;
+    return data.results || [];
+  },
+
+  async searchInChatMessages(roomId: string, query: string): Promise<any[]> {
+    const res = await apiClient.get(`/api/v1/chat/rooms/${roomId}/search-messages/`, { params: { q: query } });
+    const data = res.data;
+    if (Array.isArray(data)) return data;
+    return data.results || [];
+  },
 };

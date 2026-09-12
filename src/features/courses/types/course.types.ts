@@ -45,6 +45,7 @@ export interface CourseModule {
 
 export interface CourseListItem {
   id: string;
+  uuid?: string;
   title: string;
   slug: string;
   subtitle: string;

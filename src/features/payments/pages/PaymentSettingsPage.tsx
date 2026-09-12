@@ -17,6 +17,7 @@ import {
   type PaymentTransactionItem,
   type AcademySettlementItem,
 } from '../../../services/paymentSettings.service';
+import { PaymentNavigationTabs } from '../components/PaymentNavigationTabs';
 
 export const PaymentSettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'settings' | 'transactions' | 'settlements'>('settings');
@@ -152,7 +153,6 @@ export const PaymentSettingsPage: React.FC = () => {
       const updated = await paymentSettingsService.updatePaymentSettings(payload);
       setSettings(updated);
 
-      // Immediately clear secret inputs from memory
       setKeySecretInput('');
       setWebhookSecretInput('');
 
@@ -274,24 +274,27 @@ export const PaymentSettingsPage: React.FC = () => {
   const pendingSettlementAmount = settlements.filter((s) => s.status === 'PENDING').reduce((acc, s) => acc + Number(s.net_amount || 0), 0);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 text-left font-sans min-w-0">
+    <div className="p-3 sm:p-6 lg:p-8 pb-24 md:pb-8 max-w-7xl mx-auto space-y-6 text-left font-sans min-w-0 overflow-x-hidden">
+      {/* GLOBAL PAYMENTS DOMAIN TABS */}
+      <PaymentNavigationTabs />
+
       {/* PAGE HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-[#F8FAFC]">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-[#F8FAFC]">
             Payment Settings
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-[#94A3B8] font-normal">
-            Choose how student payments are processed for your academy.
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-[#94A3B8] font-normal leading-relaxed">
+            Choose how student course payments are processed for your academy.
           </p>
         </div>
 
-        {/* TABS NAVIGATION */}
-        <div className="inline-flex bg-slate-100 dark:bg-[#172033] p-1 rounded-xl border border-slate-200 dark:border-[#263244] self-start sm:self-auto">
+        {/* LOCAL SUB-TABS */}
+        <div className="flex items-center bg-slate-100 dark:bg-[#172033] p-1 rounded-xl border border-slate-200 dark:border-[#263244] overflow-x-auto no-scrollbar w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setActiveTab('settings')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all min-h-[44px] flex items-center justify-center shrink-0 ${
               activeTab === 'settings'
                 ? 'bg-white dark:bg-[#111827] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs'
                 : 'text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
@@ -302,7 +305,7 @@ export const PaymentSettingsPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('transactions')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all min-h-[44px] flex items-center justify-center shrink-0 ${
               activeTab === 'transactions'
                 ? 'bg-white dark:bg-[#111827] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs'
                 : 'text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
@@ -313,7 +316,7 @@ export const PaymentSettingsPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('settlements')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all min-h-[44px] flex items-center justify-center shrink-0 ${
               activeTab === 'settlements'
                 ? 'bg-white dark:bg-[#111827] text-[#2563EB] dark:text-[#60A5FA] shadow-2xs'
                 : 'text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
@@ -340,7 +343,7 @@ export const PaymentSettingsPage: React.FC = () => {
             )}
             <span>{statusMessage.text}</span>
           </div>
-          <button type="button" onClick={() => setStatusMessage(null)} className="text-xs opacity-70 hover:opacity-100 cursor-pointer">
+          <button type="button" onClick={() => setStatusMessage(null)} className="text-xs opacity-70 hover:opacity-100 cursor-pointer min-h-[44px] px-2">
             Dismiss
           </button>
         </div>
@@ -356,14 +359,14 @@ export const PaymentSettingsPage: React.FC = () => {
         <div className="space-y-8">
           {/* PAYMENT MODE SELECTION CARDS */}
           <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-[#F8FAFC]">Payment Processing Mode</h2>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">Payment Processing Mode</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* CARD 1: OWN RAZORPAY */}
               <div
-                className={`p-6 rounded-[14px] border transition-all cursor-pointer flex flex-col justify-between space-y-4 ${
+                className={`p-5 sm:p-6 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-4 ${
                   settings.payment_mode === 'ACADEMY_RAZORPAY'
-                    ? 'bg-white dark:bg-[#111827] border-[#2563EB] dark:border-[#60A5FA] ring-2 ring-[#2563EB]/10 dark:ring-[#60A5FA]/10 shadow-xs'
+                    ? 'bg-white dark:bg-[#111827] border-[#2563EB] dark:border-[#60A5FA] ring-2 ring-[#2563EB]/10 dark:ring-[#60A5FA]/10 shadow-2xs'
                     : 'bg-white dark:bg-[#111827] border-slate-200 dark:border-[#263244] hover:border-slate-300 dark:hover:border-[#334155]'
                 }`}
                 onClick={() => handleSelectMode('ACADEMY_RAZORPAY')}
@@ -381,7 +384,7 @@ export const PaymentSettingsPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-base text-slate-900 dark:text-[#F8FAFC]">Use My Razorpay Account</h3>
+                    <h3 className="font-bold text-base text-slate-900 dark:text-[#F8FAFC]">Use My Razorpay Account</h3>
                     <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal leading-relaxed mt-1">
                       Connect your academy's Razorpay account. Student payments will be processed directly through your Razorpay account.
                     </p>
@@ -394,7 +397,7 @@ export const PaymentSettingsPage: React.FC = () => {
                     e.stopPropagation();
                     handleSelectMode('ACADEMY_RAZORPAY');
                   }}
-                  className={`w-full py-2.5 rounded-xl font-medium text-xs transition-colors cursor-pointer ${
+                  className={`w-full h-[44px] min-h-[44px] rounded-xl font-semibold text-xs transition-colors cursor-pointer flex items-center justify-center ${
                     settings.payment_mode === 'ACADEMY_RAZORPAY'
                       ? 'bg-[#2563EB] text-white'
                       : 'bg-slate-100 dark:bg-[#172033] text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-200 dark:hover:bg-[#263244]'
@@ -406,9 +409,9 @@ export const PaymentSettingsPage: React.FC = () => {
 
               {/* CARD 2: CUBIXSKILL PAYMENTS */}
               <div
-                className={`p-6 rounded-[14px] border transition-all cursor-pointer flex flex-col justify-between space-y-4 ${
+                className={`p-5 sm:p-6 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-4 ${
                   settings.payment_mode === 'CUBIXSKILL_RAZORPAY'
-                    ? 'bg-white dark:bg-[#111827] border-[#2563EB] dark:border-[#60A5FA] ring-2 ring-[#2563EB]/10 dark:ring-[#60A5FA]/10 shadow-xs'
+                    ? 'bg-white dark:bg-[#111827] border-[#2563EB] dark:border-[#60A5FA] ring-2 ring-[#2563EB]/10 dark:ring-[#60A5FA]/10 shadow-2xs'
                     : 'bg-white dark:bg-[#111827] border-slate-200 dark:border-[#263244] hover:border-slate-300 dark:hover:border-[#334155]'
                 }`}
                 onClick={() => handleSelectMode('CUBIXSKILL_RAZORPAY')}
@@ -426,7 +429,7 @@ export const PaymentSettingsPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-base text-slate-900 dark:text-[#F8FAFC]">Use CubixSkill Payments</h3>
+                    <h3 className="font-bold text-base text-slate-900 dark:text-[#F8FAFC]">Use CubixSkill Payments</h3>
                     <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal leading-relaxed mt-1">
                       Student payments are processed through CubixSkill and your eligible balance is settled to your configured payout method.
                     </p>
@@ -439,7 +442,7 @@ export const PaymentSettingsPage: React.FC = () => {
                     e.stopPropagation();
                     handleSelectMode('CUBIXSKILL_RAZORPAY');
                   }}
-                  className={`w-full py-2.5 rounded-xl font-medium text-xs transition-colors cursor-pointer ${
+                  className={`w-full h-[44px] min-h-[44px] rounded-xl font-semibold text-xs transition-colors cursor-pointer flex items-center justify-center ${
                     settings.payment_mode === 'CUBIXSKILL_RAZORPAY'
                       ? 'bg-[#2563EB] text-white'
                       : 'bg-slate-100 dark:bg-[#172033] text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-200 dark:hover:bg-[#263244]'
@@ -453,11 +456,11 @@ export const PaymentSettingsPage: React.FC = () => {
 
           {/* MODE 1 FORM: ACADEMY OWN RAZORPAY CONFIGURATION */}
           {settings.payment_mode === 'ACADEMY_RAZORPAY' && (
-            <div className="bg-white dark:bg-[#111827] p-6 sm:p-8 rounded-[14px] border border-slate-200 dark:border-[#263244] space-y-6 shadow-2xs">
+            <div className="bg-white dark:bg-[#111827] p-5 sm:p-8 rounded-2xl border border-slate-200 dark:border-[#263244] space-y-6 shadow-2xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-[#263244] pb-4">
                 <div>
-                  <h3 className="font-semibold text-base text-slate-900 dark:text-[#F8FAFC]">Razorpay Configuration</h3>
-                  <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal">
+                  <h3 className="font-bold text-base text-slate-900 dark:text-[#F8FAFC]">Razorpay Configuration</h3>
+                  <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal leading-relaxed">
                     Enter your official API Key ID and Secret from the Razorpay Dashboard.
                   </p>
                 </div>
@@ -485,7 +488,7 @@ export const PaymentSettingsPage: React.FC = () => {
                 <div className="bg-slate-50 dark:bg-[#0F172A] p-4 rounded-xl border border-slate-200 dark:border-[#263244] grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                   <div>
                     <span className="text-[#64748B] dark:text-[#94A3B8] block text-[11px]">Razorpay Key ID</span>
-                    <span className="font-semibold text-slate-900 dark:text-[#F8FAFC]">{settings.razorpay_key_id || 'rzp_live_********'}</span>
+                    <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] break-all">{settings.razorpay_key_id || 'rzp_live_********'}</span>
                   </div>
                   <div>
                     <span className="text-[#64748B] dark:text-[#94A3B8] block text-[11px]">Key Secret</span>
@@ -508,7 +511,7 @@ export const PaymentSettingsPage: React.FC = () => {
                       placeholder="rzp_live_..."
                       value={keyIdInput}
                       onChange={(e) => setKeyIdInput(e.target.value)}
-                      className="w-full h-11 px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
+                      className="w-full h-11 min-h-[44px] px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
                     />
                   </div>
 
@@ -522,12 +525,12 @@ export const PaymentSettingsPage: React.FC = () => {
                         placeholder={settings.credentials_configured ? '••••••••••••••••' : 'Enter Secret Key'}
                         value={keySecretInput}
                         onChange={(e) => setKeySecretInput(e.target.value)}
-                        className="w-full h-11 pl-3.5 pr-10 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
+                        className="w-full h-11 min-h-[44px] pl-3.5 pr-10 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
                       />
                       <button
                         type="button"
                         onClick={() => setShowSecretKey((p) => !p)}
-                        className="absolute right-3 text-slate-400 dark:text-[#94A3B8] hover:text-slate-600 dark:hover:text-[#F8FAFC] cursor-pointer"
+                        className="absolute right-3 w-8 h-8 flex items-center justify-center text-slate-400 dark:text-[#94A3B8] hover:text-slate-600 dark:hover:text-[#F8FAFC] cursor-pointer"
                       >
                         {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -544,12 +547,12 @@ export const PaymentSettingsPage: React.FC = () => {
                         placeholder={settings.credentials_configured ? '••••••••••••••••' : 'Enter Webhook Secret'}
                         value={webhookSecretInput}
                         onChange={(e) => setWebhookSecretInput(e.target.value)}
-                        className="w-full h-11 pl-3.5 pr-10 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
+                        className="w-full h-11 min-h-[44px] pl-3.5 pr-10 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
                       />
                       <button
                         type="button"
                         onClick={() => setShowWebhookSecret((p) => !p)}
-                        className="absolute right-3 text-slate-400 dark:text-[#94A3B8] hover:text-slate-600 dark:hover:text-[#F8FAFC] cursor-pointer"
+                        className="absolute right-3 w-8 h-8 flex items-center justify-center text-slate-400 dark:text-[#94A3B8] hover:text-slate-600 dark:hover:text-[#F8FAFC] cursor-pointer"
                       >
                         {showWebhookSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -558,8 +561,8 @@ export const PaymentSettingsPage: React.FC = () => {
 
                   <div className="space-y-1 sm:col-span-2">
                     <label className="block text-xs font-medium text-slate-700 dark:text-[#CBD5E1]">Environment Mode</label>
-                    <div className="flex items-center gap-4 pt-1">
-                      <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] cursor-pointer">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+                      <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] cursor-pointer min-h-[44px]">
                         <input
                           type="radio"
                           name="env"
@@ -570,7 +573,7 @@ export const PaymentSettingsPage: React.FC = () => {
                         />
                         <span>Test Mode (Sandbox)</span>
                       </label>
-                      <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] cursor-pointer">
+                      <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] cursor-pointer min-h-[44px]">
                         <input
                           type="radio"
                           name="env"
@@ -585,11 +588,11 @@ export const PaymentSettingsPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="pt-4 flex flex-wrap items-center gap-3">
+                <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-5 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-xs rounded-xl inline-flex items-center gap-2 cursor-pointer transition-colors"
+                    className="h-[44px] min-h-[44px] px-5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl inline-flex items-center justify-center gap-2 cursor-pointer transition-colors"
                   >
                     <Save className="w-4 h-4" />
                     <span>{saving ? 'Saving...' : 'Save Configuration'}</span>
@@ -599,7 +602,7 @@ export const PaymentSettingsPage: React.FC = () => {
                     type="button"
                     onClick={handleVerifyRazorpay}
                     disabled={verifying || !settings.credentials_configured}
-                    className="px-5 py-2.5 border border-slate-200 dark:border-[#263244] hover:bg-slate-50 dark:hover:bg-[#172033] text-slate-700 dark:text-[#CBD5E1] font-medium text-xs rounded-xl inline-flex items-center gap-2 cursor-pointer transition-colors disabled:opacity-50"
+                    className="h-[44px] min-h-[44px] px-5 border border-slate-200 dark:border-[#263244] hover:bg-slate-50 dark:hover:bg-[#172033] text-slate-700 dark:text-[#CBD5E1] font-semibold text-xs rounded-xl inline-flex items-center justify-center gap-2 cursor-pointer transition-colors disabled:opacity-50"
                   >
                     <RefreshCw className={`w-4 h-4 ${verifying ? 'animate-spin' : ''}`} />
                     <span>{verifying ? 'Verifying...' : 'Verify Connection'}</span>
@@ -609,7 +612,7 @@ export const PaymentSettingsPage: React.FC = () => {
                     type="button"
                     onClick={() => setShowDisconnectModal(true)}
                     disabled={!settings.credentials_configured}
-                    className="px-5 py-2.5 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/40 text-[#DC2626] dark:text-[#F87171] font-medium text-xs rounded-xl inline-flex items-center gap-2 cursor-pointer transition-colors disabled:opacity-50"
+                    className="h-[44px] min-h-[44px] px-5 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/40 text-[#DC2626] dark:text-[#F87171] font-semibold text-xs rounded-xl inline-flex items-center justify-center gap-2 cursor-pointer transition-colors disabled:opacity-50"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span>Disconnect</span>
@@ -621,15 +624,15 @@ export const PaymentSettingsPage: React.FC = () => {
 
           {/* MODE 2 FORM: CUBIXSKILL SETTLEMENT CONFIGURATION */}
           {settings.payment_mode === 'CUBIXSKILL_RAZORPAY' && (
-            <div className="bg-white dark:bg-[#111827] p-6 sm:p-8 rounded-[14px] border border-slate-200 dark:border-[#263244] space-y-6 shadow-2xs">
+            <div className="bg-white dark:bg-[#111827] p-5 sm:p-8 rounded-2xl border border-slate-200 dark:border-[#263244] space-y-6 shadow-2xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-[#263244] pb-4">
                 <div>
-                  <h3 className="font-semibold text-base text-slate-900 dark:text-[#F8FAFC]">Settlement Details</h3>
-                  <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal">
+                  <h3 className="font-bold text-base text-slate-900 dark:text-[#F8FAFC]">Settlement Details</h3>
+                  <p className="text-xs text-slate-500 dark:text-[#94A3B8] font-normal leading-relaxed">
                     Provide payout account information for receiving settled student course payments.
                   </p>
                 </div>
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-[rgba(16,185,129,0.08)] text-emerald-700 dark:text-[#6EE7B7]">
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-[rgba(16,185,129,0.08)] text-emerald-700 dark:text-[#6EE7B7] self-start sm:self-auto">
                   Settlement Setup Active
                 </span>
               </div>
@@ -664,14 +667,14 @@ export const PaymentSettingsPage: React.FC = () => {
                       placeholder="Official Bank Account Name"
                       value={beneficiaryInput}
                       onChange={(e) => setBeneficiaryInput(e.target.value)}
-                      className="w-full h-11 px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
+                      className="w-full h-11 min-h-[44px] px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
                     />
                   </div>
 
                   <div className="space-y-1 sm:col-span-2">
                     <label className="block text-xs font-medium text-slate-700 dark:text-[#CBD5E1]">Settlement Method</label>
-                    <div className="flex items-center gap-4 pt-1">
-                      <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] cursor-pointer">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+                      <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] cursor-pointer min-h-[44px]">
                         <input
                           type="radio"
                           name="settlementMethod"
@@ -682,7 +685,7 @@ export const PaymentSettingsPage: React.FC = () => {
                         />
                         <span>UPI ID / VPA</span>
                       </label>
-                      <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] cursor-pointer">
+                      <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-[#CBD5E1] cursor-pointer min-h-[44px]">
                         <input
                           type="radio"
                           name="settlementMethod"
@@ -704,7 +707,7 @@ export const PaymentSettingsPage: React.FC = () => {
                         placeholder="example@upi"
                         value={vpaInput}
                         onChange={(e) => setVpaInput(e.target.value)}
-                        className="w-full h-11 px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
+                        className="w-full h-11 min-h-[44px] px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
                       />
                     </div>
                   ) : (
@@ -716,7 +719,7 @@ export const PaymentSettingsPage: React.FC = () => {
                           placeholder="•••• •••• 4821"
                           value={accountInput}
                           onChange={(e) => setAccountInput(e.target.value)}
-                          className="w-full h-11 px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
+                          className="w-full h-11 min-h-[44px] px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
                         />
                       </div>
                       <div className="space-y-1">
@@ -726,8 +729,11 @@ export const PaymentSettingsPage: React.FC = () => {
                           placeholder="Confirm Account Number"
                           value={confirmAccountInput}
                           onChange={(e) => setConfirmAccountInput(e.target.value)}
-                          className="w-full h-11 px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
+                          className="w-full h-11 min-h-[44px] px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
                         />
+                        {accountInput && confirmAccountInput && accountInput !== confirmAccountInput && (
+                          <p className="text-[11px] text-[#DC2626] font-medium pt-0.5">Account numbers do not match.</p>
+                        )}
                       </div>
                       <div className="space-y-1 sm:col-span-2">
                         <label className="block text-xs font-medium text-slate-700 dark:text-[#CBD5E1]">IFSC Code *</label>
@@ -736,7 +742,7 @@ export const PaymentSettingsPage: React.FC = () => {
                           placeholder="HDFC0001234"
                           value={ifscInput}
                           onChange={(e) => setIfscInput(e.target.value.toUpperCase())}
-                          className="w-full h-11 px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
+                          className="w-full h-11 min-h-[44px] px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
                         />
                       </div>
                     </>
@@ -747,7 +753,7 @@ export const PaymentSettingsPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-5 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-xs rounded-xl inline-flex items-center gap-2 cursor-pointer transition-colors"
+                    className="w-full sm:w-auto h-[44px] min-h-[44px] px-5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl inline-flex items-center justify-center gap-2 cursor-pointer transition-colors"
                   >
                     <Save className="w-4 h-4" />
                     <span>{saving ? 'Saving...' : 'Save Settlement Details'}</span>
@@ -763,56 +769,110 @@ export const PaymentSettingsPage: React.FC = () => {
       {/* TAB 2: TRANSACTIONS LEDGER */}
       {activeTab === 'transactions' && (
         <div className="space-y-6">
-          {/* STATS OVERVIEW CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-[#111827] p-5 rounded-[14px] border border-slate-200 dark:border-[#263244]">
+            <div className="bg-white dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-[#263244] min-w-0">
               <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] font-medium block">Total Volume</span>
-              <span className="text-xl font-semibold text-slate-900 dark:text-[#F8FAFC]">₹{totalSalesAmount.toLocaleString()}</span>
+              <span className="text-xl font-bold text-slate-900 dark:text-[#F8FAFC] break-all">₹{totalSalesAmount.toLocaleString()}</span>
             </div>
-            <div className="bg-white dark:bg-[#111827] p-5 rounded-[14px] border border-slate-200 dark:border-[#263244]">
+            <div className="bg-white dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-[#263244] min-w-0">
               <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] font-medium block">Successful Transactions</span>
-              <span className="text-xl font-semibold text-emerald-600 dark:text-[#6EE7B7]">
+              <span className="text-xl font-bold text-emerald-600 dark:text-[#6EE7B7]">
                 {transactions.filter((t) => t.status === 'SUCCESS').length}
               </span>
             </div>
-            <div className="bg-white dark:bg-[#111827] p-5 rounded-[14px] border border-slate-200 dark:border-[#263244]">
+            <div className="bg-white dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-[#263244] min-w-0">
               <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] font-medium block">Pending</span>
-              <span className="text-xl font-semibold text-amber-600 dark:text-amber-400">
+              <span className="text-xl font-bold text-amber-600 dark:text-amber-400">
                 {transactions.filter((t) => t.status === 'PENDING' || t.status === 'CREATED').length}
               </span>
             </div>
-            <div className="bg-white dark:bg-[#111827] p-5 rounded-[14px] border border-slate-200 dark:border-[#263244]">
+            <div className="bg-white dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-[#263244] min-w-0">
               <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] font-medium block">Refunded</span>
-              <span className="text-xl font-semibold text-slate-600 dark:text-[#CBD5E1]">
+              <span className="text-xl font-bold text-slate-600 dark:text-[#CBD5E1]">
                 {transactions.filter((t) => t.status === 'REFUNDED').length}
               </span>
             </div>
           </div>
 
-          {/* SEARCH BAR */}
           <div className="relative flex items-center">
-            <Search className="w-4 h-4 absolute left-3 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 text-slate-400 shrink-0" />
             <input
               type="text"
               placeholder="Search by Payment ID, Order ID, or Student Email..."
               value={txSearch}
               onChange={(e) => setTxSearch(e.target.value)}
-              className="w-full h-11 pl-9 pr-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs text-slate-900 dark:text-[#F8FAFC] focus:outline-none"
+              className="w-full h-11 min-h-[44px] pl-10 pr-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs text-slate-900 dark:text-[#F8FAFC] focus:outline-none"
             />
           </div>
 
-          {/* TABLE */}
-          <div className="bg-white dark:bg-[#111827] rounded-[14px] border border-slate-200 dark:border-[#263244] overflow-x-auto shadow-2xs">
-            <table className="w-full text-left border-collapse text-xs">
+          {/* MOBILE CARDS FOR TAB 2 */}
+          <div className="block md:hidden space-y-3">
+            {filteredTransactions.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-500 bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244]">
+                No payment transactions recorded yet.
+              </div>
+            ) : (
+              filteredTransactions.map((tx) => (
+                <div key={tx.id || tx.uuid} className="p-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl space-y-2.5 text-xs text-left shadow-2xs w-full max-w-full min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] break-all">
+                      {tx.payer_email || 'Student'}
+                    </span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${
+                        tx.status === 'SUCCESS'
+                          ? 'bg-emerald-50 dark:bg-[rgba(16,185,129,0.08)] text-emerald-700 dark:text-[#6EE7B7]'
+                          : tx.status === 'REFUNDED'
+                          ? 'bg-slate-100 dark:bg-[#172033] text-slate-600 dark:text-[#94A3B8]'
+                          : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
+                      }`}
+                    >
+                      {tx.status}
+                    </span>
+                  </div>
+
+                  <div className="text-slate-600 dark:text-[#CBD5E1] text-[11px] break-words">
+                    {tx.course_title || 'Course'}
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-[#94A3B8] pt-2 border-t border-slate-100 dark:border-[#263244]">
+                    <span className="font-mono break-all">{tx.gateway_payment_id || tx.uuid.slice(0, 8)}</span>
+                    <strong className="text-slate-900 dark:text-[#F8FAFC] font-bold text-xs">
+                      ₹{Number(tx.amount).toLocaleString()}
+                    </strong>
+                  </div>
+
+                  {tx.status === 'SUCCESS' && (
+                    <div className="pt-2 border-t border-slate-100 dark:border-[#263244] flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTxForRefund(tx);
+                          setRefundAmount(String(tx.amount));
+                        }}
+                        className="h-[44px] min-h-[44px] px-4 text-xs font-semibold border border-red-200 dark:border-red-900/50 rounded-xl text-[#DC2626] dark:text-[#F87171] cursor-pointer flex items-center justify-center"
+                      >
+                        Refund
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* DESKTOP TABLE FOR TAB 2 */}
+          <div className="hidden md:block bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] overflow-hidden shadow-2xs">
+            <table className="w-full text-left border-collapse text-xs font-sans">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-[#263244] bg-slate-50 dark:bg-[#0F172A] text-[#64748B] dark:text-[#94A3B8] font-medium">
-                  <th className="p-3.5">Payment ID</th>
+                <tr className="border-b border-slate-200 dark:border-[#263244] bg-slate-50 dark:bg-[#0F172A] text-slate-500 dark:text-[#94A3B8] font-medium text-[11px] uppercase tracking-wider">
+                  <th className="p-3.5 pl-4">Payment ID</th>
                   <th className="p-3.5">Student / Course</th>
                   <th className="p-3.5">Mode</th>
                   <th className="p-3.5">Amount</th>
                   <th className="p-3.5">Status</th>
                   <th className="p-3.5">Date</th>
-                  <th className="p-3.5 text-right">Action</th>
+                  <th className="p-3.5 text-right pr-4">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#263244]">
@@ -824,8 +884,8 @@ export const PaymentSettingsPage: React.FC = () => {
                   </tr>
                 ) : (
                   filteredTransactions.map((tx) => (
-                    <tr key={tx.id || tx.uuid} className="hover:bg-slate-50/50 dark:hover:bg-[#172033]/50">
-                      <td className="p-3.5 font-mono text-[11px] text-slate-900 dark:text-[#F8FAFC]">
+                    <tr key={tx.id || tx.uuid} className="hover:bg-slate-50/50 dark:hover:bg-[#172033]/50 transition-colors">
+                      <td className="p-3.5 pl-4 font-mono text-[11px] text-slate-900 dark:text-[#F8FAFC]">
                         {tx.gateway_payment_id || tx.uuid.slice(0, 8)}
                       </td>
                       <td className="p-3.5 space-y-0.5">
@@ -842,7 +902,7 @@ export const PaymentSettingsPage: React.FC = () => {
                       </td>
                       <td className="p-3.5">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
                             tx.status === 'SUCCESS'
                               ? 'bg-emerald-50 dark:bg-[rgba(16,185,129,0.08)] text-emerald-700 dark:text-[#6EE7B7]'
                               : tx.status === 'REFUNDED'
@@ -856,7 +916,7 @@ export const PaymentSettingsPage: React.FC = () => {
                       <td className="p-3.5 text-slate-500 dark:text-[#94A3B8]">
                         {new Date(tx.paid_at || tx.initiated_at).toLocaleDateString()}
                       </td>
-                      <td className="p-3.5 text-right">
+                      <td className="p-3.5 text-right pr-4">
                         {tx.status === 'SUCCESS' && (
                           <button
                             type="button"
@@ -883,31 +943,87 @@ export const PaymentSettingsPage: React.FC = () => {
       {activeTab === 'settlements' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white dark:bg-[#111827] p-5 rounded-[14px] border border-slate-200 dark:border-[#263244]">
+            <div className="bg-white dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-[#263244] min-w-0">
               <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] font-medium block">Total Settled</span>
-              <span className="text-xl font-semibold text-emerald-600 dark:text-[#6EE7B7]">₹{totalSettledAmount.toLocaleString()}</span>
+              <span className="text-xl font-bold text-emerald-600 dark:text-[#6EE7B7] break-all">₹{totalSettledAmount.toLocaleString()}</span>
             </div>
-            <div className="bg-white dark:bg-[#111827] p-5 rounded-[14px] border border-slate-200 dark:border-[#263244]">
+            <div className="bg-white dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-[#263244] min-w-0">
               <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] font-medium block">Pending Settlement</span>
-              <span className="text-xl font-semibold text-amber-600 dark:text-amber-400">₹{pendingSettlementAmount.toLocaleString()}</span>
+              <span className="text-xl font-bold text-amber-600 dark:text-amber-400 break-all">₹{pendingSettlementAmount.toLocaleString()}</span>
             </div>
-            <div className="bg-white dark:bg-[#111827] p-5 rounded-[14px] border border-slate-200 dark:border-[#263244]">
+            <div className="bg-white dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-[#263244] min-w-0">
               <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] font-medium block">Settlement Method</span>
-              <span className="text-sm font-semibold text-slate-900 dark:text-[#F8FAFC] block mt-1">{settings.settlement_method}</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] block mt-1">{settings.settlement_method}</span>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#111827] rounded-[14px] border border-slate-200 dark:border-[#263244] overflow-x-auto shadow-2xs">
-            <table className="w-full text-left border-collapse text-xs">
+          {/* MOBILE CARDS FOR TAB 3 */}
+          <div className="block md:hidden space-y-3">
+            {settlements.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-500 bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244]">
+                No settlements generated yet. Settlements are created when payments are processed via CubixSkill.
+              </div>
+            ) : (
+              settlements.map((s) => (
+                <div key={s.id || s.uuid} className="p-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl space-y-2.5 text-xs text-left shadow-2xs w-full max-w-full min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-slate-900 dark:text-[#F8FAFC] font-semibold text-xs break-all">
+                      Ref: {s.uuid.slice(0, 8)}
+                    </span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${
+                        s.status === 'PAID'
+                          ? 'bg-emerald-50 dark:bg-[rgba(16,185,129,0.08)] text-emerald-700 dark:text-[#6EE7B7]'
+                          : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
+                      }`}
+                    >
+                      {s.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                    <div>
+                      <span className="text-slate-500 dark:text-[#94A3B8] block text-[10px]">Gross Amount</span>
+                      <strong className="text-slate-900 dark:text-[#F8FAFC]">₹{Number(s.gross_amount).toLocaleString()}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 dark:text-[#94A3B8] block text-[10px]">Fees</span>
+                      <span className="text-slate-600 dark:text-[#CBD5E1]">₹{(Number(s.platform_fee) + Number(s.gateway_fee)).toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] pt-2 border-t border-slate-100 dark:border-[#263244]">
+                    <div>
+                      <span className="text-[10px] text-slate-400 dark:text-[#64748B] block">Net Amount</span>
+                      <strong className="text-emerald-600 dark:text-[#6EE7B7] font-bold text-sm">
+                        ₹{Number(s.net_amount).toLocaleString()}
+                      </strong>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 dark:text-[#64748B] block">{s.settlement_method}</span>
+                      <span className="text-[10px] text-slate-500 dark:text-[#94A3B8]">
+                        {new Date(s.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* DESKTOP TABLE FOR TAB 3 */}
+          <div className="hidden md:block bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] overflow-hidden shadow-2xs">
+            <table className="w-full text-left border-collapse text-xs font-sans">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-[#263244] bg-slate-50 dark:bg-[#0F172A] text-[#64748B] dark:text-[#94A3B8] font-medium">
-                  <th className="p-3.5">Settlement ID</th>
+                <tr className="border-b border-slate-200 dark:border-[#263244] bg-slate-50 dark:bg-[#0F172A] text-slate-500 dark:text-[#94A3B8] font-medium text-[11px] uppercase tracking-wider">
+                  <th className="p-3.5 pl-4">Settlement ID</th>
                   <th className="p-3.5">Gross Amount</th>
                   <th className="p-3.5">Platform &amp; Gateway Fees</th>
                   <th className="p-3.5">Net Amount</th>
                   <th className="p-3.5">Method</th>
                   <th className="p-3.5">Status</th>
-                  <th className="p-3.5">Created Date</th>
+                  <th className="p-3.5 pr-4">Created Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#263244]">
@@ -919,17 +1035,17 @@ export const PaymentSettingsPage: React.FC = () => {
                   </tr>
                 ) : (
                   settlements.map((s) => (
-                    <tr key={s.id || s.uuid} className="hover:bg-slate-50/50 dark:hover:bg-[#172033]/50">
-                      <td className="p-3.5 font-mono text-[11px] text-slate-900 dark:text-[#F8FAFC]">
+                    <tr key={s.id || s.uuid} className="hover:bg-slate-50/50 dark:hover:bg-[#172033]/50 transition-colors">
+                      <td className="p-3.5 pl-4 font-mono text-[11px] text-slate-900 dark:text-[#F8FAFC]">
                         {s.uuid.slice(0, 8)}
                       </td>
                       <td className="p-3.5 text-slate-900 dark:text-[#F8FAFC]">₹{Number(s.gross_amount).toLocaleString()}</td>
                       <td className="p-3.5 text-slate-500 dark:text-[#94A3B8]">₹{(Number(s.platform_fee) + Number(s.gateway_fee)).toLocaleString()}</td>
-                      <td className="p-3.5 font-semibold text-emerald-600 dark:text-[#6EE7B7]">₹{Number(s.net_amount).toLocaleString()}</td>
+                      <td className="p-3.5 font-bold text-emerald-600 dark:text-[#6EE7B7]">₹{Number(s.net_amount).toLocaleString()}</td>
                       <td className="p-3.5 text-slate-700 dark:text-[#CBD5E1]">{s.settlement_method}</td>
                       <td className="p-3.5">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
                             s.status === 'PAID'
                               ? 'bg-emerald-50 dark:bg-[rgba(16,185,129,0.08)] text-emerald-700 dark:text-[#6EE7B7]'
                               : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
@@ -938,7 +1054,7 @@ export const PaymentSettingsPage: React.FC = () => {
                           {s.status}
                         </span>
                       </td>
-                      <td className="p-3.5 text-slate-500 dark:text-[#94A3B8]">{new Date(s.created_at).toLocaleDateString()}</td>
+                      <td className="p-3.5 pr-4 text-slate-500 dark:text-[#94A3B8]">{new Date(s.created_at).toLocaleDateString()}</td>
                     </tr>
                   ))
                 )}
@@ -950,26 +1066,26 @@ export const PaymentSettingsPage: React.FC = () => {
 
       {/* MODE CHANGE CONFIRMATION MODAL */}
       {pendingModeChange && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] max-w-md w-full p-6 space-y-4 shadow-xl text-left">
-            <h3 className="text-base font-semibold text-slate-900 dark:text-[#F8FAFC]">Change Payment Mode?</h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] max-w-md w-full p-5 sm:p-6 space-y-4 shadow-xl text-left font-sans">
+            <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">Change Payment Mode?</h3>
             <p className="text-xs text-slate-600 dark:text-[#94A3B8] leading-relaxed">
               New student course purchases will be processed using{' '}
               <strong>{pendingModeChange === 'ACADEMY_RAZORPAY' ? 'Your Connected Razorpay Account' : 'CubixSkill Payments'}</strong>.
               Existing transactions will retain their original payment mode.
             </p>
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setPendingModeChange(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#263244] text-slate-700 dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#172033]"
+                className="h-[44px] min-h-[44px] px-4 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#263244] text-slate-700 dark:text-[#CBD5E1] cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={confirmModeChange}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#2563EB] text-white hover:bg-[#1D4ED8]"
+                className="h-[44px] min-h-[44px] px-5 rounded-xl text-xs font-semibold bg-[#2563EB] text-white hover:bg-[#1D4ED8] cursor-pointer"
               >
                 Confirm Mode Change
               </button>
@@ -980,24 +1096,24 @@ export const PaymentSettingsPage: React.FC = () => {
 
       {/* DISCONNECT CONFIRMATION MODAL */}
       {showDisconnectModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] max-w-md w-full p-6 space-y-4 shadow-xl text-left">
-            <h3 className="text-base font-semibold text-slate-900 dark:text-[#F8FAFC]">Disconnect Razorpay Account?</h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] max-w-md w-full p-5 sm:p-6 space-y-4 shadow-xl text-left font-sans">
+            <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">Disconnect Razorpay Account?</h3>
             <p className="text-xs text-slate-600 dark:text-[#94A3B8] leading-relaxed">
               Disconnecting your account will switch your payment mode to CubixSkill Payments until you reconnect a Razorpay account.
             </p>
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setShowDisconnectModal(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#263244] text-slate-700 dark:text-[#CBD5E1]"
+                className="h-[44px] min-h-[44px] px-4 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#263244] text-slate-700 dark:text-[#CBD5E1] cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleDisconnectRazorpay}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#DC2626] text-white hover:bg-red-700"
+                className="h-[44px] min-h-[44px] px-5 rounded-xl text-xs font-semibold bg-[#DC2626] text-white hover:bg-red-700 cursor-pointer"
               >
                 Disconnect Account
               </button>
@@ -1008,42 +1124,42 @@ export const PaymentSettingsPage: React.FC = () => {
 
       {/* REFUND MODAL */}
       {selectedTxForRefund && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] max-w-md w-full p-6 space-y-4 shadow-xl text-left">
-            <h3 className="text-base font-semibold text-slate-900 dark:text-[#F8FAFC]">Issue Payment Refund</h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#263244] max-w-md w-full p-5 sm:p-6 space-y-4 shadow-xl text-left font-sans">
+            <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">Issue Payment Refund</h3>
             <div className="text-xs text-slate-600 dark:text-[#94A3B8] space-y-1">
-              <p>Transaction: <span className="font-mono text-slate-900 dark:text-[#F8FAFC]">{selectedTxForRefund.gateway_payment_id || selectedTxForRefund.uuid}</span></p>
+              <p>Transaction: <span className="font-mono text-slate-900 dark:text-[#F8FAFC] break-all">{selectedTxForRefund.gateway_payment_id || selectedTxForRefund.uuid}</span></p>
               <p>Original Amount: <span className="font-semibold text-slate-900 dark:text-[#F8FAFC]">₹{selectedTxForRefund.amount}</span></p>
             </div>
 
             <div className="space-y-3 pt-2">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-[#CBD5E1]">Refund Amount (₹)</label>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-[#CBD5E1]">Refund Amount (₹) *</label>
                 <input
                   type="number"
                   value={refundAmount}
                   onChange={(e) => setRefundAmount(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-medium text-slate-900 dark:text-[#F8FAFC]"
+                  className="w-full h-11 min-h-[44px] px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
                 />
               </div>
 
-              <div>
+              <div className="space-y-1">
                 <label className="block text-xs font-medium text-slate-700 dark:text-[#CBD5E1]">Refund Reason</label>
                 <input
                   type="text"
                   placeholder="Student requested refund..."
                   value={refundReason}
                   onChange={(e) => setRefundReason(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-medium text-slate-900 dark:text-[#F8FAFC]"
+                  className="w-full h-11 min-h-[44px] px-3.5 rounded-xl border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setSelectedTxForRefund(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#263244] text-slate-700 dark:text-[#CBD5E1]"
+                className="h-[44px] min-h-[44px] px-4 rounded-xl text-xs font-semibold border border-slate-200 dark:border-[#263244] text-slate-700 dark:text-[#CBD5E1] cursor-pointer"
               >
                 Cancel
               </button>
@@ -1051,7 +1167,7 @@ export const PaymentSettingsPage: React.FC = () => {
                 type="button"
                 onClick={handleExecuteRefund}
                 disabled={refunding}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#2563EB] text-white hover:bg-[#1D4ED8]"
+                className="h-[44px] min-h-[44px] px-5 rounded-xl text-xs font-semibold bg-[#2563EB] text-white hover:bg-[#1D4ED8] cursor-pointer"
               >
                 {refunding ? 'Processing...' : 'Confirm Refund'}
               </button>

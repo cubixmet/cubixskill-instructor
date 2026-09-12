@@ -8,14 +8,21 @@ import {
   ShieldCheck,
   Plus,
   MoreVertical,
+  X,
+  Check,
+  CheckCheck,
+  Clock,
+  AlertCircle,
+  Paperclip,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Modal } from '../../../components/ui/Modal';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { discussionService } from '../../../services/discussion.service';
-import { studentsService, type StudentData } from '../../../services/students.service';
-import { authStore, useAuthStore } from '../../../store/auth.store';
+import { type StudentData } from '../../../services/students.service';
+import { storageService } from '../../../services/storage.service';
+import { useAuthStore } from '../../../store/auth.store';
 import { usePersonalChatSocket } from '../hooks/usePersonalChatSocket';
 import { normalizeChatMessage, type NormalizedChatMessage } from '../utils/chatNormalizer';
 
@@ -130,6 +137,30 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previousMessageCountRef = useRef<number>(0);
 
+  // Dynamic Visual Viewport Height tracking for Mobile Keyboard (Android/iOS Safari)
+  const [viewportHeight, setViewportHeight] = useState<string | number>('100dvh');
+
+  useEffect(() => {
+    if (!window.visualViewport) return;
+
+    const handleResize = () => {
+      if (window.visualViewport) {
+        setViewportHeight(`${window.visualViewport.height}px`);
+      }
+    };
+
+    window.visualViewport.addEventListener('resize', handleResize);
+    window.visualViewport.addEventListener('scroll', handleResize);
+    handleResize();
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+        window.visualViewport.removeEventListener('scroll', handleResize);
+      }
+    };
+  }, []);
+
   // Smooth / Auto bottom scroll anchor helper
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     requestAnimationFrame(() => {
@@ -184,18 +215,14 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
     loadChatRooms();
   }, [loadChatRooms]);
 
-  // 3. Fetch Eligible Enrolled Students when New DM modal opens
+  // 3. Fetch Eligible Enrolled Students when New Chat modal opens
   useEffect(() => {
     if (newChatModalOpen) {
       setIsLoadingStudents(true);
-      const params: Record<string, any> = {};
-      if (courseUuid) params.course = courseUuid;
-
-      studentsService
-        .listStudents(params)
+      discussionService
+        .listEligibleUsers(studentSearch)
         .then((res) => {
-          const list = Array.isArray(res) ? res : res?.results || [];
-          setEligibleStudents(list);
+          setEligibleStudents(res || []);
         })
         .catch(() => {
           setEligibleStudents([]);
@@ -204,7 +231,7 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
           setIsLoadingStudents(false);
         });
     }
-  }, [newChatModalOpen, courseUuid]);
+  }, [newChatModalOpen, studentSearch]);
 
   // 4. Resolve active room when activeStudentUuid changes or on direct URL hard refresh
   useEffect(() => {
@@ -361,37 +388,148 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
     }
   };
 
-  // Handle Send Message (Stays in room, scrolls to bottom, NO navigation)
-  const handleSend = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!messageContent.trim() || sending || !activeRoom?.id) return;
+  // Image Attachment & Lightbox State
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-    setSending(true);
-    const contentToSend = messageContent.trim();
-    setMessageContent('');
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+  // In-Chat Message Search State
+  const [showInChatSearch, setShowInChatSearch] = useState<boolean>(false);
+  const [inChatSearchQuery, setInChatSearchQuery] = useState<string>('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Only image files (JPEG, PNG, GIF, WebP) are allowed.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size exceeds maximum allowed limit of 10MB.');
+      return;
     }
 
+    setSelectedFile(file);
+    setImagePreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleCancelFile = () => {
+    setSelectedFile(null);
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    setImagePreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleInChatSearch = async (query: string) => {
+    setInChatSearchQuery(query);
+    if (!query.trim() || !activeRoom?.id) {
+      setSearchResults([]);
+      return;
+    }
     try {
-      const createdMsg = await discussionService.sendChatMessage(activeRoom.id, contentToSend);
-      setMessages((prev) => {
-        if (prev.some((m) => String(m.id) === String(createdMsg.id))) return prev;
-        const updated = [...prev, createdMsg].sort(
-          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
-        return updated;
-      });
-      // Update last message in room list
+      const res = await discussionService.searchInChatMessages(activeRoom.id, query);
+      setSearchResults(res);
+    } catch {
+      setSearchResults([]);
+    }
+  };
+
+  const handleJumpToMessage = (msgId: string) => {
+    setHighlightedMsgId(msgId);
+    const el = document.getElementById(`msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => setHighlightedMsgId(null), 3000);
+    }
+  };
+
+  // Optimistic Send & Retry
+  const executeSendMessage = async (tempId: string, contentToSend: string, mediaFileIds: string[] = []) => {
+    try {
+      const createdMsg = await discussionService.sendChatMessage(activeRoom.id, contentToSend, mediaFileIds);
+      const normalized = normalizeChatMessage({ ...createdMsg, delivery_status: 'SENT' });
+      setMessages((prev) =>
+        prev.map((m) => (m.id === tempId ? normalized : m))
+      );
       setChatRooms((prev) =>
         prev.map((r) => (r.id === activeRoom.id ? { ...r, last_message: createdMsg } : r))
       );
-      scrollToBottom('smooth');
     } catch {
-      // Revert message content on failure
-      setMessageContent(contentToSend);
-    } finally {
-      setSending(false);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === tempId ? { ...m, deliveryStatus: 'FAILED' } : m))
+      );
+    }
+  };
+
+  const handleRetryMessage = (msg: NormalizedChatMessage) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === msg.id ? { ...m, deliveryStatus: 'PENDING' } : m))
+    );
+    executeSendMessage(msg.id, msg.content, []);
+  };
+
+  // Handle Send Message (Optimistic + Images + Ticks)
+  const handleSend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if ((!messageContent.trim() && !selectedFile) || sending || !activeRoom?.id) return;
+
+    setSending(true);
+    const contentToSend = messageContent.trim();
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+    
+    // Clear input immediately
+    setMessageContent('');
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+
+    let uploadedMediaIds: string[] = [];
+    let localPreview = imagePreviewUrl;
+
+    if (selectedFile) {
+      setUploadingImage(true);
+      try {
+        const uploadRes = await storageService.uploadFile(selectedFile);
+        if (uploadRes?.id) {
+          uploadedMediaIds = [uploadRes.id];
+        }
+      } catch {
+        alert('Failed to upload image. Please try again.');
+        setSending(false);
+        setUploadingImage(false);
+        return;
+      }
+    }
+
+    handleCancelFile();
+
+    // Optimistic message item
+    const optimisticMsg: NormalizedChatMessage = {
+      id: tempId,
+      roomId: activeRoom.id,
+      senderId: currentUserId,
+      senderName: currentUser?.full_name || 'You',
+      content: contentToSend,
+      createdAt: new Date().toISOString(),
+      attachments: localPreview ? [{ media_url: localPreview }] : [],
+      deliveryStatus: 'PENDING',
+      clientId: tempId,
+      isOptimistic: true,
+    };
+
+    setMessages((prev) => [...prev, optimisticMsg]);
+    scrollToBottom('smooth');
+
+    await executeSendMessage(tempId, contentToSend, uploadedMediaIds);
+    setSending(false);
+    setUploadingImage(false);
+
+    // Keep textarea focused on mobile after sending so keyboard stays open
+    if (textareaRef.current) {
+      textareaRef.current.focus();
     }
   };
 
@@ -419,7 +557,14 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
   }, [activeRoom, currentUserId]);
 
   return (
-    <div className="bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 md:rounded-2xl shadow-xs overflow-hidden h-[calc(100dvh-130px)] md:h-[calc(100dvh-180px)] min-h-[460px] flex flex-col font-sans text-xs text-left w-full max-w-full min-w-0">
+    <div
+      style={{ height: activeRoom && typeof window !== 'undefined' && window.innerWidth < 768 ? viewportHeight : undefined }}
+      className={`bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 md:rounded-2xl shadow-xs overflow-hidden font-sans text-xs text-left w-full max-w-full min-w-0 ${
+        activeRoom
+          ? 'h-dvh md:h-[calc(100dvh-180px)] md:min-h-[460px]'
+          : 'h-[calc(100dvh-130px)] md:h-[calc(100dvh-180px)] min-h-[460px]'
+      } flex flex-col`}
+    >
       <div className="flex flex-1 h-full min-h-0 w-full max-w-full min-w-0 relative">
         
         {/* PART A — PERSONAL CONVERSATION LIST (Mobile: hidden if activeRoom is open; Desktop: fixed width w-80 lg:w-96) */}
@@ -430,43 +575,45 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
         >
           {/* Header & Search */}
           <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-800 space-y-3 bg-white dark:bg-[#111827] shrink-0 w-full max-w-full min-w-0">
-            <div className="flex items-center justify-between gap-2 w-full min-w-0">
+            <div className="flex items-center justify-between gap-3 w-full min-w-0">
               <div className="min-w-0 flex-1">
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base tracking-tight">Personal Chats</h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal truncate">
-                  1-on-1 messages with enrolled students
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-lg sm:text-xl tracking-tight leading-tight">
+                  Personal Chats
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal mt-0.5 leading-normal">
+                  Private 1-on-1 messages with enrolled students
                 </p>
               </div>
               <Button
                 size="sm"
                 onClick={() => setNewChatModalOpen(true)}
-                className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium shrink-0 px-3 min-w-fit shadow-xs"
-                leftIcon={<Plus className="w-3.5 h-3.5" />}
+                className="h-10 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium shrink-0 px-3.5 min-w-[100px] shadow-xs flex items-center justify-center gap-1.5 min-h-[44px]"
               >
-                New DM
+                <Plus className="w-4 h-4" />
+                <span>New Chat</span>
               </Button>
             </div>
             <div className="w-full min-w-0">
               <Input
-                placeholder="Search students or conversations..."
+                placeholder="Search chats or people..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                leftIcon={<Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />}
-                className="h-9 text-xs w-full min-w-0 box-border bg-slate-50 dark:bg-slate-900"
+                leftIcon={<Search className="w-4 h-4 text-slate-400 dark:text-slate-500" />}
+                className="h-10 text-sm w-full min-w-0 box-border bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl"
               />
             </div>
           </div>
 
           {/* Student Chat List Rows */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 min-h-0 w-full max-w-full min-w-0">
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 min-h-0 w-full max-w-full min-w-0 pb-16 md:pb-0">
             {isLoadingRooms ? (
               <div className="p-4 space-y-3">
-                {[1, 2, 3, 4].map((i) => (
+                {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                    <Skeleton className="w-11 h-11 rounded-full shrink-0" />
                     <div className="flex-1 space-y-1.5">
-                      <Skeleton className="h-4 w-2/3" />
-                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-4 w-1/3" />
+                      <Skeleton className="h-3 w-2/3" />
                     </div>
                   </div>
                 ))}
@@ -482,63 +629,33 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
               filteredRooms.map((room) => {
                 const isActive = String(room.id) === String(activeRoom?.id);
                 const otherUser = room.other_participant || room.participants?.find((p: any) => String(p.user_id || p.id) !== currentUserId);
-                const studentName = room.name || otherUser?.full_name || otherUser?.email || 'Student';
+                const rawName = room.name || otherUser?.full_name || otherUser?.email || 'Student';
                 const avatarUrl = otherUser?.avatar || otherUser?.profile_photo;
-                const lastMsgText = getLastMessagePreview(room, currentUserId);
-                const formattedTime = formatMessageTime(
-                  typeof room.last_message === 'object' ? room.last_message?.created_at : (room.last_message_at || room.updated_at)
-                );
                 const targetStudentId = String(otherUser?.user_id || otherUser?.id || room.other_participant_id || '');
+                const lastMsgObj = typeof room.last_message === 'object' ? room.last_message : null;
+                const lastMsgContent = lastMsgObj?.content || (typeof room.last_message === 'string' ? room.last_message : room.latest_message || room.last_message_preview);
+                const senderId = lastMsgObj?.sender_id || lastMsgObj?.sender?.id;
+                const attachments = lastMsgObj?.attachments || lastMsgObj?.media_files;
+                const timestamp = lastMsgObj?.created_at || room.last_message_at;
 
                 return (
-                  <div
+                  <ConversationRowItem
                     key={room.id}
+                    id={room.id}
+                    title={rawName}
+                    avatarUrl={avatarUrl}
+                    lastMessageContent={lastMsgContent}
+                    lastMessageSenderId={senderId}
+                    lastMessageAttachments={attachments}
+                    timestamp={timestamp}
+                    unreadCount={room.unread_count || 0}
+                    isActive={isActive}
+                    currentUserId={currentUserId}
                     onClick={() => {
                       setActiveRoom(room);
                       onSelectStudentChat(targetStudentId);
                     }}
-                    className={`p-3.5 flex items-center gap-3 cursor-pointer transition-all w-full max-w-full min-w-0 border-l-4 ${
-                      isActive
-                        ? 'bg-blue-50/90 dark:bg-blue-950/40 border-l-blue-600 dark:border-l-blue-500'
-                        : 'hover:bg-slate-100/70 dark:hover:bg-slate-900/60 bg-white dark:bg-[#111827] border-l-transparent'
-                    }`}
-                  >
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt={studentName}
-                        className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold text-sm flex items-center justify-center shrink-0 border border-blue-200 dark:border-blue-900/40">
-                        {studentName.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center justify-between gap-1 w-full min-w-0">
-                        <span className="font-semibold text-slate-900 dark:text-slate-100 text-xs sm:text-sm truncate flex-1 min-w-0">
-                          {studentName}
-                        </span>
-                        {formattedTime && (
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal shrink-0">
-                            {formattedTime}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-between gap-2 w-full min-w-0">
-                        <p className="text-slate-500 dark:text-slate-400 text-xs truncate font-normal flex-1 min-w-0">
-                          {lastMsgText}
-                        </p>
-                        {room.unread_count > 0 && (
-                          <span className="bg-blue-600 text-white font-bold px-1.5 py-0.5 rounded-full text-[10px] shrink-0">
-                            {room.unread_count}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  />
                 );
               })
             ) : (
@@ -629,6 +746,17 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                   <div className="relative">
                     <button
                       type="button"
+                      onClick={() => setShowInChatSearch(!showInChatSearch)}
+                      className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 cursor-pointer"
+                      title="Search messages"
+                    >
+                      <Search className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="relative">
+                    <button
+                      type="button"
                       onClick={() => setMenuOpen(!menuOpen)}
                       className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 cursor-pointer"
                     >
@@ -651,6 +779,47 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* In-Chat Message Search Drawer */}
+              {showInChatSearch && (
+                <div className="p-3 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 space-y-2 z-10">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Search inside this conversation..."
+                      value={inChatSearchQuery}
+                      onChange={(e) => handleInChatSearch(e.target.value)}
+                      leftIcon={<Search className="w-3.5 h-3.5 text-slate-400" />}
+                      className="h-8 text-xs bg-white dark:bg-slate-800"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowInChatSearch(false);
+                        setInChatSearchQuery('');
+                        setSearchResults([]);
+                      }}
+                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {searchResults.length > 0 && (
+                    <div className="max-h-40 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                      {searchResults.map((res) => (
+                        <div
+                          key={res.id}
+                          onClick={() => handleJumpToMessage(res.id)}
+                          className="p-2 hover:bg-blue-50 dark:hover:bg-blue-950/40 cursor-pointer flex items-center justify-between gap-2 text-xs"
+                        >
+                          <span className="truncate text-slate-800 dark:text-slate-200">{res.content}</span>
+                          <span className="text-[10px] text-slate-400 shrink-0">{formatMessageTime(res.created_at)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Chat Messages History Container */}
               <div
@@ -685,22 +854,16 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                       {/* Messages in Date Group */}
                       {group.msgs.map((msg) => {
                         const isMine = Boolean(currentUserId) && Boolean(msg.senderId) && String(msg.senderId) === String(currentUserId);
-
-                        if (import.meta.env.DEV) {
-                          console.debug('[PersonalChat Message Identity]', {
-                            messageId: msg.id,
-                            senderId: msg.senderId,
-                            currentUserId,
-                            isMine,
-                          });
-                        }
-
                         const formattedTime = formatMessageTime(msg.createdAt);
+                        const isHighlighted = highlightedMsgId === msg.id;
 
                         return (
                           <div
                             key={msg.id}
-                            className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} space-y-1 w-full max-w-full min-w-0`}
+                            id={`msg-${msg.id}`}
+                            className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} space-y-1 w-full max-w-full min-w-0 transition-colors duration-500 ${
+                              isHighlighted ? 'bg-amber-100/50 dark:bg-amber-900/30 p-1 rounded-xl' : ''
+                            }`}
                           >
                             <div
                               className={`max-w-[82%] sm:max-w-[72%] px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-normal leading-relaxed break-words shadow-xs ${
@@ -709,12 +872,61 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                                   : 'bg-white dark:bg-[#1E293B] text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-bl-xs'
                               }`}
                             >
-                              <p className="whitespace-pre-wrap leading-relaxed overflow-wrap-anywhere">{msg.content}</p>
+                              {/* Image Attachments */}
+                              {msg.attachments && msg.attachments.length > 0 && (
+                                <div className="mb-2 space-y-1">
+                                  {msg.attachments.map((att: any, idx: number) => {
+                                    const mediaUrl = att.media_url || att.url;
+                                    return (
+                                      <img
+                                        key={idx}
+                                        src={mediaUrl}
+                                        alt={att.original_name || 'Attachment'}
+                                        onClick={() => setLightboxUrl(mediaUrl)}
+                                        className="max-w-full max-h-60 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity border border-white/20"
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {msg.content && (
+                                <p className="whitespace-pre-wrap leading-relaxed overflow-wrap-anywhere">{msg.content}</p>
+                              )}
                             </div>
 
-                            <span className={`text-[10px] text-slate-400 dark:text-slate-500 px-1 font-normal ${isMine ? 'text-right' : 'text-left'}`}>
-                              {formattedTime}
-                            </span>
+                            <div className={`flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 px-1 font-normal ${isMine ? 'justify-end' : 'justify-start'}`}>
+                              <span>{formattedTime}</span>
+
+                              {/* WhatsApp Ticks for sent messages */}
+                              {isMine && (
+                                <span className="inline-flex items-center ml-0.5" title={`Status: ${msg.deliveryStatus || 'SENT'}`}>
+                                  {msg.deliveryStatus === 'PENDING' && (
+                                    <Clock className="w-3 h-3 text-slate-300 animate-spin" aria-label="Pending" />
+                                  )}
+                                  {msg.deliveryStatus === 'SENT' && (
+                                    <Check className="w-3.5 h-3.5 text-slate-300" aria-label="Sent" />
+                                  )}
+                                  {msg.deliveryStatus === 'DELIVERED' && (
+                                    <CheckCheck className="w-3.5 h-3.5 text-slate-300" aria-label="Delivered" />
+                                  )}
+                                  {msg.deliveryStatus === 'READ' && (
+                                    <CheckCheck className="w-3.5 h-3.5 text-blue-400 dark:text-blue-400 font-bold" aria-label="Read" />
+                                  )}
+                                  {msg.deliveryStatus === 'FAILED' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRetryMessage(msg)}
+                                      className="flex items-center gap-1 text-rose-500 hover:text-rose-600 font-medium cursor-pointer"
+                                      aria-label="Retry failed send"
+                                    >
+                                      <AlertCircle className="w-3.5 h-3.5" />
+                                      <span>Retry</span>
+                                    </button>
+                                  )}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -752,7 +964,40 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                 onSubmit={handleSend}
                 className="p-2.5 sm:p-3.5 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] shrink-0 sticky bottom-0 z-20 w-full max-w-full min-w-0 box-border pb-safe"
               >
+                {/* Image Attachment Preview Bar */}
+                {imagePreviewUrl && (
+                  <div className="mb-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-between gap-2 border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <img src={imagePreviewUrl} alt="Upload preview" className="w-12 h-12 object-cover rounded-lg shrink-0 border border-slate-300 dark:border-slate-600" />
+                      <span className="text-xs text-slate-700 dark:text-slate-200 truncate">{selectedFile?.name}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCancelFile}
+                      className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex items-end gap-2 w-full max-w-full min-w-0">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="h-10 w-10 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 cursor-pointer shrink-0"
+                    title="Attach Image"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                  </button>
+
                   <div className="relative flex-1 min-w-0">
                     <textarea
                       ref={textareaRef}
@@ -794,11 +1039,13 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
 
                   <Button
                     type="submit"
-                    disabled={sending || !messageContent.trim()}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onTouchStart={(e) => e.preventDefault()}
+                    disabled={sending || (!messageContent.trim() && !selectedFile)}
                     className="h-10 bg-blue-600 hover:bg-blue-700 text-white px-4 font-medium text-xs rounded-2xl shrink-0 min-w-[72px] shadow-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   >
                     <Send className="w-4 h-4" />
-                    <span className="hidden sm:inline">{sending ? '...' : 'Send'}</span>
+                    <span className="hidden sm:inline">{sending || uploadingImage ? '...' : 'Send'}</span>
                   </Button>
                 </div>
               </form>
@@ -838,55 +1085,63 @@ export const PersonalChatView: React.FC<PersonalChatViewProps> = ({
                   <Skeleton key={i} className="h-10 w-full rounded-xl" />
                 ))}
               </div>
-            ) : eligibleStudents.filter((s) =>
-                (s.full_name || s.display_name || s.name || s.email || '')
-                  .toLowerCase()
-                  .includes(studentSearch.toLowerCase())
-              ).length > 0 ? (
-              eligibleStudents
-                .filter((s) =>
-                  (s.full_name || s.display_name || s.name || s.email || '')
-                    .toLowerCase()
-                    .includes(studentSearch.toLowerCase())
-                )
-                .map((student) => {
-                  const studentName = student.full_name || student.display_name || student.name || 'Student';
-                  const studentEmail = student.email || student.user?.email || '';
-                  const studentUserId = student.user_id || student.user?.id || student.id;
+            ) : eligibleStudents.length > 0 ? (
+              eligibleStudents.map((user: any) => {
+                const userName = user.full_name || user.email || 'User';
+                const userEmail = user.email || '';
+                const userId = user.id;
 
-                  return (
-                    <div
-                      key={student.id}
-                      onClick={() => handleSelectStudentForChat(studentUserId)}
-                      className="p-3 bg-slate-50 dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                return (
+                  <div
+                    key={user.id}
+                    onClick={() => handleSelectStudentForChat(userId)}
+                    className="p-3 bg-slate-50 dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      {user.avatar ? (
+                        <img src={user.avatar} alt={userName} className="w-8 h-8 rounded-full object-cover shrink-0" />
+                      ) : (
                         <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900/40 text-blue-700 dark:text-blue-300 font-medium text-xs flex items-center justify-center shrink-0">
-                          {studentName.charAt(0).toUpperCase()}
+                          {userName.charAt(0).toUpperCase()}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <strong className="font-semibold text-slate-900 dark:text-slate-100 block truncate">{studentName}</strong>
-                          {studentEmail && (
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal block truncate">{studentEmail}</span>
-                          )}
-                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <strong className="font-semibold text-slate-900 dark:text-slate-100 block truncate">{userName}</strong>
+                        {userEmail && (
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal block truncate">{userEmail}</span>
+                        )}
                       </div>
-
-                      <Button size="sm" variant="outline" className="h-7 text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shrink-0 ml-2">
-                        Start Chat
-                      </Button>
                     </div>
-                  );
-                })
+
+                    <Button size="sm" variant="outline" className="h-7 text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shrink-0 ml-2">
+                      {user.existing_room_id ? 'Open Chat' : 'Start Chat'}
+                    </Button>
+                  </div>
+                );
+              })
             ) : (
               <div className="p-6 text-center text-slate-500 space-y-1">
-                <p className="font-semibold">No eligible enrolled students found.</p>
-                <p className="text-[11px]">Ensure students are enrolled in this course or academy.</p>
+                <p className="font-semibold">No eligible members found.</p>
+                <p className="text-[11px]">Searching authorized academy or course participants.</p>
               </div>
             )}
           </div>
         </div>
       </Modal>
+
+      {/* FULLSCREEN IMAGE LIGHTBOX MODAL */}
+      {lightboxUrl && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+          <button
+            type="button"
+            onClick={() => setLightboxUrl(null)}
+            className="absolute top-4 right-4 text-white hover:text-slate-300 p-2 rounded-full bg-white/10 cursor-pointer"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img src={lightboxUrl} alt="Enlarged preview" className="max-w-full max-h-[90vh] object-contain rounded-lg" />
+        </div>
+      )}
     </div>
   );
 };

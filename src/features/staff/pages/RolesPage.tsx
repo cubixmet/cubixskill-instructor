@@ -1,413 +1,291 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Plus, ChevronDown, ChevronUp } from 'lucide-react';
-import type { Role } from '../../../types/models.types';
+import { Shield, Plus, Search, RefreshCw, AlertTriangle, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
-import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
-
-const INITIAL_ROLES: Role[] = [
-  {
-    id: 'role-academy-admin',
-    name: 'Academy Admin',
-    description: 'Full administrative access to manage academy settings, courses, students, and staff.',
-    creditCost: 0,
-    permissions: {
-      Courses: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
-      Students: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
-      Curriculum: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
-      Media: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
-      Certificates: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
-      Discussions: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
-      LiveClasses: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
-      Coupons: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
-      WebsiteBuilder: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
-      Staff: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
-      Settings: { view: true, create: true, edit: true, delete: true, publish: true, export: true, approve: true },
-    },
-  },
-  {
-    id: 'role-academy-staff',
-    name: 'Academy Staff',
-    description: 'Staff access to manage assigned courses, review submissions, and assist students.',
-    creditCost: 0,
-    permissions: {
-      Courses: { view: true, create: false, edit: true, delete: false, publish: false, export: true, approve: false },
-      Students: { view: true, create: false, edit: false, delete: false, publish: false, export: true, approve: false },
-      Curriculum: { view: true, create: true, edit: true, delete: false, publish: true, export: false, approve: false },
-      Media: { view: true, create: true, edit: true, delete: false, publish: false, export: false, approve: false },
-      Certificates: { view: true, create: false, edit: false, delete: false, publish: false, export: true, approve: false },
-      Discussions: { view: true, create: true, edit: true, delete: true, publish: true, export: false, approve: true },
-      LiveClasses: { view: true, create: true, edit: true, delete: false, publish: true, export: false, approve: false },
-      Coupons: { view: false, create: false, edit: false, delete: false, publish: false, export: false, approve: false },
-      WebsiteBuilder: { view: false, create: false, edit: false, delete: false, publish: false, export: false, approve: false },
-      Staff: { view: false, create: false, edit: false, delete: false, publish: false, export: false, approve: false },
-      Settings: { view: false, create: false, edit: false, delete: false, publish: false, export: false, approve: false },
-    },
-  },
-];
-
-const PERMISSION_GROUPS = [
-  'Courses',
-  'Students',
-  'Curriculum',
-  'Media',
-  'Certificates',
-  'Discussions',
-  'LiveClasses',
-  'Coupons',
-  'WebsiteBuilder',
-  'Staff',
-  'Settings',
-] as const;
+import { EmptyState } from '../../../components/ui/EmptyState';
+import { Modal } from '../../../components/ui/Modal';
+import { staffService, BackendRole } from '../../../services/staff.service';
 
 export const RolesPage: React.FC = () => {
-  const [roles, setRoles] = useState<Role[]>(INITIAL_ROLES);
-  const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({});
+  const [roles, setRoles] = useState<BackendRole[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Modal States
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [newRoleName, setNewRoleName] = useState('');
-  const [newRoleDescription, setNewRoleDescription] = useState('');
-  const [deleteRoleId, setDeleteRoleId] = useState<string | null>(null);
+  // Search & Pagination
+  const [searchInput, setSearchInput] = useState<string>('');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [page, setPage] = useState<number>(1);
+  const pageSize = 8;
 
-  const toggleAccordion = (roleId: string, groupName: string) => {
-    const key = `${roleId}-${groupName}`;
-    setOpenAccordions((prev) => ({ ...prev, [key]: !prev[key] }));
+  // Modal State for Delete
+  const [deleteRole, setDeleteRole] = useState<BackendRole | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const fetchRoles = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await staffService.getRoles();
+      // Exclude platform Super Admin roles for Academy scope
+      const academyRoles = data.filter((r) => r.code !== 'SUPER_ADMIN' && r.code !== 'SUPER_ADMIN_STAFF');
+      setRoles(academyRoles);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || 'Unable to load access roles.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRoles();
+  }, [fetchRoles]);
+
+  // Handle Search Input Change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchInput(e.target.value);
   };
 
-  const handleCreateRole = () => {
-    if (!newRoleName.trim()) return;
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
-    const defaultPerms: Role['permissions'] = {};
-    PERMISSION_GROUPS.forEach((group) => {
-      defaultPerms[group] = {
-        view: true,
-        create: false,
-        edit: false,
-        delete: false,
-        publish: false,
-        export: false,
-        approve: false,
-      };
-    });
-
-    const newRole: Role = {
-      id: `role-${Date.now()}`,
-      name: newRoleName.trim(),
-      description: newRoleDescription.trim() || 'Custom role permissions definition.',
-      creditCost: 0,
-      permissions: defaultPerms,
-    };
-
-    setRoles((prev) => [...prev, newRole]);
-    setIsCreateModalOpen(false);
-    setNewRoleName('');
-    setNewRoleDescription('');
-  };
-
-  const handleDeleteRole = (id: string) => {
-    setRoles((prev) => prev.filter((r) => r.id !== id));
-    setDeleteRoleId(null);
-  };
-
-  const togglePermission = (roleId: string, group: string, action: 'view' | 'create' | 'edit' | 'delete' | 'publish' | 'export' | 'approve') => {
-    setRoles((prev) =>
-      prev.map((role) => {
-        if (role.id !== roleId) return role;
-        const currentGroup = role.permissions[group] || {
-          view: false,
-          create: false,
-          edit: false,
-          delete: false,
-          publish: false,
-          export: false,
-          approve: false,
-        };
-
-        return {
-          ...role,
-          permissions: {
-            ...role.permissions,
-            [group]: {
-              ...currentGroup,
-              [action]: !currentGroup[action],
-            },
-          },
-        };
-      })
+  const filteredRoles = roles.filter((role) => {
+    if (!debouncedSearch) return true;
+    const q = debouncedSearch.toLowerCase();
+    return (
+      role.name.toLowerCase().includes(q) ||
+      role.code.toLowerCase().includes(q) ||
+      (role.description && role.description.toLowerCase().includes(q))
     );
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredRoles.length / pageSize));
+  const paginatedRoles = filteredRoles.slice((page - 1) * pageSize, page * pageSize);
+
+  const confirmDeleteRole = async () => {
+    if (!deleteRole) return;
+    try {
+      setIsDeleting(true);
+      setDeleteError(null);
+      await staffService.deleteRole(deleteRole.id);
+      setDeleteRole(null);
+      fetchRoles();
+    } catch (err: any) {
+      setDeleteError(err?.response?.data?.message || err?.message || 'Failed to delete role.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
-    <div className="w-full min-w-0 max-w-full overflow-x-clip space-y-4 pb-24 md:pb-8 text-left font-sans text-xs text-[#0F172A] dark:text-[#F8FAFC] bg-[#F8FAFC] dark:bg-[#0B1120] min-h-screen font-normal">
+    <div className="w-full min-w-0 max-w-full overflow-x-clip space-y-4 pb-24 md:pb-8 text-left font-sans text-xs text-[var(--text-primary)] bg-[var(--page-background)] min-h-screen font-normal">
       {/* ── PAGE HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-0.5 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0 border-b border-[var(--border)] pb-4">
         <div className="min-w-0">
-          <h1 className="text-base sm:text-lg font-semibold text-[#0F172A] dark:text-[#F8FAFC] leading-tight truncate">
+          <h1 className="text-lg sm:text-2xl font-bold text-[var(--text-primary)] tracking-tight truncate">
             Roles &amp; Access Permissions
           </h1>
-          <p className="text-[#64748B] dark:text-[#94A3B8] text-xs font-normal mt-0.5 truncate">
-            Configure permission matrices and module access rights for team roles.
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] font-normal mt-0.5 truncate">
+            Manage granular RBAC permission definitions across academy modules.
           </p>
         </div>
-        <Link to="/roles/create">
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             size="sm"
-            leftIcon={<Plus className="w-4 h-4" />}
-            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-medium h-[38px] min-h-[38px] px-4 rounded-xl shadow-xs w-full sm:w-auto shrink-0 cursor-pointer"
+            variant="outline"
+            onClick={fetchRoles}
+            className="h-[44px] sm:h-[38px] border-[var(--border)] text-[var(--text-secondary)] font-medium px-3 rounded-xl flex items-center gap-1.5"
           >
-            Create Role
+            <RefreshCw className="w-4 h-4 shrink-0" />
+            <span>Refresh</span>
           </Button>
-        </Link>
-      </div>
-
-      {/* ── ROLES LIST ── */}
-      <div className="space-y-4 min-w-0">
-        {roles.map((role) => (
-          <div
-            key={role.id}
-            className="bg-white dark:bg-[#111827] rounded-2xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs p-4 sm:p-5 space-y-4 min-w-0"
-          >
-            {/* Header: Role Name + Desc + Action */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E2E8F0] dark:border-[#263244] pb-3 min-w-0">
-              <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2 truncate">
-                  <Shield className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
-                  <span>{role.name}</span>
-                </h2>
-                <p className="text-[#64748B] dark:text-[#94A3B8] text-xs font-normal mt-0.5 leading-relaxed">
-                  {role.description}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setDeleteRoleId(role.id)}
-                  className="font-medium text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/40 hover:bg-rose-50 dark:hover:bg-[rgba(244,63,94,0.12)] h-8 rounded-xl text-xs cursor-pointer"
-                >
-                  Delete Role
-                </Button>
-              </div>
-            </div>
-
-            {/* ── DESKTOP PERMISSION MATRIX (≥ md) ── */}
-            <div className="hidden md:block overflow-x-auto min-w-0">
-              <table className="w-full text-left text-xs min-w-[650px]">
-                <thead className="bg-[#F8FAFC] dark:bg-[#172033] text-[10px] font-medium text-[#475569] dark:text-[#94A3B8] uppercase tracking-wider rounded-xl">
-                  <tr>
-                    <th className="p-3 rounded-l-xl">Module Group</th>
-                    <th className="p-3 text-center">View</th>
-                    <th className="p-3 text-center">Create</th>
-                    <th className="p-3 text-center">Edit</th>
-                    <th className="p-3 text-center">Delete</th>
-                    <th className="p-3 text-center">Approve</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E2E8F0] dark:divide-[#263244] font-normal">
-                  {PERMISSION_GROUPS.map((groupName) => {
-                    const perm = role.permissions[groupName] || {
-                      view: false,
-                      create: false,
-                      edit: false,
-                      delete: false,
-                      publish: false,
-                      export: false,
-                      approve: false,
-                    };
-                    return (
-                      <tr key={groupName} className="hover:bg-[#F8FAFC] dark:hover:bg-[#172033] transition-colors">
-                        <td className="p-3 font-medium text-[#0F172A] dark:text-[#F8FAFC]">{groupName}</td>
-                        <td className="p-3 text-center">
-                          <input
-                            type="checkbox"
-                            checked={perm.view}
-                            onChange={() => togglePermission(role.id, groupName, 'view')}
-                            className="w-4 h-4 text-[#2563EB] rounded-md border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] cursor-pointer"
-                          />
-                        </td>
-                        <td className="p-3 text-center">
-                          <input
-                            type="checkbox"
-                            checked={perm.create}
-                            onChange={() => togglePermission(role.id, groupName, 'create')}
-                            className="w-4 h-4 text-[#2563EB] rounded-md border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] cursor-pointer"
-                          />
-                        </td>
-                        <td className="p-3 text-center">
-                          <input
-                            type="checkbox"
-                            checked={perm.edit}
-                            onChange={() => togglePermission(role.id, groupName, 'edit')}
-                            className="w-4 h-4 text-[#2563EB] rounded-md border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] cursor-pointer"
-                          />
-                        </td>
-                        <td className="p-3 text-center">
-                          <input
-                            type="checkbox"
-                            checked={perm.delete}
-                            onChange={() => togglePermission(role.id, groupName, 'delete')}
-                            className="w-4 h-4 text-[#2563EB] rounded-md border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] cursor-pointer"
-                          />
-                        </td>
-                        <td className="p-3 text-center">
-                          <input
-                            type="checkbox"
-                            checked={perm.approve}
-                            onChange={() => togglePermission(role.id, groupName, 'approve')}
-                            className="w-4 h-4 text-[#2563EB] rounded-md border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] cursor-pointer"
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* ── MOBILE ACCORDIONS FOR PERMISSION GROUPS (< md) ── */}
-            <div className="md:hidden space-y-2 min-w-0">
-              {PERMISSION_GROUPS.map((groupName) => {
-                const isAccordionOpen = !!openAccordions[`${role.id}-${groupName}`];
-                const perm = role.permissions[groupName] || {
-                  view: false,
-                  create: false,
-                  edit: false,
-                  delete: false,
-                  publish: false,
-                  export: false,
-                  approve: false,
-                };
-
-                return (
-                  <div
-                    key={groupName}
-                    className="border border-[#E2E8F0] dark:border-[#263244] rounded-xl overflow-hidden min-w-0 bg-[#F8FAFC] dark:bg-[#0F172A]"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => toggleAccordion(role.id, groupName)}
-                      className="w-full p-3 flex items-center justify-between text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] bg-white dark:bg-[#111827] hover:bg-slate-50 dark:hover:bg-[#172033] transition-colors cursor-pointer"
-                    >
-                      <span>{groupName}</span>
-                      <div className="flex items-center gap-2 text-[#64748B] dark:text-[#94A3B8]">
-                        <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal">
-                          {Object.values(perm).filter(Boolean).length} enabled
-                        </span>
-                        {isAccordionOpen ? (
-                          <ChevronUp className="w-4 h-4 shrink-0" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 shrink-0" />
-                        )}
-                      </div>
-                    </button>
-
-                    {isAccordionOpen && (
-                      <div className="p-3 bg-white dark:bg-[#111827] border-t border-[#E2E8F0] dark:border-[#263244] space-y-2 text-xs font-normal">
-                        {(['view', 'create', 'edit', 'delete', 'approve'] as const).map((action) => (
-                          <label
-                            key={action}
-                            className="flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#334155] cursor-pointer transition-colors"
-                          >
-                            <span className="capitalize text-[#0F172A] dark:text-[#CBD5E1] font-medium">{action}</span>
-                            <input
-                              type="checkbox"
-                              checked={perm[action]}
-                              onChange={() => togglePermission(role.id, groupName, action)}
-                              className="w-4 h-4 text-[#2563EB] rounded-md border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] cursor-pointer"
-                            />
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── CREATE ROLE MODAL ── */}
-      <Modal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        title="Create New Role"
-        subtitle="Define a custom role name and default permission rights."
-      >
-        <div className="space-y-4 font-sans text-xs text-[#0F172A] dark:text-[#F8FAFC] text-left">
-          <Input
-            label="Role Name"
-            placeholder="e.g. Content Reviewer"
-            value={newRoleName}
-            onChange={(e) => setNewRoleName(e.target.value)}
-            className="bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC]"
-          />
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-[#0F172A] dark:text-[#CBD5E1]">Description</label>
-            <textarea
-              rows={3}
-              placeholder="Describe access responsibilities..."
-              value={newRoleDescription}
-              onChange={(e) => setNewRoleDescription(e.target.value)}
-              className="w-full p-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] text-xs font-normal focus:outline-none focus:border-[#3B82F6] bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] placeholder-[#64748B]"
-            />
-          </div>
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-3 border-t border-[#E2E8F0] dark:border-[#263244]">
+          <Link to="/roles/create">
             <Button
-              type="button"
-              variant="outline"
               size="sm"
-              onClick={() => setIsCreateModalOpen(false)}
-              className="w-full sm:w-auto font-medium min-h-[42px] rounded-xl border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#CBD5E1]"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleCreateRole}
-              className="w-full sm:w-auto font-medium min-h-[42px] rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white cursor-pointer"
+              leftIcon={<Plus className="w-4 h-4" />}
+              className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-semibold h-[44px] sm:h-[38px] min-h-[44px] sm:min-h-[38px] px-4 rounded-xl shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
             >
               Create Role
             </Button>
-          </div>
+          </Link>
         </div>
-      </Modal>
+      </div>
 
-      {/* ── DELETE ROLE CONFIRM MODAL ── */}
-      <Modal
-        isOpen={!!deleteRoleId}
-        onClose={() => setDeleteRoleId(null)}
-        title="Delete Role Definition"
-      >
-        <div className="space-y-4 font-sans text-xs text-[#0F172A] dark:text-[#F8FAFC] text-left">
-          <p className="text-[#64748B] dark:text-[#94A3B8] font-normal leading-relaxed text-xs">
-            Are you sure you want to delete this role definition? Staff assigned to this role will need to be re-assigned.
-          </p>
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-3 border-t border-[#E2E8F0] dark:border-[#263244]">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setDeleteRoleId(null)}
-              className="w-full sm:w-auto font-medium min-h-[42px] rounded-xl border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#CBD5E1]"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => deleteRoleId && handleDeleteRole(deleteRoleId)}
-              className="w-full sm:w-auto font-medium min-h-[42px] rounded-xl bg-rose-600 hover:bg-rose-700 text-white cursor-pointer"
-            >
-              Delete Role
-            </Button>
-          </div>
+      {/* ── TOOLBAR: SEARCH & FILTERS ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--surface)] border border-[var(--border)] p-3 rounded-2xl">
+        <div className="w-full sm:w-72">
+          <Input
+            placeholder="Search roles by name or code..."
+            value={searchInput}
+            onChange={handleSearchChange}
+            leftIcon={<Search className="w-4 h-4 text-[var(--text-muted)]" />}
+            className="font-normal bg-[var(--surface-secondary)] border-[var(--input-border)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] min-h-[44px] sm:min-h-[36px]"
+          />
         </div>
-      </Modal>
+        <div className="text-xs text-[var(--text-muted)] font-medium">
+          Showing <strong>{filteredRoles.length}</strong> role(s)
+        </div>
+      </div>
+
+      {/* ── ROLES CONTENT ── */}
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-28 bg-[var(--surface-secondary)] border border-[var(--border)] rounded-2xl animate-pulse"></div>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="p-6 text-center bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-2xl space-y-3">
+          <AlertTriangle className="w-8 h-8 text-rose-500 mx-auto" />
+          <p className="text-xs text-rose-900 dark:text-rose-300 font-medium">{error}</p>
+          <Button size="sm" variant="outline" onClick={fetchRoles}>Retry</Button>
+        </div>
+      ) : filteredRoles.length === 0 ? (
+        <EmptyState
+          icon={Shield}
+          title="No roles found"
+          description={debouncedSearch ? 'No access roles match your search query.' : 'Create your first custom access role.'}
+          actionLabel="Create Role"
+          onAction={() => window.location.href = '/roles/create'}
+        />
+      ) : (
+        <div className="space-y-3 min-w-0">
+          {paginatedRoles.map((role) => {
+            const isSystem = role.is_system_role || ['ACADEMY_ADMIN', 'ACADEMY_STAFF', 'ADMIN', 'STAFF'].includes(role.code);
+            const permCount = role.permissions ? role.permissions.length : 0;
+
+            return (
+              <div
+                key={role.id}
+                className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] shadow-2xs p-4 sm:p-5 space-y-3 min-w-0"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0 border-b border-[var(--border)] pb-3">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2 truncate">
+                        <Shield className="w-4 h-4 text-[var(--brand-primary)] shrink-0" />
+                        <span>{role.name}</span>
+                      </h2>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-secondary)]">
+                        {role.code}
+                      </span>
+                      {isSystem && (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 flex items-center gap-1">
+                          <Lock className="w-3 h-3" /> System Standard
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                      {role.description || 'Custom role permissions definition.'}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                    {!isSystem && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setDeleteRole(role)}
+                        className="font-medium text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/40 hover:bg-rose-50 dark:hover:bg-rose-950/30 min-h-[44px] sm:min-h-[36px] h-9 px-3 rounded-xl text-xs cursor-pointer"
+                      >
+                        Delete Role
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-[var(--text-secondary)] font-medium">
+                  <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-secondary)] border border-[var(--border)]">
+                    Granted Capabilities: <strong>{permCount} permission(s)</strong>
+                  </span>
+                  {role.permissions && role.permissions.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 max-w-full">
+                      {role.permissions.slice(0, 6).map((p, idx) => (
+                        <span key={idx} className="px-2 py-0.5 rounded bg-[color-mix(in_srgb,var(--brand-primary)_8%,var(--surface))] text-[var(--text-primary)] border border-[var(--border)] text-[10px]">
+                          {p.code || p.name || (p.permission ? p.permission.name : 'Permission')}
+                        </span>
+                      ))}
+                      {role.permissions.length > 6 && (
+                        <span className="px-2 py-0.5 rounded bg-[var(--surface-secondary)] text-[var(--text-muted)] text-[10px]">
+                          +{role.permissions.length - 6} more
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* ── PAGINATION CONTROLS ── */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-[var(--border)] text-xs text-[var(--text-muted)]">
+              <span>Page {page} of {totalPages}</span>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="h-9 min-h-[44px] sm:min-h-[36px] px-3 border-[var(--border)]"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="h-9 min-h-[44px] sm:min-h-[36px] px-3 border-[var(--border)]"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── DELETE ROLE CONFIRMATION MODAL ── */}
+      {deleteRole && (
+        <Modal
+          isOpen={true}
+          onClose={() => setDeleteRole(null)}
+          title="Delete Custom Role"
+          subtitle={`Are you sure you want to delete "${deleteRole.name}"?`}
+        >
+          <div className="space-y-4 font-sans text-xs text-[var(--text-primary)] text-left">
+            <p className="text-[var(--text-secondary)]">
+              This action cannot be undone. Staff members currently assigned to this custom role will revert to standard Academy Staff privileges.
+            </p>
+            {deleteError && (
+              <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">{deleteError}</p>
+            )}
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 pt-3 border-t border-[var(--border)]">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteRole(null)}
+                className="min-h-[44px] sm:min-h-[36px] w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={isDeleting}
+                onClick={confirmDeleteRole}
+                className="bg-rose-600 hover:bg-rose-700 text-white min-h-[44px] sm:min-h-[36px] w-full sm:w-auto font-semibold"
+              >
+                {isDeleting ? 'Deleting Role...' : 'Confirm Delete Role'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

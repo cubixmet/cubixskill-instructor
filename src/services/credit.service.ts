@@ -19,6 +19,7 @@ export interface StorageBreakdownSummary {
   billable_storage_gb: string;
   credit_rate_per_gb: string;
   estimated_storage_charge: string;
+  billing_interval_label?: string;
 }
 
 export interface MonthlyInvoiceLineItem {

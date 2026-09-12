@@ -1,20 +1,14 @@
 import React, { useState } from 'react';
 import {
   Calendar,
-  Clock,
-  ExternalLink,
-  Play,
-  Film,
   Users,
   Edit2,
   Trash2,
-  Radio,
   MoreVertical,
   XCircle,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
-import { Button } from '../../../components/ui/Button';
 import type { LiveSessionItem } from '../store/liveSession.store';
 
 export interface LiveSessionCardProps {
@@ -32,8 +26,6 @@ export interface LiveSessionCardProps {
 export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
   session,
   onEdit,
-  onStart,
-  onEnd,
   onCancel,
   onDelete,
   onJoin,
@@ -41,17 +33,6 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
   onOpenRecording,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
-  const [isStarting, setIsStarting] = useState(false);
-
-  const handleStartClick = async () => {
-    if (isStarting) return;
-    setIsStarting(true);
-    try {
-      await onStart(session.id);
-    } finally {
-      setIsStarting(false);
-    }
-  };
 
   const handleJoinMeeting = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -206,7 +187,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
               <button
                 type="button"
                 onClick={handleJoinMeeting}
-                className="h-9 px-5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-[0_4px_12px_rgba(37,99,235,0.25)] transition-all cursor-pointer"
+                className="h-[44px] min-h-[44px] px-5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-[0_4px_12px_rgba(37,99,235,0.25)] transition-all cursor-pointer"
               >
                 Join
               </button>
@@ -214,7 +195,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
               <button
                 type="button"
                 onClick={() => onEdit(session)}
-                className="h-9 px-4 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#F8FAFC] font-semibold hover:bg-slate-50 dark:hover:bg-[#1E293B] text-xs transition-colors cursor-pointer"
+                className="h-[44px] min-h-[44px] px-4 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#F8FAFC] font-semibold hover:bg-slate-50 dark:hover:bg-[#1E293B] text-xs transition-colors cursor-pointer"
               >
                 View Details
               </button>
@@ -222,7 +203,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
               <button
                 type="button"
                 onClick={() => onOpenRecording?.(session)}
-                className="h-9 px-4 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#F8FAFC] font-semibold hover:bg-slate-50 dark:hover:bg-[#1E293B] text-xs transition-colors cursor-pointer"
+                className="h-[44px] min-h-[44px] px-4 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#F8FAFC] font-semibold hover:bg-slate-50 dark:hover:bg-[#1E293B] text-xs transition-colors cursor-pointer"
               >
                 View Recording
               </button>
@@ -230,7 +211,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
               <button
                 type="button"
                 onClick={() => onOpenAttendance?.(session)}
-                className="h-9 px-4 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#F8FAFC] font-semibold hover:bg-slate-50 dark:hover:bg-[#1E293B] text-xs transition-colors cursor-pointer"
+                className="h-[44px] min-h-[44px] px-4 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#F8FAFC] font-semibold hover:bg-slate-50 dark:hover:bg-[#1E293B] text-xs transition-colors cursor-pointer"
               >
                 Attendance
               </button>

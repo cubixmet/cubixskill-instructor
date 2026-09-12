@@ -209,12 +209,12 @@ export const GlobalLiveClassroomPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2 w-full sm:w-auto shrink-0 pt-1 sm:pt-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto shrink-0 pt-1 sm:pt-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowAnalyticsPanel(!showAnalyticsPanel)}
-              className={`h-[38px] min-h-[38px] text-[11.5px] sm:text-xs font-semibold border-[#E2E8F0] dark:border-[#334155] rounded-xl w-full sm:w-auto px-2.5 sm:px-3.5 inline-flex items-center justify-center gap-1.5 ${
+              className={`h-[44px] min-h-[44px] text-[11.5px] sm:text-xs font-semibold border-[#E2E8F0] dark:border-[#334155] rounded-xl w-full sm:w-auto px-2.5 sm:px-3.5 inline-flex items-center justify-center gap-1.5 ${
                 showAnalyticsPanel
                   ? 'bg-blue-50 dark:bg-[#172033] text-[#2563EB] dark:text-[#60A5FA] border-blue-200 dark:border-blue-800'
                   : 'text-[#0F172A] dark:text-[#CBD5E1] bg-white dark:bg-[#172033] hover:bg-slate-50 dark:hover:bg-[#1E293B]'
@@ -227,7 +227,7 @@ export const GlobalLiveClassroomPage: React.FC = () => {
             <Button
               size="sm"
               onClick={() => navigate('/live-classroom/create')}
-              className="h-[38px] min-h-[38px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-[11.5px] sm:text-xs px-2.5 sm:px-4 rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.12)] w-full sm:w-auto inline-flex items-center justify-center gap-1.5"
+              className="h-[44px] min-h-[44px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-[11.5px] sm:text-xs px-2.5 sm:px-4 rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.12)] w-full sm:w-auto inline-flex items-center justify-center gap-1.5"
               leftIcon={<Plus className="w-3.5 h-3.5 stroke-[2.5] shrink-0" />}
             >
               Create Class

@@ -99,9 +99,9 @@ export const StudentPortalBrandingTab: React.FC = () => {
 
         {/* LOCKED LAYOUT PROTECTION BANNER */}
         <div className="p-3 bg-slate-900 dark:bg-[#0F172A] text-white rounded-xl flex items-center gap-2.5 font-medium text-xs border border-slate-800 dark:border-[#334155]">
-          <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+          <Lock className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
           <span>
-            🔒 <strong>Layout Protection Active:</strong> Student Portal layout, sidebar structure, and navigation positions are locked to ensure 100% UI consistency across all academies. Only branding elements and color themes change dynamically.
+            <strong>Layout Protection Active:</strong> Student Portal layout, sidebar structure, and navigation positions are locked to ensure 100% UI consistency across all academies. Only branding elements and color themes change dynamically.
           </span>
         </div>
       </Card>
@@ -372,7 +372,7 @@ export const StudentPortalBrandingTab: React.FC = () => {
       <Modal
         isOpen={storageModalOpen}
         onClose={() => setStorageModalOpen(false)}
-        title="⚠ Media Storage Credit Notice"
+        title="Media Storage Credit Notice"
         subtitle={`Confirm ${pendingUploadType} file upload.`}
         maxWidth="sm"
       >

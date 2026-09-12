@@ -214,6 +214,21 @@ export const certificatesService = {
     return response.data;
   },
 
+  async updateCustomField(id: string, payload: Partial<StudentCustomField>): Promise<StudentCustomField> {
+    const response = await apiClient.patch<StudentCustomField>(
+      `/api/v1/students/custom-fields/${id}/`,
+      payload
+    );
+    return response.data;
+  },
+
+  async deleteCustomField(id: string): Promise<any> {
+    const response = await apiClient.delete(
+      `/api/v1/students/custom-fields/${id}/`
+    );
+    return response.data;
+  },
+
   // --- CERTIFICATE FONTS ---
   async listFonts(): Promise<any[]> {
     const response = await apiClient.get<any>('/api/v1/certificates/fonts/');

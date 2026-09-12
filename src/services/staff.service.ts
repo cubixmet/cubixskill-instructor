@@ -61,18 +61,24 @@ export interface PermissionGroup {
 
 export const staffService = {
   async getStaffMembers(params?: { search?: string; role?: string; status?: string }): Promise<BackendStaffUser[]> {
-    const response = await apiClient.get<BackendStaffUser[]>('/api/v1/users/', { params });
-    return response.data;
+    const response = await apiClient.get<any>('/api/v1/users/', { params });
+    const data = response.data?.data || response.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.results)) return data.results;
+    return [];
   },
 
   async getSummary(): Promise<StaffSummary> {
-    const response = await apiClient.get<StaffSummary>('/api/v1/users/summary/');
-    return response.data;
+    const response = await apiClient.get<any>('/api/v1/users/summary/');
+    return response.data?.data || response.data;
   },
 
   async getRoles(): Promise<BackendRole[]> {
-    const response = await apiClient.get<BackendRole[]>('/api/v1/roles/');
-    return response.data;
+    const response = await apiClient.get<any>('/api/v1/roles/');
+    const data = response.data?.data || response.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.results)) return data.results;
+    return [];
   },
 
   async createRole(payload: { name: string; description?: string; permission_codes?: string[] }): Promise<BackendRole> {
@@ -80,9 +86,16 @@ export const staffService = {
     return response.data;
   },
 
+  async deleteRole(id: string): Promise<void> {
+    await apiClient.delete(`/api/v1/roles/${id}/`);
+  },
+
   async getPermissionRegistry(): Promise<PermissionGroup[]> {
-    const response = await apiClient.get<PermissionGroup[]>('/api/v1/permissions/registry/');
-    return response.data;
+    const response = await apiClient.get<any>('/api/v1/permissions/registry/');
+    const data = response.data?.data || response.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.results)) return data.results;
+    return [];
   },
 
   async inviteStaffMember(payload: {

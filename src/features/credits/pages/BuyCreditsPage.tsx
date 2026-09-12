@@ -11,14 +11,14 @@ import { creditService, CreditPurchaseRateItem } from '../../../services/credit.
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { parseApiError } from '../../../api/errors';
-import { useAuth } from '../../auth/hooks/useAuth';
+import { useAuthStore } from '../../../store/auth.store';
 import { normalizeIndianPhone } from '../../../utils/phone.utils';
 
 import { useCreditSummary } from '../../../hooks/useCreditSummary';
 
 export const BuyCreditsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, academy } = useAuth();
+  const { user, academy } = useAuthStore();
   const { invalidateSummary } = useCreditSummary();
 
   const [rates, setRates] = useState<CreditPurchaseRateItem[]>([]);
@@ -308,43 +308,40 @@ export const BuyCreditsPage: React.FC = () => {
                     <label className="block text-xs font-medium text-slate-700 dark:text-[#CBD5E1]">
                       Coupon Code
                     </label>
-                    <div className="flex w-full min-w-0 flex-col min-[360px]:flex-row gap-2">
-                      <input
-                        type="text"
-                        value={couponInputs[rateOption.id] || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setCouponInputs((prev) => ({ ...prev, [rateOption.id]: val }));
-                          // Invalidate previous preview if coupon input is edited after apply
-                          if (couponPreviews[rateOption.id] && couponPreviews[rateOption.id].coupon_code !== val.trim().toUpperCase()) {
-                            setCouponPreviews((prev) => ({ ...prev, [rateOption.id]: null }));
-                          }
-                          setCouponErrors((prev) => ({ ...prev, [rateOption.id]: null }));
-                        }}
-                        placeholder="e.g. CUBIX20"
-                        className="w-full min-w-0 flex-1 h-9 px-3 border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0F172A] rounded-xl text-xs font-mono uppercase focus:outline-none focus:border-[#2563EB] text-slate-900 dark:text-[#F8FAFC] placeholder-slate-400 dark:placeholder-[#64748B]"
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={isCouponLoading || !(couponInputs[rateOption.id] || '').trim()}
-                        onClick={() => handleApplyCoupon(rateOption.id)}
-                        className="w-full min-[360px]:w-auto min-[360px]:shrink-0 min-h-[36px] px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-medium rounded-xl transition-colors"
-                      >
-                        {isCouponLoading ? 'Applying...' : 'Apply'}
-                      </Button>
-                    </div>
-
-                    {preview && (
-                      <div className="p-2.5 bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-emerald-800 dark:text-emerald-300 text-[11px] font-normal flex items-center justify-between min-w-0">
-                        <span className="truncate">✓ Coupon "{preview.coupon_code}" applied</span>
+                    {preview ? (
+                      <div className="flex items-center justify-between bg-emerald-50 dark:bg-[rgba(16,185,129,0.12)] p-2.5 rounded-xl border border-emerald-200 dark:border-[rgba(52,211,153,0.22)] text-[11px]">
+                        <span className="font-semibold text-emerald-700 dark:text-[#34D399] truncate">
+                          Coupon "{preview.coupon_code}" Applied
+                        </span>
                         <button
                           type="button"
                           onClick={() => handleRemoveCoupon(rateOption.id)}
-                          className="text-rose-600 dark:text-rose-400 hover:underline text-[11px] ml-2 font-medium shrink-0"
+                          className="text-rose-600 dark:text-rose-400 hover:underline text-[11px] ml-2 font-medium shrink-0 cursor-pointer"
                         >
                           Remove
                         </button>
+                      </div>
+                    ) : (
+                      <div className="flex w-full min-w-0 flex-col min-[360px]:flex-row gap-2">
+                        <input
+                          type="text"
+                          value={couponInputs[rateOption.id] || ''}
+                          onChange={(e) => {
+                            const val = e.target.value.toUpperCase();
+                            setCouponInputs((prev) => ({ ...prev, [rateOption.id]: val }));
+                          }}
+                          placeholder="e.g. CUBIX20"
+                          className="w-full min-w-0 flex-1 h-11 sm:h-9 px-3 border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] rounded-xl text-base sm:text-xs font-mono uppercase focus:outline-none focus:border-[#2563EB] text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] min-h-[44px] sm:min-h-0"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={isCouponLoading || !(couponInputs[rateOption.id] || '').trim()}
+                          onClick={() => handleApplyCoupon(rateOption.id)}
+                          className="w-full min-[360px]:w-auto min-[360px]:shrink-0 h-11 sm:h-9 min-h-[44px] sm:min-h-0 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-medium rounded-xl transition-colors justify-center"
+                        >
+                          {isCouponLoading ? 'Applying...' : 'Apply'}
+                        </Button>
                       </div>
                     )}
 
@@ -354,7 +351,7 @@ export const BuyCreditsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Pay with Razorpay Button */}
+                {/* Pay Button */}
                 <div className="pt-4 border-t border-slate-200 dark:border-[#334155] min-w-0">
                   <Button
                     type="button"
@@ -363,11 +360,11 @@ export const BuyCreditsPage: React.FC = () => {
                     leftIcon={isPaying ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
                     className="w-full min-h-[44px] text-xs sm:text-sm font-medium bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl shadow-xs inline-flex items-center justify-center gap-2 transition-colors"
                   >
-                    {isPaying ? 'Opening Razorpay Checkout...' : `Pay ₹${finalPriceNum.toLocaleString()} with Razorpay`}
+                    {isPaying ? 'Opening Checkout...' : `Pay ₹${finalPriceNum.toLocaleString()}`}
                   </Button>
                   <p className="text-xs text-slate-500 dark:text-[#94A3B8] text-center font-normal mt-2 flex items-center justify-center gap-1.5">
                     <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-[#64748B] shrink-0" />
-                    <span>Official Razorpay Hosted Payment</span>
+                    <span>Secure Encrypted Payment</span>
                   </p>
                 </div>
               </Card>

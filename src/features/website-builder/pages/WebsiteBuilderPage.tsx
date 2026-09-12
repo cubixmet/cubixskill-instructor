@@ -29,12 +29,15 @@ import {
   CheckCircle2,
   MoreVertical,
   ExternalLink,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Modal } from '../../../components/ui/Modal';
 import { useCourseStore } from '../../courses/store/course.store';
 import { websiteBuilderService, AcademyWebsiteThemeConfig } from '../../../services/websiteBuilder.service';
+import { storageService } from '../../../services/storage.service';
 import { resolveMediaUrl } from '../../../utils/media.utils';
 import { normalizeAcademyId, buildAcademyPublicWebsiteUrl } from '../../../utils/publicWebsiteUrl.utils';
 
@@ -130,11 +133,24 @@ export const WebsiteBuilderPage: React.FC = () => {
   const [logoUrl, setLogoUrl] = useState<string>('');
   const [faviconUrl, setFaviconUrl] = useState<string>('');
   const [hasUnpublishedChanges, setHasUnpublishedChanges] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [publishedAt, setPublishedAt] = useState<string | null>(null);
 
   // Editor UI Controls
   const [activeTab, setActiveTab] = useState<StudioTab>('branding');
   const [previewTarget, setPreviewTarget] = useState<PreviewTarget>('public_website');
-  const [viewport, setViewport] = useState<ViewportDevice>('desktop');
+  const [previewThemeMode, setPreviewThemeMode] = useState<'light' | 'dark'>('light');
+  // Initialize default viewport device: 'mobile' on narrow screens (<768px), 'desktop' on wider viewports
+  const [viewport, setViewport] = useState<ViewportDevice>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return 'mobile';
+    }
+    return 'desktop';
+  });
+
+  // Mobile Main View Tab ('settings' or 'preview')
+  const [mobileMainTab, setMobileMainTab] = useState<'settings' | 'preview'>('settings');
+
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState<boolean>(false);
   const [mobileDrawerTab, setMobileDrawerTab] = useState<'design' | 'settings'>('design');
 
@@ -162,11 +178,16 @@ export const WebsiteBuilderPage: React.FC = () => {
             setAcademyId(normalizeAcademyId(data.academy_id));
           }
           const loadedConfig = { ...DEFAULT_THEME, ...(data.draft_config || {}) };
-          if (data.academy_name) loadedConfig.academy_name = data.academy_name;
+          if (data.academy_name && !loadedConfig.academy_name) loadedConfig.academy_name = data.academy_name;
+          const activeLogo = loadedConfig.logo_url || data.logo_url || '';
+          const activeFavicon = loadedConfig.favicon_url || data.favicon_url || '';
+          if (activeLogo) loadedConfig.logo_url = resolveMediaUrl(activeLogo);
+          if (activeFavicon) loadedConfig.favicon_url = resolveMediaUrl(activeFavicon);
+
           setDraftTheme(loadedConfig);
           setSavedDraft(loadedConfig);
-          if (data.logo_url) setLogoUrl(resolveMediaUrl(data.logo_url));
-          if (data.favicon_url) setFaviconUrl(resolveMediaUrl(data.favicon_url));
+          if (activeLogo) setLogoUrl(resolveMediaUrl(activeLogo));
+          if (activeFavicon) setFaviconUrl(resolveMediaUrl(activeFavicon));
           setPublishedAt(data.published_at);
           setHasUnpublishedChanges(data.has_unpublished_changes);
         }
@@ -224,6 +245,8 @@ export const WebsiteBuilderPage: React.FC = () => {
 
   const handleResetToSaved = () => {
     setDraftTheme(savedDraft);
+    setLogoUrl(resolveMediaUrl(savedDraft.logo_url || ''));
+    setFaviconUrl(resolveMediaUrl(savedDraft.favicon_url || ''));
     setHasUnpublishedChanges(false);
     showToast('Reset unsaved changes to last saved draft.');
     setConfirmModalType(null);
@@ -234,30 +257,85 @@ export const WebsiteBuilderPage: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'logo' | 'favicon') => {
+  // Hero Image Upload State
+  const [isUploadingHero, setIsUploadingHero] = useState<boolean>(false);
+  const [heroUploadProgress, setHeroUploadProgress] = useState<number>(0);
+  const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
+
+  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
-        alert('Unsupported format. Please upload PNG, JPG, JPEG, SVG, or WEBP.');
-        return;
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      setHeroUploadError('Unsupported file type. Please upload JPG, JPEG, PNG, or WEBP.');
+      return;
+    }
+
+    const maxSize = 10 * 1024 * 1024; // 10MB limit
+    if (file.size > maxSize) {
+      setHeroUploadError('File size exceeds the 10MB limit. Please choose a smaller image.');
+      return;
+    }
+
+    setHeroUploadError(null);
+    setIsUploadingHero(true);
+    setHeroUploadProgress(0);
+
+    try {
+      const uploadedFile = await storageService.uploadFile(file, {
+        onProgress: (pct) => setHeroUploadProgress(pct),
+      });
+
+      const permanentUrl = resolveMediaUrl(uploadedFile);
+      if (!permanentUrl) {
+        throw new Error('Backend returned invalid image response. Missing media URL.');
       }
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size exceeds maximum 5MB limit.');
-        return;
+      updateDraft({ hero_image_url: permanentUrl });
+      showToast('Hero image uploaded successfully! Save draft to persist.');
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || err?.message || 'Failed to upload hero image. Please try again.';
+      setHeroUploadError(errorMsg);
+    } finally {
+      setIsUploadingHero(false);
+      setHeroUploadProgress(0);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'logo' | 'favicon') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon'];
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      alert('Unsupported file format. Please upload PNG, JPG, JPEG, SVG, WEBP, or ICO.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size exceeds maximum 10MB limit.');
+      return;
+    }
+
+    try {
+      showToast(`Uploading ${target}...`);
+      const uploadedFile = await storageService.uploadFile(file);
+      const permanentUrl = resolveMediaUrl(uploadedFile);
+      if (!permanentUrl) {
+        throw new Error(`Backend returned invalid image response for ${target}. Missing media URL.`);
       }
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          if (target === 'logo') {
-            setLogoUrl(event.target.result as string);
-          } else {
-            setFaviconUrl(event.target.result as string);
-          }
-          showToast(`Uploaded temporary ${target}. Save draft to persist.`);
-        }
-      };
-      reader.readAsDataURL(file);
+      if (target === 'logo') {
+        setLogoUrl(permanentUrl);
+        updateDraft({ logo_url: permanentUrl });
+      } else {
+        setFaviconUrl(permanentUrl);
+        updateDraft({ favicon_url: permanentUrl });
+      }
+      showToast(`Uploaded ${target} successfully! Save draft to persist.`);
+    } catch (err: any) {
+      alert(err?.response?.data?.message || err?.message || `Failed to upload ${target}. Please try again.`);
+    } finally {
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -271,129 +349,44 @@ export const WebsiteBuilderPage: React.FC = () => {
         </div>
       )}
 
-      {/* 1. BUILDER HEADER (COMPACT & RESPONSIVE ON ALL VIEWPORTS) */}
-      <header className="bg-white dark:bg-[#111827] border-b border-[#E2E8F0] dark:border-[#263244] px-3 sm:px-6 py-2.5 shrink-0 text-[#0F172A] dark:text-[#F8FAFC] z-20 sticky top-0 shadow-2xs w-full min-w-0 max-w-full">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-2 min-w-0">
-          {/* LEFT: BACK BUTTON + TITLE */}
-          <div className="flex items-center gap-2.5 min-w-0">
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard')}
-              className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-slate-100 dark:bg-[#172033] hover:bg-slate-200 dark:hover:bg-[#1E293B] border border-[#CBD5E1] dark:border-[#334155] flex items-center justify-center text-[#475569] dark:text-[#CBD5E1] cursor-pointer transition-colors shrink-0"
-              title="Back to Dashboard"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <h1 className="font-semibold text-sm sm:text-base text-[#0F172A] dark:text-[#F8FAFC] block leading-tight truncate">Website Builder</h1>
-                {hasUnpublishedChanges ? (
-                  <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 dark:bg-[rgba(245,158,11,0.12)] text-amber-700 dark:text-[#FBBF24] border border-amber-200 dark:border-[rgba(245,158,11,0.22)] shrink-0">
-                    Unpublished
-                  </span>
-                ) : (
-                  <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-[rgba(16,185,129,0.12)] text-emerald-700 dark:text-[#34D399] border border-emerald-200 dark:border-[rgba(52,211,153,0.22)] shrink-0">
-                    Published
-                  </span>
-                )}
+      {/* 1. BUILDER HEADER (RESPONSIVE REDESIGN DOWN TO 320PX) */}
+      <header className="bg-white dark:bg-[#111827] border-b border-[#E2E8F0] dark:border-[#263244] px-3 sm:px-6 py-3 shrink-0 text-[#0F172A] dark:text-[#F8FAFC] z-20 sticky top-0 shadow-2xs w-full min-w-0 max-w-full">
+        <div className="max-w-[1600px] mx-auto space-y-2 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-3 min-w-0">
+          {/* ROW 1 ON MOBILE: BACK BUTTON + TITLE + STATUS BADGE */}
+          <div className="flex items-center justify-between gap-2.5 min-w-0 w-full sm:w-auto">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard')}
+                className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-slate-100 dark:bg-[#172033] hover:bg-slate-200 dark:hover:bg-[#1E293B] border border-[#CBD5E1] dark:border-[#334155] flex items-center justify-center text-[#475569] dark:text-[#CBD5E1] cursor-pointer transition-colors shrink-0"
+                title="Back to Dashboard"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <h1 className="font-semibold text-sm sm:text-base text-[#0F172A] dark:text-[#F8FAFC] block leading-tight truncate">
+                    Website Builder
+                  </h1>
+                  {hasUnpublishedChanges ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 dark:bg-[rgba(245,158,11,0.12)] text-amber-700 dark:text-[#FBBF24] border border-amber-200 dark:border-[rgba(245,158,11,0.22)] shrink-0">
+                      Unpublished
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-[rgba(16,185,129,0.12)] text-emerald-700 dark:text-[#34D399] border border-emerald-200 dark:border-[rgba(52,211,153,0.22)] shrink-0">
+                      Published
+                    </span>
+                  )}
+                </div>
               </div>
-              <p className="text-[10px] sm:text-xs text-[#64748B] dark:text-[#94A3B8] font-normal truncate block mt-0.5">
-                Single Theme Studio
-              </p>
-            </div>
-          </div>
-
-          {/* MIDDLE: PREVIEW TARGET & DEVICE VIEWPORT CONTROLS (DESKTOP & TABLET) */}
-          <div className="hidden lg:flex items-center gap-2 min-w-0">
-            {/* PREVIEW TARGET SELECTOR */}
-            <div className="flex items-center bg-slate-100 dark:bg-[#172033] p-1 rounded-xl border border-[#CBD5E1] dark:border-[#334155]">
-              <button
-                type="button"
-                onClick={() => setPreviewTarget('public_website')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer min-h-[34px] flex items-center justify-center gap-1.5 ${
-                  previewTarget === 'public_website'
-                    ? 'bg-[#2563EB] text-white shadow-2xs font-semibold'
-                    : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
-                }`}
-              >
-                <Globe className="w-3.5 h-3.5" /> Public Website
-              </button>
-              <button
-                type="button"
-                onClick={() => setPreviewTarget('student_portal')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer min-h-[34px] flex items-center justify-center gap-1.5 ${
-                  previewTarget === 'student_portal'
-                    ? 'bg-[#2563EB] text-white shadow-2xs font-semibold'
-                    : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
-                }`}
-              >
-                <Layers className="w-3.5 h-3.5" /> Student Portal
-              </button>
             </div>
 
-            {/* DEVICE VIEWPORT SELECTOR */}
-            <div className="flex items-center bg-slate-100 dark:bg-[#172033] p-1 rounded-xl border border-[#CBD5E1] dark:border-[#334155]">
-              <button
-                type="button"
-                onClick={() => setViewport('desktop')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[34px] ${
-                  viewport === 'desktop' ? 'bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] shadow-2xs font-semibold' : 'text-[#64748B] dark:text-[#94A3B8]'
-                }`}
-                title="Desktop View (100% Width)"
-              >
-                <Monitor className="w-3.5 h-3.5" /> Desktop
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewport('tablet')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[34px] ${
-                  viewport === 'tablet' ? 'bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] shadow-2xs font-semibold' : 'text-[#64748B] dark:text-[#94A3B8]'
-                }`}
-                title="Tablet View (768px Viewport)"
-              >
-                <Tablet className="w-3.5 h-3.5" /> Tablet
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewport('mobile')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[34px] ${
-                  viewport === 'mobile' ? 'bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] shadow-2xs font-semibold' : 'text-[#64748B] dark:text-[#94A3B8]'
-                }`}
-                title="Mobile View (390px Viewport)"
-              >
-                <Smartphone className="w-3.5 h-3.5" /> Mobile
-              </button>
-            </div>
-          </div>
-
-          {/* RIGHT ACTIONS: SAVE + OVERFLOW MENU */}
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              size="sm"
-              onClick={handleSaveDraft}
-              disabled={isSaving}
-              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium shadow-xs min-h-[38px] px-3 cursor-pointer text-xs"
-              leftIcon={<Save className="w-3.5 h-3.5" />}
-            >
-              {isSaving ? 'Saving...' : 'Save Draft'}
-            </Button>
-
-            <Button
-              size="sm"
-              onClick={handlePublish}
-              disabled={isPublishing}
-              className="hidden sm:inline-flex bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-xs min-h-[38px] px-3 cursor-pointer text-xs"
-              leftIcon={<Globe className="w-3.5 h-3.5" />}
-            >
-              {isPublishing ? 'Publishing...' : 'Publish'}
-            </Button>
-
-            {/* OVERFLOW MENU BUTTON (MOBILE & TABLET) */}
-            <div className="relative">
+            {/* OVERFLOW MENU BUTTON (MOBILE ONLY ROW 1) */}
+            <div className="relative sm:hidden">
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-slate-100 dark:bg-[#172033] hover:bg-slate-200 dark:hover:bg-[#1E293B] border border-[#CBD5E1] dark:border-[#334155] flex items-center justify-center text-[#475569] dark:text-[#CBD5E1] cursor-pointer"
+                className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-slate-100 dark:bg-[#172033] hover:bg-slate-200 dark:hover:bg-[#1E293B] border border-[#CBD5E1] dark:border-[#334155] flex items-center justify-center text-[#475569] dark:text-[#CBD5E1] cursor-pointer"
                 title="More Actions"
               >
                 <MoreVertical className="w-4 h-4" />
@@ -412,9 +405,56 @@ export const WebsiteBuilderPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => { handlePublish(); setMobileMenuOpen(false); }}
-                    className="w-full text-left px-3 py-2 rounded-lg text-emerald-600 dark:text-[#34D399] hover:bg-emerald-50 dark:hover:bg-emerald-950/20 flex items-center gap-2 cursor-pointer min-h-[36px] sm:hidden"
+                    className="w-full text-left px-3 py-2 rounded-lg text-emerald-600 dark:text-[#34D399] hover:bg-emerald-50 dark:hover:bg-emerald-950/20 flex items-center gap-2 cursor-pointer min-h-[36px]"
                   >
                     <Globe className="w-3.5 h-3.5" /> Publish Website
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ROW 2 ON MOBILE / RIGHT ACTIONS ON DESKTOP: FULL-WIDTH SAVE & PUBLISH */}
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 pt-1 sm:pt-0">
+            <Button
+              size="sm"
+              onClick={handleSaveDraft}
+              disabled={isSaving}
+              className="w-full sm:w-auto bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium shadow-xs min-h-[44px] sm:min-h-[38px] px-4 cursor-pointer text-xs justify-center flex-1 sm:flex-none"
+              leftIcon={<Save className="w-4 h-4 sm:w-3.5 sm:h-3.5" />}
+            >
+              {isSaving ? 'Saving Draft...' : 'Save Draft'}
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={handlePublish}
+              disabled={isPublishing}
+              className="hidden sm:inline-flex bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-xs min-h-[38px] px-4 cursor-pointer text-xs justify-center"
+              leftIcon={<Globe className="w-3.5 h-3.5" />}
+            >
+              {isPublishing ? 'Publishing...' : 'Publish Live'}
+            </Button>
+
+            {/* DESKTOP OVERFLOW MENU */}
+            <div className="relative hidden sm:block">
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl bg-slate-100 dark:bg-[#172033] hover:bg-slate-200 dark:hover:bg-[#1E293B] border border-[#CBD5E1] dark:border-[#334155] flex items-center justify-center text-[#475569] dark:text-[#CBD5E1] cursor-pointer"
+                title="More Actions"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+
+              {mobileMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#334155] rounded-xl shadow-xl p-1.5 z-50 text-xs font-medium space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => { setConfirmModalType('reset'); setMobileMenuOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-lg text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-[#1E293B] flex items-center gap-2 cursor-pointer min-h-[36px]"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" /> Reset Changes
                   </button>
                 </div>
               )}
@@ -423,31 +463,31 @@ export const WebsiteBuilderPage: React.FC = () => {
         </div>
       </header>
 
-      {/* REAL PUBLIC WEBSITE URL BANNER */}
+      {/* 2. REAL PUBLIC WEBSITE URL BANNER (STACKS BUTTONS ON MOBILE) */}
       <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-6 pt-3">
-        <div className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl p-3 sm:p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center shrink-0">
+        <div className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl p-3.5 sm:p-4 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs min-w-0">
+          <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-[#2563EB] dark:text-[#60A5FA] flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
               <Globe className="w-4 h-4" />
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-xs text-[#0F172A] dark:text-[#F8FAFC]">Public Website URL</span>
-                <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal hidden md:inline">
-                  (Published Academy Website on port 5174)
+                <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal">
+                  (Academy Live Public URL)
                 </span>
               </div>
               {publicWebsiteUrl ? (
-                <span className="font-mono text-xs text-[#2563EB] dark:text-[#60A5FA] block truncate select-all">
+                <span className="font-mono text-xs text-[#2563EB] dark:text-[#60A5FA] block break-all select-all mt-0.5">
                   {publicWebsiteUrl}
                 </span>
               ) : (
-                <span className="text-[#64748B] text-xs font-normal block">Loading Academy UUID...</span>
+                <span className="text-[#64748B] text-xs font-normal block mt-0.5">Loading Academy URL...</span>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full md:w-auto">
             <Button
               size="sm"
               variant="outline"
@@ -458,7 +498,7 @@ export const WebsiteBuilderPage: React.FC = () => {
                   showToast('Public Website URL copied to clipboard!');
                 }
               }}
-              className="text-xs font-semibold h-9 border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] cursor-pointer"
+              className="text-xs font-semibold h-11 sm:h-9 min-h-[44px] sm:min-h-0 border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] cursor-pointer justify-center"
             >
               Copy URL
             </Button>
@@ -468,13 +508,13 @@ export const WebsiteBuilderPage: React.FC = () => {
                 href={publicWebsiteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-all h-9 shadow-xs cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-all h-11 sm:h-9 min-h-[44px] sm:min-h-0 shadow-xs cursor-pointer"
               >
                 <span>Open Website</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             ) : (
-              <Button size="sm" disabled className="text-xs font-semibold h-9 opacity-50">
+              <Button size="sm" disabled className="text-xs font-semibold h-11 sm:h-9 min-h-[44px] sm:min-h-0 opacity-50 justify-center">
                 Open Website
               </Button>
             )}
@@ -482,10 +522,42 @@ export const WebsiteBuilderPage: React.FC = () => {
         </div>
       </div>
 
+      {/* MOBILE TOP TAB SWITCHER: CUSTOM SETTINGS vs LIVE PREVIEW (< 1024PX) */}
+      <div className="lg:hidden max-w-[1600px] w-full mx-auto px-3 sm:px-6 pt-3">
+        <div className="flex items-center bg-white dark:bg-[#111827] p-1.5 rounded-2xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setMobileMainTab('settings')}
+            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer min-h-[44px] ${
+              mobileMainTab === 'settings'
+                ? 'bg-[#2563EB] text-white shadow-2xs font-semibold'
+                : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
+            }`}
+          >
+            <Sliders className="w-4 h-4 shrink-0" />
+            <span>Custom Settings</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileMainTab('preview')}
+            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer min-h-[44px] ${
+              mobileMainTab === 'preview'
+                ? 'bg-[#2563EB] text-white shadow-2xs font-semibold'
+                : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
+            }`}
+          >
+            <Globe className="w-4 h-4 shrink-0" />
+            <span>Live Preview</span>
+          </button>
+        </div>
+      </div>
+
       {/* 2. MAIN BUILDER BODY (RESPONSIVE GRID) */}
       <div className="flex-1 max-w-[1600px] w-full mx-auto px-2 sm:px-4 md:px-5 lg:px-6 py-3 sm:py-4 grid grid-cols-1 lg:grid-cols-[minmax(340px,400px)_minmax(0,1fr)] gap-4 items-start min-w-0 max-w-full">
-        {/* DESKTOP LEFT DESIGN & CONTENT SETTINGS PANEL (VISIBLE ON LG ≥ 1024PX) */}
-        <div className="hidden lg:flex bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] shadow-2xs rounded-2xl flex-col shrink-0 text-[#0F172A] dark:text-[#F8FAFC] overflow-hidden w-full min-w-0">
+        {/* DESIGN & CONTENT SETTINGS PANEL (VISIBLE ON MOBILE WHEN SETTINGS TAB IS ACTIVE OR ALWAYS ON LG ≥ 1024PX) */}
+        <div className={`bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] shadow-2xs rounded-2xl flex-col shrink-0 text-[#0F172A] dark:text-[#F8FAFC] overflow-hidden w-full min-w-0 ${
+          mobileMainTab === 'settings' ? 'flex' : 'hidden lg:flex'
+        }`}>
           {/* LOCKED LAYOUT BANNER */}
           <div className="p-3 sm:p-4 bg-[#FFFBEB] dark:bg-[rgba(245,158,11,0.12)] border-b border-[#FDE68A] dark:border-[rgba(245,158,11,0.22)] flex items-center justify-between text-xs font-medium text-[#92400E] dark:text-[#FBBF24]">
             <span className="flex items-center gap-1.5 font-medium">
@@ -495,7 +567,7 @@ export const WebsiteBuilderPage: React.FC = () => {
           </div>
 
           {/* STUDIO NAVIGATION TABS */}
-          <div className="grid grid-cols-6 border-b border-[#E2E8F0] dark:border-[#263244] p-1.5 bg-slate-100/80 dark:bg-[#172033] gap-1 text-[11px] font-medium min-w-0 w-full">
+          <div className="grid grid-cols-3 min-[420px]:grid-cols-6 border-b border-[#E2E8F0] dark:border-[#263244] p-1.5 bg-slate-100/80 dark:bg-[#172033] gap-1 text-xs sm:text-[11px] font-medium min-w-0 w-full">
             {(
               [
                 { id: 'branding', label: 'Branding' },
@@ -510,7 +582,7 @@ export const WebsiteBuilderPage: React.FC = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-2 rounded-xl transition-all cursor-pointer text-center truncate min-h-[36px] flex flex-col items-center justify-center gap-0.5 ${
+                className={`py-2 px-1 rounded-xl transition-all cursor-pointer text-center truncate min-h-[44px] sm:min-h-[36px] flex flex-col items-center justify-center gap-0.5 ${
                   activeTab === tab.id
                     ? 'bg-[#2563EB] text-white shadow-2xs font-semibold'
                     : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-white/60 dark:hover:bg-[#1E293B]'
@@ -523,74 +595,121 @@ export const WebsiteBuilderPage: React.FC = () => {
 
           {/* STUDIO TAB FORM CONTROLS */}
           <div className="p-4 sm:p-6 space-y-4 overflow-y-auto max-h-[700px] hide-scrollbar font-normal">
-            {renderTabContent(activeTab, draftTheme, updateDraft, logoUrl, setLogoUrl, faviconUrl, setFaviconUrl, setConfirmModalType, handleFileUpload)}
+            {renderTabContent(activeTab, draftTheme, updateDraft, logoUrl, setLogoUrl, faviconUrl, setFaviconUrl, setConfirmModalType, handleFileUpload, handleHeroImageUpload, isUploadingHero, heroUploadProgress, heroUploadError)}
           </div>
         </div>
 
-        {/* RIGHT LIVE PREVIEW CANVAS (PERMANENTLY RENDERED ON ALL VIEWPORTS) */}
-        <div className="flex-1 bg-slate-100/70 dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#263244] shadow-2xs flex flex-col items-center p-2 sm:p-4 md:p-6 overflow-y-auto hide-scrollbar rounded-2xl min-w-0 max-w-full w-full">
-          {/* MOBILE TOOLBAR VIEWPORT SWITCHER (< 1024PX) */}
-          <div className="flex lg:hidden items-center justify-between gap-2 w-full mb-3 pb-2 border-b border-[#CBD5E1] dark:border-[#263244] min-w-0">
-            {/* PREVIEW TARGET TOGGLE */}
-            <div className="flex items-center bg-slate-200 dark:bg-[#172033] p-0.5 rounded-xl border border-[#CBD5E1] dark:border-[#334155] flex-1 min-w-0">
+        {/* RIGHT LIVE PREVIEW CANVAS (VISIBLE ON MOBILE WHEN PREVIEW TAB IS ACTIVE OR ALWAYS ON LG ≥ 1024PX) */}
+        <div className={`bg-slate-100/70 dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#263244] shadow-2xs flex-col items-center p-2 sm:p-4 md:p-6 overflow-y-auto hide-scrollbar rounded-2xl min-w-0 max-w-full w-full ${
+          mobileMainTab === 'preview' ? 'flex' : 'hidden lg:flex'
+        }`}>
+          {/* PREVIEW TOOLBAR CONTROLS */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 w-full mb-3 pb-3 border-b border-[#CBD5E1] dark:border-[#263244] min-w-0">
+            {/* PREVIEW TARGET TOGGLE (FULL LABELS: Public Website & Student Portal) */}
+            <div className="flex items-center bg-slate-200 dark:bg-[#172033] p-1 rounded-xl border border-[#CBD5E1] dark:border-[#334155] min-w-0">
               <button
                 type="button"
                 onClick={() => setPreviewTarget('public_website')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-medium transition-all cursor-pointer min-h-[32px] truncate ${
-                  previewTarget === 'public_website' ? 'bg-[#2563EB] text-white font-semibold' : 'text-[#64748B] dark:text-[#94A3B8]'
+                className={`flex-1 sm:flex-none px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer min-h-[38px] flex items-center justify-center gap-1.5 truncate ${
+                  previewTarget === 'public_website'
+                    ? 'bg-[#2563EB] text-white shadow-2xs font-semibold'
+                    : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
                 }`}
               >
-                Public Website
+                <Globe className="w-4 h-4 shrink-0" />
+                <span>Public Website</span>
               </button>
               <button
                 type="button"
                 onClick={() => setPreviewTarget('student_portal')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-medium transition-all cursor-pointer min-h-[32px] truncate ${
-                  previewTarget === 'student_portal' ? 'bg-[#2563EB] text-white font-semibold' : 'text-[#64748B] dark:text-[#94A3B8]'
+                className={`flex-1 sm:flex-none px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer min-h-[38px] flex items-center justify-center gap-1.5 truncate ${
+                  previewTarget === 'student_portal'
+                    ? 'bg-[#2563EB] text-white shadow-2xs font-semibold'
+                    : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
                 }`}
               >
-                Student Portal
+                <Layers className="w-4 h-4 shrink-0" />
+                <span>Student Portal</span>
               </button>
             </div>
 
-            {/* VIEWPORT DEVICE TOGGLE */}
-            <div className="flex items-center bg-slate-200 dark:bg-[#172033] p-0.5 rounded-xl border border-[#CBD5E1] dark:border-[#334155] shrink-0">
-              <button
-                type="button"
-                onClick={() => setViewport('desktop')}
-                className={`p-1.5 rounded-lg transition-all cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center ${
-                  viewport === 'desktop' ? 'bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC]' : 'text-[#64748B] dark:text-[#94A3B8]'
-                }`}
-                title="Desktop View"
-              >
-                <Monitor className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewport('tablet')}
-                className={`p-1.5 rounded-lg transition-all cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center ${
-                  viewport === 'tablet' ? 'bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC]' : 'text-[#64748B] dark:text-[#94A3B8]'
-                }`}
-                title="Tablet View"
-              >
-                <Tablet className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewport('mobile')}
-                className={`p-1.5 rounded-lg transition-all cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center ${
-                  viewport === 'mobile' ? 'bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC]' : 'text-[#64748B] dark:text-[#94A3B8]'
-                }`}
-                title="Mobile View"
-              >
-                <Smartphone className="w-3.5 h-3.5" />
-              </button>
+            <div className="flex items-center gap-2 shrink-0 justify-between sm:justify-end">
+              {/* PREVIEW LIGHT/DARK THEME TOGGLE (INDEPENDENT OF ADMIN EDITOR THEME) */}
+              <div className="flex items-center bg-slate-200 dark:bg-[#172033] p-1 rounded-xl border border-[#CBD5E1] dark:border-[#334155]">
+                <button
+                  type="button"
+                  onClick={() => setPreviewThemeMode('light')}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer min-h-[32px] ${
+                    previewThemeMode === 'light'
+                      ? 'bg-white text-[#0F172A] shadow-2xs font-semibold'
+                      : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
+                  }`}
+                  title="Preview Light Mode"
+                >
+                  <Sun className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <span>Light</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewThemeMode('dark')}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer min-h-[32px] ${
+                    previewThemeMode === 'dark'
+                      ? 'bg-[#0F172A] text-white shadow-2xs font-semibold'
+                      : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
+                  }`}
+                  title="Preview Dark Mode"
+                >
+                  <Moon className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  <span>Dark</span>
+                </button>
+              </div>
+
+              {/* DEVICE VIEWPORT SELECTOR (HIDDEN BELOW 640PX / SM:FLEX ON TABLET & DESKTOP) */}
+              <div className="hidden sm:flex items-center bg-slate-200 dark:bg-[#172033] p-1 rounded-xl border border-[#CBD5E1] dark:border-[#334155] shrink-0 justify-center">
+                <button
+                  type="button"
+                  onClick={() => setViewport('desktop')}
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[38px] ${
+                    viewport === 'desktop' ? 'bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] shadow-2xs font-semibold' : 'text-[#64748B] dark:text-[#94A3B8]'
+                  }`}
+                  title="Desktop View (Full Width)"
+                >
+                  <Monitor className="w-4 h-4 shrink-0" />
+                  <span className="hidden min-[400px]:inline">Desktop</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewport('tablet')}
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[38px] ${
+                    viewport === 'tablet' ? 'bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] shadow-2xs font-semibold' : 'text-[#64748B] dark:text-[#94A3B8]'
+                  }`}
+                  title="Tablet View (768px Viewport)"
+                >
+                  <Tablet className="w-4 h-4 shrink-0" />
+                  <span className="hidden min-[400px]:inline">Tablet</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewport('mobile')}
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[38px] ${
+                    viewport === 'mobile' ? 'bg-white dark:bg-[#0F172A] text-[#0F172A] dark:text-[#F8FAFC] shadow-2xs font-semibold' : 'text-[#64748B] dark:text-[#94A3B8]'
+                  }`}
+                  title="Mobile View (390px Viewport)"
+                >
+                  <Smartphone className="w-4 h-4 shrink-0" />
+                  <span className="hidden min-[400px]:inline">Mobile</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* PREVIEW CONTAINER RESPONSIVE FRAME (RESPONDS TO VIEWPORT STATE) */}
+          {/* PREVIEW CONTAINER RESPONSIVE FRAME (RESPONDS TO VIEWPORT STATE & PREVIEW THEME MODE) */}
           <div
-            className={`bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden transition-all duration-300 flex flex-col text-slate-900 font-sans text-xs min-w-0 ${
+            className={`rounded-2xl border shadow-xl overflow-hidden transition-all duration-300 flex flex-col font-sans text-xs min-w-0 ${
+              previewThemeMode === 'dark'
+                ? 'bg-[#0B1120] text-slate-100 border-[#1E293B]'
+                : 'bg-white text-slate-900 border-slate-200'
+            } ${
               viewport === 'mobile'
                 ? 'w-full max-w-[390px] min-h-[600px]'
                 : viewport === 'tablet'
@@ -605,41 +724,69 @@ export const WebsiteBuilderPage: React.FC = () => {
           >
             {/* RENDER TARGET 1: PUBLIC WEBSITE */}
             {previewTarget === 'public_website' && (
-              <div className="flex-1 flex flex-col bg-[#F8FAFC] min-w-0 font-normal">
-                {/* PUBLIC HEADER */}
+              <div className={`flex-1 flex flex-col min-w-0 font-normal relative ${
+                previewThemeMode === 'dark' ? 'bg-[#0B1120] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'
+              }`}>
+                {/* PUBLIC HEADER (GENUINE LAYOUT VARIANTS - BASE ON PREVIEW CONTAINER VIEWPORT) */}
                 <header
-                  className={`h-16 px-4 sm:px-6 bg-white border-b border-slate-200 flex items-center shrink-0 shadow-2xs ${
-                    draftTheme.header_variant === 'centered'
-                      ? 'justify-center flex-col sm:flex-row'
-                      : 'justify-between'
+                  className={`border-b shrink-0 shadow-2xs gap-3 min-w-0 transition-all ${
+                    previewThemeMode === 'dark' ? 'bg-[#111827] border-[#1E293B] text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                  } ${
+                    viewport === 'mobile'
+                      ? 'h-16 px-3 flex items-center justify-between'
+                      : draftTheme.header_variant === 'centered'
+                      ? 'py-3 px-4 flex flex-col items-center justify-center text-center'
+                      : draftTheme.header_variant === 'compact'
+                      ? 'h-14 px-3 sm:px-4 flex items-center justify-between'
+                      : 'h-16 px-4 sm:px-6 flex items-center justify-between'
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  {/* BRANDING SECTION */}
+                  <div className={`flex items-center gap-2.5 min-w-0 flex-1 ${
+                    viewport !== 'mobile' && draftTheme.header_variant === 'centered' ? 'justify-center flex-col sm:flex-row' : ''
+                  }`}>
                     {logoUrl ? (
-                      <img src={logoUrl} alt="Logo" className="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0" />
+                      <img
+                        src={logoUrl}
+                        alt="Logo"
+                        className={`rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0 bg-white ${
+                          draftTheme.header_variant === 'compact' && viewport !== 'mobile' ? 'w-8 h-8 min-w-[32px] min-h-[32px]' : 'w-9 h-9 min-w-[36px] min-h-[36px]'
+                        }`}
+                      />
                     ) : (
                       <div
-                        className="w-9 h-9 rounded-xl text-white font-semibold flex items-center justify-center text-sm shadow-2xs shrink-0"
+                        className={`text-white font-semibold flex items-center justify-center shadow-2xs shrink-0 ${
+                          draftTheme.header_variant === 'compact' && viewport !== 'mobile' ? 'w-8 h-8 text-xs' : 'w-9 h-9 text-sm'
+                        }`}
                         style={{ backgroundColor: draftTheme.primary_color, borderRadius: draftTheme.button_radius }}
                       >
                         {(draftTheme.academy_name || 'C').substring(0, 1)}
                       </div>
                     )}
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs sm:text-sm text-slate-900 tracking-tight block leading-tight truncate">
+                    <div className={`min-w-0 flex-1 ${viewport !== 'mobile' && draftTheme.header_variant === 'centered' ? 'text-center' : 'text-left'}`}>
+                      <span className={`font-semibold tracking-tight block leading-tight break-words overflow-wrap-anywhere ${
+                        draftTheme.header_variant === 'compact' && viewport !== 'mobile' ? 'text-xs' : 'text-xs sm:text-sm'
+                      } ${previewThemeMode === 'dark' ? 'text-white' : 'text-slate-900'}`}>
                         {draftTheme.academy_name || 'CodeVerse Software Academy'}
                       </span>
-                      <span className="text-[10px] text-slate-500 font-normal truncate block mt-0.5">
-                        {draftTheme.academy_tagline || 'Software Engineering Academy'}
-                      </span>
+                      {(viewport === 'mobile' || draftTheme.header_variant !== 'compact') && (
+                        <span className={`text-[10px] font-normal block truncate mt-0.5 ${
+                          previewThemeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'
+                        }`}>
+                          {draftTheme.academy_tagline || 'Software Engineering Academy'}
+                        </span>
+                      )}
                     </div>
                   </div>
 
+                  {/* NAVIGATION & ACTION SECTION */}
                   {viewport !== 'mobile' ? (
-                    <div className="flex items-center gap-6 font-medium text-xs text-slate-600">
+                    <div className={`flex items-center gap-4 sm:gap-6 font-medium text-xs ${
+                      previewThemeMode === 'dark' ? 'text-slate-300' : 'text-slate-600'
+                    }`}>
                       <span className="font-semibold" style={{ color: draftTheme.primary_color }}>Home</span>
-                      <span className="hover:text-slate-900 cursor-pointer">Courses</span>
-                      <span className="hover:text-slate-900 cursor-pointer">Contact</span>
+                      <span className="hover:text-slate-900 dark:hover:text-white cursor-pointer">Courses</span>
+                      <span className="hover:text-slate-900 dark:hover:text-white cursor-pointer">Contact</span>
                       <button
                         type="button"
                         className="px-4 py-2 text-white font-medium shadow-2xs text-xs cursor-pointer"
@@ -655,7 +802,10 @@ export const WebsiteBuilderPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setPreviewMobileMenuOpen(true)}
-                      className="p-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer ml-auto"
+                      className={`p-2 rounded-xl border min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer shrink-0 ml-auto ${
+                        previewThemeMode === 'dark' ? 'border-slate-700 text-slate-200 hover:bg-slate-800' : 'border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                      title="Open Mobile Navigation Menu"
                     >
                       <Menu className="w-5 h-5" />
                     </button>
@@ -663,15 +813,17 @@ export const WebsiteBuilderPage: React.FC = () => {
                 </header>
 
                 {/* PUBLIC HERO SECTION */}
-                <div className="p-4 sm:p-8 space-y-6 flex-1 overflow-y-auto font-normal">
+                <div className="p-3 sm:p-8 space-y-5 sm:space-y-6 flex-1 overflow-y-auto font-normal min-w-0">
                   <div
-                    className="p-6 sm:p-8 border border-slate-200/80 bg-white shadow-2xs space-y-6"
+                    className={`p-4 sm:p-8 border shadow-2xs space-y-5 sm:space-y-6 min-w-0 ${
+                      previewThemeMode === 'dark' ? 'bg-[#111827] border-[#1E293B]' : 'bg-white border-slate-200/80'
+                    }`}
                     style={{ borderRadius: draftTheme.card_radius }}
                   >
-                    <div className={`grid gap-6 items-center ${viewport === 'mobile' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
-                      <div className="space-y-4 text-left">
+                    <div className={`grid gap-5 items-center min-w-0 ${viewport === 'mobile' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+                      <div className="space-y-3.5 text-left min-w-0">
                         <span
-                          className="px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider inline-block"
+                          className="px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider inline-block max-w-full truncate"
                           style={{
                             backgroundColor: `${draftTheme.primary_color}15`,
                             color: draftTheme.primary_color,
@@ -681,20 +833,24 @@ export const WebsiteBuilderPage: React.FC = () => {
                         </span>
 
                         <h2
-                          className="text-lg sm:text-2xl font-semibold text-slate-900 tracking-tight leading-tight"
+                          className={`text-base sm:text-2xl font-semibold tracking-tight leading-tight break-words overflow-wrap-anywhere ${
+                            previewThemeMode === 'dark' ? 'text-white' : 'text-slate-900'
+                          }`}
                           style={{ fontFamily: draftTheme.heading_font || 'Inter' }}
                         >
                           {draftTheme.home_hero_title}
                         </h2>
 
-                        <p className="text-xs text-slate-600 font-normal leading-relaxed">
+                        <p className={`text-xs font-normal leading-relaxed break-words overflow-wrap-anywhere ${
+                          previewThemeMode === 'dark' ? 'text-slate-300' : 'text-slate-600'
+                        }`}>
                           {draftTheme.home_hero_subtitle}
                         </p>
 
-                        <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                           <button
                             type="button"
-                            className="px-5 py-2.5 text-white font-medium text-xs shadow-2xs min-h-[42px] cursor-pointer"
+                            className="w-full sm:w-auto px-5 py-3 text-white font-medium text-xs shadow-2xs min-h-[44px] cursor-pointer justify-center flex items-center"
                             style={{
                               backgroundColor: draftTheme.primary_color,
                               borderRadius: draftTheme.button_radius,
@@ -704,7 +860,9 @@ export const WebsiteBuilderPage: React.FC = () => {
                           </button>
                           <button
                             type="button"
-                            className="px-4 py-2.5 border border-slate-200 text-slate-700 font-medium text-xs hover:bg-slate-50 min-h-[42px] cursor-pointer"
+                            className={`w-full sm:w-auto px-4 py-3 border font-medium text-xs min-h-[44px] cursor-pointer justify-center flex items-center ${
+                              previewThemeMode === 'dark' ? 'border-slate-700 text-slate-200 hover:bg-slate-800' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                            }`}
                             style={{ borderRadius: draftTheme.button_radius }}
                           >
                             {draftTheme.hero_secondary_cta_label}
@@ -712,36 +870,38 @@ export const WebsiteBuilderPage: React.FC = () => {
                         </div>
                       </div>
 
-                      <div>
+                      <div className="min-w-0">
                         <img
                           src={draftTheme.hero_image_url}
                           alt="Hero"
-                          className="w-full aspect-16/10 rounded-2xl object-cover border border-slate-200 shadow-xs"
+                          className="w-full aspect-16/10 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* FEATURED COURSES GRID */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                      <h3 className="text-base font-semibold text-slate-900" style={{ fontFamily: draftTheme.heading_font }}>
+                  <div className="space-y-3.5 min-w-0">
+                    <div className={`flex items-center justify-between border-b pb-2 ${previewThemeMode === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
+                      <h3 className={`text-sm sm:text-base font-semibold ${previewThemeMode === 'dark' ? 'text-white' : 'text-slate-900'}`} style={{ fontFamily: draftTheme.heading_font }}>
                         {draftTheme.courses_title}
                       </h3>
-                      <span className="text-xs font-semibold" style={{ color: draftTheme.primary_color }}>View All</span>
+                      <span className="text-xs font-semibold cursor-pointer" style={{ color: draftTheme.primary_color }}>View All</span>
                     </div>
 
-                    <div className={`grid gap-4 ${viewport === 'mobile' ? 'grid-cols-1' : viewport === 'tablet' ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                    <div className={`grid gap-3.5 ${viewport === 'mobile' ? 'grid-cols-1' : viewport === 'tablet' ? 'grid-cols-2' : 'grid-cols-3'}`}>
                       {courses.map((c) => (
                         <div
                           key={c.uuid}
-                          className="bg-white p-4 border border-slate-200 shadow-2xs space-y-3"
+                          className={`p-3.5 border shadow-2xs space-y-2.5 ${
+                            previewThemeMode === 'dark' ? 'bg-[#111827] border-[#1E293B]' : 'bg-white border-slate-200'
+                          }`}
                           style={{ borderRadius: draftTheme.card_radius }}
                         >
-                          <img src={c.thumbnail} alt={c.title} className="w-full aspect-16/10 rounded-xl object-cover border border-slate-100" />
+                          <img src={c.thumbnail} alt={c.title} className="w-full aspect-16/10 rounded-xl object-cover border border-slate-100 dark:border-slate-800" />
                           <div className="space-y-1">
                             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{c.level} • {c.duration}</span>
-                            <h4 className="font-semibold text-sm text-slate-900 leading-snug">{c.title}</h4>
+                            <h4 className={`font-semibold text-xs sm:text-sm leading-snug break-words overflow-wrap-anywhere ${previewThemeMode === 'dark' ? 'text-white' : 'text-slate-900'}`}>{c.title}</h4>
                             <p className="text-xs font-semibold" style={{ color: draftTheme.primary_color }}>{c.priceDisplay}</p>
                           </div>
                         </div>
@@ -750,38 +910,111 @@ export const WebsiteBuilderPage: React.FC = () => {
                   </div>
 
                   {/* PUBLIC CONTACT INFORMATION CARD */}
-                  <div
-                    className="p-5 sm:p-6 bg-white border border-slate-200 shadow-2xs space-y-4"
-                    style={{ borderRadius: draftTheme.card_radius }}
-                  >
-                    <h3 className="text-base font-semibold text-slate-900" style={{ fontFamily: draftTheme.heading_font }}>
-                      {draftTheme.contact_title}
-                    </h3>
-                    <p className="text-xs text-slate-600 font-normal">{draftTheme.contact_description}</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-normal text-slate-700 pt-1 border-t border-slate-100">
-                      <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-emerald-500 shrink-0" /> WhatsApp: <strong className="font-semibold text-slate-900">{draftTheme.whatsapp_number}</strong></p>
-                      <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-slate-400 shrink-0" /> Campus: <strong className="font-semibold text-slate-900">{draftTheme.address}</strong></p>
+                  {(draftTheme.whatsapp_number || draftTheme.address || draftTheme.contact_title || draftTheme.contact_description) && (
+                    <div
+                      className={`p-4 sm:p-6 border shadow-2xs space-y-4 ${
+                        previewThemeMode === 'dark' ? 'bg-[#111827] border-[#1E293B]' : 'bg-white border-slate-200'
+                      }`}
+                      style={{ borderRadius: draftTheme.card_radius }}
+                    >
+                      {(draftTheme.contact_title || draftTheme.contact_description) && (
+                        <div className="space-y-1">
+                          {draftTheme.contact_title && (
+                            <h3 className={`text-sm sm:text-base font-semibold ${previewThemeMode === 'dark' ? 'text-white' : 'text-slate-900'}`} style={{ fontFamily: draftTheme.heading_font }}>
+                              {draftTheme.contact_title}
+                            </h3>
+                          )}
+                          {draftTheme.contact_description && (
+                            <p className={`text-xs font-normal ${previewThemeMode === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>{draftTheme.contact_description}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {(draftTheme.whatsapp_number || draftTheme.address) && (
+                        <div className={`grid grid-cols-1 gap-3.5 text-xs font-normal pt-3 border-t ${
+                          previewThemeMode === 'dark' ? 'border-slate-800' : 'border-slate-100'
+                        }`}>
+                          {draftTheme.whatsapp_number && (
+                            <div className="flex items-start gap-3 min-w-0">
+                              <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 flex items-center justify-center shrink-0 mt-0.5">
+                                <Phone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className={`text-[11px] font-semibold uppercase tracking-wider block ${
+                                  previewThemeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'
+                                }`}>
+                                  WhatsApp
+                                </span>
+                                <a
+                                  href={`https://wa.me/${draftTheme.whatsapp_number.replace(/[^0-9]/g, '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-semibold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 hover:underline block leading-snug break-words overflow-wrap-anywhere mt-0.5"
+                                >
+                                  {draftTheme.whatsapp_number}
+                                </a>
+                              </div>
+                            </div>
+                          )}
+
+                          {draftTheme.address && (
+                            <div className="flex items-start gap-3 min-w-0">
+                              <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 mt-0.5 ${
+                                previewThemeMode === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'
+                              }`}>
+                                <MapPin className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className={`text-[11px] font-semibold uppercase tracking-wider block ${
+                                  previewThemeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'
+                                }`}>
+                                  Campus
+                                </span>
+                                <a
+                                  href={`https://maps.google.com/?q=${encodeURIComponent(draftTheme.address)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`font-medium text-xs leading-relaxed hover:underline block break-words overflow-wrap-anywhere mt-0.5 ${
+                                    previewThemeMode === 'dark' ? 'text-white' : 'text-slate-900'
+                                  }`}
+                                >
+                                  {draftTheme.address}
+                                </a>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* PUBLIC FOOTER */}
-                <footer className="bg-slate-950 text-slate-400 p-6 border-t border-slate-900 space-y-4">
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-800 pb-4 text-center sm:text-left">
-                    <div>
-                      <span className="font-semibold text-white text-sm block">{draftTheme.academy_name}</span>
-                      <span className="text-xs text-slate-500 font-normal block mt-0.5">{draftTheme.academy_tagline}</span>
+                {/* PUBLIC FOOTER (GENUINE FOOTER VARIANTS) */}
+                <footer className="bg-slate-950 text-slate-400 p-5 sm:p-6 border-t border-slate-900 space-y-4">
+                  {draftTheme.footer_variant === 'minimal' ? (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left text-xs font-normal">
+                      <span className="font-semibold text-white">{draftTheme.academy_name}</span>
+                      <span className="text-[11px] text-slate-500">&copy; {new Date().getFullYear()} {draftTheme.academy_name}. All rights reserved.</span>
                     </div>
-                    <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium">
-                      <span>Home</span>
-                      <span>Courses</span>
-                      <span>Contact</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-500 text-center font-normal">
-                    <span>&copy; {new Date().getFullYear()} {draftTheme.academy_name}. All rights reserved.</span>
-                    <span>Powered by CubixSkill Platform</span>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-800 pb-4 text-center sm:text-left">
+                        <div>
+                          <span className="font-semibold text-white text-sm block">{draftTheme.academy_name}</span>
+                          <span className="text-xs text-slate-500 font-normal block mt-0.5">{draftTheme.academy_tagline}</span>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium">
+                          <span>Home</span>
+                          <span>Courses</span>
+                          <span>Contact</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-500 text-center font-normal">
+                        <span>&copy; {new Date().getFullYear()} {draftTheme.academy_name}. All rights reserved.</span>
+                        <span>Powered by CubixSkill Platform</span>
+                      </div>
+                    </>
+                  )}
                 </footer>
               </div>
             )}
@@ -1012,7 +1245,7 @@ export const WebsiteBuilderPage: React.FC = () => {
 
             {/* DRAWER BODY CONTROLS */}
             <div className="p-4 space-y-4 overflow-y-auto flex-1 font-normal pb-[calc(16px+env(safe-area-inset-bottom))]">
-              {renderTabContent(activeTab, draftTheme, updateDraft, logoUrl, setLogoUrl, faviconUrl, setFaviconUrl, setConfirmModalType, handleFileUpload)}
+              {renderTabContent(activeTab, draftTheme, updateDraft, logoUrl, setLogoUrl, faviconUrl, setFaviconUrl, setConfirmModalType, handleFileUpload, handleHeroImageUpload, isUploadingHero, heroUploadProgress, heroUploadError)}
 
               <div className="pt-3 border-t border-[#E2E8F0] dark:border-[#263244] flex items-center justify-end">
                 <Button
@@ -1056,9 +1289,15 @@ export const WebsiteBuilderPage: React.FC = () => {
               <Button
                 size="sm"
                 onClick={() => {
-                  if (confirmModalType === 'logo') setLogoUrl('');
-                  else if (confirmModalType === 'favicon') setFaviconUrl('');
-                  else handleResetToSaved();
+                  if (confirmModalType === 'logo') {
+                    setLogoUrl('');
+                    updateDraft({ logo_url: '' });
+                  } else if (confirmModalType === 'favicon') {
+                    setFaviconUrl('');
+                    updateDraft({ favicon_url: '' });
+                  } else {
+                    handleResetToSaved();
+                  }
                   setConfirmModalType(null);
                 }}
                 className="w-full sm:w-auto bg-rose-600 text-white font-medium min-h-[42px] rounded-xl cursor-pointer"
@@ -1111,27 +1350,31 @@ function renderTabContent(
   faviconUrl: string,
   setFaviconUrl: (url: string) => void,
   setConfirmModalType: (type: 'logo' | 'favicon' | 'reset' | null) => void,
-  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>, target: 'logo' | 'favicon') => void
+  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>, target: 'logo' | 'favicon') => void,
+  handleHeroImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void,
+  isUploadingHero: boolean,
+  heroUploadProgress: number,
+  heroUploadError: string | null
 ) {
   if (tab === 'branding') {
     return (
       <div className="space-y-4 font-normal">
-        <div className="space-y-1">
-          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block">Academy Name</label>
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block font-semibold">Academy Name</label>
           <Input
             value={draftTheme.academy_name}
             onChange={(e) => updateDraft({ academy_name: e.target.value })}
-            className="w-full max-w-full min-w-0 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-xs font-medium h-11 focus:border-blue-600"
+            className="w-full max-w-full min-w-0 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-base sm:text-xs font-medium h-11 min-h-[44px] sm:min-h-0 focus:border-[#2563EB]"
             placeholder="e.g. CodeVerse Software Academy"
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block">Academy Tagline</label>
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block font-semibold">Academy Tagline</label>
           <Input
             value={draftTheme.academy_tagline}
             onChange={(e) => updateDraft({ academy_tagline: e.target.value })}
-            className="w-full max-w-full min-w-0 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-xs font-normal h-11 focus:border-blue-600"
+            className="w-full max-w-full min-w-0 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-base sm:text-xs font-normal h-11 min-h-[44px] sm:min-h-0 focus:border-[#2563EB]"
             placeholder="e.g. Software Engineering Academy"
           />
         </div>
@@ -1142,7 +1385,7 @@ function renderTabContent(
           {logoUrl ? (
             <div className="p-3 bg-slate-50 dark:bg-[#0F172A] rounded-xl border border-[#CBD5E1] dark:border-[#334155] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <img src={logoUrl} alt="Logo" className="w-10 h-10 rounded-xl object-cover border border-[#CBD5E1] dark:border-[#334155] shrink-0 bg-white" />
+                <img src={logoUrl} alt="Logo" className="w-10 h-10 rounded-xl object-contain border border-[#CBD5E1] dark:border-[#334155] shrink-0 bg-white" />
                 <span className="text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] truncate">Active Logo</span>
               </div>
               <Button size="sm" variant="outline" onClick={() => setConfirmModalType('logo')} className="text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/40 hover:bg-rose-50 dark:hover:bg-rose-950/20 font-medium min-h-[38px] w-full sm:w-auto" leftIcon={<Trash2 className="w-4 h-4" />}>
@@ -1432,70 +1675,161 @@ function renderTabContent(
   if (tab === 'content') {
     return (
       <div className="space-y-4 font-normal">
-        <div className="space-y-1">
-          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block">Hero Badge Text</label>
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block font-semibold">Hero Badge Text</label>
           <Input
             value={draftTheme.hero_badge}
             onChange={(e) => updateDraft({ hero_badge: e.target.value })}
-            className="w-full max-w-full min-w-0 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-xs h-11 font-medium focus:border-blue-600"
+            className="w-full max-w-full min-w-0 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-base sm:text-xs h-11 min-h-[44px] sm:min-h-0 font-medium focus:border-[#2563EB]"
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block">Hero Title</label>
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block font-semibold">Hero Title</label>
           <textarea
             rows={3}
             value={draftTheme.home_hero_title}
             onChange={(e) => updateDraft({ home_hero_title: e.target.value })}
-            className="w-full max-w-full min-w-0 p-3 rounded-xl bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-xs font-medium focus:border-blue-600 focus:outline-hidden min-h-[90px] resize-y"
+            className="w-full max-w-full min-w-0 p-3 rounded-xl bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-base sm:text-xs font-medium focus:border-[#2563EB] focus:outline-hidden min-h-[90px] resize-y"
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block">Hero Subtitle</label>
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block font-semibold">Hero Subtitle</label>
           <textarea
             rows={4}
             value={draftTheme.home_hero_subtitle}
             onChange={(e) => updateDraft({ home_hero_subtitle: e.target.value })}
-            className="w-full max-w-full min-w-0 p-3 rounded-xl bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-xs font-normal focus:border-blue-600 focus:outline-hidden min-h-[110px] resize-y"
+            className="w-full max-w-full min-w-0 p-3 rounded-xl bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-base sm:text-xs font-normal focus:border-[#2563EB] focus:outline-hidden min-h-[110px] resize-y"
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block">Hero Image URL</label>
+        <div className="space-y-2">
+          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block font-semibold">Hero Image</label>
+          {draftTheme.hero_image_url ? (
+            <div className="p-3 bg-slate-50 dark:bg-[#0F172A] rounded-xl border border-[#CBD5E1] dark:border-[#334155] space-y-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <img
+                  src={draftTheme.hero_image_url}
+                  alt="Hero Preview"
+                  className="w-16 h-12 rounded-lg object-cover border border-[#CBD5E1] dark:border-[#334155] shrink-0 bg-white"
+                />
+                <div className="min-w-0 flex-1">
+                  <span className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] block truncate">Active Hero Image</span>
+                  <span className="text-[10px] text-[#64748B] font-mono block truncate mt-0.5">{draftTheme.hero_image_url}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <label className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#CBD5E1] font-medium text-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-[#1E293B] min-h-[40px]">
+                  <Upload className="w-3.5 h-3.5 text-[#2563EB]" />
+                  <span>{isUploadingHero ? 'Uploading...' : 'Replace Image'}</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    onChange={handleHeroImageUpload}
+                    disabled={isUploadingHero}
+                    className="hidden"
+                  />
+                </label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => updateDraft({ hero_image_url: '' })}
+                  className="text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/40 hover:bg-rose-50 dark:hover:bg-rose-950/20 font-medium min-h-[40px] w-full sm:w-auto"
+                  leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                >
+                  Remove
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <label className="flex items-center justify-between p-4 rounded-xl border border-dashed border-[#CBD5E1] dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] cursor-pointer text-[#0F172A] dark:text-[#CBD5E1] hover:border-blue-500 min-h-[56px] transition-colors">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Upload className="w-5 h-5 text-[#2563EB] shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-xs font-semibold block truncate">Upload Hero Image</span>
+                  <span className="text-[10px] text-[#64748B] block truncate">JPG, JPEG, PNG, or WEBP (Max 10MB)</span>
+                </div>
+              </div>
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={handleHeroImageUpload}
+                disabled={isUploadingHero}
+                className="hidden"
+              />
+            </label>
+          )}
+
+          {isUploadingHero && (
+            <div className="space-y-1.5 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50">
+              <div className="flex items-center justify-between text-xs font-medium text-[#2563EB] dark:text-[#60A5FA]">
+                <span>Uploading Hero Image...</span>
+                <span>{heroUploadProgress}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-blue-200 dark:bg-blue-900 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#2563EB] transition-all duration-200"
+                  style={{ width: `${heroUploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {heroUploadError && (
+            <p className="text-xs text-rose-600 dark:text-rose-400 font-medium pt-1">{heroUploadError}</p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block font-semibold">Hero Image Direct URL</label>
           <Input
             value={draftTheme.hero_image_url}
             onChange={(e) => updateDraft({ hero_image_url: e.target.value })}
-            className="w-full max-w-full min-w-0 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-xs h-11 font-normal focus:border-blue-600"
+            placeholder="https://example.com/hero.jpg"
+            className="w-full max-w-full min-w-0 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-base sm:text-xs h-11 min-h-[44px] sm:min-h-0 font-normal focus:border-[#2563EB]"
           />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block">Primary CTA Label</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block font-semibold">Primary CTA Label</label>
             <Input
               value={draftTheme.hero_cta_label}
               onChange={(e) => updateDraft({ hero_cta_label: e.target.value })}
-              className="w-full max-w-full min-w-0 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-xs h-11 font-medium focus:border-blue-600"
+              className="w-full max-w-full min-w-0 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-base sm:text-xs h-11 min-h-[44px] sm:min-h-0 font-medium focus:border-[#2563EB]"
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block">Secondary CTA Label</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block font-semibold">Secondary CTA Label</label>
             <Input
               value={draftTheme.hero_secondary_cta_label}
               onChange={(e) => updateDraft({ hero_secondary_cta_label: e.target.value })}
-              className="w-full max-w-full min-w-0 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-xs h-11 font-medium focus:border-blue-600"
+              className="w-full max-w-full min-w-0 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-base sm:text-xs h-11 min-h-[44px] sm:min-h-0 font-medium focus:border-[#2563EB]"
             />
           </div>
         </div>
 
-        <div className="space-y-1 pt-2 border-t border-[#E2E8F0] dark:border-[#263244]">
-          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block">WhatsApp Support Phone</label>
+        <div className="space-y-1.5 pt-2 border-t border-[#E2E8F0] dark:border-[#263244]">
+          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block font-semibold">WhatsApp Support Phone</label>
           <Input
             value={draftTheme.whatsapp_number}
             onChange={(e) => updateDraft({ whatsapp_number: e.target.value })}
-            className="w-full max-w-full min-w-0 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-xs h-11 focus:border-blue-600"
+            placeholder="e.g. +1 (555) 019-9831"
+            className="w-full max-w-full min-w-0 bg-white dark:bg-[#0F172A] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-base sm:text-xs h-11 min-h-[44px] sm:min-h-0 focus:border-[#2563EB]"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider block font-semibold">Campus Address</label>
+          <textarea
+            rows={2}
+            value={draftTheme.address}
+            onChange={(e) => updateDraft({ address: e.target.value })}
+            placeholder="e.g. 100 Innovation Parkway, Suite 400, Tech City"
+            className="w-full max-w-full min-w-0 p-3 rounded-xl bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#F8FAFC] text-base sm:text-xs font-normal focus:border-[#2563EB] focus:outline-hidden min-h-[70px] resize-y"
           />
         </div>
       </div>

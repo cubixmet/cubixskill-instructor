@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import type { CanvasElement } from '../../../types/certificate.types';
+import type { CanvasElement, BackgroundFit, BackgroundPosition } from '../../../types/certificate.types';
 import {
   certificatesService,
   type CertificateBinding,
-  type CertificateTemplateData,
 } from '../../../services/certificates.service';
 import { coursesService } from '../../../services/courses.service';
 import { useAuthStore } from '../../../store/auth.store';
@@ -104,8 +103,15 @@ export function useCertificateBuilder() {
     'certificate.number',
     'certificate.issue_date',
   ]);
+  const [requiredStudentFields, setRequiredStudentFields] = useState<string[]>([]);
   const [isLoadingFields, setIsLoadingFields] = useState(false);
   const [fieldSearch, setFieldSearch] = useState('');
+
+  const toggleRequiredStudentField = (fieldKey: string) => {
+    setRequiredStudentFields((prev) =>
+      prev.includes(fieldKey) ? prev.filter((k) => k !== fieldKey) : [...prev, fieldKey]
+    );
+  };
 
   // Template State
   const [templateName, setTemplateName] = useState<string>('Custom Course Completion Certificate');
@@ -187,10 +193,70 @@ export function useCertificateBuilder() {
     setTimeout(() => setToastState(null), 3500);
   };
 
+  // Undo / Redo History
+  const [historyStack, setHistoryStack] = useState<Array<{ elements: CanvasElement[]; bgFit: BackgroundFit; bgPosition: BackgroundPosition; bgOpacity: number; bgColor: string; backgroundImageUrl: string }>>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const isHistoryActionRef = useRef<boolean>(false);
+
+  const pushHistoryState = (newElements?: CanvasElement[]) => {
+    if (isHistoryActionRef.current) return;
+    const currentState = {
+      elements: newElements ?? elements,
+      bgFit,
+      bgPosition,
+      bgOpacity,
+      bgColor,
+      backgroundImageUrl,
+    };
+    setHistoryStack((prev) => {
+      const sliced = prev.slice(0, historyIndex + 1);
+      return [...sliced, JSON.parse(JSON.stringify(currentState))];
+    });
+    setHistoryIndex((prev) => prev + 1);
+  };
+
+  const undo = () => {
+    if (historyIndex <= 0) return;
+    isHistoryActionRef.current = true;
+    const prevIndex = historyIndex - 1;
+    const state = historyStack[prevIndex];
+    if (state) {
+      setElements(JSON.parse(JSON.stringify(state.elements)));
+      setBgFit(state.bgFit);
+      setBgPosition(state.bgPosition);
+      setBgOpacity(state.bgOpacity);
+      setBgColor(state.bgColor);
+      setBackgroundImageUrl(state.backgroundImageUrl);
+      setHistoryIndex(prevIndex);
+    }
+    setTimeout(() => {
+      isHistoryActionRef.current = false;
+    }, 50);
+  };
+
+  const redo = () => {
+    if (historyIndex >= historyStack.length - 1) return;
+    isHistoryActionRef.current = true;
+    const nextIndex = historyIndex + 1;
+    const state = historyStack[nextIndex];
+    if (state) {
+      setElements(JSON.parse(JSON.stringify(state.elements)));
+      setBgFit(state.bgFit);
+      setBgPosition(state.bgPosition);
+      setBgOpacity(state.bgOpacity);
+      setBgColor(state.bgColor);
+      setBackgroundImageUrl(state.backgroundImageUrl);
+      setHistoryIndex(nextIndex);
+    }
+    setTimeout(() => {
+      isHistoryActionRef.current = false;
+    }, 50);
+  };
+
   const updateSelectedElement = (updates: Partial<CanvasElement>) => {
     if (!selectedElementId) return;
-    setElements((prev) =>
-      prev.map((el) => {
+    setElements((prev) => {
+      const next = prev.map((el) => {
         if (el.id !== selectedElementId) return el;
         const fontVal = updates.font_size ?? updates.fontSize;
         const maxFontVal = updates.max_font_size ?? updates.maxFontSize;
@@ -208,8 +274,10 @@ export function useCertificateBuilder() {
           ...(weightVal !== undefined ? { font_weight: weightVal, fontWeight: weightVal } : {}),
           ...(styleVal !== undefined ? { font_style: styleVal, fontStyle: styleVal } : {}),
         };
-      })
-    );
+      });
+      pushHistoryState(next);
+      return next;
+    });
   };
 
   const resizeTextElementToContent = async (
@@ -239,7 +307,7 @@ export function useCertificateBuilder() {
           renderedText
         );
         await document.fonts.ready;
-      } catch {}
+      } catch { }
     }
 
     const measured = await measureTextAsync({
@@ -270,7 +338,7 @@ export function useCertificateBuilder() {
         try {
           await document.fonts.load(`16px "${runtimeFamily}"`);
           await document.fonts.ready;
-        } catch (_e) {}
+        } catch (_e) { }
       }
       if (!loaded) {
         showToast('Unable to load uploaded font.', 'error');
@@ -420,7 +488,7 @@ export function useCertificateBuilder() {
       const deserialized = deserializeCertificateTemplate(templateDetail);
       setTemplateName(deserialized.templateName);
       setDescription(deserialized.description);
-      setPageSize(deserialized.pageSize);
+      setPageSize(deserialized.pageSize as any);
       setOrientation(deserialized.orientation);
       setCustomWidth(deserialized.customWidth);
       setCustomHeight(deserialized.customHeight);
@@ -432,6 +500,7 @@ export function useCertificateBuilder() {
       if (typeof deserialized.bgOpacity === 'number') setBgOpacity(deserialized.bgOpacity);
       if (deserialized.bgColor) setBgColor(deserialized.bgColor);
       if (deserialized.selectedCourseId) setSelectedCourseId(deserialized.selectedCourseId);
+      if (Array.isArray(deserialized.requiredStudentFields)) setRequiredStudentFields(deserialized.requiredStudentFields);
       setStep(2);
       (async () => {
         try {
@@ -444,7 +513,7 @@ export function useCertificateBuilder() {
               if (match) await loadFontFaceIntoDOM(match);
             }
           }
-        } catch (_) {}
+        } catch (_) { }
         setElements(deserialized.elements);
         const keys = deserialized.elements.map((el) => el.binding).filter(Boolean);
         if (keys.length > 0) setSelectedFieldKeys(Array.from(new Set(keys)));
@@ -500,6 +569,7 @@ export function useCertificateBuilder() {
     };
     setElements((prev) => [...prev, newEl]);
     setSelectedElementId(newEl.id);
+    return newEl.id;
   };
 
   const addStaticTextElement = async () => {
@@ -550,6 +620,7 @@ export function useCertificateBuilder() {
     };
     setElements((prev) => [...prev, newEl]);
     setSelectedElementId(newEl.id);
+    return newEl.id;
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -644,11 +715,59 @@ export function useCertificateBuilder() {
     setSelectedElementId(null);
   };
 
+  const duplicateElement = () => {
+    if (!selectedElement) return;
+    const duplicated: CanvasElement = {
+      ...JSON.parse(JSON.stringify(selectedElement)),
+      id: `el-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      x: Math.min(0.9, selectedElement.x + 0.03),
+      y: Math.min(0.9, selectedElement.y + 0.03),
+      z_index: elements.length + 1,
+    };
+    setElements((prev) => {
+      const next = [...prev, duplicated];
+      pushHistoryState(next);
+      return next;
+    });
+    setSelectedElementId(duplicated.id);
+  };
+
+  const toggleLockElement = (id?: string) => {
+    const targetId = id || selectedElementId;
+    if (!targetId) return;
+    setElements((prev) => {
+      const next = prev.map((el) => (el.id === targetId ? { ...el, is_locked: !el.is_locked } : el));
+      pushHistoryState(next);
+      return next;
+    });
+  };
+
+  const toggleVisibilityElement = (id?: string) => {
+    const targetId = id || selectedElementId;
+    if (!targetId) return;
+    setElements((prev) => {
+      const next = prev.map((el) => (el.id === targetId ? { ...el, is_visible: !(el.is_visible ?? true) } : el));
+      pushHistoryState(next);
+      return next;
+    });
+  };
+
   const moveLayer = (direction: 'up' | 'down') => {
     if (!selectedElement) return;
     const currentZ = selectedElement.z_index || 1;
     const newZ = direction === 'up' ? currentZ + 1 : Math.max(1, currentZ - 1);
     updateSelectedElement({ z_index: newZ });
+  };
+
+  const bringToFront = () => {
+    if (!selectedElement) return;
+    const maxZ = Math.max(...elements.map((e) => e.z_index || 1), 1);
+    updateSelectedElement({ z_index: maxZ + 1 });
+  };
+
+  const sendToBack = () => {
+    if (!selectedElement) return;
+    updateSelectedElement({ z_index: 1 });
   };
 
   const handlePointerDownOnElement = (e: React.PointerEvent, el: CanvasElement, resizeHandle?: string) => {
@@ -749,7 +868,7 @@ export function useCertificateBuilder() {
   const handlePointerUp = (e: React.PointerEvent) => {
     setIsDragging(false);
     setIsResizing(null);
-    try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch (_) {}
+    try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch (_) { }
   };
 
   const handleSaveTemplate = async () => {
@@ -798,11 +917,10 @@ export function useCertificateBuilder() {
         isEditMode,
         existingTemplateDetail: templateDetail,
       });
-      let saved: CertificateTemplateData;
       if (isEditMode && templateId) {
-        saved = await certificatesService.updateTemplate(templateId, payload);
+        await certificatesService.updateTemplate(templateId, payload);
       } else {
-        saved = await certificatesService.createTemplate(payload);
+        await certificatesService.createTemplate(payload);
       }
       await queryClient.invalidateQueries({ queryKey: certificateKeys.all });
       showToast('Certificate template saved successfully!', 'success');
@@ -860,6 +978,9 @@ export function useCertificateBuilder() {
     availableBindings,
     selectedFieldKeys,
     setSelectedFieldKeys,
+    requiredStudentFields,
+    setRequiredStudentFields,
+    toggleRequiredStudentField,
     isLoadingFields,
     fieldSearch,
     setFieldSearch,
@@ -889,6 +1010,15 @@ export function useCertificateBuilder() {
     setBgOpacity,
     bgColor,
     setBgColor,
+    undo,
+    redo,
+    canUndo: historyIndex > 0,
+    canRedo: historyIndex < historyStack.length - 1,
+    duplicateElement,
+    toggleLockElement,
+    toggleVisibilityElement,
+    bringToFront,
+    sendToBack,
     elements,
     setElements,
     selectedElementId,

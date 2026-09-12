@@ -115,7 +115,7 @@ export const CertificateCanvasWorkspace: React.FC<CertificateCanvasWorkspaceProp
     setZoomScale(safeFit);
   }, [canvasWidth, canvasHeight, setZoomScale, workspaceRef]);
 
-  // Recalculate fit on initial load, orientation change, or container resize
+  // Recalculate fit on initial load, orientation change, container resize, or drawer toggle
   React.useEffect(() => {
     const timer = setTimeout(() => {
       handleCalculateFit();
@@ -123,92 +123,107 @@ export const CertificateCanvasWorkspace: React.FC<CertificateCanvasWorkspaceProp
 
     const handleResize = () => handleCalculateFit();
     window.addEventListener('resize', handleResize);
+
+    let observer: ResizeObserver | null = null;
+    if (workspaceRef.current && typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => {
+        handleCalculateFit();
+      });
+      observer.observe(workspaceRef.current);
+    }
+
     return () => {
       clearTimeout(timer);
       window.removeEventListener('resize', handleResize);
+      if (observer) observer.disconnect();
     };
-  }, [handleCalculateFit, canvasWidth, canvasHeight, orientation, pageSize]);
+  }, [handleCalculateFit, canvasWidth, canvasHeight, orientation, pageSize, workspaceRef]);
 
   return (
-    <div className="w-full order-1 lg:order-2 space-y-3">
-      <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 rounded-2xl shadow-2xs space-y-3">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              {isPreview ? 'Live Sample Preview' : 'Interactive Canvas'}
-            </span>
-            <span className="hidden sm:inline-block px-2 py-0.5 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-mono rounded-md border border-slate-200 dark:border-slate-700">
-              {resolved.width} × {resolved.height} {resolved.unit} ({canvasWidth} × {canvasHeight} px)
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setZoomScale((prev) => Math.max(0.15, parseFloat((prev - 0.05).toFixed(2))))}
-              className="w-8 h-8 flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm cursor-pointer"
-            >
-              -
-            </button>
-            <span className="text-xs font-mono font-semibold px-1 text-slate-700 dark:text-slate-300 min-w-[42px] text-center">
-              {Math.round(zoomScale * 100)}%
-            </span>
-            <button
-              type="button"
-              onClick={() => setZoomScale((prev) => Math.min(2.5, parseFloat((prev + 0.05).toFixed(2))))}
-              className="w-8 h-8 flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm cursor-pointer"
-            >
-              +
-            </button>
-            <button
-              type="button"
-              onClick={handleCalculateFit}
-              className="h-8 px-2.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg cursor-pointer"
-            >
-              Fit
-            </button>
-          </div>
+    <div className="w-full h-full flex flex-col flex-1 relative overflow-hidden bg-slate-950">
+      {/* Canvas Header / Controls */}
+      <div className="h-11 px-4 border-b border-slate-800 flex items-center justify-between gap-3 shrink-0 bg-slate-950">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+            {isPreview ? 'Sample Preview Mode' : 'Editor Canvas'}
+          </span>
+          <span className="hidden sm:inline-block px-2 py-0.5 bg-slate-900 text-slate-400 text-[11px] font-mono rounded border border-slate-800">
+            {resolved.width} × {resolved.height} {resolved.unit}
+          </span>
         </div>
 
+        {/* Zoom Controls */}
+        <div className="flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 shadow-xs">
+          <button
+            type="button"
+            onClick={() => setZoomScale((prev) => Math.max(0.15, parseFloat((prev - 0.05).toFixed(2))))}
+            className="w-7 h-7 flex items-center justify-center text-slate-300 font-bold hover:bg-slate-800 rounded text-sm cursor-pointer"
+            title="Zoom Out"
+          >
+            -
+          </button>
+          <span className="text-xs font-mono font-semibold px-1 text-slate-300 min-w-[42px] text-center">
+            {Math.round(zoomScale * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={() => setZoomScale((prev) => Math.min(2.5, parseFloat((prev + 0.05).toFixed(2))))}
+            className="w-7 h-7 flex items-center justify-center text-slate-300 font-bold hover:bg-slate-800 rounded text-sm cursor-pointer"
+            title="Zoom In"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={handleCalculateFit}
+            className="h-7 px-2 text-[11px] font-semibold text-blue-400 hover:bg-blue-950/60 rounded cursor-pointer ml-1"
+          >
+            Fit
+          </button>
+        </div>
+      </div>
+
+      {/* Main Canvas Scroll Area */}
+      <div
+        ref={workspaceRef}
+        className="flex-1 w-full h-full overflow-auto p-4 sm:p-8 flex items-center justify-center bg-[#090D16] touch-pan-x touch-pan-y"
+      >
         <div
-          ref={workspaceRef}
-          className="w-full max-h-[50vh] sm:max-h-[60vh] lg:max-h-[70vh] min-h-[300px] sm:min-h-[450px] overflow-auto overscroll-contain bg-slate-200/70 dark:bg-slate-950 rounded-xl p-3 sm:p-6 flex items-center justify-center border border-slate-300/60 dark:border-slate-800 touch-pan-x touch-pan-y"
+          style={{
+            width: `${canvasWidth * zoomScale}px`,
+            height: `${canvasHeight * zoomScale}px`,
+            minWidth: `${canvasWidth * zoomScale}px`,
+            minHeight: `${canvasHeight * zoomScale}px`,
+            transition: 'width 0.15s ease-out, height 0.15s ease-out',
+          }}
+          className="relative shrink-0 shadow-2xl rounded-sm"
         >
           <div
-            style={{
-              width: `${canvasWidth * zoomScale}px`,
-              height: `${canvasHeight * zoomScale}px`,
-              minWidth: `${canvasWidth * zoomScale}px`,
-              minHeight: `${canvasHeight * zoomScale}px`,
-              transition: 'width 0.15s ease-out, height 0.15s ease-out',
+            ref={canvasRef}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            onClick={(e) => {
+              if (e.target === canvasRef.current || (e.target as HTMLElement).classList.contains('canvas-backdrop')) {
+                setSelectedElementId(null);
+              }
             }}
-            className="relative shrink-0 shadow-2xl rounded-xl"
+            style={{
+              width: `${canvasWidth}px`,
+              height: `${canvasHeight}px`,
+              transform: `scale(${zoomScale})`,
+              transformOrigin: 'top left',
+              backgroundColor: bgColor,
+              backgroundImage: backgroundImageUrl
+                ? `url(${backgroundImageUrl})`
+                : `radial-gradient(#334155 1px, transparent 1px), radial-gradient(#334155 1px, ${bgColor} 1px)`,
+              backgroundSize: backgroundImageUrl ? getCssBackgroundSize(bgFit) : '20px 20px',
+              backgroundPosition: backgroundImageUrl ? getCssBackgroundPosition(bgPosition) : '0 0, 10px 10px',
+              backgroundRepeat: 'no-repeat',
+              opacity: backgroundImageUrl ? bgOpacity / 100 : 1,
+            }}
+            className="canvas-backdrop text-slate-900 shadow-2xl rounded-sm absolute top-0 left-0 overflow-hidden font-sans select-none touch-none"
           >
-            <div
-              ref={canvasRef}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
-              onClick={(e) => {
-                if (e.target === canvasRef.current || (e.target as HTMLElement).classList.contains('canvas-backdrop')) {
-                  setSelectedElementId(null);
-                }
-              }}
-              style={{
-                width: `${canvasWidth}px`,
-                height: `${canvasHeight}px`,
-                transform: `scale(${zoomScale})`,
-                transformOrigin: 'top left',
-                backgroundColor: bgColor,
-                backgroundImage: backgroundImageUrl
-                  ? `url(${backgroundImageUrl})`
-                  : `radial-gradient(#CBD5E1 1px, transparent 1px), radial-gradient(#CBD5E1 1px, ${bgColor} 1px)`,
-                backgroundSize: backgroundImageUrl ? getCssBackgroundSize(bgFit) : '20px 20px',
-                backgroundPosition: backgroundImageUrl ? getCssBackgroundPosition(bgPosition) : '0 0, 10px 10px',
-                backgroundRepeat: 'no-repeat',
-                opacity: backgroundImageUrl ? bgOpacity / 100 : 1,
-              }}
-              className="canvas-backdrop text-slate-900 border-8 border-slate-800 shadow-2xl rounded-xl absolute top-0 left-0 overflow-hidden font-sans select-none touch-none"
-            >
               <div className="absolute inset-2 border-2 border-amber-500/40 pointer-events-none" />
               {elements.map((el) => {
                 const isSelected = selectedElementId === el.id;
@@ -226,6 +241,7 @@ export const CertificateCanvasWorkspace: React.FC<CertificateCanvasWorkspaceProp
                       height: `${safeHeight * 100}%`,
                       transform: 'translate(-50%, -50%)',
                       fontWeight: el.font_weight || el.fontWeight || 'normal',
+                      fontStyle: el.font_style || el.fontStyle || 'normal',
                       textAlign: el.text_align || el.textAlign || 'center',
                       color: el.color || '#0F172A',
                       fontFamily: el.font_family || el.fontFamily || availableFonts[0]?.family || 'Inter',
@@ -251,6 +267,7 @@ export const CertificateCanvasWorkspace: React.FC<CertificateCanvasWorkspaceProp
                           minFontSize={Math.max(1, el.min_font_size ?? el.minFontSize ?? 1)}
                           fontFamily={el.font_family || el.fontFamily || availableFonts[0]?.family || 'Inter'}
                           fontWeight={el.font_weight || el.fontWeight || 'normal'}
+                          fontStyle={el.font_style || el.fontStyle || 'normal'}
                           fontColor={el.color || '#0F172A'}
                           textAlign={el.text_align || el.textAlign || 'center'}
                           padding={el.padding || { top: 3, right: 4, bottom: 3, left: 4 }}
@@ -273,7 +290,6 @@ export const CertificateCanvasWorkspace: React.FC<CertificateCanvasWorkspaceProp
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 };

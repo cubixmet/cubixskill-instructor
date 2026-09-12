@@ -149,7 +149,7 @@ export const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({
                   setAmount(e.target.value);
                   if (fieldErrors.amount) setFieldErrors((prev) => ({ ...prev, amount: '' }));
                 }}
-                className="w-full h-10 px-3 border-none text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] bg-white dark:bg-[#0F172A] focus:outline-none"
+                className="w-full h-11 sm:h-10 px-3 border-none text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] bg-white dark:bg-[#0F172A] focus:outline-none min-h-[44px] sm:min-h-0"
               />
             </div>
             {fieldErrors.amount && <p className="text-[11px] text-rose-500 font-normal">{fieldErrors.amount}</p>}
@@ -164,7 +164,7 @@ export const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({
               <select
                 value={collectionMode}
                 onChange={(e) => setCollectionMode(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
+                className="w-full h-11 sm:h-10 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6] min-h-[44px] sm:min-h-0"
               >
                 <option value="DIRECT_ACADEMY">Direct Academy (UPI/Bank/Cash)</option>
                 <option value="CUBIXSKILL_GATEWAY">CubixSkill Platform Gateway</option>
@@ -178,7 +178,7 @@ export const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
+                className="w-full h-11 sm:h-10 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6] min-h-[44px] sm:min-h-0"
               >
                 <option value="UPI">UPI Payment</option>
                 <option value="CASH">Cash Collection</option>
@@ -197,7 +197,7 @@ export const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({
               type="date"
               value={paymentDate}
               onChange={(e) => setPaymentDate(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6]"
+              className="w-full h-11 sm:h-10 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6] min-h-[44px] sm:min-h-0"
             />
           </div>
 
@@ -211,7 +211,7 @@ export const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({
               placeholder="e.g. UPI-38291039, TXN-928130"
               value={referenceNumber}
               onChange={(e) => setReferenceNumber(e.target.value)}
-              className="w-full h-9.5 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-mono font-normal text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6]"
+              className="w-full h-11 sm:h-9.5 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-mono font-normal text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6] min-h-[44px] sm:min-h-0"
             />
             {fieldErrors.referenceNumber && <p className="text-[11px] text-rose-500 font-normal">{fieldErrors.referenceNumber}</p>}
           </div>
@@ -226,7 +226,7 @@ export const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({
               placeholder="e.g. Collected at front desk by Staff"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full h-9.5 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6]"
+              className="w-full h-11 sm:h-9.5 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6] min-h-[44px] sm:min-h-0"
             />
           </div>
 
@@ -243,7 +243,7 @@ export const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({
               type="checkbox"
               checked={sendReceiptEmail}
               onChange={(e) => setSendReceiptEmail(e.target.checked)}
-              className="w-4 h-4 text-[#2563EB] rounded cursor-pointer shrink-0"
+              className="w-5 h-5 sm:w-4 sm:h-4 text-[#2563EB] rounded cursor-pointer shrink-0 min-h-[24px]"
             />
           </div>
 
@@ -253,14 +253,14 @@ export const CollectPaymentModal: React.FC<CollectPaymentModalProps> = ({
               type="button"
               variant="outline"
               onClick={onClose}
-              className="w-full sm:w-auto flex-1 h-10 rounded-xl justify-center font-medium border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] bg-white dark:bg-[#172033]"
+              className="w-full sm:w-auto flex-1 h-11 sm:h-10 min-h-[44px] sm:min-h-0 rounded-xl justify-center font-medium border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] bg-white dark:bg-[#172033]"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full sm:w-auto flex-1 h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl justify-center font-medium min-h-[42px]"
+              className="w-full sm:w-auto flex-1 h-11 sm:h-10 min-h-[44px] sm:min-h-0 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl justify-center font-medium"
             >
               {isSubmitting ? 'Recording...' : 'Collect & Generate Receipt'}
             </Button>

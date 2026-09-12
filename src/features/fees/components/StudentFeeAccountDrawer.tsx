@@ -309,7 +309,7 @@ export const StudentFeeAccountDrawer: React.FC<StudentFeeAccountDrawerProps> = (
                       placeholder="1000.00"
                       value={waiverAmount}
                       onChange={(e) => setWaiverAmount(e.target.value)}
-                      className="w-full h-9 px-3 rounded-lg border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC]"
+                      className="w-full h-11 sm:h-9 px-3 rounded-lg border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] min-h-[44px] sm:min-h-0"
                     />
                   </div>
                   <div className="space-y-1">
@@ -319,7 +319,7 @@ export const StudentFeeAccountDrawer: React.FC<StudentFeeAccountDrawerProps> = (
                       placeholder="e.g. Scholarship reduction approved by Dean"
                       value={waiverReason}
                       onChange={(e) => setWaiverReason(e.target.value)}
-                      className="w-full h-9 px-3 rounded-lg border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC]"
+                      className="w-full h-11 sm:h-9 px-3 rounded-lg border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] min-h-[44px] sm:min-h-0"
                     />
                   </div>
                   {waiverError && <p className="text-[11px] text-rose-500 font-normal">{waiverError}</p>}
@@ -327,7 +327,7 @@ export const StudentFeeAccountDrawer: React.FC<StudentFeeAccountDrawerProps> = (
                     type="submit"
                     size="sm"
                     disabled={isWaiving}
-                    className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium h-9 rounded-lg justify-center min-h-[42px]"
+                    className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium h-11 sm:h-9 min-h-[44px] sm:min-h-0 rounded-lg justify-center"
                   >
                     {isWaiving ? 'Applying Waiver...' : 'Apply Student Override Waiver'}
                   </Button>

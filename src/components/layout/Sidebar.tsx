@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -7,7 +7,7 @@ import {
 import { NavLink, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuthStore } from "../../store/auth.store";
-import { getFilteredNavigation, type NavItemConfig } from "../../config/navigation.config";
+import { getFilteredNavigation } from "../../config/navigation.config";
 import { getUserInitials, getAcademyInitials, getRoleLabel } from "../../utils/branding.utils";
 import { cn } from "../../lib/cn";
 
@@ -40,9 +40,8 @@ export function isNavItemActive(href: string, pathname: string): boolean {
   if (href === "/discussions/community") return pathname.startsWith("/discussions/community");
   if (href === "/announcements") return pathname.startsWith("/announcements");
   if (href === "/live-classroom") return pathname.startsWith("/live-classroom");
-  if (href === "/reports") return pathname.startsWith("/reports");
   if (href === "/credits") return pathname.startsWith("/credits");
-  if (href === "/fees") return pathname.startsWith("/fees");
+  if (href === "/fees") return pathname.startsWith("/fees") || pathname.includes("/fees");
   if (href === "/media") return pathname.startsWith("/media");
   if (href === "/staff") return pathname.startsWith("/staff");
   if (href === "/roles") return pathname.startsWith("/roles");
@@ -67,12 +66,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const isLoadingBranding = (isInitializing || isLoadingAcademyProfile) && !academy;
 
+  const navRef = React.useRef<HTMLInputElement | HTMLElement | null>(null);
+  const activeItemRef = React.useRef<HTMLAnchorElement | null>(null);
+
+  // Auto-scroll active link to vertical center on mount and route changes (Desktop & Mobile Drawer)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (navRef.current && activeItemRef.current) {
+        const navContainer = navRef.current;
+        const activeElem = activeItemRef.current;
+
+        // Check if navigation container has vertical overflow
+        if (navContainer.scrollHeight <= navContainer.clientHeight) {
+          return;
+        }
+
+        const navRect = navContainer.getBoundingClientRect();
+        const activeRect = activeElem.getBoundingClientRect();
+
+        const activeOffsetTop = activeRect.top - navRect.top + navContainer.scrollTop;
+        const targetScrollTop = activeOffsetTop - (navRect.height / 2) + (activeRect.height / 2);
+
+        const maxScroll = navContainer.scrollHeight - navContainer.clientHeight;
+        const clampedScroll = Math.max(0, Math.min(targetScrollTop, maxScroll));
+
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        navContainer.scrollTo({
+          top: clampedScroll,
+          behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        });
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [isMobileDrawer, location.pathname, collapsed]);
+
   return (
     <aside
       className={cn(
         "bg-white dark:bg-[#0B1120] flex flex-col shrink-0 select-none text-left transition-all duration-300 ease-in-out z-40 overflow-hidden",
         isMobileDrawer
-          ? "w-full max-w-none h-full h-[100dvh]"
+          ? "w-full max-w-none h-full h-[100dvh] max-h-[100dvh]"
           : cn(
               "border-r border-slate-200/80 dark:border-[#1E293B] fixed top-0 left-0 bottom-0 h-screen",
               collapsed ? "w-20" : "w-64"
@@ -131,7 +166,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navigation Groups */}
-      <nav className="flex-1 min-h-0 px-3 py-4 space-y-5 overflow-y-auto no-scrollbar">
+      <nav ref={navRef} className="flex-1 min-h-0 px-3 py-4 space-y-5 overflow-y-auto touch-pan-y pb-12">
         {navSections.map((section, idx) => (
           <div key={idx} className="space-y-1">
             {(!collapsed || isMobileDrawer) ? (
@@ -147,6 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               return (
                 <div key={item.href} className="space-y-1">
                   <NavLink
+                    ref={active ? activeItemRef : undefined}
                     to={item.href}
                     onClick={onCloseMobile}
                     title={collapsed && !isMobileDrawer ? item.label : undefined}

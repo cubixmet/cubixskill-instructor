@@ -100,7 +100,6 @@ const GlobalLiveClassroomPage = lazy(() => import('../features/live-sessions/pag
 const CreateLiveSessionPage = lazy(() => import('../features/live-sessions/pages/CreateLiveSessionPage').then(m => ({ default: m.CreateLiveSessionPage })));
 
 const QuizBuilderPage = lazy(() => import('../features/quizzes/pages/QuizBuilderPage').then(m => ({ default: m.QuizBuilderPage })));
-const ReportsPage = lazy(() => import('../features/reports/pages/ReportsPage').then(m => ({ default: m.ReportsPage })));
 const SettingsPage = lazy(() => import('../features/settings/pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 
 const PageLoadingFallback: React.FC = () => (
@@ -167,29 +166,29 @@ export const AppRoutes: React.FC = () => {
             <Route path="/dashboard" element={<DashboardPage />} />
 
             {/* 1. Students Domain */}
-            <Route path="/students" element={<StudentListPage />} />
-            <Route path="/students/create" element={<StudentCreatePage />} />
-            <Route path="/students/enroll" element={<EnrollStudentPage />} />
-            <Route path="/students/bulk-upload" element={<BulkUploadStudentsPage />} />
-            <Route path="/students/reports" element={<StudentReportsPage />} />
-            <Route path="/students/:studentId" element={<StudentSinglePage />} />
-            <Route path="/students/:studentId/edit" element={<StudentEditPage />} />
+            <Route path="/students" element={<ProtectedRoute requiredPermission="students.view"><StudentListPage /></ProtectedRoute>} />
+            <Route path="/students/create" element={<ProtectedRoute requiredPermission="students.create"><StudentCreatePage /></ProtectedRoute>} />
+            <Route path="/students/enroll" element={<ProtectedRoute requiredPermission="enrollments.create"><EnrollStudentPage /></ProtectedRoute>} />
+            <Route path="/students/bulk-upload" element={<ProtectedRoute requiredPermission="students.create"><BulkUploadStudentsPage /></ProtectedRoute>} />
+            <Route path="/students/reports" element={<ProtectedRoute requiredPermission="reports.view"><StudentReportsPage /></ProtectedRoute>} />
+            <Route path="/students/:studentId" element={<ProtectedRoute requiredPermission="students.view"><StudentSinglePage /></ProtectedRoute>} />
+            <Route path="/students/:studentId/edit" element={<ProtectedRoute requiredPermission="students.edit"><StudentEditPage /></ProtectedRoute>} />
 
             {/* 2. Course Management & Authoring */}
-            <Route path="/courses" element={<CourseListPage />} />
-            <Route path="/courses/categories" element={<CourseCategoryManagerPage />} />
-            <Route path="/courses/create" element={<CourseCreateWizardPage />} />
-            <Route path="/courses/:courseUuid/edit" element={<CourseCreateWizardPage />} />
-            <Route path="/courses/:courseId/edit" element={<CourseCreateWizardPage />} />
+            <Route path="/courses" element={<ProtectedRoute requiredPermission="courses.view"><CourseListPage /></ProtectedRoute>} />
+            <Route path="/courses/categories" element={<ProtectedRoute requiredPermission="courses.edit"><CourseCategoryManagerPage /></ProtectedRoute>} />
+            <Route path="/courses/create" element={<ProtectedRoute requiredPermission="courses.create"><CourseCreateWizardPage /></ProtectedRoute>} />
+            <Route path="/courses/:courseUuid/edit" element={<ProtectedRoute requiredPermission="courses.edit"><CourseCreateWizardPage /></ProtectedRoute>} />
+            <Route path="/courses/:courseId/edit" element={<ProtectedRoute requiredPermission="courses.edit"><CourseCreateWizardPage /></ProtectedRoute>} />
 
             {/* Single Course Workspace */}
-            <Route path="/courses/:courseId" element={<CourseSingleViewLayout />}>
+            <Route path="/courses/:courseId" element={<ProtectedRoute requiredPermission="courses.view"><CourseSingleViewLayout /></ProtectedRoute>}>
               <Route index element={<Navigate to="overview" replace />} />
               <Route path="overview" element={<CourseOverviewPage />} />
               <Route path="curriculum" element={<CourseFeatureGuard featureCode="LESSONS"><CourseCurriculumPage /></CourseFeatureGuard>} />
               <Route path="students" element={<CourseStudentsPage />} />
-              <Route path="students/enroll" element={<EnrollStudentPage />} />
-              <Route path="students/bulk-upload" element={<BulkUploadStudentsPage />} />
+              <Route path="students/enroll" element={<ProtectedRoute requiredPermission="enrollments.create"><EnrollStudentPage /></ProtectedRoute>} />
+              <Route path="students/bulk-upload" element={<ProtectedRoute requiredPermission="students.create"><BulkUploadStudentsPage /></ProtectedRoute>} />
               <Route path="students/:studentId" element={<StudentSinglePage />} />
               <Route path="students/:studentId/overview" element={<StudentSinglePage />} />
               <Route path="assignments" element={<CourseFeatureGuard featureCode="LESSONS"><CourseAssignmentsPage /></CourseFeatureGuard>} />
@@ -219,15 +218,15 @@ export const AppRoutes: React.FC = () => {
             </Route>
 
             {/* Curriculum Authoring Canonical Sub-routes */}
-            <Route path="/courses/:courseId/curriculum/modules/new" element={<ModuleCreatePage />} />
-            <Route path="/courses/:courseId/curriculum/modules/:moduleId/edit" element={<ModuleEditPage />} />
-            <Route path="/courses/:courseId/curriculum/lessons/select-type" element={<LessonTypeSelectPage />} />
-            <Route path="/courses/:courseId/curriculum/lessons/new" element={<LessonCreatePage />} />
-            <Route path="/courses/:courseId/curriculum/lessons/:lessonId/edit" element={<LessonEditPage />} />
-            <Route path="/courses/:courseId/curriculum/quizzes/new" element={<QuizBuilderPage />} />
-            <Route path="/courses/:courseId/curriculum/quizzes/:quizId/edit" element={<QuizBuilderPage />} />
-            <Route path="/courses/:courseId/curriculum/lessons/:lessonId/resources" element={<ResourcePickerPage />} />
-            <Route path="/courses/:courseId/curriculum/resources/add" element={<ResourcePickerPage />} />
+            <Route path="/courses/:courseId/curriculum/modules/new" element={<ProtectedRoute requiredPermission="courses.edit"><ModuleCreatePage /></ProtectedRoute>} />
+            <Route path="/courses/:courseId/curriculum/modules/:moduleId/edit" element={<ProtectedRoute requiredPermission="courses.edit"><ModuleEditPage /></ProtectedRoute>} />
+            <Route path="/courses/:courseId/curriculum/lessons/select-type" element={<ProtectedRoute requiredPermission="courses.edit"><LessonTypeSelectPage /></ProtectedRoute>} />
+            <Route path="/courses/:courseId/curriculum/lessons/new" element={<ProtectedRoute requiredPermission="courses.edit"><LessonCreatePage /></ProtectedRoute>} />
+            <Route path="/courses/:courseId/curriculum/lessons/:lessonId/edit" element={<ProtectedRoute requiredPermission="courses.edit"><LessonEditPage /></ProtectedRoute>} />
+            <Route path="/courses/:courseId/curriculum/quizzes/new" element={<ProtectedRoute requiredPermission="courses.edit"><QuizBuilderPage /></ProtectedRoute>} />
+            <Route path="/courses/:courseId/curriculum/quizzes/:quizId/edit" element={<ProtectedRoute requiredPermission="courses.edit"><QuizBuilderPage /></ProtectedRoute>} />
+            <Route path="/courses/:courseId/curriculum/lessons/:lessonId/resources" element={<ProtectedRoute requiredPermission="courses.edit"><ResourcePickerPage /></ProtectedRoute>} />
+            <Route path="/courses/:courseId/curriculum/resources/add" element={<ProtectedRoute requiredPermission="courses.edit"><ResourcePickerPage /></ProtectedRoute>} />
 
             {/* Legacy Curriculum Authoring Redirects */}
             <Route path="/courses/:courseId/modules/create" element={<ModuleCreatePage />} />
@@ -236,92 +235,91 @@ export const AppRoutes: React.FC = () => {
             <Route path="/courses/:courseId/modules/:moduleId/lessons/:lessonId/resources" element={<ResourcePickerPage />} />
             <Route path="/courses/:courseId/modules/:moduleId/lessons/create/type" element={<LegacyLessonTypeRedirect />} />
 
-            {/* 3. Certificate Builder */}
-            <Route path="/certificates" element={<CertificateListPage />} />
-            <Route path="/certificates/fonts" element={<CertificateFontsPage />} />
-            <Route path="/certificates/new" element={<CertificateBuilderPage />} />
-            <Route path="/certificates/:templateId/edit" element={<CertificateBuilderPage />} />
-            <Route path="/certificates/:id/issue" element={<CertificateDetailPage />} />
+            {/* 3. Certificate Builder 3-step canonical sub-routes */}
+            <Route path="/certificates" element={<ProtectedRoute requiredPermission="certificates.view"><CertificateListPage /></ProtectedRoute>} />
+            <Route path="/certificates/fonts" element={<ProtectedRoute requiredPermission="certificates.view"><CertificateFontsPage /></ProtectedRoute>} />
+            <Route path="/certificates/new" element={<ProtectedRoute requiredPermission="certificates.create"><CertificateBuilderPage /></ProtectedRoute>} />
+            <Route path="/certificates/:templateId/setup" element={<ProtectedRoute requiredPermission="certificates.edit"><CertificateBuilderPage /></ProtectedRoute>} />
+            <Route path="/certificates/:templateId/fields" element={<ProtectedRoute requiredPermission="certificates.edit"><CertificateBuilderPage /></ProtectedRoute>} />
+            <Route path="/certificates/:templateId/canvas" element={<ProtectedRoute requiredPermission="certificates.edit"><CertificateBuilderPage /></ProtectedRoute>} />
+            <Route path="/certificates/:templateId/edit" element={<Navigate to="../canvas" replace />} />
+            <Route path="/certificates/:id/issue" element={<ProtectedRoute requiredPermission="certificates.edit"><CertificateDetailPage /></ProtectedRoute>} />
 
             {/* 4. Coupons Management */}
-            <Route path="/coupons" element={<CouponListPage />} />
-            <Route path="/coupons/new" element={<CouponCreatePage />} />
-            <Route path="/coupons/:couponId" element={<CouponDetailPage />} />
-            <Route path="/coupons/:couponId/edit" element={<CouponEditPage />} />
+            <Route path="/coupons" element={<ProtectedRoute requiredPermission="coupons.view"><CouponListPage /></ProtectedRoute>} />
+            <Route path="/coupons/new" element={<ProtectedRoute requiredPermission="coupons.create"><CouponCreatePage /></ProtectedRoute>} />
+            <Route path="/coupons/:couponId" element={<ProtectedRoute requiredPermission="coupons.view"><CouponDetailPage /></ProtectedRoute>} />
+            <Route path="/coupons/:couponId/edit" element={<ProtectedRoute requiredPermission="coupons.edit"><CouponEditPage /></ProtectedRoute>} />
 
             {/* 5. Global Discussions & Chat */}
             <Route path="/discussions" element={<Navigate to="/discussions/personal" replace />} />
-            <Route path="/discussions/community" element={<CommunityChatListPage />} />
-            <Route path="/discussions/community/:courseId" element={<CommunityChatCoursePage />} />
-            <Route path="/discussions/community-chat" element={<CommunityChatListPage />} />
-            <Route path="/discussions/community-chat/:courseId" element={<CommunityChatCoursePage />} />
-            <Route path="/discussions/personal" element={<PersonalChatListPage />} />
-            <Route path="/discussions/personal/:studentId" element={<PersonalChatStudentPage />} />
+            <Route path="/discussions/community" element={<ProtectedRoute requiredPermission="discussions.view"><CommunityChatListPage /></ProtectedRoute>} />
+            <Route path="/discussions/community/:courseId" element={<ProtectedRoute requiredPermission="discussions.view"><CommunityChatCoursePage /></ProtectedRoute>} />
+            <Route path="/discussions/community-chat" element={<ProtectedRoute requiredPermission="discussions.view"><CommunityChatListPage /></ProtectedRoute>} />
+            <Route path="/discussions/community-chat/:courseId" element={<ProtectedRoute requiredPermission="discussions.view"><CommunityChatCoursePage /></ProtectedRoute>} />
+            <Route path="/discussions/personal" element={<ProtectedRoute requiredPermission="discussions.view"><PersonalChatListPage /></ProtectedRoute>} />
+            <Route path="/discussions/personal/:studentId" element={<ProtectedRoute requiredPermission="discussions.view"><PersonalChatStudentPage /></ProtectedRoute>} />
 
             {/* 6. Live Classroom */}
-            <Route path="/live-classroom" element={<GlobalLiveClassroomPage />} />
-            <Route path="/live-classroom/*" element={<GlobalLiveClassroomPage />} />
-            <Route path="/live-classroom/create" element={<CreateLiveSessionPage />} />
+            <Route path="/live-classroom" element={<ProtectedRoute requiredPermission="live_classes.view"><GlobalLiveClassroomPage /></ProtectedRoute>} />
+            <Route path="/live-classroom/*" element={<ProtectedRoute requiredPermission="live_classes.view"><GlobalLiveClassroomPage /></ProtectedRoute>} />
+            <Route path="/live-classroom/create" element={<ProtectedRoute requiredPermission="live_classes.create"><CreateLiveSessionPage /></ProtectedRoute>} />
 
             {/* 7. Demo Leads CRM */}
-            <Route path="/demo-leads" element={<DemoLeadsPage />} />
-            <Route path="/demo-leads/new" element={<LeadCreatePage />} />
-            <Route path="/demo-leads/:leadId" element={<LeadDetailPage />} />
-            <Route path="/demo-leads/:leadId/edit" element={<LeadEditPage />} />
+            <Route path="/demo-leads" element={<ProtectedRoute requiredPermission="demo_leads.view"><DemoLeadsPage /></ProtectedRoute>} />
+            <Route path="/demo-leads/new" element={<ProtectedRoute requiredPermission="demo_leads.create"><LeadCreatePage /></ProtectedRoute>} />
+            <Route path="/demo-leads/:leadId" element={<ProtectedRoute requiredPermission="demo_leads.view"><LeadDetailPage /></ProtectedRoute>} />
+            <Route path="/demo-leads/:leadId/edit" element={<ProtectedRoute requiredPermission="demo_leads.edit"><LeadEditPage /></ProtectedRoute>} />
 
             {/* 8. Dual Payment Architecture */}
-            <Route path="/payments" element={<PaymentsOverviewPage />} />
-            <Route path="/payments/overview" element={<PaymentsOverviewPage />} />
-            <Route path="/payments/transactions" element={<TransactionsPage />} />
-            <Route path="/payments/settlements" element={<SettlementsPage />} />
-            <Route path="/settings/payments" element={<PaymentSettingsPage />} />
+            <Route path="/payments" element={<ProtectedRoute requiredPermission="payments.view"><PaymentsOverviewPage /></ProtectedRoute>} />
+            <Route path="/payments/overview" element={<ProtectedRoute requiredPermission="payments.view"><PaymentsOverviewPage /></ProtectedRoute>} />
+            <Route path="/payments/transactions" element={<ProtectedRoute requiredPermission="payments.view"><TransactionsPage /></ProtectedRoute>} />
+            <Route path="/payments/settlements" element={<ProtectedRoute requiredPermission="payments.view"><SettlementsPage /></ProtectedRoute>} />
+            <Route path="/settings/payments" element={<ProtectedRoute requiredPermission="payments.manage"><PaymentSettingsPage /></ProtectedRoute>} />
 
             {/* 9. Credits Workspace */}
-            <Route path="/credits" element={<CreditsPage />} />
-            <Route path="/credits/buy" element={<BuyCreditsPage />} />
-            <Route path="/credits/history" element={<CreditsPage />} />
-            <Route path="/credits/usage" element={<CreditsPage />} />
-            <Route path="/credits/storage" element={<StorageBillingPage />} />
-            <Route path="/storage/billing" element={<StorageBillingPage />} />
+            <Route path="/credits" element={<ProtectedRoute requiredPermission="credits.view"><CreditsPage /></ProtectedRoute>} />
+            <Route path="/credits/buy" element={<ProtectedRoute requiredPermission="credits.add"><BuyCreditsPage /></ProtectedRoute>} />
+            <Route path="/credits/history" element={<ProtectedRoute requiredPermission="credits.view"><CreditsPage /></ProtectedRoute>} />
+            <Route path="/credits/usage" element={<ProtectedRoute requiredPermission="credits.view"><CreditsPage /></ProtectedRoute>} />
+            <Route path="/credits/storage" element={<ProtectedRoute requiredPermission="storage.view"><StorageBillingPage /></ProtectedRoute>} />
+            <Route path="/storage/billing" element={<ProtectedRoute requiredPermission="storage.view"><StorageBillingPage /></ProtectedRoute>} />
 
             {/* 10. Global Fees */}
-            <Route path="/fees" element={<GlobalFeesPage />} />
-            <Route path="/fees/*" element={<GlobalFeesPage />} />
+            <Route path="/fees" element={<ProtectedRoute requiredPermission="payments.view"><GlobalFeesPage /></ProtectedRoute>} />
+            <Route path="/fees/*" element={<ProtectedRoute requiredPermission="payments.view"><GlobalFeesPage /></ProtectedRoute>} />
 
             {/* 11. Media Library */}
-            <Route path="/media" element={<MediaPage />} />
-            <Route path="/media/*" element={<MediaPage />} />
+            <Route path="/media" element={<ProtectedRoute requiredPermission="media.view"><MediaPage /></ProtectedRoute>} />
+            <Route path="/media/*" element={<ProtectedRoute requiredPermission="media.view"><MediaPage /></ProtectedRoute>} />
 
             {/* 12. Staff Directory & Roles */}
-            <Route path="/staff" element={<StaffDirectoryPage />} />
-            <Route path="/staff/create" element={<StaffCreatePage />} />
-            <Route path="/staff/:staffId/edit" element={<StaffEditPage />} />
-            <Route path="/staff/*" element={<StaffDirectoryPage />} />
-            <Route path="/roles" element={<RolesPage />} />
-            <Route path="/roles/create" element={<RoleCreatePage />} />
+            <Route path="/staff" element={<ProtectedRoute requiredPermission="staff.view"><StaffDirectoryPage /></ProtectedRoute>} />
+            <Route path="/staff/create" element={<ProtectedRoute requiredPermission="staff.create"><StaffCreatePage /></ProtectedRoute>} />
+            <Route path="/staff/:staffId/edit" element={<ProtectedRoute requiredPermission="staff.edit"><StaffEditPage /></ProtectedRoute>} />
+            <Route path="/staff/*" element={<ProtectedRoute requiredPermission="staff.view"><StaffDirectoryPage /></ProtectedRoute>} />
+            <Route path="/roles" element={<ProtectedRoute requiredPermission="roles.view"><RolesPage /></ProtectedRoute>} />
+            <Route path="/roles/create" element={<ProtectedRoute requiredPermission="roles.create"><RoleCreatePage /></ProtectedRoute>} />
 
             {/* 13. Website Builder */}
-            <Route path="/website-builder" element={<WebsiteBuilderPage />} />
-            <Route path="/website-builder/landing" element={<WebsiteBuilderLandingPage />} />
-            <Route path="/website-builder/branding" element={<StudentPortalBrandingPage />} />
-            <Route path="/website-builder/public" element={<PublicSiteBuilderPage />} />
-
-            {/* 14. Reports & Analytics */}
-            <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/reports/*" element={<ReportsPage />} />
+            <Route path="/website-builder" element={<ProtectedRoute requiredPermission="websites.view"><WebsiteBuilderPage /></ProtectedRoute>} />
+            <Route path="/website-builder/landing" element={<ProtectedRoute requiredPermission="websites.view"><WebsiteBuilderLandingPage /></ProtectedRoute>} />
+            <Route path="/website-builder/branding" element={<ProtectedRoute requiredPermission="websites.update"><StudentPortalBrandingPage /></ProtectedRoute>} />
+            <Route path="/website-builder/public" element={<ProtectedRoute requiredPermission="websites.view"><PublicSiteBuilderPage /></ProtectedRoute>} />
 
             {/* 15. Quizzes & Assessments */}
-            <Route path="/quizzes/builder" element={<QuizBuilderPage />} />
-            <Route path="/quizzes/:quizId" element={<QuizBuilderPage />} />
+            <Route path="/quizzes/builder" element={<ProtectedRoute requiredPermission="courses.edit"><QuizBuilderPage /></ProtectedRoute>} />
+            <Route path="/quizzes/:quizId" element={<ProtectedRoute requiredPermission="courses.edit"><QuizBuilderPage /></ProtectedRoute>} />
 
             {/* 16. Settings */}
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/settings/general" element={<SettingsPage />} />
-            <Route path="/settings/fonts" element={<CertificateFontsPage />} />
+            <Route path="/settings" element={<ProtectedRoute requiredPermission="settings.view"><SettingsPage /></ProtectedRoute>} />
+            <Route path="/settings/general" element={<ProtectedRoute requiredPermission="settings.view"><SettingsPage /></ProtectedRoute>} />
+            <Route path="/settings/fonts" element={<ProtectedRoute requiredPermission="settings.edit"><CertificateFontsPage /></ProtectedRoute>} />
 
             {/* 17. Support Desk */}
-            <Route path="/support" element={<SupportPage />} />
-            <Route path="/support/*" element={<SupportPage />} />
+            <Route path="/support" element={<ProtectedRoute requiredPermission="support.view"><SupportPage /></ProtectedRoute>} />
+            <Route path="/support/*" element={<ProtectedRoute requiredPermission="support.view"><SupportPage /></ProtectedRoute>} />
 
             {/* 18. Access Control Page */}
             <Route path="/access-denied" element={<AccessDeniedPage />} />

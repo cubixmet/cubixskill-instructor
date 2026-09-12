@@ -67,9 +67,13 @@ export const setupInterceptors = (client: AxiosInstance) => {
           await refreshPromise;
           console.debug("Retrying original request after cookie refresh:", requestUrl);
           originalRequest.withCredentials = true;
-          if (originalRequest.data instanceof FormData && originalRequest.headers) {
-            delete originalRequest.headers['Content-Type'];
-            delete originalRequest.headers['content-type'];
+          if (originalRequest.headers) {
+            delete originalRequest.headers['Authorization'];
+            delete originalRequest.headers['authorization'];
+            if (originalRequest.data instanceof FormData) {
+              delete originalRequest.headers['Content-Type'];
+              delete originalRequest.headers['content-type'];
+            }
           }
           return client(originalRequest);
         } catch (retryErr) {

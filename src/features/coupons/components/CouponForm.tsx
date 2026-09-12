@@ -130,29 +130,29 @@ export const CouponForm: React.FC<CouponFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmitForm} className="space-y-4 font-sans text-xs text-slate-900 dark:text-white text-left font-normal max-w-lg mx-auto bg-white dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-[#263244] shadow-2xs">
-      <div className="border-b border-slate-100 dark:border-[#263244] pb-3">
-        <h2 className="font-semibold text-sm text-slate-900 dark:text-white">
+    <form onSubmit={handleSubmitForm} className="space-y-4 font-sans text-xs text-[#0F172A] dark:text-[#F8FAFC] text-left font-normal max-w-lg mx-auto bg-white dark:bg-[#111827] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs min-w-0 box-border">
+      <div className="border-b border-[#E2E8F0] dark:border-[#263244] pb-3">
+        <h2 className="font-semibold text-sm sm:text-base text-[#0F172A] dark:text-[#F8FAFC]">
           {isEditing ? 'Edit Promotional Coupon' : 'Create Course Coupon'}
         </h2>
-        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">
-          Define discount rules, validity dates, and usage limits for checkouts.
+        <p className="text-xs text-[#64748B] dark:text-[#94A3B8] font-normal leading-relaxed mt-0.5">
+          Define discount rules, validity dates, and usage limits for course checkouts.
         </p>
       </div>
 
       {/* Coupon Code & Auto-Generate */}
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+      <div className="space-y-1.5 min-w-0">
+        <label className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] block">
           Coupon Promo Code <span className="text-rose-500">*</span>
         </label>
-        <div className="flex gap-2">
+        <div className="flex flex-col min-[360px]:flex-row gap-2 min-w-0">
           <input
             type="text"
             placeholder="e.g. WELCOME20"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            className={`flex-1 h-9 px-3 rounded-xl border font-mono font-medium uppercase text-xs text-slate-900 dark:text-white bg-white dark:bg-[#0F172A] focus:outline-none ${
-              fieldErrors.code ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-[#334155] focus:border-blue-500'
+            className={`w-full flex-1 h-11 sm:h-9 px-3 rounded-xl border font-mono font-semibold uppercase text-base sm:text-xs text-[#0F172A] dark:text-[#F8FAFC] bg-white dark:bg-[#0F172A] focus:outline-none min-h-[44px] sm:min-h-0 ${
+              fieldErrors.code ? 'border-rose-500 ring-1 ring-rose-500' : 'border-[#CBD5E1] dark:border-[#334155] focus:border-[#2563EB]'
             }`}
           />
           <Button
@@ -161,18 +161,18 @@ export const CouponForm: React.FC<CouponFormProps> = ({
             size="sm"
             onClick={handleGenerateCode}
             disabled={isGenerating}
-            className="h-9 px-3 font-normal border-slate-200 dark:border-[#334155]"
-            leftIcon={<Sparkles className="w-3.5 h-3.5 text-blue-600" />}
+            className="w-full min-[360px]:w-auto min-[360px]:shrink-0 h-11 sm:h-9 min-h-[44px] sm:min-h-0 px-3.5 font-medium border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#CBD5E1] rounded-xl justify-center"
+            leftIcon={<Sparkles className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-[#2563EB]" />}
           >
             {isGenerating ? 'Generating...' : 'Auto-Generate'}
           </Button>
         </div>
-        {fieldErrors.code && <p className="text-[11px] text-rose-500 font-normal">{fieldErrors.code}</p>}
+        {fieldErrors.code && <p className="text-xs text-rose-500 font-normal">{fieldErrors.code}</p>}
       </div>
 
       {/* Display Name & Description */}
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+      <div className="space-y-1.5 min-w-0">
+        <label className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] block">
           Coupon Name / Campaign Label
         </label>
         <input
@@ -180,12 +180,12 @@ export const CouponForm: React.FC<CouponFormProps> = ({
           placeholder="e.g. Early Bird 20% Off"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+          className="w-full h-11 sm:h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#2563EB] min-h-[44px] sm:min-h-0"
         />
       </div>
 
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+      <div className="space-y-1.5 min-w-0">
+        <label className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] block">
           Description / Internal Note
         </label>
         <input
@@ -193,28 +193,28 @@ export const CouponForm: React.FC<CouponFormProps> = ({
           placeholder="e.g. Applicable for Fall 2026 course batch checkouts"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white"
+          className="w-full h-11 sm:h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#2563EB] min-h-[44px] sm:min-h-0"
         />
       </div>
 
       {/* Discount Type & Value */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+        <div className="space-y-1.5 min-w-0">
+          <label className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] block">
             Discount Type
           </label>
           <select
             value={discountType}
             onChange={(e) => setDiscountType(e.target.value as any)}
-            className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+            className="w-full h-11 sm:h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#2563EB] min-h-[44px] sm:min-h-0 cursor-pointer"
           >
             <option value="PERCENTAGE">Percentage Discount (%)</option>
             <option value="FIXED_AMOUNT">Fixed Flat Amount (INR)</option>
           </select>
         </div>
 
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+        <div className="space-y-1.5 min-w-0">
+          <label className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] block">
             Discount Value <span className="text-rose-500">*</span>
           </label>
           <input
@@ -224,19 +224,19 @@ export const CouponForm: React.FC<CouponFormProps> = ({
             placeholder={discountType === 'PERCENTAGE' ? '20' : '500'}
             value={discountValue}
             onChange={(e) => setDiscountValue(e.target.value)}
-            className={`w-full h-9 px-3 rounded-xl border text-xs font-normal text-slate-900 dark:text-white bg-white dark:bg-[#0F172A] focus:outline-none ${
-              fieldErrors.discountValue ? 'border-rose-500' : 'border-slate-200 dark:border-[#334155] focus:border-blue-500'
+            className={`w-full h-11 sm:h-9 px-3 rounded-xl border text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] bg-white dark:bg-[#0F172A] focus:outline-none min-h-[44px] sm:min-h-0 ${
+              fieldErrors.discountValue ? 'border-rose-500' : 'border-[#CBD5E1] dark:border-[#334155] focus:border-[#2563EB]'
             }`}
           />
-          {fieldErrors.discountValue && <p className="text-[11px] text-rose-500 font-normal">{fieldErrors.discountValue}</p>}
+          {fieldErrors.discountValue && <p className="text-xs text-rose-500 font-normal">{fieldErrors.discountValue}</p>}
         </div>
       </div>
 
       {/* Max Discount & Min Order */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
         {discountType === 'PERCENTAGE' && (
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+          <div className="space-y-1.5 min-w-0">
+            <label className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] block">
               Max Discount Cap (₹)
             </label>
             <input
@@ -245,13 +245,13 @@ export const CouponForm: React.FC<CouponFormProps> = ({
               placeholder="e.g. 1000"
               value={maxDiscountAmount}
               onChange={(e) => setMaxDiscountAmount(e.target.value)}
-              className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white"
+              className="w-full h-11 sm:h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#2563EB] min-h-[44px] sm:min-h-0"
             />
           </div>
         )}
 
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+        <div className="space-y-1.5 min-w-0">
+          <label className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] block">
             Min Subtotal Amount (₹)
           </label>
           <input
@@ -260,45 +260,45 @@ export const CouponForm: React.FC<CouponFormProps> = ({
             placeholder="0"
             value={minimumOrderAmount}
             onChange={(e) => setMinimumOrderAmount(e.target.value)}
-            className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white"
+            className="w-full h-11 sm:h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#2563EB] min-h-[44px] sm:min-h-0"
           />
         </div>
       </div>
 
       {/* Validity Window */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+        <div className="space-y-1.5 min-w-0">
+          <label className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] block">
             Start Date (Valid From)
           </label>
           <input
             type="date"
             value={validFrom}
             onChange={(e) => setValidFrom(e.target.value)}
-            className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white"
+            className="w-full h-11 sm:h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#2563EB] min-h-[44px] sm:min-h-0"
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+        <div className="space-y-1.5 min-w-0">
+          <label className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] block">
             End Date (Valid Until)
           </label>
           <input
             type="date"
             value={validUntil}
             onChange={(e) => setValidUntil(e.target.value)}
-            className={`w-full h-9 px-3 rounded-xl border text-xs font-normal text-slate-900 dark:text-white bg-white dark:bg-[#0F172A] ${
-              fieldErrors.validUntil ? 'border-rose-500' : 'border-slate-200 dark:border-[#334155]'
+            className={`w-full h-11 sm:h-9 px-3 rounded-xl border text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] bg-white dark:bg-[#0F172A] focus:outline-none min-h-[44px] sm:min-h-0 ${
+              fieldErrors.validUntil ? 'border-rose-500' : 'border-[#CBD5E1] dark:border-[#334155] focus:border-[#2563EB]'
             }`}
           />
-          {fieldErrors.validUntil && <p className="text-[11px] text-rose-500 font-normal">{fieldErrors.validUntil}</p>}
+          {fieldErrors.validUntil && <p className="text-xs text-rose-500 font-normal">{fieldErrors.validUntil}</p>}
         </div>
       </div>
 
       {/* Usage Limits */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+        <div className="space-y-1.5 min-w-0">
+          <label className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] block">
             Total Usage Limit (0 = Unlimited)
           </label>
           <input
@@ -306,12 +306,12 @@ export const CouponForm: React.FC<CouponFormProps> = ({
             min="0"
             value={totalUsageLimit}
             onChange={(e) => setTotalUsageLimit(e.target.value)}
-            className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white"
+            className="w-full h-11 sm:h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#2563EB] min-h-[44px] sm:min-h-0"
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+        <div className="space-y-1.5 min-w-0">
+          <label className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1] block">
             Per-Student Limit
           </label>
           <input
@@ -319,39 +319,39 @@ export const CouponForm: React.FC<CouponFormProps> = ({
             min="1"
             value={perUserUsageLimit}
             onChange={(e) => setPerUserUsageLimit(e.target.value)}
-            className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-slate-900 dark:text-white"
+            className="w-full h-11 sm:h-9 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#2563EB] min-h-[44px] sm:min-h-0"
           />
         </div>
       </div>
 
       {/* Toggles */}
-      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-[#0F172A] rounded-xl border border-slate-200 dark:border-[#334155]">
-        <span className="text-xs font-normal text-slate-700 dark:text-slate-300">Coupon Status</span>
-        <label className="flex items-center gap-2 cursor-pointer text-xs font-normal">
+      <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-[#0F172A] rounded-xl border border-[#E2E8F0] dark:border-[#334155]">
+        <span className="text-xs font-semibold text-[#0F172A] dark:text-[#CBD5E1]">Coupon Status</span>
+        <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC]">
           <input
             type="checkbox"
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
-            className="w-4 h-4 text-blue-600 rounded"
+            className="w-4 h-4 text-[#2563EB] rounded accent-[#2563EB]"
           />
           <span>Active & Redeemable</span>
         </label>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-[#263244]">
+      <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-3 border-t border-[#E2E8F0] dark:border-[#263244] min-w-0">
         <Button
           type="button"
           variant="outline"
           onClick={onCancel}
-          className="flex-1 h-9 font-normal rounded-xl justify-center"
+          className="w-full sm:flex-1 h-11 sm:h-9 min-h-[44px] sm:min-h-0 font-medium border-[#CBD5E1] dark:border-[#334155] rounded-xl text-[#0F172A] dark:text-[#CBD5E1] bg-white dark:bg-[#172033] justify-center"
         >
           Cancel
         </Button>
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="flex-1 h-9 bg-blue-600 hover:bg-blue-700 text-white font-normal rounded-xl justify-center"
+          className="w-full sm:flex-1 h-11 sm:h-9 min-h-[44px] sm:min-h-0 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium rounded-xl justify-center"
         >
           {isSubmitting ? 'Saving...' : isEditing ? 'Update Coupon' : 'Save Coupon'}
         </Button>

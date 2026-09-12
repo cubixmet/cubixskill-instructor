@@ -420,22 +420,22 @@ export const StaffDirectoryPage: React.FC = () => {
             Manage staff, roles, permissions and Course access.
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Link to="/roles/create">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Link to="/roles/create" className="flex-1 sm:flex-initial">
             <Button
               size="sm"
               variant="outline"
               leftIcon={<PlusCircle className="w-4 h-4 text-[var(--brand-primary)]" />}
-              className="h-[38px] min-h-[38px] px-3.5 rounded-xl border-[var(--border)] dark:border-[#334155] bg-[var(--surface-secondary)] text-[var(--text-primary)] font-medium cursor-pointer"
+              className="w-full sm:w-auto h-[44px] sm:h-[38px] min-h-[44px] sm:min-h-[38px] px-3.5 rounded-xl border-[var(--border)] dark:border-[#334155] bg-[var(--surface-secondary)] text-[var(--text-primary)] font-medium cursor-pointer flex items-center justify-center text-xs"
             >
               Create Role
             </Button>
           </Link>
-          <Link to="/staff/create">
+          <Link to="/staff/create" className="flex-1 sm:flex-initial">
             <Button
               size="sm"
               leftIcon={<Plus className="w-4 h-4" />}
-              className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-medium h-[38px] min-h-[38px] px-4 rounded-xl shadow-xs cursor-pointer"
+              className="w-full sm:w-auto bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-[var(--brand-primary-foreground)] font-medium h-[44px] sm:h-[38px] min-h-[44px] sm:min-h-[38px] px-4 rounded-xl shadow-xs cursor-pointer flex items-center justify-center text-xs"
             >
               Add Staff
             </Button>
@@ -463,7 +463,7 @@ export const StaffDirectoryPage: React.FC = () => {
 
         <div className="bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl p-3.5 sm:p-4 shadow-2xs space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-[#64748B] dark:text-[#94A3B8]">System &amp; Custom Roles</span>
+            <span className="text-[11px] font-medium text-[#64748B] dark:text-[#94A3B8]">Roles</span>
             <ShieldCheck className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
           </div>
           <p className="text-lg sm:text-xl font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{roles.length || 2}</p>
@@ -488,15 +488,15 @@ export const StaffDirectoryPage: React.FC = () => {
               placeholder="Search name, email, department, role…"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-              className="w-full h-10 pl-9 pr-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs text-[#0F172A] dark:text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/10"
+              className="w-full h-11 sm:h-10 pl-9 pr-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs text-[#0F172A] dark:text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/10"
             />
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide shrink-0 py-0.5">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 shrink-0">
             <select
               value={filterRole}
               onChange={(e) => { setFilterRole(e.target.value); setCurrentPage(1); }}
-              className="h-10 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs text-[#0F172A] dark:text-[#F8FAFC] font-medium focus:outline-none focus:border-[#3B82F6] shrink-0"
+              className="w-full sm:w-auto h-11 sm:h-10 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs text-[#0F172A] dark:text-[#F8FAFC] font-medium focus:outline-none focus:border-[#3B82F6]"
             >
               <option value="all">All Roles</option>
               <option value="ACADEMY_ADMIN">Academy Admin</option>
@@ -506,7 +506,7 @@ export const StaffDirectoryPage: React.FC = () => {
             <select
               value={filterStatus}
               onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-              className="h-10 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs text-[#0F172A] dark:text-[#F8FAFC] font-medium focus:outline-none focus:border-[#3B82F6] shrink-0"
+              className="w-full sm:w-auto h-11 sm:h-10 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs text-[#0F172A] dark:text-[#F8FAFC] font-medium focus:outline-none focus:border-[#3B82F6]"
             >
               <option value="all">All Status</option>
               <option value="Active">Active</option>
@@ -523,7 +523,7 @@ export const StaffDirectoryPage: React.FC = () => {
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span className="truncate">{errorMessage}</span>
           </div>
-          <Button size="sm" variant="outline" onClick={loadStaffData} className="border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-100 min-h-[32px] shrink-0">
+          <Button size="sm" variant="outline" onClick={loadStaffData} className="border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-100 min-h-[36px] shrink-0">
             Retry
           </Button>
         </div>
@@ -675,15 +675,15 @@ export const StaffDirectoryPage: React.FC = () => {
           paginatedStaff.map((stf) => (
             <div
               key={stf.id}
-              className="bg-white dark:bg-[#111827] rounded-2xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs p-3.5 sm:p-4 space-y-3 min-w-0"
+              className="bg-white dark:bg-[#111827] rounded-2xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs p-4 space-y-3 min-w-0"
             >
               <div className="flex items-start gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-2xl bg-[#EFF6FF] dark:bg-[rgba(37,99,235,0.14)] text-[#2563EB] dark:text-[#60A5FA] border border-[#BFDBFE] dark:border-[rgba(59,130,246,0.22)] font-semibold text-sm flex items-center justify-center shrink-0 select-none shadow-2xs">
                   {initials(stf.name)}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC] leading-tight truncate">{stf.name}</p>
-                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-normal truncate mt-0.5">{stf.email}</p>
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <p className="font-semibold text-sm text-[#0F172A] dark:text-[#F8FAFC] leading-tight break-words">{stf.name}</p>
+                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-normal break-all">{stf.email}</p>
                 </div>
                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-medium shrink-0 flex items-center gap-1 ${
                   stf.status === 'Active'
@@ -703,7 +703,7 @@ export const StaffDirectoryPage: React.FC = () => {
                 }`}>
                   {stf.roleName}
                 </span>
-                <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-medium">{stf.department}</span>
+                <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-medium break-words">{stf.department}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-[11px] text-[#64748B] dark:text-[#94A3B8] font-normal border-t border-[#E2E8F0] dark:border-[#263244] pt-2.5">
@@ -711,24 +711,24 @@ export const StaffDirectoryPage: React.FC = () => {
                   <BookOpen className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
                   <span><strong className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{stf.assignedCoursesCount}</strong> Courses</span>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 min-w-0">
                   <Mail className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8] shrink-0" />
-                  <span>Active: <strong className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{formatLastActive(stf.lastActiveAt)}</strong></span>
+                  <span className="truncate">Active: <strong className="font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{formatLastActive(stf.lastActiveAt)}</strong></span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 pt-2 border-t border-[#E2E8F0] dark:border-[#263244]">
                 <button
                   type="button"
-                  onClick={() => setEditingStaff(stf)}
-                  className="flex-1 h-9 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center justify-center gap-1.5 cursor-pointer"
+                  onClick={() => navigate(`/staff/${stf.id}/edit`)}
+                  className="flex-1 h-[44px] min-h-[44px] rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-[#172033] flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Edit3 className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" /> Edit
                 </button>
                 <button
                   type="button"
                   onClick={() => handleToggleActive(stf.id, stf.status)}
-                  className={`flex-1 h-9 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`flex-1 h-[44px] min-h-[44px] rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer ${
                     stf.status === 'Active'
                       ? 'border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 bg-rose-50/50 dark:bg-[rgba(244,63,94,0.10)]'
                       : 'border-emerald-200 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-[rgba(16,185,129,0.10)]'
@@ -749,12 +749,12 @@ export const StaffDirectoryPage: React.FC = () => {
           <span className="text-[#64748B] dark:text-[#94A3B8] text-center sm:text-left">
             Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, staffList.length)} of {staffList.length} staff members
           </span>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap justify-center">
             <button
               type="button"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="p-2 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#111827] text-[#0F172A] dark:text-[#CBD5E1] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-[#172033] cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+              className="p-2 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#111827] text-[#0F172A] dark:text-[#CBD5E1] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-[#172033] cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -763,7 +763,7 @@ export const StaffDirectoryPage: React.FC = () => {
                 key={pg}
                 type="button"
                 onClick={() => setCurrentPage(pg)}
-                className={`w-9 h-9 rounded-xl font-medium text-xs transition-all cursor-pointer ${
+                className={`w-[44px] h-[44px] rounded-xl font-medium text-xs transition-all cursor-pointer ${
                   currentPage === pg
                     ? 'bg-[#2563EB] text-white shadow-2xs font-semibold'
                     : 'bg-white dark:bg-[#111827] border border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#172033]'
@@ -776,7 +776,7 @@ export const StaffDirectoryPage: React.FC = () => {
               type="button"
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className="p-2 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#111827] text-[#0F172A] dark:text-[#CBD5E1] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-[#172033] cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+              className="p-2 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#111827] text-[#0F172A] dark:text-[#CBD5E1] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-[#172033] cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

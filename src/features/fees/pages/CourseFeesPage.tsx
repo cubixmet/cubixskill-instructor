@@ -5,10 +5,8 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
-  Send,
   RefreshCw,
   Settings2,
-  Wallet,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
@@ -205,7 +203,7 @@ export const CourseFeesPage: React.FC = () => {
 
       {/* HEADER BAR WITH COURSE-LEVEL FEE CONFIGURATION ACTION */}
       <div className="bg-white dark:bg-[#111827] p-4 rounded-2xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="space-y-1">
+        <div className="space-y-1 min-w-0">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-[#2563EB] dark:text-[#60A5FA] block">
             Student Fee Collection &amp; Ledger
           </span>
@@ -230,8 +228,8 @@ export const CourseFeesPage: React.FC = () => {
           <Button
             size="sm"
             onClick={() => setIsConfigModalOpen(true)}
-            className="h-9 font-medium bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl flex-1 sm:flex-initial justify-center"
-            leftIcon={<Settings2 className="w-3.5 h-3.5" />}
+            className="h-11 sm:h-9 min-h-[44px] sm:min-h-0 font-medium bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl flex-1 sm:flex-initial justify-center"
+            leftIcon={<Settings2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />}
           >
             {courseConfig?.is_configured ? 'Edit Fee Config' : 'Configure Fee'}
           </Button>
@@ -239,8 +237,8 @@ export const CourseFeesPage: React.FC = () => {
             size="sm"
             variant="outline"
             onClick={loadAllData}
-            className="h-9 font-medium bg-white dark:bg-[#172033] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#1E293B]"
-            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+            className="h-11 sm:h-9 min-h-[44px] sm:min-h-0 font-medium bg-white dark:bg-[#172033] border-[#CBD5E1] dark:border-[#334155] text-[#0F172A] dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-[#1E293B]"
+            leftIcon={<RefreshCw className="w-4 h-4 sm:w-3.5 sm:h-3.5" />}
           >
             Refresh
           </Button>
@@ -249,48 +247,48 @@ export const CourseFeesPage: React.FC = () => {
 
       {/* 1. DASHBOARD STATS SUMMARY */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 min-w-0">
-        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-1">
+        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-1 min-w-0">
           <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-medium block truncate">Total Students</span>
           <p className="text-base sm:text-lg font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
             {summary?.total_students || 0}
           </p>
         </Card>
 
-        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-1">
+        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-1 min-w-0">
           <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-medium block truncate">Total Expected</span>
-          <p className="text-base sm:text-lg font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
+          <p className="text-base sm:text-lg font-semibold text-[#0F172A] dark:text-[#F8FAFC] truncate break-all">
             {currSymbol}{(summary?.total_expected || 0).toLocaleString('en-IN')}
           </p>
         </Card>
 
-        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-1">
+        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-1 min-w-0">
           <span className="text-[11px] text-emerald-600 dark:text-[#10B981] font-medium block truncate">Collected</span>
-          <p className="text-base sm:text-lg font-semibold text-emerald-600 dark:text-[#10B981]">
+          <p className="text-base sm:text-lg font-semibold text-emerald-600 dark:text-[#10B981] truncate break-all">
             {currSymbol}{(summary?.total_collected || 0).toLocaleString('en-IN')}
           </p>
         </Card>
 
-        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-1">
+        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-1 min-w-0">
           <span className="text-[11px] text-amber-600 dark:text-[#F59E0B] font-medium block truncate">Outstanding</span>
-          <p className="text-base sm:text-lg font-semibold text-amber-600 dark:text-[#F59E0B]">
+          <p className="text-base sm:text-lg font-semibold text-amber-600 dark:text-[#F59E0B] truncate break-all">
             {currSymbol}{(summary?.outstanding_balance || 0).toLocaleString('en-IN')}
           </p>
         </Card>
 
-        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-1 col-span-2 lg:col-span-1">
+        <Card className="bg-white dark:bg-[#111827] p-3.5 sm:p-4 border-[#E2E8F0] dark:border-[#263244] shadow-2xs space-y-1 col-span-2 lg:col-span-1 min-w-0">
           <span className="text-[11px] text-rose-600 dark:text-[#F87171] font-medium block truncate">Overdue</span>
-          <p className="text-base sm:text-lg font-semibold text-rose-600 dark:text-[#F87171]">
+          <p className="text-base sm:text-lg font-semibold text-rose-600 dark:text-[#F87171] truncate break-all">
             {currSymbol}{(summary?.overdue_amount || 0).toLocaleString('en-IN')}
           </p>
         </Card>
       </div>
 
       {/* 2. TAB WORKSPACE NAVIGATION */}
-      <div className="flex border-b border-[#E2E8F0] dark:border-[#263244] overflow-x-auto no-scrollbar whitespace-nowrap">
+      <div className="flex border-b border-[#E2E8F0] dark:border-[#263244] overflow-x-auto no-scrollbar whitespace-nowrap min-w-0">
         <button
           type="button"
           onClick={() => setActiveTab('students')}
-          className={`py-2.5 px-4 font-semibold text-xs border-b-2 cursor-pointer transition-colors shrink-0 ${
+          className={`py-3 px-4 font-semibold text-xs border-b-2 cursor-pointer transition-colors shrink-0 min-h-[44px] flex items-center ${
             activeTab === 'students'
               ? 'border-[#2563EB] text-[#2563EB] dark:text-[#60A5FA]'
               : 'border-transparent text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
@@ -301,7 +299,7 @@ export const CourseFeesPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('ledger')}
-          className={`py-2.5 px-4 font-semibold text-xs border-b-2 cursor-pointer transition-colors shrink-0 ${
+          className={`py-3 px-4 font-semibold text-xs border-b-2 cursor-pointer transition-colors shrink-0 min-h-[44px] flex items-center ${
             activeTab === 'ledger'
               ? 'border-[#2563EB] text-[#2563EB] dark:text-[#60A5FA]'
               : 'border-transparent text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
@@ -312,7 +310,7 @@ export const CourseFeesPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('overdue')}
-          className={`py-2.5 px-4 font-semibold text-xs border-b-2 cursor-pointer transition-colors shrink-0 ${
+          className={`py-3 px-4 font-semibold text-xs border-b-2 cursor-pointer transition-colors shrink-0 min-h-[44px] flex items-center ${
             activeTab === 'overdue'
               ? 'border-[#2563EB] text-[#2563EB] dark:text-[#60A5FA]'
               : 'border-transparent text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]'
@@ -328,13 +326,13 @@ export const CourseFeesPage: React.FC = () => {
           {/* SEARCH & STATUS FILTER TOOLBAR */}
           <div className="bg-white dark:bg-[#111827] p-3.5 rounded-2xl border border-[#E2E8F0] dark:border-[#263244] shadow-2xs flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between min-w-0">
             <div className="relative flex-1 min-w-0">
-              <Search className="w-3.5 h-3.5 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-4 h-4 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search student name, code, email..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-9.5 pl-9 pr-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6] font-normal"
+                className="w-full h-11 sm:h-9.5 pl-9 pr-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#64748B] focus:outline-none focus:border-[#3B82F6] font-normal min-h-[44px] sm:min-h-0"
               />
             </div>
 
@@ -342,7 +340,7 @@ export const CourseFeesPage: React.FC = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-9.5 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6] cursor-pointer w-full sm:w-auto"
+                className="h-11 sm:h-9.5 px-3 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#0F172A] text-base sm:text-xs font-normal text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:border-[#3B82F6] cursor-pointer w-full sm:w-auto min-h-[44px] sm:min-h-0"
               >
                 <option value="all">All Fee Statuses</option>
                 <option value="PAID">Paid</option>

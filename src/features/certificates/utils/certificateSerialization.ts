@@ -147,22 +147,24 @@ export function serializeCertificateTemplate(
       ? state.backgroundImageUrl
       : '';
 
-  let apiPageSize = 'LETTER';
+  let apiPageSize: 'A4' | 'LETTER' | 'CUSTOM' = 'LETTER';
   let customW = state.customWidth;
   let customH = state.customHeight;
   let customU = state.customUnit ?? 'MM';
 
-  if (state.pageSize === 'A4_LANDSCAPE' || state.pageSize === 'A4_PORTRAIT') {
+  if (state.pageSize === 'A4_LANDSCAPE' || state.pageSize === 'A4_PORTRAIT' || state.pageSize === 'A4') {
     apiPageSize = 'A4';
-  } else if (state.pageSize === 'SQUARE_CERTIFICATE') {
+  } else if (state.pageSize === 'SQUARE_CERTIFICATE' || state.pageSize === 'CUSTOM') {
     apiPageSize = 'CUSTOM';
-    customW = 10;
-    customH = 10;
-    customU = 'INCH';
-  } else if (state.pageSize === 'CUSTOM') {
-    apiPageSize = 'CUSTOM';
-  } else if (state.pageSize === 'LETTER' || state.pageSize === 'A4') {
-    apiPageSize = state.pageSize;
+    if (state.pageSize === 'SQUARE_CERTIFICATE') {
+      customW = 10;
+      customH = 10;
+      customU = 'INCH';
+    }
+  } else if (state.pageSize === 'LETTER') {
+    apiPageSize = 'LETTER';
+  } else {
+    apiPageSize = 'LETTER';
   }
 
   const bgFitVal = state.bgFit || 'cover';
@@ -173,15 +175,16 @@ export function serializeCertificateTemplate(
   return {
     name: state.templateName,
     description: state.description ?? '',
+    course_id: state.selectedCourseId ?? null,
     page_size: apiPageSize,
     orientation: state.orientation,
     background_media: state.backgroundAssetId ?? null,
     ...(apiPageSize === 'CUSTOM'
       ? {
-          custom_width: customW,
-          custom_height: customH,
-          custom_unit: customU,
-        }
+        custom_width: customW,
+        custom_height: customH,
+        custom_unit: customU,
+      }
       : {}),
     template_data: {
       elements: normalizedElements,
@@ -225,6 +228,8 @@ export function deserializeCertificateTemplate(apiTemplate: CertificateTemplateD
   backgroundAssetId?: string | null;
   bgFit?: any;
   bgPosition?: any;
+  bgOpacity?: number;
+  bgColor?: string;
   elements: CanvasElement[];
   selectedCourseId?: string;
   requiredStudentFields?: string[];
@@ -348,9 +353,9 @@ export function deserializeCertificateTemplate(apiTemplate: CertificateTemplateD
     apiTemplate.background_media_url ??
     (typeof apiTemplate.background_media === 'object'
       ? apiTemplate.background_media?.url ||
-        apiTemplate.background_media?.file_url ||
-        apiTemplate.background_media?.relative_path ||
-        apiTemplate.background_media?.stored_filename
+      apiTemplate.background_media?.file_url ||
+      apiTemplate.background_media?.relative_path ||
+      apiTemplate.background_media?.stored_filename
       : null) ??
     '';
 
@@ -366,8 +371,8 @@ export function deserializeCertificateTemplate(apiTemplate: CertificateTemplateD
     (typeof apiTemplate.background_media === 'object'
       ? apiTemplate.background_media?.id
       : typeof apiTemplate.background_media === 'string'
-      ? apiTemplate.background_media
-      : null);
+        ? apiTemplate.background_media
+        : null);
 
   const bgFitVal = templateData.background?.fit ?? templateData.bgFit ?? templateData.bg_fit ?? 'cover';
   const bgPosVal = templateData.background?.position ?? templateData.bgPosition ?? templateData.bg_position ?? 'center';

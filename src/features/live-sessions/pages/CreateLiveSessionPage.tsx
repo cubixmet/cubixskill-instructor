@@ -9,6 +9,7 @@ import {
   Info,
   Check,
   CalendarCheck,
+  ArrowLeft,
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Switch } from '../../../components/ui/Switch';
@@ -16,12 +17,7 @@ import { useLiveSessionStore } from '../store/liveSession.store';
 import { courseRoutes } from '../../../utils/courseRoutes.utils';
 import { useCourseFeatures } from '../../../hooks/useCourseFeatures';
 
-// Brand icons or SVGs for supported platforms
-const GoogleMeetIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none">
-    <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
+
 
 export const CreateLiveSessionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -209,14 +205,21 @@ export const CreateLiveSessionPage: React.FC = () => {
 
       {/* PAGE HEADER */}
       <div className="space-y-3">
-
+        <button
+          type="button"
+          onClick={() => navigate('/live-classroom')}
+          className="inline-flex items-center gap-2 min-h-[44px] px-3 -ml-3 rounded-xl text-xs font-semibold text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#172033] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Live Classroom</span>
+        </button>
 
         <div className="space-y-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight leading-tight break-words">
             {sessionId ? 'Edit Live Session' : 'Schedule Live Session'}
           </h1>
           <p className="text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8] font-normal leading-relaxed">
-            Create and schedule a new live class for this course.
+            Create and schedule a new live class for your course students.
           </p>
         </div>
       </div>
@@ -230,7 +233,7 @@ export const CreateLiveSessionPage: React.FC = () => {
       {/* FULL PAGE FORM */}
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* MAIN FORM CARD */}
-        <Card padding="none" className="space-y-4 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl p-4 sm:p-5 shadow-2xs">
+        <Card padding="none" className="space-y-4 bg-white dark:bg-[#111827] border border-[#E2E8F0] dark:border-[#263244] rounded-2xl p-4 sm:p-5 shadow-2xs w-full max-w-full min-w-0">
           {/* 1. SESSION TITLE */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-[#0F172A] dark:text-[#CBD5E1]">
@@ -245,7 +248,7 @@ export const CreateLiveSessionPage: React.FC = () => {
               }}
               required
               placeholder="e.g. Introduction to React Hooks"
-              className={`w-full h-12 px-3.5 rounded-xl bg-white dark:bg-[#0F172A] text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] placeholder-[#64748B] dark:placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] ${
+              className={`w-full h-12 min-h-[44px] px-3.5 rounded-xl bg-white dark:bg-[#0F172A] text-base sm:text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] placeholder-[#64748B] dark:placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] ${
                 fieldErrors.title ? 'border-2 border-rose-500' : 'border border-[#CBD5E1] dark:border-[#334155]'
               }`}
             />
@@ -264,7 +267,7 @@ export const CreateLiveSessionPage: React.FC = () => {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add a brief description about what you will cover in this live session..."
-                className="w-full p-3.5 pb-6 bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] rounded-xl text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] placeholder-[#64748B] dark:placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] resize-none min-h-[100px]"
+                className="w-full p-3.5 pb-6 bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] rounded-xl text-base sm:text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] placeholder-[#64748B] dark:placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] resize-none min-h-[100px]"
               />
               <span className="absolute right-3 bottom-2 text-[10px] text-[#64748B] dark:text-[#64748B] font-semibold">
                 {description.length}/500
@@ -281,7 +284,7 @@ export const CreateLiveSessionPage: React.FC = () => {
               <select
                 value={provider}
                 onChange={(e) => setProvider(e.target.value as any)}
-                className="w-full h-12 pl-3.5 pr-10 bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] rounded-xl text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] appearance-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                className="w-full h-12 min-h-[44px] pl-3.5 pr-10 bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] rounded-xl text-base sm:text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] appearance-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
               >
                 <option value="GOOGLE_MEET" className="bg-white dark:bg-[#111827]">Google Meet</option>
                 <option value="ZOOM" className="bg-white dark:bg-[#111827]">Zoom</option>
@@ -298,7 +301,7 @@ export const CreateLiveSessionPage: React.FC = () => {
               Date & Time <span className="text-rose-500">*</span>
             </label>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="relative">
                 <input
                   type="date"
@@ -308,7 +311,7 @@ export const CreateLiveSessionPage: React.FC = () => {
                     if (fieldErrors.date) setFieldErrors((prev) => ({ ...prev, date: '' }));
                   }}
                   required
-                  className={`w-full h-12 pl-9 pr-3 rounded-xl bg-white dark:bg-[#0F172A] text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB] ${
+                  className={`w-full h-12 min-h-[44px] pl-9 pr-3 rounded-xl bg-white dark:bg-[#0F172A] text-base sm:text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB] ${
                     fieldErrors.date ? 'border-2 border-rose-500' : 'border border-[#CBD5E1] dark:border-[#334155]'
                   }`}
                 />
@@ -324,7 +327,7 @@ export const CreateLiveSessionPage: React.FC = () => {
                     if (fieldErrors.time) setFieldErrors((prev) => ({ ...prev, time: '' }));
                   }}
                   required
-                  className={`w-full h-12 pl-9 pr-3 rounded-xl bg-white dark:bg-[#0F172A] text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB] ${
+                  className={`w-full h-12 min-h-[44px] pl-9 pr-3 rounded-xl bg-white dark:bg-[#0F172A] text-base sm:text-xs font-medium text-[#0F172A] dark:text-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#2563EB] ${
                     fieldErrors.time ? 'border-2 border-rose-500' : 'border border-[#CBD5E1] dark:border-[#334155]'
                   }`}
                 />
@@ -344,7 +347,7 @@ export const CreateLiveSessionPage: React.FC = () => {
               <select
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                className="w-full h-12 pl-9 pr-10 bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] rounded-xl text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] appearance-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                className="w-full h-12 min-h-[44px] pl-9 pr-10 bg-white dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] rounded-xl text-base sm:text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] appearance-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
               >
                 <option value={30} className="bg-white dark:bg-[#111827]">30 minutes</option>
                 <option value={45} className="bg-white dark:bg-[#111827]">45 minutes</option>
@@ -382,11 +385,11 @@ export const CreateLiveSessionPage: React.FC = () => {
                   {/* Allow Early Join */}
                   {canUseCourseAnnouncement && (
                     <div className="flex items-center justify-between gap-3">
-                      <div className="space-y-0.5 min-w-0">
-                        <strong className="text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC] block">
+                      <div className="space-y-0.5 min-w-0 flex-1">
+                        <strong className="text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC] block truncate">
                           Allow students to join early
                         </strong>
-                        <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] block font-normal leading-tight">
+                        <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] block font-normal leading-normal">
                           Students can join 10 minutes before start time
                         </span>
                       </div>
@@ -401,11 +404,11 @@ export const CreateLiveSessionPage: React.FC = () => {
                         canUseCourseAnnouncement ? 'pt-3 border-t border-slate-100 dark:border-[#263244]' : ''
                       }`}
                     >
-                      <div className="space-y-0.5 min-w-0">
-                        <strong className="text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC] block">
+                      <div className="space-y-0.5 min-w-0 flex-1">
+                        <strong className="text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC] block truncate">
                           Send email notifications
                         </strong>
-                        <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] block font-normal leading-tight">
+                        <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] block font-normal leading-normal">
                           Notify enrolled students about this session
                         </span>
                       </div>
@@ -417,12 +420,20 @@ export const CreateLiveSessionPage: React.FC = () => {
             </div>
           )}
 
-          {/* 8. SCHEDULE SESSION ACTION BUTTON */}
-          <div className="pt-2">
+          {/* 8. SCHEDULE SESSION & CANCEL ACTIONS */}
+          <div className="pt-2 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => navigate('/live-classroom')}
+              className="w-full sm:w-auto h-12 min-h-[44px] px-5 rounded-xl border border-[#CBD5E1] dark:border-[#334155] bg-white dark:bg-[#172033] text-[#0F172A] dark:text-[#F8FAFC] font-semibold text-xs hover:bg-slate-50 dark:hover:bg-[#1E293B] transition-colors cursor-pointer flex items-center justify-center"
+            >
+              Cancel
+            </button>
+
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-12 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(37,99,235,0.25)] transition-all cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto h-12 min-h-[44px] px-6 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(37,99,235,0.25)] transition-all cursor-pointer disabled:opacity-50"
             >
               <CalendarCheck className="w-4 h-4 stroke-[2.5]" />
               <span>{isSubmitting ? 'Scheduling...' : sessionId ? 'Save Changes' : 'Schedule Session'}</span>

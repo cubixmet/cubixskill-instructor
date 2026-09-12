@@ -1149,8 +1149,9 @@ export const StudentSinglePage: React.FC = () => {
       {/* REMOVE FROM COURSE MODAL */}
       <Modal isOpen={isRemoveModalOpen} onClose={() => setIsRemoveModalOpen(false)} title="Remove Student from Course">
         <div className="space-y-4 text-xs font-sans text-left">
-          <div className="p-3 rounded-xl text-rose-900 bg-rose-50 border border-rose-200 font-medium text-xs">
-            ⚠️ Are you sure you want to remove <strong>{name}</strong> from this course enrollment?
+          <div className="p-3 rounded-xl text-rose-900 bg-rose-50 border border-rose-200 font-medium text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" aria-hidden="true" />
+            <span>Are you sure you want to remove <strong>{name}</strong> from this course enrollment?</span>
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>

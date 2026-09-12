@@ -52,7 +52,12 @@ export function useAcademyEventsSocket() {
         return;
       }
 
-      const wsUrl = getWebSocketUrl('/ws/academy-events/?portal=instructor');
+      const token =
+        localStorage.getItem('instructor_access_token') ||
+        sessionStorage.getItem('instructor_access_token') ||
+        '';
+      const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+      const wsUrl = getWebSocketUrl(`/ws/academy-events/?portal=instructor${tokenParam}`);
       try {
         const socket = new WebSocket(wsUrl);
         socketRef.current = socket;

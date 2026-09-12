@@ -6,6 +6,11 @@ export type MediaLike =
       file_url?: string | null;
       relative_path?: string | null;
       file?: string | null;
+      thumbnail?: string | null;
+      thumbnail_url?: string | null;
+      cover_image?: string | null;
+      cover_image_url?: string | null;
+      image?: string | null;
     }
   | null
   | undefined;
@@ -43,6 +48,11 @@ export function resolveMediaUrl(value?: MediaLike): string {
       value.media_url ||
       value.file_url ||
       value.relative_path ||
+      value.thumbnail ||
+      value.thumbnail_url ||
+      value.cover_image ||
+      value.cover_image_url ||
+      value.image ||
       (typeof value.file === 'string' ? value.file : null);
   }
 
@@ -56,7 +66,18 @@ export function resolveMediaUrl(value?: MediaLike): string {
     clean = clean.replace(/^https?:\/\/testserver/i, '');
   }
 
-  // Already absolute or local blob/data URL
+  const backendOrigin = getBackendOrigin();
+
+  // If URL erroneously starts with current window location origin (frontend dev server, e.g. http://localhost:5173),
+  // strip the frontend origin so it resolves against backend origin instead.
+  if (typeof window !== 'undefined' && window.location && window.location.origin) {
+    const frontendOrigin = window.location.origin;
+    if (frontendOrigin !== backendOrigin && clean.startsWith(frontendOrigin)) {
+      clean = clean.replace(frontendOrigin, '');
+    }
+  }
+
+  // Already absolute (http://, https://, blob:, data:)
   if (
     clean.startsWith('http://') ||
     clean.startsWith('https://') ||
@@ -66,9 +87,11 @@ export function resolveMediaUrl(value?: MediaLike): string {
     return clean;
   }
 
-  const origin = getBackendOrigin();
+  // Clean duplicate /media/media/
+  clean = clean.replace(/^\/?media\/media\//i, '/media/');
+
   const cleanPath = clean.startsWith('/') ? clean : `/${clean}`;
-  return `${origin}${cleanPath}`;
+  return `${backendOrigin}${cleanPath}`;
 }
 
 /**

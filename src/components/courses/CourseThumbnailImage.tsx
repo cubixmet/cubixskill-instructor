@@ -8,14 +8,16 @@ export interface CourseThumbnailImageProps {
   className?: string;
   placeholderClassName?: string;
   iconClassName?: string;
+  initials?: string;
 }
 
 export const CourseThumbnailImage: React.FC<CourseThumbnailImageProps> = ({
   src,
   alt = 'Course thumbnail',
   className = 'w-full h-full object-cover',
-  placeholderClassName = 'w-full h-full flex flex-col items-center justify-center bg-gradient-to-tr from-blue-50 to-sky-100 dark:from-[#172033] dark:to-[#1E293B] text-blue-600 dark:text-[#60A5FA]',
-  iconClassName = 'w-8 h-8',
+  placeholderClassName = 'w-full h-full flex flex-col items-center justify-center bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold',
+  iconClassName = 'w-5 h-5',
+  initials,
 }) => {
   const [imageFailed, setImageFailed] = useState<boolean>(false);
   const resolvedUrl = resolveMediaUrl(src);
@@ -27,8 +29,12 @@ export const CourseThumbnailImage: React.FC<CourseThumbnailImageProps> = ({
 
   if (!resolvedUrl || imageFailed) {
     return (
-      <div className={placeholderClassName}>
-        <BookOpen className={iconClassName} />
+      <div className={placeholderClassName} aria-label={alt}>
+        {initials ? (
+          <span className="text-sm font-semibold tracking-wider uppercase select-none">{initials}</span>
+        ) : (
+          <BookOpen className={iconClassName} />
+        )}
       </div>
     );
   }

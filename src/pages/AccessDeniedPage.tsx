@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ShieldAlert, ArrowLeft, LayoutDashboard } from "lucide-react";
 import { Button } from "../components/ui/Button";
+import { useAuthStore } from "../store/auth.store";
 
 export interface AccessDeniedPageProps {
   reason?: "ROLE" | "PERMISSION" | "FEATURE";
@@ -36,7 +37,7 @@ export const AccessDeniedPage: React.FC<AccessDeniedPageProps> = ({
           <p className="text-sm text-[#64748B] dark:text-[#94A3B8] leading-relaxed">{getErrorMessage()}</p>
         </div>
 
-        <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
           <Link to="/dashboard" className="w-full sm:w-auto">
             <Button
               variant="primary"
@@ -47,16 +48,13 @@ export const AccessDeniedPage: React.FC<AccessDeniedPageProps> = ({
               Back to Dashboard
             </Button>
           </Link>
-          <Link to="/" className="w-full sm:w-auto">
-            <Button
-              variant="ghost"
-              size="md"
-              className="w-full"
-              leftIcon={<ArrowLeft className="w-4 h-4" />}
-            >
-              Go Home
-            </Button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => useAuthStore.getState().logout()}
+            className="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:underline min-h-[40px] flex items-center justify-center cursor-pointer"
+          >
+            Sign Out
+          </button>
         </div>
       </div>
     </div>

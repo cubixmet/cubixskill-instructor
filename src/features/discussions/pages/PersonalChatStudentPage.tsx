@@ -19,7 +19,7 @@ import { discussionService } from '../../../services/discussion.service';
 import { coursesService } from '../../../services/courses.service';
 import { storageService } from '../../../services/storage.service';
 import { authService } from '../../../services/auth.service';
-import { authStore, useAuthStore } from '../../../store/auth.store';
+import { useAuthStore } from '../../../store/auth.store';
 import { usePersonalChatSocket } from '../hooks/usePersonalChatSocket';
 import { courseRoutes } from '../../../utils/courseRoutes.utils';
 import { normalizeCourseId } from '../../../utils/courseValidation.utils';
@@ -107,6 +107,34 @@ export const PersonalChatStudentPage: React.FC = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previousMessageCountRef = useRef<number>(0);
+
+  // Dynamic Visual Viewport Height tracking for Mobile Keyboard (Android/iOS Safari)
+  const [viewportHeight, setViewportHeight] = useState<string | number>('100dvh');
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const handleResize = () => {
+      if (window.visualViewport) {
+        if (window.innerWidth < 768) {
+          setViewportHeight(`${window.visualViewport.height}px`);
+        } else {
+          setViewportHeight('100%');
+        }
+      }
+    };
+
+    window.visualViewport.addEventListener('resize', handleResize);
+    window.visualViewport.addEventListener('scroll', handleResize);
+    handleResize();
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+        window.visualViewport.removeEventListener('scroll', handleResize);
+      }
+    };
+  }, []);
 
   // Smooth / Auto bottom scroll anchor helper
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
@@ -355,6 +383,9 @@ export const PersonalChatStudentPage: React.FC = () => {
       }
     } finally {
       setSending(false);
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
     }
   };
 
@@ -405,7 +436,10 @@ export const PersonalChatStudentPage: React.FC = () => {
   }
 
   return (
-    <div className="bg-white dark:bg-[#0B0F19] border-0 sm:border border-slate-200 dark:border-slate-800 sm:rounded-2xl shadow-xs overflow-hidden h-[calc(100dvh-5rem)] md:h-[calc(100vh-6rem)] min-h-[500px] flex flex-col font-sans text-xs text-left w-full max-w-5xl mx-auto min-w-0">
+    <div
+      style={{ height: typeof window !== 'undefined' && window.innerWidth < 768 ? viewportHeight : undefined }}
+      className="bg-white dark:bg-[#0B0F19] border-0 sm:border border-slate-200 dark:border-slate-800 sm:rounded-2xl shadow-xs overflow-hidden h-dvh md:h-[calc(100vh-6rem)] min-h-[500px] flex flex-col font-sans text-xs text-left w-full max-w-5xl mx-auto min-w-0"
+    >
       {/* 1. CHAT HEADER */}
       <div className="h-14 px-3 sm:px-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/90 dark:bg-[#0F172A] shrink-0 w-full max-w-full min-w-0 z-10">
         <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
@@ -701,6 +735,8 @@ export const PersonalChatStudentPage: React.FC = () => {
 
           <Button
             type="submit"
+            onMouseDown={(e) => e.preventDefault()}
+            onTouchStart={(e) => e.preventDefault()}
             disabled={sending || isUploadingFile || (!messageContent.trim() && !uploadedMediaId)}
             className="h-9 sm:h-10 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 font-medium text-xs rounded-xl sm:rounded-2xl shrink-0 min-w-[56px] sm:min-w-[72px] shadow-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
           >
