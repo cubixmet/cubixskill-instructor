@@ -230,7 +230,7 @@ export interface ControlPanelStorageSettings {
   id?: string;
   storage_billing_enabled: boolean;
   billing_enabled?: boolean;
-  storage_billing_interval: '10_SECONDS' | '6_HOURS' | '12_HOURS' | '1_DAY';
+  storage_billing_interval: '10_SECONDS' | '6_HOURS' | '12_HOURS' | '18_HOURS' | '1_DAY';
   storage_credit_rate_per_gb: string;
   billing_interval_label?: string;
 }
