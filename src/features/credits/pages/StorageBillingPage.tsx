@@ -43,12 +43,18 @@ export const StorageBillingPage: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [sumData, snapData, chargeData, settingsData] = await Promise.all([
+      // Super Admins may have no academy assigned. A failed academy summary
+      // must not prevent authorized platform pricing settings from loading.
+      const [summaryResult, snapshotsResult, chargesResult, settingsResult] = await Promise.allSettled([
         storageService.getSummaryDashboard(),
         storageService.getSnapshots(),
         storageService.getChargesHistory(),
-        isPlatformAdmin ? storageService.getControlPanelSettings().catch(() => null) : Promise.resolve(null),
+        isPlatformAdmin ? storageService.getControlPanelSettings() : Promise.resolve(null),
       ]);
+      const sumData = summaryResult.status === 'fulfilled' ? summaryResult.value : null;
+      const snapData = snapshotsResult.status === 'fulfilled' ? snapshotsResult.value : [];
+      const chargeData = chargesResult.status === 'fulfilled' ? chargesResult.value : [];
+      const settingsData = settingsResult.status === 'fulfilled' ? settingsResult.value : null;
       setSummary(sumData);
       setSnapshots(snapData);
       setCharges(chargeData);
@@ -183,9 +189,9 @@ export const StorageBillingPage: React.FC = () => {
           <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-indigo-600 text-center" />
           Loading storage billing metrics...
         </Card>
-      ) : summary ? (
+      ) : (summary || (isPlatformAdmin && activeTab === 'control-panel' && cpSettings)) ? (
         <>
-          {activeTab === 'overview' && (
+          {activeTab === 'overview' && summary && (
             <div className="space-y-6">
               {/* Primary Metric Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
