@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuthStore } from '../../../store/auth.store';
 import {
   HardDrive,
   Database,
@@ -22,6 +23,8 @@ import {
 } from '../../../services/storage.service';
 
 export const StorageBillingPage: React.FC = () => {
+  const { role } = useAuthStore();
+  const isPlatformAdmin = role === 'SUPER_ADMIN' || role === 'SUPER_ADMIN_STAFF';
   const [summary, setSummary] = useState<StorageSummaryDashboard | null>(null);
   const [snapshots, setSnapshots] = useState<StorageSnapshotItem[]>([]);
   const [charges, setCharges] = useState<StorageUsageChargeItem[]>([]);
@@ -29,11 +32,12 @@ export const StorageBillingPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSavingCp, setIsSavingCp] = useState<boolean>(false);
   const [cpSuccessMsg, setCpSuccessMsg] = useState<string | null>(null);
+  const [cpErrorMsg, setCpErrorMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'control-panel' | 'snapshots' | 'history'>('overview');
 
   // Form states for Control Panel Settings
   const [cpEnabled, setCpEnabled] = useState<boolean>(false);
-  const [cpInterval, setCpInterval] = useState<'10_SECONDS' | '6_HOURS' | '12_HOURS' | '1_DAY'>('12_HOURS');
+  const [cpInterval, setCpInterval] = useState<'10_SECONDS' | '6_HOURS' | '12_HOURS' | '18_HOURS' | '1_DAY'>('12_HOURS');
   const [cpRate, setCpRate] = useState<string>('1.00');
 
   const fetchData = async () => {
@@ -43,7 +47,7 @@ export const StorageBillingPage: React.FC = () => {
         storageService.getSummaryDashboard(),
         storageService.getSnapshots(),
         storageService.getChargesHistory(),
-        storageService.getControlPanelSettings().catch(() => null),
+        isPlatformAdmin ? storageService.getControlPanelSettings().catch(() => null) : Promise.resolve(null),
       ]);
       setSummary(sumData);
       setSnapshots(snapData);
@@ -63,11 +67,18 @@ export const StorageBillingPage: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [isPlatformAdmin]);
 
   const handleSaveCpSettings = async () => {
+    if (!isPlatformAdmin) return;
+    const amount = Number(cpRate);
+    if (!Number.isFinite(amount) || amount < 0 || amount > 1000000) {
+      setCpErrorMsg('Enter a valid nonnegative credit rate per GB per interval.');
+      return;
+    }
     setIsSavingCp(true);
     setCpSuccessMsg(null);
+    setCpErrorMsg(null);
     try {
       const updated = await storageService.updateControlPanelSettings({
         storage_billing_enabled: cpEnabled,
@@ -80,6 +91,7 @@ export const StorageBillingPage: React.FC = () => {
       fetchData();
     } catch (err) {
       console.error('Failed to update control panel settings:', err);
+      setCpErrorMsg('Could not save storage settings. Check your access and rate, then retry.');
     } finally {
       setIsSavingCp(false);
     }
@@ -134,7 +146,7 @@ export const StorageBillingPage: React.FC = () => {
         >
           Storage Usage Overview
         </button>
-        <button
+        {isPlatformAdmin && <button
           onClick={() => setActiveTab('control-panel')}
           className={`pb-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors flex items-center gap-1.5 ${
             activeTab === 'control-panel'
@@ -143,7 +155,7 @@ export const StorageBillingPage: React.FC = () => {
           }`}
         >
           <Settings className="w-4 h-4" /> Control Panel Settings
-        </button>
+        </button>}
         <button
           onClick={() => setActiveTab('snapshots')}
           className={`pb-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
@@ -291,12 +303,18 @@ export const StorageBillingPage: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'control-panel' && (
+          {activeTab === 'control-panel' && isPlatformAdmin && (
             <Card className="p-6 max-w-2xl">
               <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
                 <Settings className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-lg font-semibold text-gray-900">Storage Billing Control Panel</h3>
               </div>
+
+              {cpErrorMsg && (
+                <div role="alert" className="mb-4 p-3 bg-red-50 text-red-800 text-xs rounded-md border border-red-200">
+                  {cpErrorMsg}
+                </div>
+              )}
 
               {cpSuccessMsg && (
                 <div className="mb-4 p-3 bg-emerald-50 text-emerald-800 text-xs rounded-md flex items-center gap-2 border border-emerald-200">
@@ -338,12 +356,13 @@ export const StorageBillingPage: React.FC = () => {
                   </label>
                   <select
                     value={cpInterval}
-                    onChange={(e) => setCpInterval(e.target.value as '10_SECONDS' | '6_HOURS' | '12_HOURS' | '1_DAY')}
+                    onChange={(e) => setCpInterval(e.target.value as '10_SECONDS' | '6_HOURS' | '12_HOURS' | '18_HOURS' | '1_DAY')}
                     className="w-full max-w-xs border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   >
                     <option value="10_SECONDS">10 Seconds — Test</option>
                     <option value="6_HOURS">6 Hours</option>
                     <option value="12_HOURS">12 Hours</option>
+                    <option value="18_HOURS">18 Hours</option>
                     <option value="1_DAY">1 Day</option>
                   </select>
                 </div>
@@ -351,7 +370,7 @@ export const StorageBillingPage: React.FC = () => {
                 {/* Credit Rate per GB */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">
-                    Credit Rate per GB
+                    Credit Rate per GB per Metering Interval
                   </label>
                   <div className="flex items-center gap-2 max-w-xs">
                     <input
@@ -368,7 +387,7 @@ export const StorageBillingPage: React.FC = () => {
 
                 {/* Helper text */}
                 <div className="p-3 bg-gray-50 rounded border border-gray-200 text-xs text-gray-600">
-                  The academy is charged according to its current stored data at each billing interval.
+                  The academy accumulates credits for its current stored data at each billing interval. Wallet debits occur at monthly settlement. The rate is per GB per metering interval, not per GB per month.
                 </div>
 
                 {/* Save button */}
