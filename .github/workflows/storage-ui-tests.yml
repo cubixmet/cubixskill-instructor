@@ -19,7 +19,9 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-      - run: npm ci
+      # Existing package-lock.json has stale transitive entries; use install
+      # temporarily and repair/commit the lockfile in a separate dependency PR.
+      - run: npm install --no-audit --no-fund
       - run: node --test tests/storageBillingGuards.test.mjs
       - run: npm run typecheck
       - run: npm run build
