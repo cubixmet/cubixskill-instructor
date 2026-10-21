@@ -15,10 +15,7 @@ export const DashboardLayout: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
 
-  const isEditorRoute =
-    /\/certificates(\/.*)?\/canvas$/.test(location.pathname);
-
-  // Detect open mobile personal or community chat (/discussions/personal/:studentId or /discussions/community/:courseId)
+  const isEditorRoute = /\/certificates(\/.*)?\/canvas$/.test(location.pathname);
   const isPersonalChatRoute = /\/discussions\/personal/.test(location.pathname);
   const isCommunityChatRoute = /\/discussions\/community/.test(location.pathname);
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -30,7 +27,6 @@ export const DashboardLayout: React.FC = () => {
     pathParts.length > 2 && !['community', 'discussions'].includes(pathParts[pathParts.length - 1])
   );
   const isActiveLiveClassroom = /\/live-classroom\/[^/]+/.test(location.pathname);
-
   const isFullMobileChatActive = isPersonalChatWithStudent || isCommunityChatWithCourse || isActiveLiveClassroom;
 
   if (isEditorRoute) {
@@ -43,9 +39,9 @@ export const DashboardLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-left overflow-x-hidden relative transition-colors duration-200">
+    <div className="min-h-screen bg-[var(--page-background)] text-[var(--text-primary)] text-left overflow-x-hidden relative transition-colors duration-200">
       <RouteScrollReset scrollContainerSelector="main" />
-      {/* Fixed Sidebar for Desktop and Tablet */}
+
       <div className="hidden md:block">
         <Sidebar
           isCollapsed={isCollapsed}
@@ -53,7 +49,6 @@ export const DashboardLayout: React.FC = () => {
         />
       </div>
 
-      {/* Mobile Drawer Sidebar */}
       <Drawer
         isOpen={mobileSidebarOpen}
         onClose={() => setMobileSidebarOpen(false)}
@@ -68,43 +63,39 @@ export const DashboardLayout: React.FC = () => {
         />
       </Drawer>
 
-      {/* Mobile Profile Action Drawer */}
       <MobileProfileDrawer
         isOpen={mobileProfileOpen}
         onClose={() => setMobileProfileOpen(false)}
       />
 
-      {/* Main Content Area - Left margin equals sidebar width with smooth transition */}
       <div
         className={cn(
-          "flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out min-h-screen",
+          "flex-1 flex flex-col min-w-0 transition-[margin] duration-300 ease-out min-h-screen",
           isCollapsed ? "md:ml-20" : "md:ml-64"
         )}
       >
-        {/* Sticky Header — Hidden on mobile when an active chat conversation is open */}
-        <div className={cn(isFullMobileChatActive && "hidden md:block")}>
+        <div className={cn("sticky top-0 z-40", isFullMobileChatActive && "hidden md:block")}>
           <Header onOpenMobileMenu={() => setMobileSidebarOpen(true)} />
         </div>
 
-        {/* Page Content */}
         <main
           className={cn(
             "flex-1 overflow-y-auto no-scrollbar w-full min-w-0",
             isFullMobileChatActive
-              ? "p-0 pb-0 md:px-6 md:py-8 md:pb-8 h-dvh md:h-auto"
-              : "px-3 py-4 sm:px-6 lg:p-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8"
+              ? "p-0 pb-0 md:px-6 md:py-7 md:pb-8 h-dvh md:h-auto"
+              : "px-3 py-4 sm:px-5 sm:py-5 lg:px-7 lg:py-7 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8"
           )}
         >
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
               className={cn(
                 "w-full min-w-0",
-                isFullMobileChatActive ? "max-w-none h-full" : "max-w-7xl mx-auto space-y-6"
+                isFullMobileChatActive ? "max-w-none h-full" : "max-w-[1440px] mx-auto space-y-5 sm:space-y-6"
               )}
             >
               <Outlet />
@@ -113,7 +104,6 @@ export const DashboardLayout: React.FC = () => {
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation — Hidden when active chat conversation is open */}
       <div className={cn(isFullMobileChatActive && "hidden md:block")}>
         <MobileBottomNav
           onOpenSidebar={() => setMobileSidebarOpen(true)}

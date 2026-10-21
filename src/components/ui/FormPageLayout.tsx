@@ -24,99 +24,64 @@ export const FormPageLayout: React.FC<FormPageLayoutProps> = ({
   const navigate = useNavigate();
 
   const handleBackClick = () => {
-    if (onBack) {
-      onBack();
-    } else if (backUrl) {
-      navigate(backUrl);
-    } else {
-      navigate(-1);
-    }
+    if (onBack) onBack();
+    else if (backUrl) navigate(backUrl);
+    else navigate(-1);
   };
 
   return (
-    <div
-      style={{
-        backgroundColor: 'var(--page-background)',
-        color: 'var(--text-primary)',
-      }}
-      className="min-h-screen font-sans text-left flex flex-col pb-0"
-    >
-      {/* Top Sticky Header */}
-      <header
-        style={{
-          backgroundColor: 'var(--surface)',
-          borderColor: 'var(--border)',
-        }}
-        className="sticky top-0 z-30 border-b shadow-2xs"
-      >
-        <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-3">
+    <div className="min-h-full text-[var(--text-primary)] text-left flex flex-col">
+      <header className="sticky top-0 z-30 -mx-3 sm:-mx-5 lg:-mx-7 px-3 sm:px-5 lg:px-7 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md shadow-[var(--shadow-xs)]">
+        <div className="max-w-[1440px] mx-auto py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <button
               type="button"
               onClick={handleBackClick}
-              style={{ color: 'var(--text-secondary)' }}
-              className="p-2 -ml-2 hover:bg-[var(--surface-hover)] hover:text-[var(--brand-primary)] rounded-xl transition-all cursor-pointer shrink-0"
-              title="Back"
+              className="size-10 -ml-1 inline-flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--brand-primary)] rounded-[var(--radius-sm)] transition-colors cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)]"
+              aria-label="Go back"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
 
             <div className="min-w-0 flex-1">
-              {/* Full Desktop Breadcrumb Chain (Desktop Only) */}
               {breadcrumbs.length > 0 && (
-                <div
-                  style={{ color: 'var(--text-muted)' }}
-                  className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold mb-0.5 flex-wrap"
-                >
-                  {breadcrumbs.map((b, idx) => (
-                    <React.Fragment key={`bc-${idx}-${b.label}`}>
-                      {idx > 0 && <span className="opacity-50">/</span>}
-                      {b.url ? (
+                <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-medium mb-0.5 flex-wrap text-[var(--text-muted)]">
+                  {breadcrumbs.map((breadcrumb, idx) => (
+                    <React.Fragment key={`bc-${idx}-${breadcrumb.label}`}>
+                      {idx > 0 && <span className="opacity-60">/</span>}
+                      {breadcrumb.url ? (
                         <button
                           type="button"
-                          onClick={() => navigate(b.url!)}
-                          className="hover:text-[var(--brand-primary)] hover:underline cursor-pointer"
+                          onClick={() => navigate(breadcrumb.url!)}
+                          className="hover:text-[var(--brand-primary)] transition-colors cursor-pointer"
                         >
-                          {b.label}
+                          {breadcrumb.label}
                         </button>
                       ) : (
-                        <span style={{ color: 'var(--text-primary)' }} className="font-bold">
-                          {b.label}
-                        </span>
+                        <span className="text-[var(--text-secondary)]">{breadcrumb.label}</span>
                       )}
                     </React.Fragment>
                   ))}
                 </div>
               )}
 
-              {/* Page Main Title */}
-              <h1
-                style={{ color: 'var(--text-primary)' }}
-                className="text-base sm:text-lg font-semibold leading-tight whitespace-normal break-words font-sans"
-              >
+              <h1 className="text-base sm:text-lg font-semibold leading-tight whitespace-normal break-words tracking-[-0.015em]">
                 {title}
               </h1>
 
-              {/* Subtitle / Module Context */}
               {subtitle && (
-                <p
-                  style={{ color: 'var(--text-muted)' }}
-                  className="text-xs font-normal leading-normal whitespace-normal break-words mt-0.5"
-                >
+                <p className="text-xs sm:text-[13px] text-[var(--text-muted)] font-normal leading-normal whitespace-normal break-words mt-0.5">
                   {subtitle}
                 </p>
               )}
             </div>
           </div>
 
-          {actions && (
-            <div className="flex items-center gap-2 shrink-0">{actions}</div>
-          )}
+          {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
         </div>
       </header>
 
-      {/* Main Page Form Body */}
-      <main className="flex-1 max-w-5xl w-full min-w-0 mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-4">
+      <main className="flex-1 max-w-[1440px] w-full min-w-0 mx-auto pt-4 sm:pt-5">
         {children}
       </main>
     </div>
