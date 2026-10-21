@@ -1,4 +1,6 @@
-import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { useOverlay } from '../../hooks/useOverlay';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowLeft } from 'lucide-react';
 import { cn } from '../../lib/cn';
@@ -27,16 +29,7 @@ export const AppResponsiveForm: React.FC<AppResponsiveFormProps> = ({
   children,
   className = '',
 }) => {
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [open]);
+  const panelRef = useOverlay(open, () => onOpenChange(false));
 
   const sizeClasses = {
     sm: 'max-w-[440px]',
@@ -48,7 +41,7 @@ export const AppResponsiveForm: React.FC<AppResponsiveFormProps> = ({
 
   const isFullScreenMobile = mobileMode === 'fullscreen';
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-6 overflow-hidden font-sans">
@@ -64,6 +57,11 @@ export const AppResponsiveForm: React.FC<AppResponsiveFormProps> = ({
 
           {/* Form Container */}
           <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title || "Dialog"}
+            tabIndex={-1}
             initial={
               isFullScreenMobile
                 ? { y: '100%', opacity: 1 }
@@ -132,6 +130,8 @@ export const AppResponsiveForm: React.FC<AppResponsiveFormProps> = ({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
+

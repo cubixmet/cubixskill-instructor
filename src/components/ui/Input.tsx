@@ -41,7 +41,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const errorId = `${inputId}-error`;
 
     return (
-      <div className="w-full space-y-1.5 text-left font-sans">
+      <div className="w-full min-w-0 space-y-1.5 text-left font-sans">
         {label && (
           <label
             htmlFor={inputId}
@@ -92,3 +92,4 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 );
 
 Input.displayName = "Input";
+

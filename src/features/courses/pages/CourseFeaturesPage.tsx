@@ -227,7 +227,7 @@ export const CourseFeaturesPage: React.FC = () => {
     return (
       <div className="space-y-4 p-4 font-sans text-xs text-left max-w-4xl mx-auto">
         <div className="h-12 bg-slate-100 dark:bg-[#111827] rounded-xl animate-pulse" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="h-32 bg-slate-100 dark:bg-[#111827] rounded-2xl animate-pulse" />
           <div className="h-32 bg-slate-100 dark:bg-[#111827] rounded-2xl animate-pulse" />
         </div>
@@ -366,7 +366,7 @@ export const CourseFeaturesPage: React.FC = () => {
           icon={SlidersHorizontal}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
           {filteredFeatures.map((feat) => {
             const isSelected = Boolean(localSelections[feat.code]);
             const isAcademyDisabled = !feat.academy_enabled;
@@ -506,3 +506,4 @@ export const CourseFeaturesPage: React.FC = () => {
     </div>
   );
 };
+

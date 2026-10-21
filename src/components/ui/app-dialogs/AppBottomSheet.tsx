@@ -1,4 +1,6 @@
-import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { useOverlay } from '../../../hooks/useOverlay';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppPopupHeader } from './AppPopupHeader';
 
@@ -17,18 +19,9 @@ export const AppBottomSheet: React.FC<AppBottomSheetProps> = ({
   subtitle,
   children,
 }) => {
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
+  const panelRef = useOverlay(isOpen, onClose);
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden font-sans">
@@ -44,6 +37,11 @@ export const AppBottomSheet: React.FC<AppBottomSheetProps> = ({
 
           {/* Bottom Sheet Panel */}
           <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title || "Dialog"}
+            tabIndex={-1}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -57,12 +55,14 @@ export const AppBottomSheet: React.FC<AppBottomSheetProps> = ({
               <AppPopupHeader title={title} subtitle={subtitle} onClose={onClose} />
             )}
 
-            <div className="p-4 sm:p-5 overflow-y-auto no-scrollbar flex-1 pb-[calc(16px+env(safe-area-inset-bottom))] text-xs">
+            <div className="p-4 sm:p-5 min-h-0 overflow-y-auto no-scrollbar flex-1 pb-[calc(16px+env(safe-area-inset-bottom))] text-xs">
               {children}
             </div>
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
+

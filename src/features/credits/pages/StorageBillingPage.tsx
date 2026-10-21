@@ -176,7 +176,7 @@ export const StorageBillingPage: React.FC = () => {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               {/* Primary Metric Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 <Card className="p-5 border-l-4 border-l-indigo-600">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -229,7 +229,7 @@ export const StorageBillingPage: React.FC = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Storage Rental Status & Next Billing Schedule
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   <div>
                     <span className="text-xs text-gray-500 uppercase font-semibold">Billing Status</span>
                     <div className="mt-1 flex items-center gap-2">
@@ -518,3 +518,4 @@ export const StorageBillingPage: React.FC = () => {
 };
 
 export default StorageBillingPage;
+

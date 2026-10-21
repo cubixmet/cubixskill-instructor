@@ -18,8 +18,8 @@ export const StudentReportsPage: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left font-sans max-w-5xl mx-auto pb-12">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3 min-w-0">
           <button
             type="button"
             onClick={() => navigate(`/students/${studentUuid}`)}
@@ -33,7 +33,7 @@ export const StudentReportsPage: React.FC = () => {
           </div>
         </div>
 
-        <Button variant="outline" size="sm" leftIcon={<Download className="w-4 h-4" />} className="border-[#E2E8F0] text-xs">
+        <Button variant="outline" size="sm" leftIcon={<Download className="w-4 h-4" />} className="w-full sm:w-auto border-[#E2E8F0] text-xs">
           Export Report PDF
         </Button>
       </div>
@@ -56,3 +56,4 @@ export const StudentReportsPage: React.FC = () => {
     </div>
   );
 };
+

@@ -47,7 +47,7 @@ export function ResponsiveTable<T>({
   }
 
   return (
-    <div className={cn("w-full text-left font-sans", className)}>
+    <div className={cn("w-full min-w-0 text-left font-sans", className)}>
       {/* Mobile Card List View (<640px) */}
       <div className="block sm:hidden space-y-3">
         {data.map((item, index) => {
@@ -65,7 +65,7 @@ export function ResponsiveTable<T>({
               key={keyExtractor(item, index)}
               onClick={() => onRowClick && onRowClick(item)}
               className={cn(
-                "p-4 bg-white border border-slate-200/90 rounded-2xl shadow-xs space-y-2.5 transition-all",
+                "p-4 bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-[#263244] rounded-2xl shadow-xs space-y-2.5 transition-all",
                 onRowClick && "active:scale-[0.99] cursor-pointer hover:border-blue-300"
               )}
             >
@@ -81,7 +81,7 @@ export function ResponsiveTable<T>({
                   return (
                     <div
                       key={colIdx}
-                      className="font-bold text-sm text-slate-900 border-b border-slate-100 pb-2 flex items-center justify-between"
+                      className="font-bold text-sm text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-[#263244] pb-2 flex flex-wrap items-start justify-between gap-2"
                     >
                       <span>{col.header}</span>
                       <span>{value}</span>
@@ -92,10 +92,10 @@ export function ResponsiveTable<T>({
                 return (
                   <div
                     key={colIdx}
-                    className="flex items-center justify-between text-xs text-slate-600 py-0.5"
+                    className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 text-sm text-slate-600 dark:text-slate-300 py-0.5"
                   >
                     <span className="font-medium text-slate-400">{col.header}:</span>
-                    <span className="font-semibold text-slate-800 text-right">{value}</span>
+                    <span className="min-w-0 break-words [overflow-wrap:anywhere] font-semibold text-slate-800 dark:text-slate-100 text-right">{value}</span>
                   </div>
                 );
               })}
@@ -105,7 +105,7 @@ export function ResponsiveTable<T>({
       </div>
 
       {/* Desktop & Tablet Responsive Scroll Table (>=640px) */}
-      <div className="hidden sm:block w-full overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs">
+      <div role="region" aria-label="Data table" tabIndex={0} className="hidden sm:block w-full min-w-0 overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs">
         <table className="w-full text-left border-collapse min-w-[600px]">
           <thead>
             <tr className="bg-slate-50/80 border-b border-slate-200/90">
@@ -149,3 +149,4 @@ export function ResponsiveTable<T>({
     </div>
   );
 }
+

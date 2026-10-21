@@ -49,13 +49,13 @@ export const FormPageLayout: React.FC<FormPageLayoutProps> = ({
         }}
         className="sticky top-0 z-30 border-b shadow-2xs"
       >
-        <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-3">
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <button
               type="button"
               onClick={handleBackClick}
               style={{ color: 'var(--text-secondary)' }}
-              className="p-2 -ml-2 hover:bg-[var(--surface-hover)] hover:text-[var(--brand-primary)] rounded-xl transition-all cursor-pointer shrink-0"
+              className="min-h-11 min-w-11 flex items-center justify-center p-2 -ml-2 hover:bg-[var(--surface-hover)] hover:text-[var(--brand-primary)] rounded-xl transition-all cursor-pointer shrink-0"
               title="Back"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -110,7 +110,7 @@ export const FormPageLayout: React.FC<FormPageLayoutProps> = ({
           </div>
 
           {actions && (
-            <div className="flex items-center gap-2 shrink-0">{actions}</div>
+            <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">{actions}</div>
           )}
         </div>
       </header>
@@ -122,3 +122,4 @@ export const FormPageLayout: React.FC<FormPageLayoutProps> = ({
     </div>
   );
 };
+

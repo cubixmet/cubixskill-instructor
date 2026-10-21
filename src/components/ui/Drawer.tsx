@@ -1,4 +1,6 @@
-import React, { useEffect } from "react";
+import { createPortal } from 'react-dom';
+import { useOverlay } from '../../hooks/useOverlay';
+import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowLeft } from "lucide-react";
 import { cn } from "../../lib/cn";
@@ -24,16 +26,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   size = "md",
   noPadding = false,
 }) => {
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen]);
+  const panelRef = useOverlay(isOpen, onClose);
 
   // Responsive Drawer Width Classes
   const sizeClasses = {
@@ -48,7 +41,7 @@ export const Drawer: React.FC<DrawerProps> = ({
     visible: { x: 0 },
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden font-sans">
@@ -69,7 +62,12 @@ export const Drawer: React.FC<DrawerProps> = ({
             )}
           >
             <motion.div
-              variants={variants}
+              ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title || "Navigation"}
+            tabIndex={-1}
+            variants={variants}
               initial="hidden"
               animate="visible"
               exit="hidden"
@@ -123,7 +121,9 @@ export const Drawer: React.FC<DrawerProps> = ({
           </div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
+
 

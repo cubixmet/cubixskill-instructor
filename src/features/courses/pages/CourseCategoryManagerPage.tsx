@@ -230,7 +230,7 @@ export const CourseCategoryManagerPage: React.FC = () => {
           actionIcon={<Plus className="w-4 h-4" />}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           {categories.map((cat) => {
             const courseCount = cat.courses_count || 0;
             const isCatActive = cat.is_active ?? true;
@@ -438,3 +438,4 @@ export const CourseCategoryManagerPage: React.FC = () => {
     </div>
   );
 };
+
