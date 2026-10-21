@@ -15,12 +15,14 @@ export const ViewToggle: React.FC<ViewToggleProps> = ({ mode, onChange, classNam
       <button
         type="button"
         onClick={() => onChange('grid')}
-        className={`p-1.5 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+        className={`min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 p-1.5 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
           mode === 'grid'
             ? 'bg-white dark:bg-[#2563EB] text-[#2563EB] dark:text-white shadow-2xs'
             : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
         }`}
         title="Grid View"
+        aria-label="Grid view"
+        aria-pressed={mode === 'grid'}
       >
         <LayoutGrid className="w-4 h-4" />
       </button>
@@ -28,15 +30,18 @@ export const ViewToggle: React.FC<ViewToggleProps> = ({ mode, onChange, classNam
       <button
         type="button"
         onClick={() => onChange('list')}
-        className={`p-1.5 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+        className={`min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 p-1.5 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
           mode === 'list'
             ? 'bg-white dark:bg-[#2563EB] text-[#2563EB] dark:text-white shadow-2xs'
             : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
         }`}
         title="List View"
+        aria-label="List view"
+        aria-pressed={mode === 'list'}
       >
         <List className="w-4 h-4" />
       </button>
     </div>
   );
 };
+

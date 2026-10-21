@@ -47,7 +47,8 @@ export function ResponsiveTable<T>({
   }
 
   return (
-    <div className={cn("w-full text-left", className)}>
+    <div className={cn("w-full min-w-0 text-left font-sans", className)}>
+      {/* Mobile Card List View (<640px) */}
       <div className="block sm:hidden space-y-3">
         {data.map((item, index) => {
           if (mobileCardRender) {
@@ -59,8 +60,8 @@ export function ResponsiveTable<T>({
               key={keyExtractor(item, index)}
               onClick={() => onRowClick?.(item)}
               className={cn(
-                "p-4 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] shadow-[var(--shadow-card)] space-y-2.5 transition-[transform,border-color,background-color]",
-                onRowClick && "active:scale-[0.99] cursor-pointer hover:border-[var(--primary-border)]"
+                "p-4 bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-[#263244] rounded-2xl shadow-xs space-y-2.5 transition-all",
+                onRowClick && "active:scale-[0.99] cursor-pointer hover:border-blue-300"
               )}
             >
               {columns.map((col, colIdx) => {
@@ -75,7 +76,7 @@ export function ResponsiveTable<T>({
                   return (
                     <div
                       key={colIdx}
-                      className="font-semibold text-sm text-[var(--text-primary)] border-b border-[var(--border)] pb-2 flex items-center justify-between gap-3"
+                      className="font-bold text-sm text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-[#263244] pb-2 flex flex-wrap items-start justify-between gap-2"
                     >
                       <span className="text-[var(--text-muted)] text-xs font-medium">{col.header}</span>
                       <span className="text-right">{value}</span>
@@ -84,9 +85,12 @@ export function ResponsiveTable<T>({
                 }
 
                 return (
-                  <div key={colIdx} className="flex items-center justify-between gap-3 text-xs py-0.5">
-                    <span className="font-medium text-[var(--text-muted)]">{col.header}:</span>
-                    <span className="font-medium text-[var(--text-secondary)] text-right">{value}</span>
+                  <div
+                    key={colIdx}
+                    className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 text-sm text-slate-600 dark:text-slate-300 py-0.5"
+                  >
+                    <span className="font-medium text-slate-400">{col.header}:</span>
+                    <span className="min-w-0 break-words [overflow-wrap:anywhere] font-semibold text-slate-800 dark:text-slate-100 text-right">{value}</span>
                   </div>
                 );
               })}
@@ -95,7 +99,8 @@ export function ResponsiveTable<T>({
         })}
       </div>
 
-      <div className="hidden sm:block w-full overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-card)]">
+      {/* Desktop & Tablet Responsive Scroll Table (>=640px) */}
+      <div role="region" aria-label="Data table" tabIndex={0} className="hidden sm:block w-full min-w-0 overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs">
         <table className="w-full text-left border-collapse min-w-[600px]">
           <thead>
             <tr className="bg-[var(--surface-secondary)] border-b border-[var(--border)]">
@@ -139,3 +144,4 @@ export function ResponsiveTable<T>({
     </div>
   );
 }
+

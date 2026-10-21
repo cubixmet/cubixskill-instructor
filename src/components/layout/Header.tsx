@@ -132,14 +132,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
       {/* ========================================== */}
       {/* MOBILE NAVBAR (COMPACT PREMIUM SAAS HEADER < lg) */}
       {/* ========================================== */}
-      <div className="lg:hidden px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-2 min-h-[56px]">
+      <div className="xl:hidden px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-2 min-h-[56px]">
         {/* Left: CubixSkill Logo Branding */}
         <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
           <div className="w-8 h-8 sm:w-9 sm:h-9 bg-[#2563EB] rounded-xl flex items-center justify-center text-white shadow-xs shrink-0">
             <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="text-left leading-none min-w-0">
-            <span className="text-base sm:text-lg font-bold tracking-tight text-[var(--text-primary)]">
+            <span className="text-sm sm:text-lg font-bold tracking-tight whitespace-nowrap text-[var(--text-primary)]">
               Cubix<span className="text-[#2563EB]">Skill</span>
             </span>
             <span className="block text-[9px] font-semibold text-[var(--text-muted)] tracking-wider uppercase mt-0.5">
@@ -154,7 +154,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
             type="button"
             onClick={() => setMobileSearchOpen((prev) => !prev)}
             aria-label="Search"
-            className="p-2 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl transition-colors cursor-pointer"
+            className="min-h-10 min-w-10 flex items-center justify-center p-2 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl transition-colors cursor-pointer"
           >
             <Search className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
@@ -163,7 +163,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
             type="button"
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
             aria-label="Toggle Theme"
-            className="p-2 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl transition-colors cursor-pointer"
+            className="min-h-10 min-w-10 flex items-center justify-center p-2 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl transition-colors cursor-pointer"
           >
             {resolvedTheme === 'dark' ? (
               <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
@@ -175,7 +175,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
           <Link
             to="/support"
             aria-label="Notifications"
-            className="p-2 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl transition-colors relative cursor-pointer"
+            className="min-h-10 min-w-10 flex items-center justify-center p-2 text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] rounded-xl transition-colors relative cursor-pointer"
           >
             <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-[#0B1120]" />
@@ -185,7 +185,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
             type="button"
             onClick={onOpenMobileMenu}
             aria-label="User Profile & Menu"
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#2563EB] text-white font-bold text-xs sm:text-sm flex items-center justify-center shadow-xs cursor-pointer ml-0.5"
+            className="w-10 h-10 shrink-0 rounded-full bg-[#2563EB] text-white font-bold text-xs sm:text-sm flex items-center justify-center shadow-xs cursor-pointer ml-0.5"
           >
             {getUserInitials(user?.full_name) || "S"}
           </button>
@@ -193,7 +193,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
       </div>
 
       {mobileSearchOpen && (
-        <div className="lg:hidden px-3.5 pb-2.5">
+        <div className="xl:hidden px-3.5 pb-2.5">
           <MobileGlobalSearch />
         </div>
       )}
@@ -201,7 +201,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
       {/* ========================================== */}
       {/* DESKTOP NAVBAR (SINGLE-ROW STRUCTURE >= lg) */}
       {/* ========================================== */}
-      <div className="hidden lg:flex h-16 px-6 items-center justify-between">
+      <div className="hidden xl:flex h-16 px-6 items-center justify-between">
         {/* Desktop Page Title Breadcrumb */}
         <div className="min-w-0">
           <p className="text-[10px] font-medium uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] truncate">
@@ -336,8 +336,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white font-bold text-xs flex items-center justify-center shadow-xs">
                 {getUserInitials(user?.full_name)}
               </div>
-              <div className="text-left">
-                <p className="text-xs font-medium text-slate-900 dark:text-slate-50 leading-tight">
+              <div className="text-left min-w-0 max-w-36">
+                <p className="truncate text-xs font-medium text-slate-900 dark:text-slate-50 leading-tight">
                   {user?.full_name || "Maggie Mclaughlin"}
                 </p>
                 <p className="text-[10px] font-normal text-slate-500 dark:text-slate-400">
@@ -444,3 +444,4 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
     </header>
   );
 };
+

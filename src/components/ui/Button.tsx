@@ -59,10 +59,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const sizeClasses = {
-      xs: "h-8 px-3 text-xs gap-1.5 rounded-[var(--radius-sm)]",
-      sm: "h-9 px-3.5 text-sm gap-2 rounded-[var(--radius-sm)]",
-      md: "h-11 px-4 sm:px-5 text-sm gap-2 rounded-[var(--radius-sm)]",
-      lg: "h-12 px-5 sm:px-6 text-[15px] gap-2.5 rounded-[var(--radius-md)]",
+      xs: "h-[44px] sm:h-[32px] px-[12px] text-xs gap-[6px] min-w-0 rounded-[8px]",
+      sm: "h-[44px] sm:h-[38px] px-[14px] text-sm gap-[8px] min-w-[100px]",
+      md: "h-[44px] sm:h-[48px] px-[20px] text-[14px] sm:text-[15px] gap-[8px] min-w-[130px]",
+      lg: "h-[48px] sm:h-[52px] px-[24px] text-base gap-[10px] min-w-[150px]",
     };
 
     const iconOnlyClasses = {
@@ -126,3 +126,4 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 Button.displayName = "Button";
+

@@ -228,7 +228,7 @@ export const BuyCreditsPage: React.FC = () => {
 
       {/* Main Content Area */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <Card key={i} padding="md" className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] animate-pulse h-64" />
           ))}
@@ -245,7 +245,7 @@ export const BuyCreditsPage: React.FC = () => {
           No Credit purchase options are currently available.
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           {rates.map((rateOption) => {
             const preview = couponPreviews[rateOption.id];
             const isCouponLoading = Boolean(couponLoading[rateOption.id]);
@@ -375,3 +375,4 @@ export const BuyCreditsPage: React.FC = () => {
     </div>
   );
 };
+

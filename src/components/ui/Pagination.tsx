@@ -51,8 +51,9 @@ export const Pagination: React.FC<PaginationProps> = ({
           variant="outline"
           size="sm"
           disabled={currentPage <= 1}
+          aria-label="Previous page"
           onClick={() => onPageChange(currentPage - 1)}
-          className="h-9 px-2.5 text-xs font-medium"
+          className="h-11 min-w-11 sm:h-9 sm:min-w-0 px-2.5 text-xs font-medium"
         >
           <ChevronLeft className="w-4 h-4 mr-0.5" />
           <span className="hidden sm:inline">Previous</span>
@@ -67,8 +68,9 @@ export const Pagination: React.FC<PaginationProps> = ({
           variant="outline"
           size="sm"
           disabled={currentPage >= totalPages}
+          aria-label="Next page"
           onClick={() => onPageChange(currentPage + 1)}
-          className="h-9 px-2.5 text-xs font-medium"
+          className="h-11 min-w-11 sm:h-9 sm:min-w-0 px-2.5 text-xs font-medium"
         >
           <span className="hidden sm:inline">Next</span>
           <ChevronRight className="w-4 h-4 ml-0.5" />
@@ -77,3 +79,4 @@ export const Pagination: React.FC<PaginationProps> = ({
     </div>
   );
 };
+

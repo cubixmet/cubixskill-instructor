@@ -1,4 +1,6 @@
-import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { useOverlay } from '../../hooks/useOverlay';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowLeft } from 'lucide-react';
 import { cn } from '../../lib/cn';
@@ -29,25 +31,7 @@ export const Modal: React.FC<ModalProps> = ({
   contentPadding = 'p-4 sm:p-6',
 }) => {
   const maxWidth = size || maxWidthProp || 'md';
-  const titleId = React.useId();
-  const subtitleId = React.useId();
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [isOpen, onClose]);
+  const panelRef = useOverlay(isOpen, onClose);
 
   const maxWidthClasses = {
     sm: 'max-w-[440px]',
@@ -59,7 +43,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   const isFullScreenMobile = mobileMode === 'fullscreen';
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-hidden text-left">
@@ -74,11 +58,16 @@ export const Modal: React.FC<ModalProps> = ({
           />
 
           <motion.div
+            ref={panelRef}
             role="dialog"
             aria-modal="true"
-            aria-labelledby={title ? titleId : undefined}
-            aria-describedby={subtitle ? subtitleId : undefined}
-            initial={isFullScreenMobile ? { y: '100%', opacity: 1 } : { opacity: 0, scale: 0.98, y: 12 }}
+            aria-label={title || "Dialog"}
+            tabIndex={-1}
+            initial={
+              isFullScreenMobile
+                ? { y: '100%', opacity: 1 }
+                : { opacity: 0, scale: 0.96, y: 20 }
+            }
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={isFullScreenMobile ? { y: '100%', opacity: 1 } : { opacity: 0, scale: 0.98, y: 12 }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
@@ -129,12 +118,14 @@ export const Modal: React.FC<ModalProps> = ({
               </div>
             )}
 
-            <div className={cn('overflow-y-auto no-scrollbar flex-1 pb-[calc(16px+env(safe-area-inset-bottom))]', contentPadding)}>
+            <div className={cn('min-h-0 overflow-y-auto no-scrollbar flex-1 pb-[calc(16px+env(safe-area-inset-bottom))]', contentPadding)}>
               {children}
             </div>
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
+

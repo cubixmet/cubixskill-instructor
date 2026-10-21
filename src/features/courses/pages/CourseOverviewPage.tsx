@@ -81,7 +81,7 @@ export const CourseOverviewPage: React.FC = () => {
       </div>
 
       {/* Summary Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <Card className="p-4 space-y-1 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#263244] rounded-2xl shadow-2xs">
           <span className="text-xs font-medium text-slate-500 dark:text-[#94A3B8] uppercase tracking-wider">Curriculum Modules</span>
           <p className="text-2xl font-semibold text-slate-900 dark:text-[#F8FAFC]">
@@ -180,3 +180,4 @@ export const CourseOverviewPage: React.FC = () => {
     </div>
   );
 };
+

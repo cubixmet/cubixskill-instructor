@@ -342,7 +342,7 @@ export const CourseListPage: React.FC = () => {
 
       {/* Main Content Area */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-5">
           {[1, 2, 3, 4, 5, 6].map((n) => (
             <div key={n} className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-4 space-y-3">
               <div className="flex gap-3 items-center">
@@ -377,7 +377,7 @@ export const CourseListPage: React.FC = () => {
           actionIcon={<Plus className="w-4 h-4" />}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-5">
           {courses.map((course) => {
             const isActionBusy = actionLoadingId === course.id;
 
@@ -592,3 +592,4 @@ export const CourseListPage: React.FC = () => {
     </div>
   );
 };
+

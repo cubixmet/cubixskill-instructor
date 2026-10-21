@@ -32,16 +32,16 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const helperId = `${inputId}-helper`;
 
     const sizeClasses = {
-      sm: "h-9 min-h-9 text-xs px-3 rounded-[var(--radius-sm)]",
-      md: "h-11 min-h-11 text-sm px-3.5 rounded-[var(--radius-sm)]",
-      lg: "h-12 min-h-12 text-[15px] px-4 rounded-[var(--radius-md)]",
+      sm: "h-11 min-h-[44px] sm:h-9 sm:min-h-[36px] text-xs px-3 rounded-lg",
+      md: "h-[46px] min-h-[46px] text-[14px] sm:text-[15px] px-3.5 rounded-[10px]",
+      lg: "h-[50px] min-h-[50px] text-base px-4 rounded-[10px]",
     };
 
     const currentSizeClass = typeof size === "string" ? sizeClasses[size] || sizeClasses.md : sizeClasses.md;
     const htmlSize = typeof size === "number" ? size : undefined;
 
     return (
-      <div className="w-full space-y-1.5 text-left">
+      <div className="w-full min-w-0 space-y-1.5 text-left font-sans">
         {label && (
           <label htmlFor={inputId} className="block text-[13px] sm:text-sm font-medium text-[var(--text-secondary)]">
             {label}
@@ -93,3 +93,4 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 );
 
 Input.displayName = "Input";
+

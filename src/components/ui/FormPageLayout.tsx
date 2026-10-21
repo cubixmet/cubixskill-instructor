@@ -30,15 +30,29 @@ export const FormPageLayout: React.FC<FormPageLayoutProps> = ({
   };
 
   return (
-    <div className="min-h-full text-[var(--text-primary)] text-left flex flex-col">
-      <header className="sticky top-0 z-30 -mx-3 sm:-mx-5 lg:-mx-7 px-3 sm:px-5 lg:px-7 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md shadow-[var(--shadow-xs)]">
-        <div className="max-w-[1440px] mx-auto py-3 flex items-center justify-between gap-3">
+    <div
+      style={{
+        backgroundColor: 'var(--page-background)',
+        color: 'var(--text-primary)',
+      }}
+      className="min-h-screen font-sans text-left flex flex-col pb-0"
+    >
+      {/* Top Sticky Header */}
+      <header
+        style={{
+          backgroundColor: 'var(--surface)',
+          borderColor: 'var(--border)',
+        }}
+        className="sticky top-0 z-30 border-b shadow-2xs"
+      >
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <button
               type="button"
               onClick={handleBackClick}
-              className="size-10 -ml-1 inline-flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--brand-primary)] rounded-[var(--radius-sm)] transition-colors cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)]"
-              aria-label="Go back"
+              style={{ color: 'var(--text-secondary)' }}
+              className="min-h-11 min-w-11 flex items-center justify-center p-2 -ml-2 hover:bg-[var(--surface-hover)] hover:text-[var(--brand-primary)] rounded-xl transition-all cursor-pointer shrink-0"
+              title="Back"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -77,7 +91,9 @@ export const FormPageLayout: React.FC<FormPageLayoutProps> = ({
             </div>
           </div>
 
-          {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+          {actions && (
+            <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">{actions}</div>
+          )}
         </div>
       </header>
 
@@ -87,3 +103,4 @@ export const FormPageLayout: React.FC<FormPageLayoutProps> = ({
     </div>
   );
 };
+
