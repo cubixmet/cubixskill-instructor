@@ -24,13 +24,9 @@ export const FormPageLayout: React.FC<FormPageLayoutProps> = ({
   const navigate = useNavigate();
 
   const handleBackClick = () => {
-    if (onBack) {
-      onBack();
-    } else if (backUrl) {
-      navigate(backUrl);
-    } else {
-      navigate(-1);
-    }
+    if (onBack) onBack();
+    else if (backUrl) navigate(backUrl);
+    else navigate(-1);
   };
 
   return (
@@ -62,47 +58,33 @@ export const FormPageLayout: React.FC<FormPageLayoutProps> = ({
             </button>
 
             <div className="min-w-0 flex-1">
-              {/* Full Desktop Breadcrumb Chain (Desktop Only) */}
               {breadcrumbs.length > 0 && (
-                <div
-                  style={{ color: 'var(--text-muted)' }}
-                  className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold mb-0.5 flex-wrap"
-                >
-                  {breadcrumbs.map((b, idx) => (
-                    <React.Fragment key={`bc-${idx}-${b.label}`}>
-                      {idx > 0 && <span className="opacity-50">/</span>}
-                      {b.url ? (
+                <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-medium mb-0.5 flex-wrap text-[var(--text-muted)]">
+                  {breadcrumbs.map((breadcrumb, idx) => (
+                    <React.Fragment key={`bc-${idx}-${breadcrumb.label}`}>
+                      {idx > 0 && <span className="opacity-60">/</span>}
+                      {breadcrumb.url ? (
                         <button
                           type="button"
-                          onClick={() => navigate(b.url!)}
-                          className="hover:text-[var(--brand-primary)] hover:underline cursor-pointer"
+                          onClick={() => navigate(breadcrumb.url!)}
+                          className="hover:text-[var(--brand-primary)] transition-colors cursor-pointer"
                         >
-                          {b.label}
+                          {breadcrumb.label}
                         </button>
                       ) : (
-                        <span style={{ color: 'var(--text-primary)' }} className="font-bold">
-                          {b.label}
-                        </span>
+                        <span className="text-[var(--text-secondary)]">{breadcrumb.label}</span>
                       )}
                     </React.Fragment>
                   ))}
                 </div>
               )}
 
-              {/* Page Main Title */}
-              <h1
-                style={{ color: 'var(--text-primary)' }}
-                className="text-base sm:text-lg font-semibold leading-tight whitespace-normal break-words font-sans"
-              >
+              <h1 className="text-base sm:text-lg font-semibold leading-tight whitespace-normal break-words tracking-[-0.015em]">
                 {title}
               </h1>
 
-              {/* Subtitle / Module Context */}
               {subtitle && (
-                <p
-                  style={{ color: 'var(--text-muted)' }}
-                  className="text-xs font-normal leading-normal whitespace-normal break-words mt-0.5"
-                >
+                <p className="text-xs sm:text-[13px] text-[var(--text-muted)] font-normal leading-normal whitespace-normal break-words mt-0.5">
                   {subtitle}
                 </p>
               )}
@@ -115,8 +97,7 @@ export const FormPageLayout: React.FC<FormPageLayoutProps> = ({
         </div>
       </header>
 
-      {/* Main Page Form Body */}
-      <main className="flex-1 max-w-5xl w-full min-w-0 mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-4">
+      <main className="flex-1 max-w-[1440px] w-full min-w-0 mx-auto pt-4 sm:pt-5">
         {children}
       </main>
     </div>

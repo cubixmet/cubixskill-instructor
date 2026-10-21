@@ -43,19 +43,19 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseClasses =
-      "inline-flex flex-row items-center justify-center font-medium rounded-[9px] transition-all duration-200 focus:outline-none focus-visible:outline-none select-none cursor-pointer text-[14px] sm:text-[15px] leading-none whitespace-nowrap flex-nowrap shrink-0 disabled:cursor-not-allowed disabled:shadow-none disabled:border-transparent disabled:hover:scale-100 disabled:hover:translate-y-0";
+      "inline-flex items-center justify-center whitespace-nowrap font-semibold transition-all duration-150 select-none cursor-pointer border focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none disabled:pointer-events-none";
 
     const variantClasses = {
       primary:
-        "bg-[#2563EB] text-[#FFFFFF] hover:bg-[#1D4ED8] focus:bg-[#1D4ED8] focus:ring-4 focus:ring-[#3B82F6]/30 shadow-[0_4px_12px_rgba(37,99,235,0.15)] border border-transparent disabled:bg-[#2563EB]/60 disabled:text-white/80",
+        "bg-[var(--brand-primary)] text-[var(--brand-primary-foreground)] border-transparent hover:bg-[var(--brand-primary-hover)] shadow-[0_7px_18px_rgba(37,99,235,0.16)]",
       secondary:
-        "bg-[#FFFFFF] dark:bg-[#111827] text-[#0F172A] dark:text-[#CBD5E1] border border-[#CBD5E1] dark:border-[#334155] hover:bg-[#F8FAFC] dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC] focus:ring-2 focus:ring-[#3B82F6]/20",
+        "bg-[var(--surface)] text-[var(--text-primary)] border-[var(--border-strong)] hover:bg-[var(--surface-hover)] shadow-[var(--shadow-xs)]",
       outline:
-        "bg-[#FFFFFF] dark:bg-[#111827] text-[#0F172A] dark:text-[#CBD5E1] border border-[#CBD5E1] dark:border-[#334155] hover:bg-[#F8FAFC] dark:hover:bg-[#172033] dark:hover:text-[#F8FAFC] focus:ring-2 focus:ring-[#3B82F6]/20",
+        "bg-transparent text-[var(--text-primary)] border-[var(--border-strong)] hover:bg-[var(--surface-hover)]",
       ghost:
-        "bg-transparent text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] border border-transparent",
+        "bg-transparent text-[var(--text-secondary)] border-transparent hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]",
       danger:
-        "bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-600 shadow-md shadow-rose-600/20 border border-transparent",
+        "bg-rose-600 text-white border-transparent hover:bg-rose-700 shadow-[0_7px_18px_rgba(225,29,72,0.14)]",
     };
 
     const sizeClasses = {
@@ -65,66 +65,60 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       lg: "h-[48px] sm:h-[52px] px-[24px] text-base gap-[10px] min-w-[150px]",
     };
 
-    const iconOnlyClasses = "w-[44px] h-[44px] min-w-[44px] min-h-[44px] p-0 rounded-[9px] flex flex-row items-center justify-center shrink-0";
+    const iconOnlyClasses = {
+      xs: "size-8 min-w-8 p-0 rounded-[var(--radius-sm)]",
+      sm: "size-9 min-w-9 p-0 rounded-[var(--radius-sm)]",
+      md: "size-11 min-w-11 p-0 rounded-[var(--radius-sm)]",
+      lg: "size-12 min-w-12 p-0 rounded-[var(--radius-md)]",
+    };
+
+    const statusClasses = isSuccess
+      ? "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-none"
+      : isError
+      ? "bg-rose-600 hover:bg-rose-700 text-white border-transparent shadow-none"
+      : undefined;
 
     return (
       <motion.button
         ref={ref}
         type={type}
         disabled={disabled || isLoading}
-        whileHover={disabled || isLoading ? undefined : { scale: 1.01 }}
-        whileTap={disabled || isLoading ? undefined : { scale: 0.99 }}
-        transition={{ duration: 0.15, ease: "easeOut" }}
+        whileTap={disabled || isLoading ? undefined : { scale: 0.985 }}
+        transition={{ duration: 0.12, ease: "easeOut" }}
         className={cn(
           baseClasses,
           variantClasses[variant],
-          isIconOnly ? iconOnlyClasses : sizeClasses[size],
-          fullWidth && "w-full min-w-full",
-          isSuccess && "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-none",
-          isError && "bg-rose-600 hover:bg-rose-700 text-white border-transparent shadow-none",
+          isIconOnly ? iconOnlyClasses[size] : sizeClasses[size],
+          fullWidth && "w-full",
+          statusClasses,
           className
         )}
         {...props}
       >
-        {/* Loading Spinner State */}
         {isLoading ? (
-          <span className="inline-flex flex-row items-center justify-center gap-[8px] whitespace-nowrap flex-nowrap shrink-0">
+          <span className="inline-flex items-center justify-center gap-2">
             <Spinner
               size="sm"
-              className={variant === "primary" || variant === "danger" || isSuccess || isError ? "text-white" : "text-[#2563EB] dark:text-[#60A5FA]"}
+              className={variant === "primary" || variant === "danger" || isSuccess || isError ? "text-white" : "text-[var(--brand-primary)]"}
             />
-            {loadingText && <span className="whitespace-nowrap shrink-0 leading-none">{loadingText}</span>}
+            {loadingText && <span>{loadingText}</span>}
           </span>
         ) : isSuccess ? (
-          <span className="inline-flex flex-row items-center justify-center gap-[8px] whitespace-nowrap flex-nowrap shrink-0">
-            <Check className="w-[18px] h-[18px] stroke-[3] shrink-0" />
-            <span className="whitespace-nowrap shrink-0 leading-none">Success</span>
+          <span className="inline-flex items-center justify-center gap-2">
+            <Check className="size-4.5 shrink-0 stroke-[2.5]" />
+            <span>Success</span>
           </span>
         ) : isError ? (
-          <span className="inline-flex flex-row items-center justify-center gap-[8px] whitespace-nowrap flex-nowrap shrink-0">
-            <AlertCircle className="w-[18px] h-[18px] shrink-0" />
-            <span className="whitespace-nowrap shrink-0 leading-none">Error</span>
+          <span className="inline-flex items-center justify-center gap-2">
+            <AlertCircle className="size-4.5 shrink-0" />
+            <span>Error</span>
           </span>
         ) : (
-          <span className="inline-flex flex-row items-center justify-center gap-[8px] whitespace-nowrap flex-nowrap shrink-0">
-            {leftIcon && (
-              <span className="inline-flex shrink-0 items-center justify-center w-[18px] h-[18px]">
-                {leftIcon}
-              </span>
-            )}
-            {typeof children === "string" ? (
-              <span className="whitespace-nowrap shrink-0 leading-none">{children}</span>
-            ) : (
-              <span className="inline-flex flex-row items-center justify-center gap-[8px] whitespace-nowrap flex-nowrap shrink-0">
-                {children}
-              </span>
-            )}
-            {rightIcon && (
-              <span className="inline-flex shrink-0 items-center justify-center w-[18px] h-[18px]">
-                {rightIcon}
-              </span>
-            )}
-          </span>
+          <>
+            {leftIcon && <span className="inline-flex size-[18px] shrink-0 items-center justify-center">{leftIcon}</span>}
+            {children}
+            {rightIcon && <span className="inline-flex size-[18px] shrink-0 items-center justify-center">{rightIcon}</span>}
+          </>
         )}
       </motion.button>
     );

@@ -33,11 +33,11 @@ export function ResponsiveTable<T>({
 }: ResponsiveTableProps<T>) {
   if (isLoading) {
     return (
-      <div className="w-full space-y-3 py-4 animate-pulse">
-        <div className="h-10 bg-slate-100 rounded-xl w-full" />
-        <div className="h-14 bg-slate-50 rounded-xl w-full" />
-        <div className="h-14 bg-slate-50 rounded-xl w-full" />
-        <div className="h-14 bg-slate-50 rounded-xl w-full" />
+      <div className="w-full space-y-3 py-4 animate-pulse" aria-busy="true" aria-label="Loading table">
+        <div className="h-10 bg-[var(--surface-hover)] rounded-[var(--radius-sm)] w-full" />
+        <div className="h-14 bg-[var(--surface-secondary)] rounded-[var(--radius-sm)] w-full" />
+        <div className="h-14 bg-[var(--surface-secondary)] rounded-[var(--radius-sm)] w-full" />
+        <div className="h-14 bg-[var(--surface-secondary)] rounded-[var(--radius-sm)] w-full" />
       </div>
     );
   }
@@ -52,18 +52,13 @@ export function ResponsiveTable<T>({
       <div className="block sm:hidden space-y-3">
         {data.map((item, index) => {
           if (mobileCardRender) {
-            return (
-              <div key={keyExtractor(item, index)}>
-                {mobileCardRender(item, index)}
-              </div>
-            );
+            return <div key={keyExtractor(item, index)}>{mobileCardRender(item, index)}</div>;
           }
 
-          // Fallback Default Card Render
           return (
             <div
               key={keyExtractor(item, index)}
-              onClick={() => onRowClick && onRowClick(item)}
+              onClick={() => onRowClick?.(item)}
               className={cn(
                 "p-4 bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-[#263244] rounded-2xl shadow-xs space-y-2.5 transition-all",
                 onRowClick && "active:scale-[0.99] cursor-pointer hover:border-blue-300"
@@ -83,8 +78,8 @@ export function ResponsiveTable<T>({
                       key={colIdx}
                       className="font-bold text-sm text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-[#263244] pb-2 flex flex-wrap items-start justify-between gap-2"
                     >
-                      <span>{col.header}</span>
-                      <span>{value}</span>
+                      <span className="text-[var(--text-muted)] text-xs font-medium">{col.header}</span>
+                      <span className="text-right">{value}</span>
                     </div>
                   );
                 }
@@ -108,12 +103,12 @@ export function ResponsiveTable<T>({
       <div role="region" aria-label="Data table" tabIndex={0} className="hidden sm:block w-full min-w-0 overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs">
         <table className="w-full text-left border-collapse min-w-[600px]">
           <thead>
-            <tr className="bg-slate-50/80 border-b border-slate-200/90">
+            <tr className="bg-[var(--surface-secondary)] border-b border-[var(--border)]">
               {columns.map((col, idx) => (
                 <th
                   key={idx}
                   className={cn(
-                    "px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap",
+                    "px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)] whitespace-nowrap",
                     col.className
                   )}
                 >
@@ -122,13 +117,13 @@ export function ResponsiveTable<T>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+          <tbody className="divide-y divide-[var(--border)] text-sm font-normal text-[var(--text-secondary)]">
             {data.map((item, index) => (
               <tr
                 key={keyExtractor(item, index)}
-                onClick={() => onRowClick && onRowClick(item)}
+                onClick={() => onRowClick?.(item)}
                 className={cn(
-                  "hover:bg-slate-50/70 transition-colors",
+                  "transition-colors hover:bg-[var(--surface-hover)]",
                   onRowClick && "cursor-pointer"
                 )}
               >

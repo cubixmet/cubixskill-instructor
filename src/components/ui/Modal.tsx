@@ -35,9 +35,9 @@ export const Modal: React.FC<ModalProps> = ({
 
   const maxWidthClasses = {
     sm: 'max-w-[440px]',
-    md: 'max-w-[540px]',
-    lg: 'max-w-[740px]',
-    xl: 'max-w-[960px]',
+    md: 'max-w-[560px]',
+    lg: 'max-w-[760px]',
+    xl: 'max-w-[980px]',
     '2xl': 'max-w-[1200px]',
   };
 
@@ -46,18 +46,17 @@ export const Modal: React.FC<ModalProps> = ({
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-hidden font-sans text-left">
-          {/* Backdrop */}
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-hidden text-left">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.16 }}
             onClick={onClose}
-            className="fixed inset-0 bg-[#0F172A]/60 backdrop-blur-xs"
+            className="fixed inset-0 bg-slate-950/55 backdrop-blur-[2px]"
+            aria-hidden="true"
           />
 
-          {/* Dialog Container */}
           <motion.div
             ref={panelRef}
             role="dialog"
@@ -70,39 +69,36 @@ export const Modal: React.FC<ModalProps> = ({
                 : { opacity: 0, scale: 0.96, y: 20 }
             }
             animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={
-              isFullScreenMobile
-                ? { y: '100%', opacity: 1 }
-                : { opacity: 0, scale: 0.96, y: 20 }
-            }
-            transition={{ type: 'spring', damping: 25, stiffness: 280 }}
+            exit={isFullScreenMobile ? { y: '100%', opacity: 1 } : { opacity: 0, scale: 0.98, y: 12 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
             className={cn(
-              'relative z-10 w-full bg-white dark:bg-[#111827] flex flex-col text-left overflow-hidden shadow-2xl border border-[#E2E8F0] dark:border-[#263244] dark:shadow-[0_0_0_1px_rgba(37,99,235,0.15),0_8px_32px_rgba(0,0,0,0.5)]',
+              'relative z-10 w-full bg-[var(--surface)] text-[var(--text-primary)] flex flex-col text-left overflow-hidden border border-[var(--border)] shadow-[var(--shadow-elevated)]',
               isFullScreenMobile
-                ? 'h-[100dvh] sm:h-auto sm:max-h-[88vh] rounded-none sm:rounded-[20px]'
-                : 'rounded-t-[24px] sm:rounded-[20px] max-h-[88vh]',
+                ? 'h-[100dvh] sm:h-auto sm:max-h-[88vh] rounded-none sm:rounded-[var(--radius-xl)]'
+                : 'rounded-t-[var(--radius-xl)] sm:rounded-[var(--radius-xl)] max-h-[88vh]',
               maxWidthClasses[maxWidth]
             )}
           >
             {(title || showClose) && (
-              <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-[#E2E8F0] dark:border-[#263244] bg-white dark:bg-[#111827] shrink-0 sticky top-0 z-20 min-h-[56px]">
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-[var(--border)] bg-[var(--surface)] shrink-0 sticky top-0 z-20 min-h-[58px]">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="sm:hidden p-2 -ml-1 rounded-xl text-[#0F172A] dark:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] cursor-pointer"
+                    className="sm:hidden p-2 -ml-1 rounded-[var(--radius-sm)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
                     aria-label="Back"
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </button>
+
                   <div className="min-w-0">
                     {title && (
-                      <h3 className="text-base sm:text-[18px] font-semibold text-[#0F172A] dark:text-[#F8FAFC] leading-snug truncate">
+                      <h3 id={titleId} className="text-base sm:text-[18px] font-semibold text-[var(--text-primary)] leading-snug truncate">
                         {title}
                       </h3>
                     )}
                     {subtitle && (
-                      <p className="text-xs sm:text-[13px] text-[#64748B] dark:text-[#94A3B8] font-normal mt-0.5 truncate">
+                      <p id={subtitleId} className="text-xs sm:text-[13px] text-[var(--text-muted)] font-normal mt-0.5 truncate">
                         {subtitle}
                       </p>
                     )}
@@ -113,7 +109,7 @@ export const Modal: React.FC<ModalProps> = ({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="p-2 rounded-xl text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#172033] transition-colors cursor-pointer"
+                    className="p-2 rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)]"
                     aria-label={title ? `Close ${title}` : 'Close modal'}
                   >
                     <X className="w-5 h-5" />

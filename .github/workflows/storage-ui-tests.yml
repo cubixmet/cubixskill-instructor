@@ -1,0 +1,27 @@
+name: Instructor storage UI checks
+
+on:
+  pull_request:
+    paths:
+      - "src/features/credits/pages/StorageBillingPage.tsx"
+      - "src/services/storage.service.ts"
+      - "tests/storageBillingGuards.test.mjs"
+      - ".github/workflows/storage-ui-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  storage-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      # Existing package-lock.json has stale transitive entries; use install
+      # temporarily and repair/commit the lockfile in a separate dependency PR.
+      - run: npm install --no-audit --no-fund
+      - run: node --test tests/storageBillingGuards.test.mjs
+      - run: npm run typecheck
+      - run: npm run build
