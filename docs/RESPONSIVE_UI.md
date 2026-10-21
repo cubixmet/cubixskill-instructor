@@ -8,6 +8,8 @@ Validation: production Vite build passed. Overlay DOM interaction checks passed 
 
 Browser visual validation is pending: this environment has no browser binary, and the Chromium download returned an invalid archive. Builds and DOM checks do not establish pixel layout correctness. Before merging, check 320px, 390px, 768px, 1024px and 1440px widths with long names, populated and empty lists, loading/error states, open dialogs, keyboard navigation, iOS safe areas and mobile keyboards. Certificate canvases, media controls, checkout, chat and live classroom require real browser checks with representative data.
 
+Mobile follow-up: viewport-fit=cover enables safe-area insets on supported phones; small shared buttons keep a 44px mobile height. Compact inputs, checkbox labels and view controls have larger mobile targets. The enrollment footer renders outside the animated page container, stacks its actions below 360px and stays above bottom navigation. Tablet enrollment actions remain in the page summary. Both production builds passed after this follow-up. Browser visual verification remains pending.
+
 ## Page inventory
 
 All pages below receive the shared CSS foundations. “Page adjustment” identifies files directly changed in this PR. Other pages keep their existing page layout; listing them is not a claim of completed browser testing.
@@ -79,7 +81,7 @@ All pages below receive the shared CSS foundations. “Page adjustment” identi
 | `src/features/staff/pages/StaffDirectoryPage.tsx` | Shared foundations; existing page layout |
 | `src/features/staff/pages/StaffEditPage.tsx` | Shared foundations; existing page layout |
 | `src/features/students/pages/BulkUploadStudentsPage.tsx` | Shared foundations; existing page layout |
-| `src/features/students/pages/EnrollStudentPage.tsx` | Shared foundations; existing page layout |
+| `src/features/students/pages/EnrollStudentPage.tsx` | Page adjustment + shared foundations |
 | `src/features/students/pages/StudentCreatePage.tsx` | Shared foundations; existing page layout |
 | `src/features/students/pages/StudentEditPage.tsx` | Shared foundations; existing page layout |
 | `src/features/students/pages/StudentListPage.tsx` | Shared foundations; existing page layout |

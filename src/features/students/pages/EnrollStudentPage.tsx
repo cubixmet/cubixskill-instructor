@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom';
 
@@ -952,7 +953,7 @@ export const EnrollStudentPage: React.FC = () => {
           </div>
 
           {/* RIGHT COLUMN: DESKTOP ENROLLMENT SUMMARY SIDEBAR (HIDDEN ON MOBILE) */}
-          <div className="hidden lg:block space-y-4 sticky top-6">
+          <div className="hidden md:block space-y-4 lg:sticky lg:top-6">
             <Card className="bg-white dark:bg-[#0E1733] border border-slate-200 dark:border-[#1E2B4B] p-5 rounded-2xl shadow-2xs space-y-4 text-left">
               <h2 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">Enrollment Summary</h2>
 
@@ -1007,9 +1008,9 @@ export const EnrollStudentPage: React.FC = () => {
       )}
 
       {/* MOBILE STICKY ENROLLMENT ACTION BAR (STRICTLY ABOVE BOTTOM NAVIGATION BAR MATCHING SCREENSHOT) */}
-      {!singleStudent && tabMode === 'search' && (
-        <div className="lg:hidden fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] left-0 right-0 z-30 p-3 bg-[#091024]/95 backdrop-blur-md border-t border-[#192748] shadow-2xl">
-          <div className="max-w-[500px] mx-auto flex items-center justify-between gap-3">
+      {!singleStudent && tabMode === 'search' && createPortal(
+        <div className="md:hidden fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-30 p-3 bg-[#091024]/95 backdrop-blur-md border-t border-[#192748] shadow-2xl">
+          <div className="max-w-[500px] mx-auto flex flex-col min-[360px]:flex-row min-[360px]:items-center justify-between gap-3">
             <div className="min-w-0">
               <span className="text-xs font-bold text-white block truncate">
                 {selectedStudentIds.length} students selected
@@ -1020,7 +1021,7 @@ export const EnrollStudentPage: React.FC = () => {
               type="button"
               onClick={handleConfirmEnrollment}
               disabled={isSubmitting || selectedStudentIds.length === 0}
-              className={`h-11 px-5 rounded-xl font-bold text-xs transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+              className={`w-full min-[360px]:w-auto h-11 px-5 rounded-xl font-bold text-xs transition-all flex items-center justify-center shrink-0 cursor-pointer ${
                 selectedStudentIds.length > 0
                   ? 'bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-md'
                   : 'bg-[#182544] text-[#4A5D7C] cursor-not-allowed'
@@ -1029,7 +1030,8 @@ export const EnrollStudentPage: React.FC = () => {
               {isSubmitting ? 'Enrolling...' : 'Enroll Selected Students'}
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* MOBILE FILTER MODAL */}
@@ -1061,3 +1063,4 @@ export const EnrollStudentPage: React.FC = () => {
     </div>
   );
 };
+

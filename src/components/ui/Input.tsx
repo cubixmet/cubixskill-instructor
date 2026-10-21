@@ -30,7 +30,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const inputId = id || generatedId;
 
     const sizeClasses = {
-      sm: "h-9 min-h-[36px] text-xs px-3 rounded-lg",
+      sm: "h-11 min-h-[44px] sm:h-9 sm:min-h-[36px] text-xs px-3 rounded-lg",
       md: "h-[46px] min-h-[46px] text-[14px] sm:text-[15px] px-3.5 rounded-[10px]",
       lg: "h-[50px] min-h-[50px] text-base px-4 rounded-[10px]",
     };
